@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /dashboard
+Disallow: /login
+
+Sitemap: https://neerzy.vercel.app/sitemap.xml

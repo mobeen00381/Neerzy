@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Proof Section Demo</title>
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+
+<!-- ====================================================================== -->
+<!-- BEGIN SOCIAL PROOF & TRUST SECTION                                      -->
+<!-- Copy everything from the <style> block down through the </section>      -->
+<!-- ====================================================================== -->
+
+<style>
+    /* Scoped Styles for the Social Proof Section */
+    .neerzy-social-proof {
+        --sp-bg: #0F1017;
+        --sp-card-bg: #1A1B26;
+        --sp-border: #2A2C3E;
+        --sp-text: #F1F5F9;
+        --sp-muted: #94A3B8;
+        --sp-accent: #3B82F6;
+        --sp-success: #10B981;
+        --sp-star: #FBBF24;
+        
+        background-color: var(--sp-bg);
+        color: var(--sp-text);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding: 80px 20px;
+        line-height: 1.5;
+        box-sizing: border-box;
+    }
+
+    .neerzy-social-proof * {
+        box-sizing: border-box;
+    }
+
+    .sp-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .sp-section-title {
+        text-align: center;
+        font-size: 32px;
+        font-weight: 800;
+        margin-bottom: 50px;
+        letter-spacing: -0.5px;
+    }
+
+    /* Testimonials Array */
+    .sp-testimonials {
+        display: flex;
+        overflow-x: auto;
+        gap: 20px;
+        padding-bottom: 20px;
+        margin-bottom: 60px;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+    }
+    .sp-testimonials::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
+    }
+
+    .sp-card {
+        flex: 0 0 85%;
+        max-width: 320px;
+        background-color: var(--sp-card-bg);
+        border: 1px solid var(--sp-border);
+        border-radius: 12px;
+        padding: 25px;
+        scroll-snap-align: center;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sp-card-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .sp-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: #2D3043;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .sp-card-meta {
+        flex-grow: 1;
+    }
+
+    .sp-name-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2px;
+    }
+
+    .sp-name {
+        font-weight: 700;
+        font-size: 16px;
+    }
+
+    .sp-stars {
+        color: var(--sp-star);
+        font-size: 14px;
+        letter-spacing: 1px;
+    }
+
+    .sp-trade-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--sp-muted);
+    }
+
+    .sp-trade-badge {
+        background-color: rgba(59, 130, 246, 0.15);
+        color: #60A5FA;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .sp-review {
+        font-size: 15px;
+        color: #CBD5E1;
+        margin-bottom: 20px;
+        flex-grow: 1;
+    }
+
+    .sp-date {
+        font-size: 12px;
+        color: var(--sp-muted);
+        border-top: 1px solid var(--sp-border);
+        padding-top: 15px;
+        margin-top: auto;
+    }
+
+    /* Results Case Studies */
+    .sp-results-row {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-bottom: 80px;
+    }
+
+    .sp-result-box {
+        background-color: var(--sp-card-bg);
+        border: 1px solid var(--sp-border);
+        border-radius: 12px;
+        padding: 30px 20px;
+        text-align: center;
+    }
+
+    .sp-result-title {
+        font-weight: 600;
+        color: var(--sp-muted);
+        font-size: 14px;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .sp-result-metric {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+
+    .sp-metric-before {
+        font-size: 16px;
+        color: #94A3B8;
+        text-decoration: line-through;
+    }
+
+    .sp-metric-arrow {
+        color: var(--sp-muted);
+        font-size: 20px;
+        margin: 5px 0;
+    }
+
+    .sp-metric-after {
+        font-size: 24px;
+        font-weight: 800;
+        color: var(--sp-success);
+    }
+
+    .sp-result-time {
+        font-size: 14px;
+        color: var(--sp-text);
+        background-color: rgba(255,255,255,0.05);
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        margin-top: 10px;
+    }
+
+    /* Trust Badges */
+    .sp-trust-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .sp-trust-badge {
+        background-color: var(--sp-card-bg);
+        border: 1px solid var(--sp-border);
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        padding: 8px 24px 8px 8px;
+        gap: 12px;
+    }
+
+    .sp-trust-icon {
+        width: 36px;
+        height: 36px;
+        background-color: #2D3043;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+    }
+
+    .sp-trust-text {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sp-trust-title {
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .sp-trust-sub {
+        font-size: 11px;
+        color: var(--sp-muted);
+        line-height: 1.2;
+        margin-top: 2px;
+    }
+
+    /* Desktop Adjustments */
+    @media (min-width: 768px) {
+        .sp-testimonials {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            justify-content: center;
+            overflow-x: visible;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .sp-testimonials {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .sp-card {
+            flex: 1 1 30%;
+            max-width: 380px;
+        }
+
+        .sp-results-row {
+            flex-direction: row;
+        }
+
+        .sp-result-box {
+            flex: 1;
+        }
+
+        .sp-result-metric {
+            flex-direction: row;
+            gap: 15px;
+        }
+
+        .sp-metric-arrow { margin: 0; }
+    }
+</style>
+
+<section class="neerzy-social-proof">
+    <div class="sp-container">
+
+        <h2 class="sp-section-title">Trusted by 200+ Local Businesses</h2>
+
+        <!-- SECTION 1: Testimonials -->
+        <div class="sp-testimonials">
+            
+            <!-- Card 1 -->
+            <div class="sp-card">
+                <div class="sp-card-header">
+                    <div class="sp-avatar" style="background-color: #1e3a8a;">MT</div>
+                    <div class="sp-card-meta">
+                        <div class="sp-name-row">
+                            <span class="sp-name">Mike T.</span>
+                            <span class="sp-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        </div>
+                        <div class="sp-trade-row">
+                            <span class="sp-trade-badge">Plumber</span>
+                            <span>Austin, TX</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sp-review">
+                    "Wasnt sure about this SEO stuff initially. But it works. I went from 2 calls a week to 9 calls a week in 45 days. Beats paying for bad leads."
+                </div>
+                <div class="sp-date">Rating 5.0 • Oct 2025</div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="sp-card">
+                <div class="sp-card-header">
+                    <div class="sp-avatar" style="background-color: #b45309;">DS</div>
+                    <div class="sp-card-meta">
+                        <div class="sp-name-row">
+                            <span class="sp-name">Dave S.</span>
+                            <span class="sp-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        </div>
+                        <div class="sp-trade-row">
+                            <span class="sp-trade-badge" style="color: #fbbf24; background-color: rgba(251, 191, 36, 0.15)">Electrician</span>
+                            <span>Denver, CO</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sp-review">
+                    "Site went up fast. Didnt have to do much. We started getting 6 jobs a week from google search. Easy to deal with no BS."
+                </div>
+                <div class="sp-date">Rating 4.9 • Nov 2025</div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="sp-card">
+                <div class="sp-card-header">
+                    <div class="sp-avatar" style="background-color: #047857;">JR</div>
+                    <div class="sp-card-meta">
+                        <div class="sp-name-row">
+                            <span class="sp-name">Jim R.</span>
+                            <span class="sp-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        </div>
+                        <div class="sp-trade-row">
+                            <span class="sp-trade-badge" style="color: #34d399; background-color: rgba(52, 211, 153, 0.15)">HVAC</span>
+                            <span>Phoenix, AZ</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sp-review">
+                    "Good honest service with no hidden stuff. Our emergency AC repair calls doubled in just 2 months. Paid for itself immediately."
+                </div>
+                <div class="sp-date">Rating 5.0 • Jan 2026</div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="sp-card">
+                <div class="sp-card-header">
+                    <div class="sp-avatar" style="background-color: #be123c;">SM</div>
+                    <div class="sp-card-meta">
+                        <div class="sp-name-row">
+                            <span class="sp-name">Steve M.</span>
+                            <span class="sp-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        </div>
+                        <div class="sp-trade-row">
+                            <span class="sp-trade-badge" style="color: #fb7185; background-color: rgba(251, 113, 133, 0.15)">Roofer</span>
+                            <span>Tampa, FL</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sp-review">
+                    "Tried wix myself before and gave up. They built it in a day. Got 3 roof tear offs just from the website last month alone."
+                </div>
+                <div class="sp-date">Rating 5.0 • Dec 2025</div>
+            </div>
+
+            <!-- Card 5 -->
+            <div class="sp-card">
+                <div class="sp-card-header">
+                    <div class="sp-avatar" style="background-color: #4338ca;">BK</div>
+                    <div class="sp-card-meta">
+                        <div class="sp-name-row">
+                            <span class="sp-name">Bill K.</span>
+                            <span class="sp-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        </div>
+                        <div class="sp-trade-row">
+                            <span class="sp-trade-badge" style="color: #818cf8; background-color: rgba(129, 140, 248, 0.15)">Landscaper</span>
+                            <span>Seattle, WA</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sp-review">
+                    "Dont got time for computer stuff so they handle all of it. Went from basically nothing to 10 yard cleanups a week right now."
+                </div>
+                <div class="sp-date">Rating 4.9 • Feb 2026</div>
+            </div>
+
+        </div>
+
+        <!-- SECTION 2: Results Case Study Row -->
+        <div class="sp-results-row">
+            
+            <div class="sp-result-box">
+                <div class="sp-result-title">Electrician | Denver, CO</div>
+                <div class="sp-result-metric">
+                    <span class="sp-metric-before">0 search calls/mo</span>
+                    <span class="sp-metric-arrow">&rarr;</span>
+                    <span class="sp-metric-after">24 calls/mo</span>
+                </div>
+                <div class="sp-result-time">Achieved in 45 days</div>
+            </div>
+
+            <div class="sp-result-box">
+                <div class="sp-result-title">HVAC | Phoenix, AZ</div>
+                <div class="sp-result-metric">
+                    <span class="sp-metric-before">4 emergency/mo</span>
+                    <span class="sp-metric-arrow">&rarr;</span>
+                    <span class="sp-metric-after">15 emergency/mo</span>
+                </div>
+                <div class="sp-result-time">Achieved in 60 days</div>
+            </div>
+
+            <div class="sp-result-box">
+                <div class="sp-result-title">Plumber | Austin, TX</div>
+                <div class="sp-result-metric">
+                    <span class="sp-metric-before">2 jobs/week</span>
+                    <span class="sp-metric-arrow">&rarr;</span>
+                    <span class="sp-metric-after">9 jobs/week</span>
+                </div>
+                <div class="sp-result-time">Achieved in 45 days</div>
+            </div>
+
+        </div>
+
+        <!-- SECTION 3: Trust Badges Row -->
+        <div class="sp-trust-row">
+            
+            <div class="sp-trust-badge">
+                <div class="sp-trust-icon">&#10004;&#65039;</div>
+                <div class="sp-trust-text">
+                    <span class="sp-trust-title">Google Verified</span>
+                    <span class="sp-trust-sub">Clean local setup</span>
+                </div>
+            </div>
+
+            <div class="sp-trust-badge">
+                <div class="sp-trust-icon">&#128197;</div>
+                <div class="sp-trust-text">
+                    <span class="sp-trust-title">30-Day Free Trial</span>
+                    <span class="sp-trust-sub">Try it risk-free</span>
+                </div>
+            </div>
+
+            <div class="sp-trust-badge">
+                <div class="sp-trust-icon">&#128274;</div>
+                <div class="sp-trust-text">
+                    <span class="sp-trust-title">Domain Ownership</span>
+                    <span class="sp-trust-sub">You own your name</span>
+                </div>
+            </div>
+
+            <div class="sp-trust-badge">
+                <div class="sp-trust-icon">&#129302;</div>
+                <div class="sp-trust-text">
+                    <span class="sp-trust-title">No Contracts</span>
+                    <span class="sp-trust-sub">Cancel anytime</span>
+                </div>
+            </div>
+
+            <div class="sp-trust-badge">
+                <div class="sp-trust-icon" style="color: var(--sp-star); font-size: 20px;">&#9733;</div>
+                <div class="sp-trust-text">
+                    <span class="sp-trust-title">4.9/5 Rated</span>
+                    <span class="sp-trust-sub">By local businesses</span>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+<!-- ====================================================================== -->
+<!-- END SOCIAL PROOF & TRUST SECTION                                        -->
+<!-- ====================================================================== -->
+
+</body>
+</html>
