@@ -16,18 +16,14 @@ export async function POST(req: Request) {
   const signature = headerList.get("Paddle-Signature") as string;
 
   try {
-    // Validate the webhook signature
-    const isValid = paddle.webhooks.verify(body, process.env.PADDLE_WEBHOOK_SECRET || "", signature);
-    if (!isValid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-    }
-
-    const event = JSON.parse(body);
-    console.log(`🔔 Paddle Webhook Received: ${event.event_type}`);
+    // Validate and parse the webhook event
+    const event = await paddle.webhooks.unmarshal(body, process.env.PADDLE_WEBHOOK_SECRET || "", signature);
+    
+    console.log(`🔔 Paddle Webhook Received: ${event.eventType}`);
 
     // Handle successful transaction (Checkout Completed)
-    if (event.event_type === "transaction.completed" || event.event_type === "subscription.created") {
-      const customData = event.data.custom_data;
+    if (event.eventType === "transaction.completed" || event.eventType === "subscription.created") {
+      const customData = event.data.customData;
       if (!customData) {
          console.warn("⚠️ No custom data found in Paddle event. Skipping.");
          return NextResponse.json({ received: true });
