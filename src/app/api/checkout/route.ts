@@ -26,9 +26,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Paddle Price ID not found for this plan" }, { status: 400 });
     }
 
-    // Create a checkout session with Paddle
+    // Create a transaction with Paddle
     // We pass custom data to the webhook
-    const checkout = await paddle.checkout.create({
+    const transaction = await paddle.transactions.create({
       items: [
         {
           priceId: priceId,
@@ -46,10 +46,18 @@ export async function POST(req: Request) {
         businessName: businessName || "",
         serviceType: serviceType || "",
       },
-      successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding/success`,
     });
 
-    return NextResponse.json({ url: checkout.url });
+    // In Paddle Billing v3, checkouts are often handled via the Paddle.js library on the frontend
+    // using the Transaction ID. However, if you need a hosted checkout URL:
+    // Some SDK versions might expose it differently. 
+    
+    return NextResponse.json({ 
+      transactionId: transaction.id,
+      // For hosted checkout, we might need to construct the URL or use a different method
+      // If the SDK transaction object has a checkout property:
+      url: transaction.checkout?.url || "" 
+    });
   } catch (error: any) {
     console.error("Paddle Checkout Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
