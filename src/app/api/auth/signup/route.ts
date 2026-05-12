@@ -32,12 +32,15 @@ export async function POST(req: Request) {
       const twilioFrom = process.env.TWILIO_PHONE_NUMBER;
 
       if (!twilioSid || !twilioToken || !twilioFrom) {
-        console.error("Missing Twilio env vars:", { 
-          hasSid: !!twilioSid, 
-          hasToken: !!twilioToken, 
-          hasFrom: !!twilioFrom 
-        });
-        return NextResponse.json({ error: "Messaging service not configured" }, { status: 500 });
+        const missing = [
+          !twilioSid && "TWILIO_ACCOUNT_SID",
+          !twilioToken && "TWILIO_AUTH_TOKEN",
+          !twilioFrom && "TWILIO_PHONE_NUMBER",
+        ].filter(Boolean);
+        console.error("Missing Twilio env vars:", missing);
+        return NextResponse.json({ 
+          error: `Messaging not configured. Missing: ${missing.join(", ")}` 
+        }, { status: 500 });
       }
 
       const formattedPhone = phone.replace(/\s+/g, '');
