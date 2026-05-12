@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { Button } from "@/components/ui/Button";
 import { supabase } from "@/lib/supabase";
 import { Mail, ArrowRight, CheckCircle2, Loader2, Zap, MessageSquare, Phone } from "lucide-react";
@@ -15,6 +15,14 @@ function LoginContent() {
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [countdown, setCountdown] = useState(0);
+
+  // Countdown timer
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
    const router = useRouter();
    const searchParams = useSearchParams();
    const plan = searchParams.get("plan");
@@ -53,7 +61,9 @@ function LoginContent() {
       const data = await res.json();
       if (res.ok) {
         setIsOtpSent(true);
+        setCountdown(60);
         setStatus("idle");
+        setErrorMessage("");
       } else {
         throw new Error(data.error || "Failed to send OTP");
       }
@@ -216,13 +226,32 @@ function LoginContent() {
                         >
                           {status === "loading" ? <Loader2 className="animate-spin" /> : "Verify & Log In"}
                         </Button>
-                        <button 
-                          type="button" 
-                          onClick={() => setIsOtpSent(false)}
-                          className="w-full text-sm font-bold text-slate-400 hover:text-slate-600"
-                        >
-                          Change phone number
-                        </button>
+
+                        {/* Countdown & Resend */}
+                        <div className="flex items-center justify-center gap-3 pt-2">
+                          {countdown > 0 ? (
+                            <span className="text-sm text-slate-400 font-semibold tabular-nums">
+                              Resend in <span className="text-blue-600 font-black">{countdown}s</span>
+                            </span>
+                          ) : (
+                            <button 
+                              type="button" 
+                              onClick={(e) => { setOtp(""); setErrorMessage(""); handleSendOtp(e as any); }}
+                              disabled={status === "loading"}
+                              className="text-sm font-bold text-blue-600 hover:text-blue-700 hover:underline transition-colors disabled:opacity-50"
+                            >
+                              {status === "loading" ? "Sending..." : "Resend Code"}
+                            </button>
+                          )}
+                          <span className="text-slate-200">|</span>
+                          <button 
+                            type="button" 
+                            onClick={() => { setIsOtpSent(false); setCountdown(0); setOtp(""); setErrorMessage(""); }}
+                            className="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            Change number
+                          </button>
+                        </div>
                      </form>
                    )}
                 </div>
