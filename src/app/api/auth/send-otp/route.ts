@@ -1,4 +1,4 @@
-// app/api/auth/send-otp/route.ts
+// app/api/auth/send-otp/route.ts - DEBUG VERSION
 import { createClient } from '@supabase/supabase-js';
 import twilio from 'twilio';
 
@@ -13,65 +13,105 @@ const twilioClient = twilio(
 );
 
 export async function POST(request: Request) {
+  console.log('🔍 [DEBUG] OTP request received');
+  
   try {
     const { phoneNumber } = await request.json();
+    console.log('📱 Phone from client:', phoneNumber);
 
     if (!phoneNumber) {
       return Response.json({ error: 'Phone number required' }, { status: 400 });
     }
 
-    // ✅ CRITICAL: Format for WhatsApp (not SMS)
+    // ✅ Format phone EXACTLY for WhatsApp
     const cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
     const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
-    const toNumber = `whatsapp:${formattedPhone}`; // ← This prefix forces WhatsApp
+    const toNumber = `whatsapp:${formattedPhone}`;
+    
+    console.log('🔗 Formatted for Twilio:', {
+      original: phoneNumber,
+      cleaned: cleanPhone,
+      formatted: formattedPhone,
+      toNumber: toNumber,
+    });
+
+    // ✅ Verify env vars are loaded
+    console.log('🔐 Env var check:', {
+      hasWhatsappNumber: !!process.env.TWILIO_WHATSAPP_NUMBER,
+      whatsappNumberValue: process.env.TWILIO_WHATSAPP_NUMBER,
+      hasTemplateSid: !!process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID,
+      templateSidValue: process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID?.slice(0, 10) + '...',
+      hasAccountSid: !!process.env.TWILIO_ACCOUNT_SID,
+    });
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log('🔢 Generated OTP:', otp);
 
     // Store in Supabase
-    await supabaseAdmin.from('otp_verifications').insert({
-      phone_number: formattedPhone,
-      code: otp,
-      expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-      used: false,
-    });
+    const { error: storeError } = await supabaseAdmin
+      .from('otp_verifications')
+      .insert({
+        phone_number: formattedPhone,
+        code: otp,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        used: false,
+      });
 
-    // ✅ SEND VIA WHATSAPP TEMPLATE (NO SMS FALLBACK)
+    if (storeError) {
+      console.error('❌ Supabase store failed:', storeError);
+      return Response.json({ error: 'Failed to store OTP' }, { status: 500 });
+    }
+
+    // ✅ Send via WhatsApp template
+    console.log('📤 Calling Twilio API...');
+    
     const message = await twilioClient.messages.create({
-      from: process.env.TWILIO_WHATSAPP_NUMBER, // whatsapp:+18338872999
-      to: toNumber, // whatsapp:+923006291617
-      contentSid: process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID, // HXae27daecf4d89e88ac375dcc5677507f
+      from: process.env.TWILIO_WHATSAPP_NUMBER,
+      to: toNumber,
+      contentSid: process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID,
       contentVariables: JSON.stringify({ '1': otp }),
     });
 
-    console.log('✅ WhatsApp OTP sent:', {
+    console.log('✅ Twilio response:', {
       sid: message.sid,
-      from: process.env.TWILIO_WHATSAPP_NUMBER,
-      to: toNumber,
-      template: process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID,
       status: message.status,
+      errorCode: message.errorCode,
+      errorMessage: message.errorMessage,
+      direction: message.direction,
+      dateCreated: message.dateCreated,
     });
 
     return Response.json({
       success: true,
       sid: message.sid,
-      channel: 'whatsapp', // ← Confirm it's WhatsApp
+      status: message.status,
+      to: toNumber,
+      debug: {
+        envVarsLoaded: {
+          whatsappNumber: !!process.env.TWILIO_WHATSAPP_NUMBER,
+          templateSid: !!process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID,
+        },
+      },
     });
 
   } catch (error: any) {
-    console.error('❌ WhatsApp OTP failed:', {
-      code: error.code,
+    console.error('❌ CRITICAL ERROR:', {
+      name: error.name,
       message: error.message,
+      code: error.code,
       status: error.status,
+      moreInfo: error.moreInfo,
+      details: error.details,
+      stack: error.stack,
     });
 
-    // ⚠️ DO NOT FALLBACK TO SMS - let it fail so you can debug
     return Response.json(
       { 
-        error: 'Failed to send WhatsApp OTP', 
+        error: 'Failed to send OTP',
         details: error.message,
         twilioCode: error.code,
-        hint: 'Ensure phone number is registered on WhatsApp and has messaged your business number'
+        debug: 'Check Vercel logs for full error object'
       },
       { status: 500 }
     );
