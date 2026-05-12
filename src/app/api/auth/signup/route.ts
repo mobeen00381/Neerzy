@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { OAuth2Client } from "google-auth-library";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import twilio from "twilio";
@@ -10,55 +9,74 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
-const oauth2Client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
 function generateJWT(user: any) {
   return jwt.sign(
-    { userId: user.id, email: user.email },
+    { userId: user.id, phone: user.phone },
     process.env.JWT_SECRET || "neerzy-super-secret-key-2026",
     { expiresIn: "7d" }
   );
 }
 
 export async function POST(req: Request) {
-  const twilioClient = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
   try {
     const { method, email, password, phone, googleToken } = await req.json();
 
-    if (method === "google") {
-      // Verify Google ID token
-      const ticket = await oauth2Client.verifyIdToken({
-        idToken: googleToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      const payload = ticket.getPayload();
-      
-      if (!payload || !payload.email) {
-        return NextResponse.json({ error: "Invalid Google token" }, { status: 401 });
+    if (method === "whatsapp") {
+      if (!phone) {
+        return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
       }
 
-      // Upsert user
-      const { data: user, error: upsertError } = await supabase
-        .from("users")
-        .upsert({
-          email: payload.email,
-          google_id: payload.sub,
-          email_verified: true,
-          full_name: payload.name,
-          avatar_url: payload.picture
-        }, { onConflict: "google_id" })
-        .select()
-        .single();
+      // Validate env vars early
+      const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+      const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+      const twilioFrom = process.env.TWILIO_PHONE_NUMBER;
 
-      if (upsertError) throw upsertError;
+      if (!twilioSid || !twilioToken || !twilioFrom) {
+        console.error("Missing Twilio env vars:", { 
+          hasSid: !!twilioSid, 
+          hasToken: !!twilioToken, 
+          hasFrom: !!twilioFrom 
+        });
+        return NextResponse.json({ error: "Messaging service not configured" }, { status: 500 });
+      }
 
-      return NextResponse.json({ 
-        user, 
-        token: generateJWT(user) 
+      const formattedPhone = phone.replace(/\s+/g, '');
+      console.log(`[SIGNUP] WhatsApp OTP request for: ${formattedPhone}`);
+
+      // Generate OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otp_hash = await bcrypt.hash(otp, 10);
+      console.log(`[SIGNUP] OTP generated, storing in database...`);
+      
+      // Store OTP verification
+      const { error: otpError } = await supabase.from("otp_verifications").insert({
+        phone: formattedPhone,
+        otp_hash: otp_hash,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        attempts: 0
       });
+
+      if (otpError) {
+        console.error("[SIGNUP] Supabase OTP insert error:", otpError);
+        return NextResponse.json({ error: "Failed to store verification code" }, { status: 500 });
+      }
+      console.log(`[SIGNUP] OTP stored successfully, sending via Twilio...`);
+
+      // Ensure from number has whatsapp: prefix for WhatsApp messages
+      const fromNumber = twilioFrom.startsWith("whatsapp:") 
+        ? twilioFrom 
+        : `whatsapp:${twilioFrom}`;
+      
+      // Send via Twilio WhatsApp
+      const twilioClient = twilio(twilioSid, twilioToken);
+      const message = await twilioClient.messages.create({
+        from: fromNumber,
+        to: `whatsapp:${formattedPhone}`,
+        body: `Your Neerzy verification code is: ${otp}. It expires in 10 minutes.`
+      });
+
+      console.log(`[SIGNUP] ✅ OTP sent successfully via Twilio. SID: ${message.sid}`);
+      return NextResponse.json({ message: "OTP sent to WhatsApp" });
     }
 
     if (method === "email") {
@@ -86,44 +104,50 @@ export async function POST(req: Request) {
         throw insertError;
       }
 
-      // TODO: sendVerificationEmail(user.email, user.id);
-      
       return NextResponse.json({ message: "Account created. Please verify your email." });
     }
 
-    if (method === "whatsapp") {
-      if (!phone) {
-        return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
+    if (method === "google") {
+      // Lazy-import to avoid initialization crash when Google credentials aren't set
+      const { OAuth2Client } = await import("google-auth-library");
+      const oauth2Client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+      const ticket = await oauth2Client.verifyIdToken({
+        idToken: googleToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      
+      if (!payload || !payload.email) {
+        return NextResponse.json({ error: "Invalid Google token" }, { status: 401 });
       }
 
-      const formattedPhone = phone.replace(/\s+/g, '');
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const otp_hash = await bcrypt.hash(otp, 10);
-      
-      // Store OTP verification
-      const { error: otpError } = await supabase.from("otp_verifications").insert({
-        phone: formattedPhone,
-        otp_hash: otp_hash,
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        attempts: 0
-      });
+      const { data: user, error: upsertError } = await supabase
+        .from("users")
+        .upsert({
+          email: payload.email,
+          google_id: payload.sub,
+          email_verified: true,
+          full_name: payload.name,
+          avatar_url: payload.picture
+        }, { onConflict: "google_id" })
+        .select()
+        .single();
 
-      if (otpError) throw otpError;
-      
-      // Send via Twilio
-      await twilioClient.messages.create({
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: `whatsapp:${formattedPhone}`,
-        body: `Your Neerzy verification code is: ${otp}. It expires in 10 minutes.`
-      });
+      if (upsertError) throw upsertError;
 
-      return NextResponse.json({ message: "OTP sent to WhatsApp" });
+      return NextResponse.json({ 
+        user, 
+        token: generateJWT(user) 
+      });
     }
 
     return NextResponse.json({ error: "Invalid signup method" }, { status: 400 });
 
   } catch (error: any) {
-    console.error("Signup Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[SIGNUP] ❌ Error:", error?.message || error);
+    console.error("[SIGNUP] Stack:", error?.stack);
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
+
