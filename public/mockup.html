@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neerzy | Modern SaaS Mockup</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap">
+    <style>
+        :root {
+            --primary: #0F5C4D;
+            --primary-light: #167a66;
+            --accent: #25D366;
+            --accent-light: #d4f9e2;
+            --bg-soft: #F0F7F5;
+            --white: #ffffff;
+            --text-main: #1A2B27;
+            --text-muted: #4F635F;
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 10px 25px rgba(15, 92, 77, 0.08);
+            --shadow-lg: 0 20px 50px rgba(0,0,0,0.1);
+            --glass: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.2);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; color: var(--text-main); background-color: var(--white); line-height: 1.5; overflow-x: hidden; }
+        h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        .section-padding { padding: 100px 0; }
+        .bg-soft { background-color: var(--bg-soft); }
+        .bg-dark { background-color: var(--primary); color: var(--white); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 14px 28px; border-radius: 50px; font-weight: 600; text-decoration: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: none; font-size: 16px; }
+        .btn-primary { background-color: var(--accent); color: #000; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3); filter: brightness(1.1); }
+        .btn-secondary { background-color: var(--white); color: var(--primary); border: 1px solid rgba(15, 92, 77, 0.1); }
+        .navbar { position: sticky; top: 0; z-index: 1000; background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(15, 92, 77, 0.05); height: 80px; display: flex; align-items: center; }
+        .nav-content { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .nav-links { display: flex; gap: 32px; }
+        .nav-links a { text-decoration: none; color: var(--text-main); font-weight: 500; font-size: 15px; }
+        .hero { padding: 120px 0 80px; background: linear-gradient(180deg, var(--bg-soft) 0%, #ffffff 100%); }
+        .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+        .hero-content h1 { font-size: 64px; line-height: 1.1; margin-bottom: 24px; color: var(--primary); }
+        .hero-content p { font-size: 20px; color: var(--text-muted); margin-bottom: 40px; max-width: 540px; }
+        .hero-ctas { display: flex; gap: 16px; margin-bottom: 48px; }
+        .trust-badges { display: flex; gap: 24px; }
+        .badge { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--primary); }
+        
+        /* WhatsApp Mockup */
+        .wa-card { background: #E5DDD5; border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-lg); aspect-ratio: 9/16; max-width: 340px; margin: 0 auto; position: relative; border: 8px solid #222; }
+        .wa-header { background: #075E54; color: white; padding: 40px 16px 12px; display: flex; align-items: center; gap: 12px; }
+        .wa-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; height: calc(100% - 140px); }
+        .wa-bubble { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 14px; position: relative; }
+        .wa-sent { align-self: flex-end; background: #DCF8C6; border-top-right-radius: 2px; }
+        .wa-received { align-self: flex-start; background: white; border-top-left-radius: 2px; }
+        .wa-image-preview { width: 100%; border-radius: 8px; margin-bottom: 4px; }
+        .ai-card { background: white; border-radius: 12px; padding: 12px; margin-top: 8px; border: 1px solid #eee; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .ai-status { color: var(--primary); font-size: 11px; font-weight: 800; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; }
+        
+        .floating-card { position: absolute; background: white; padding: 16px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; z-index: 10; animation: float 6s ease-in-out infinite; border: 1px solid rgba(0,0,0,0.05); }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        
+        /* Workflow Section */
+        .workflow-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+        .step-card { background: var(--white); padding: 32px; border-radius: var(--radius-xl); border: 1px solid rgba(15, 92, 77, 0.05); transition: 0.3s; position: relative; }
+        .step-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-md); border-color: var(--accent); }
+        .step-number { width: 40px; height: 40px; background: var(--bg-soft); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; margin-bottom: 24px; font-size: 14px; }
+        
+        /* SMS Mockup */
+        .sms-mockup { background: #fff; border-radius: 20px; padding: 20px; max-width: 300px; box-shadow: var(--shadow-lg); color: #000; }
+        .sms-bubble { background: #E9E9EB; padding: 12px 16px; border-radius: 18px; font-size: 14px; margin-bottom: 12px; }
+        .sms-btn { background: #007AFF; color: white; text-align: center; padding: 10px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+        
+        /* Visibility Cards */
+        .vis-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+        .vis-card { background: var(--bg-soft); padding: 48px; border-radius: var(--radius-xl); transition: 0.3s; }
+        .vis-card:hover { transform: scale(1.02); background: white; box-shadow: var(--shadow-md); }
+
+        /* GMB Checker */
+        .checker-box { background: white; padding: 40px; border-radius: 32px; box-shadow: var(--shadow-md); display: flex; gap: 16px; align-items: center; max-width: 800px; margin: 0 auto; }
+        .checker-input { flex: 1; padding: 18px 24px; border-radius: 50px; border: 1px solid #eee; font-size: 16px; outline: none; transition: 0.3s; }
+        .checker-input:focus { border-color: var(--primary); }
+
+        @media (max-width: 1024px) { 
+            .hero-grid { grid-template-columns: 1fr; text-align: center; } 
+            .hero-content p { margin: 0 auto 40px; }
+            .hero-ctas { justify-content: center; }
+            .trust-badges { justify-content: center; }
+            .workflow-grid { grid-template-columns: repeat(2, 1fr); } 
+            .vis-grid { grid-template-columns: 1fr; } 
+        }
+        @media (max-width: 768px) { 
+            .nav-links { display: none; } 
+            .workflow-grid { grid-template-columns: 1fr; } 
+            .hero-content h1 { font-size: 42px; } 
+            .checker-box { flex-direction: column; padding: 24px; }
+            .checker-input { width: 100%; }
+            .section-padding { padding: 60px 0; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-content">
+            <div class="logo" style="font-size: 24px; font-weight: 800; color: #0F5C4D; display: flex; align-items: center; gap: 8px;">
+                <div style="width: 32px; height: 32px; background: #25D366; border-radius: 8px;"></div>
+                Neerzy
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#gmb-checker">GMB Checker</a>
+            </div>
+            <div class="nav-actions">
+                <a href="#" class="btn btn-secondary" style="border:none">Login</a>
+                <a href="#" class="btn btn-primary">Start Free</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container hero-grid">
+            <div class="hero-content">
+                <h1>Turn every job into more calls using WhatsApp</h1>
+                <p>Send a job photo → we create your Google post, update your website, and send a review request instantly.</p>
+                <div class="hero-ctas">
+                    <a href="#" class="btn btn-primary">Start with 5 Free Posts</a>
+                    <a href="#" class="btn btn-secondary">Watch Demo</a>
+                </div>
+                <div class="trust-badges">
+                    <div class="badge"><span style="color:#25D366">✔</span> No apps</div>
+                    <div class="badge"><span style="color:#25D366">✔</span> No dashboards</div>
+                    <div class="badge"><span style="color:#25D366">✔</span> No tech skills</div>
+                </div>
+            </div>
+            <div style="position: relative;">
+                <div class="wa-card">
+                    <div class="wa-header">
+                        <div style="width: 32px; height: 32px; border-radius: 50%; background: #ccc;"></div>
+                        <div>
+                            <div style="font-size: 14px; font-weight: 600;">Neerzy AI</div>
+                            <div style="font-size: 10px; opacity: 0.8;">Online</div>
+                        </div>
+                    </div>
+                    <div class="wa-body">
+                        <div class="wa-bubble wa-sent">
+                            <img src="images/plumber_job_photo.png" class="wa-image-preview">
+                            Kitchen sink fixed for Mrs Smith.
+                        </div>
+                        <div class="wa-bubble wa-received">✅ Processing...</div>
+                        <div class="ai-card">
+                            <div class="ai-status">✨ NEERZY MAGIC</div>
+                            <div style="font-size: 11px; color: #444;">
+                                <div>✅ Google post ready</div>
+                                <div>✅ Website updated</div>
+                                <div>✅ Review request prepared</div>
+                            </div>
+                            <div style="display:flex; gap:8px; margin-top:10px;">
+                                <div style="background:#25D366; font-size:9px; padding:5px 8px; border-radius:4px; font-weight:700;">COPY POST</div>
+                                <div style="background:#0F5C4D; color:white; font-size:9px; padding:5px 8px; border-radius:4px; font-weight:700;">OPEN GOOGLE</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="floating-card" style="top: 10%; right: -5%;">
+                    <span>⭐</span>
+                    <div style="font-size: 12px; font-weight: 700;">Review sent</div>
+                </div>
+                <div class="floating-card" style="bottom: 20%; left: -10%;">
+                    <span>📈</span>
+                    <div style="font-size: 12px; font-weight: 700;">Ranking +12%</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-padding">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: 64px;">
+                <h2 style="font-size: 42px; color: #0F5C4D;">Your workflow stays the same.</h2>
+            </div>
+            <div class="workflow-grid">
+                <div class="step-card"><div class="step-number">1</div><h3>Finish job</h3><p>Take a photo on-site</p></div>
+                <div class="step-card"><div class="step-number">2</div><h3>WhatsApp it</h3><p>Send as normal message</p></div>
+                <div class="step-card"><div class="step-number">3</div><h3>Neerzy does rest</h3><p>Google + Web + Reviews</p></div>
+                <div class="step-card"><div class="step-number">4</div><h3>Get reviews</h3><p>Instantly sent to customer</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-padding bg-dark">
+        <div class="container hero-grid">
+            <div>
+                <h2 style="font-size: 48px; margin-bottom: 24px;">Get reviews while the customer is happy</h2>
+                <p style="font-size: 20px; opacity: 0.9; margin-bottom: 40px;">Immediate requests = 3x more reviews.</p>
+                <div style="display: grid; gap: 20px;">
+                    <div>★ Higher response rates</div>
+                    <div>★ More 5-star reviews</div>
+                    <div>★ Better local ranking</div>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: center;">
+                <div class="sms-mockup">
+                    <div class="sms-bubble">Hi John, thanks for choosing Apex. Mind leaving a quick review?</div>
+                    <div class="sms-btn">Leave Review</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-padding bg-soft" id="gmb-checker">
+        <div class="container" style="text-align: center;">
+            <h2 style="font-size: 42px; margin-bottom: 24px; color: var(--primary);">Check how visible your business is on Google</h2>
+            <p style="margin-bottom: 48px; color: var(--text-muted);">Free instant visibility report for your trade business.</p>
+            <div class="checker-box">
+                <input type="text" class="checker-input" placeholder="Enter your business name...">
+                <button class="btn btn-primary" style="white-space: nowrap;">Check Score</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-padding">
+        <div class="container hero-grid">
+            <div>
+                <h2 style="font-size: 42px; margin-bottom: 24px; color: var(--primary);">A professional website — owned by you</h2>
+                <ul style="list-style: none; display: grid; gap: 16px;">
+                    <li style="font-size: 18px; display: flex; align-items: center; gap: 12px;"><span style="color:#25D366">✔</span> We build your site</li>
+                    <li style="font-size: 18px; display: flex; align-items: center; gap: 12px;"><span style="color:#25D366">✔</span> You own the domain</li>
+                    <li style="font-size: 18px; display: flex; align-items: center; gap: 12px;"><span style="color:#25D366">✔</span> No lock-in</li>
+                </ul>
+            </div>
+            <div>
+                <img src="images/trader_website_preview.png" style="width: 100%; border-radius: 24px; box-shadow: var(--shadow-lg);">
+            </div>
+        </div>
+    </section>
+
+    <section class="section-padding bg-soft">
+        <div class="container" style="text-align: center;">
+            <h2 style="font-size: 42px; margin-bottom: 48px; color: var(--primary);">One message, everything updated</h2>
+            <div class="vis-grid">
+                <div class="vis-card" style="background:white;">
+                    <div style="font-size: 40px; margin-bottom: 20px;">⭐</div>
+                    <h3>Review requests</h3>
+                    <p>Sent instantly while customers are happy.</p>
+                </div>
+                <div class="vis-card" style="background:white;">
+                    <div style="font-size: 40px; margin-bottom: 20px;">📍</div>
+                    <h3>Google posts</h3>
+                    <p>Show up in local searches with fresh content.</p>
+                </div>
+                <div class="vis-card" style="background:white;">
+                    <div style="font-size: 40px; margin-bottom: 20px;">🌐</div>
+                    <h3>Website updates</h3>
+                    <p>Your site stays alive with recent work.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div style="background: #073a30; padding: 40px 0; color: white;">
+        <div class="container" style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 24px; font-weight: 700; font-size: 20px; text-align: center;">
+            <div>10 jobs = 10 posts + 10 reviews</div>
+            <div>50 jobs = stronger local ranking</div>
+        </div>
+    </div>
+
+    <section class="section-padding" style="background: linear-gradient(135deg, #0F5C4D 0%, #073a30 100%); color: white; text-align: center;">
+        <div class="container">
+            <h2 style="font-size: 56px; margin-bottom: 24px;">Your next job could bring your next customer</h2>
+            <p style="font-size: 24px; opacity: 0.9; margin-bottom: 48px; max-width: 700px; margin-left: auto; margin-right: auto;">Send your next job on WhatsApp. Neerzy handles the marketing.</p>
+            <a href="#" class="btn btn-primary" style="padding: 20px 48px; font-size: 20px;">Start with 5 Free Posts</a>
+        </div>
+    </section>
+
+    <footer style="background: #05261f; color: rgba(255,255,255,0.5); padding: 40px 0; text-align: center; font-size: 14px;">
+        <div class="container">
+            <p>Open Google → upload photo → paste → publish. Done in under 60 seconds.</p>
+            <p style="margin-top: 10px;">&copy; 2026 Neerzy.com</p>
+        </div>
+    </footer>
+</body>
+</html>

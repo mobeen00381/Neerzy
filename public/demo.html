@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Plumber Austin TX | Elite Plumbing Pro | Licensed & Local</title>
+    <meta name="description" content="Elite Plumbing Pro offers top-rated emergency plumbing, drain cleaning, and water heater repair in Austin, TX. Serving South Congress and surrounding areas.">
+    <style>
+        /* Base Variables and Reset */
+        :root {
+            --primary: #1e3a8a; /* Deep Blue */
+            --secondary: #e0f2fe; /* Light Blue */
+            --accent: #f59e0b; /* Amber */
+            --text-main: #1f2937;
+            --text-light: #4b5563;
+            --white: #ffffff;
+            --gray-bg: #f3f4f6;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-main);
+            padding-top: 40px; /* Space for demo banner */
+        }
+
+        /* Demo Banner */
+        .demo-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #000000;
+            color: #ffffff;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+            letter-spacing: 0.5px;
+        }
+        .demo-banner a {
+            color: var(--accent);
+            text-decoration: none;
+            margin-left: 15px;
+        }
+        .demo-banner a:hover {
+            text-decoration: underline;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--white);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 40px;
+            z-index: 990;
+        }
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            background-color: var(--primary);
+            color: var(--white);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+        }
+        .btn-call {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: background-color 0.3s;
+            display: inline-block;
+        }
+        .btn-call:hover {
+            background-color: #1e40af;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.8)), url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%232563eb" width="100" height="100"/></svg>');
+            color: var(--white);
+            padding: 80px 20px;
+            text-align: center;
+        }
+        .hero-inner {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hero h1 {
+            font-size: 42px;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+        .hero p {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        .google-badge {
+            background-color: var(--white);
+            color: var(--text-main);
+            padding: 10px 20px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .stars { color: #fbbf24; }
+        
+        /* Container & Sections */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+        .section-title {
+            text-align: center;
+            font-size: 32px;
+            color: var(--primary);
+            margin-bottom: 40px;
+        }
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: var(--accent);
+            margin: 10px auto 0;
+            border-radius: 2px;
+        }
+
+        /* Services Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        .card {
+            background-color: var(--white);
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--primary);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+        .card p {
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+        .nlp-term {
+            background-color: var(--secondary);
+            color: var(--primary);
+            font-size: 13px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* About & Neighborhoods */
+        .about-wrap {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+        .owner-box {
+            background-color: var(--secondary);
+            padding: 40px;
+            border-radius: 8px;
+            border-left: 5px solid var(--accent);
+        }
+        .owner-box h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+        .license-tag {
+            display: inline-block;
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        /* Service Area */
+        .service-area {
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 60px 20px;
+            text-align: center;
+        }
+        .zip-codes {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .zip {
+            background-color: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        /* Reviews */
+        .bg-light { background-color: var(--gray-bg); }
+        .review-card {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .reviewer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        .reviewer-name { font-weight: bold; color: var(--text-main); }
+        .reviewer-location { font-size: 14px; color: var(--text-light); }
+        .review-text { font-style: italic; color: var(--text-main); }
+
+        /* FAQ */
+        .faq-item {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 20px;
+        }
+        .faq-q {
+            font-weight: bold;
+            font-size: 18px;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        .faq-a { color: var(--text-light); }
+
+        /* Footer */
+        footer {
+            background-color: #1f2937;
+            color: #d1d5db;
+            padding: 60px 20px 20px;
+        }
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        .footer-col h4 {
+            color: var(--white);
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        .footer-col p { margin-bottom: 15px; }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 10px; }
+        .footer-links a { color: #d1d5db; text-decoration: none; }
+        .footer-links a:hover { color: var(--accent); }
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #374151;
+            font-size: 14px;
+        }
+
+        /* Voice Search Box */
+        .voice-search {
+            background-color: var(--white);
+            border: 2px dashed var(--accent);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 40px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .about-wrap { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 32px; }
+        }
+    </style>
+    
+    <!-- LocalBusiness Schema JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "PlumbingService",
+      "name": "Elite Plumbing Pro",
+      "telephone": "+15125554821",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "South Congress Ave",
+        "addressLocality": "Austin",
+        "addressRegion": "TX",
+        "postalCode": "78704",
+        "addressCountry": "US"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "284"
+      },
+      "areaServed": [
+        "78704", "78745", "78748", 
+        "South Congress", "Bouldin Creek", "Travis Heights", 
+        "South Lamar", "Barton Springs"
+      ],
+      "priceRange": "$$"
+    }
+    </script>
+</head>
+<body>
+
+    <!-- Demo Banner -->
+    <div class="demo-banner">
+        DEMO SITE — Powered by Neerzy 
+        <a href="https://www.neerzy.com/onboarding">Want a site like this? Start your free trial &rarr;</a>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="nav-inner">
+            <a href="#" class="logo">
+                <div class="logo-icon">&#128295;</div>
+                Elite Plumbing Pro
+            </a>
+            <a href="tel:5125554821" class="btn-call">(512) 555-4821</a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-inner">
+            <div class="google-badge">
+                <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                4.9 Stars (284 Reviews)
+            </div>
+            <h1>Top-Rated Emergency Plumber in Austin, TX</h1>
+            <p>Fast, reliable plumbing services for South Congress and nearby areas. We fix leaks, clogs, and water heaters safely.</p>
+            <a href="tel:5125554821" class="btn-call" style="font-size: 18px; padding: 15px 30px;">Call Now: (512) 555-4821</a>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="container" id="services">
+        <h2 class="section-title">Our Expert Plumbing Services</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>Drain Cleaning</h3>
+                <p>We clear stubborn clogs fast. We use a heavy-duty <span class="nlp-term">drain snake</span> or a powerful <span class="nlp-term">hydro-jet</span>. Your pipes will flow like new again.</p>
+            </div>
+            <div class="card">
+                <h3>Water Heater Repair</h3>
+                <p>No more cold showers for you. We check the <span class="nlp-term">anode rod</span> and the main <span class="nlp-term">supply line</span>. We fix unit leaks very quickly.</p>
+            </div>
+            <div class="card">
+                <h3>Pipe Leaks</h3>
+                <p>We spot hidden water leaks today. We replace old <span class="nlp-term">galvanized pipe</span> with modern <span class="nlp-term">PEX pipe</span>. We protect your home from water damage.</p>
+            </div>
+            <div class="card">
+                <h3>Emergency Plumbing</h3>
+                <p>We respond fast to all crises. We can locate your main <span class="nlp-term">shut-off valve</span> quickly. We secure your core <span class="nlp-term">water main</span>.</p>
+            </div>
+            <div class="card">
+                <h3>Toilet Repair</h3>
+                <p>Stop the running water right now. We replace the flapper and the <span class="nlp-term">wax ring</span>. Your toilet will flush perfectly every time.</p>
+            </div>
+            <div class="card">
+                <h3>Repiping Solutions</h3>
+                <p>Upgrade your old plumbing system today. We install new lines and a safe <span class="nlp-term">backflow preventer</span>. We verify every single <span class="nlp-term">P-trap</span>.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="bg-light">
+        <div class="container about-wrap">
+            <div class="owner-box">
+                <h3>Meet The Owner</h3>
+                <p>My name is Carlos Reyes. I have served Austin for 16 years. I love living right here in Bouldin Creek.</p>
+                <p>I treat every home like my own. My team is highly trained and background-checked. We clean up after every single job.</p>
+                <div class="license-tag">TX Master Plumber #MP-44821</div>
+            </div>
+            <div>
+                <h2 class="section-title" style="text-align: left;">Local Austin Plumbers You Can Trust</h2>
+                <p>We know Austin plumbing problems. Our soil causes pipes to shift. The local hard water wears out fixtures fast.</p>
+                <p>We bring fully stocked vans. We solve most problems on the first trip. We respect your time and your property.</p>
+                
+                <div class="voice-search">
+                    "If you need a plumber near South Congress Austin right now, we are ready to help."
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Service Area Section -->
+    <section class="service-area">
+        <div class="container" style="padding: 0;">
+            <h2 style="font-size: 32px; margin-bottom: 20px;">Neighborhoods We Serve</h2>
+            <p style="font-size: 18px; max-width: 800px; margin: 0 auto;">We proudly serve South Congress, Bouldin Creek, Travis Heights, South Lamar, and Barton Springs. Our local focus means faster response times for you.</p>
+            <div class="zip-codes">
+                <span class="zip">ZIP 78704</span>
+                <span class="zip">ZIP 78745</span>
+                <span class="zip">ZIP 78748</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="container" id="reviews">
+        <h2 class="section-title">What Austin Neighbors Say</h2>
+        <div class="grid">
+            <div class="review-card">
+                <div class="reviewer-info">
+                    <div>
+                        <div class="reviewer-name">Sarah Jenkins</div>
+                        <div class="reviewer-location">Bouldin Creek</div>
+                    </div>
+                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                </div>
+                <p class="review-text">"Carlos was amazing. He fixed our sink leak in under an hour. Very clean and professional service."</p>
+            </div>
+            <div class="review-card">
+                <div class="reviewer-info">
+                    <div>
+                        <div class="reviewer-name">Mark Thompson</div>
+                        <div class="reviewer-location">Travis Heights</div>
+                    </div>
+                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                </div>
+                <p class="review-text">"Very professional service from start to finish. They replaced our old heater. Great price and quality work."</p>
+            </div>
+            <div class="review-card">
+                <div class="reviewer-info">
+                    <div>
+                        <div class="reviewer-name">Emily Davis</div>
+                        <div class="reviewer-location">South Lamar</div>
+                    </div>
+                    <div class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                </div>
+                <p class="review-text">"Honest and reliable completely. Elite Plumbing Pro is my direct go-to for Austin plumbing needs."</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="bg-light">
+        <div class="container">
+            <h2 class="section-title">Frequently Asked Questions</h2>
+            <div style="max-width: 800px; margin: 0 auto;">
+                <div class="faq-item">
+                    <div class="faq-q">Do you provide emergency plumbing in Austin?</div>
+                    <div class="faq-a">Yes. We serve South Congress and nearby areas very fast. We are ready for your call.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">What neighborhoods do you serve?</div>
+                    <div class="faq-a">We serve South Congress, Bouldin Creek, Travis Heights, South Lamar, and Barton Springs.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">Can you clear a clogged sewer line?</div>
+                    <div class="faq-a">Yes. We inspect the line and use a drain snake or hydro-jet to safely clear it.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">Do you repair water heaters?</div>
+                    <div class="faq-a">Absolutely. We inspect your system to ensure proper heat. We repair and replace all brands.</div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-q">Are you licensed and insured?</div>
+                    <div class="faq-a">Yes. Carlos Reyes holds TX Master Plumber license #MP-44821. We are completely insured for safety.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-col">
+                <h4>Elite Plumbing Pro</h4>
+                <p>Your trusted local plumber for fast, honest service in Austin.</p>
+                <p>License: TX Master Plumber #MP-44821</p>
+            </div>
+            <div class="footer-col">
+                <h4>Contact Us</h4>
+                <p>Location: South Congress Ave, Austin, TX 78704</p>
+                <p>Phone: <a href="tel:5125554821" style="color: var(--accent); font-weight: bold;">(512) 555-4821</a></p>
+            </div>
+            <div class="footer-col">
+                <h4>Quick Links</h4>
+                <ul class="footer-links">
+                    <li><a href="#services">Our Services</a></li>
+                    <li><a href="#reviews">Customer Reviews</a></li>
+                    <li><a href="#">Emergency Plumbing</a></li>
+                    <li><a href="#">Water Heater Repair</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 Elite Plumbing Pro. All rights reserved. (Demo Template by Neerzy)
+        </div>
+    </footer>
+
+</body>
+</html>

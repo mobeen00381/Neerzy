@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Block admin/API paths
+Disallow: /api/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /*?session=
+Disallow: /*?token=
+
+# Allow Googlebot full access to public pages
+User-agent: Googlebot
+Allow: /
+Allow: /gmb-checker
+Allow: /pricing
+Allow: /blog/
+
+Sitemap: https://www.neerzy.com/sitemap.xml

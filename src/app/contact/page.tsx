@@ -1,0 +1,56 @@
+export default function ContactPage() {
+  return (
+    <div className="container mx-auto px-6 py-20 max-w-4xl">
+      <h1 className="text-4xl font-bold mb-8 text-[#0F5C4D]">Contact Us</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">Get in Touch</h2>
+          <p className="text-slate-600 mb-8">Have questions about Neerzy? Our team is here to help local traders grow.</p>
+          
+          <div className="mb-6">
+            <h3 className="font-bold text-slate-900">Email</h3>
+            <p className="text-slate-600">support@neerzy.com</p>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="font-bold text-slate-900">Phone</h3>
+            <p className="text-slate-600">
+              <a href="tel:+18338872999" className="hover:text-blue-500 transition-colors">Toll Free: +1 (833) 887-2999</a>
+            </p>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="font-bold text-slate-900">Business Address</h3>
+            <p className="text-slate-600">
+              Neerzy AI Ltd<br />
+              123 Trader Lane, Suite 400<br />
+              London, EC1V 2NX<br />
+              United Kingdom
+            </p>
+          </div>
+        </div>
+        
+        <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100">
+          <h2 className="text-xl font-bold mb-6">Send a Message</h2>
+          <form className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Name</label>
+              <input type="text" className="w-full p-3 rounded-lg border border-slate-200" placeholder="Your name" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input type="email" className="w-full p-3 rounded-lg border border-slate-200" placeholder="Your email" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Message</label>
+              <textarea className="w-full p-3 rounded-lg border border-slate-200 h-32" placeholder="How can we help?"></textarea>
+            </div>
+            <button className="w-full bg-[#25D366] text-black font-bold py-3 rounded-lg hover:brightness-110 transition-all">
+              Send Message
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
