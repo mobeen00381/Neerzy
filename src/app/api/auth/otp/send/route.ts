@@ -37,42 +37,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to generate OTP" }, { status: 500 });
     }
 
-    // Strategy: try SMS first (no messaging window restriction), then WhatsApp template
-    const twilioFrom = process.env.TWILIO_PHONE_NUMBER || '';
-    const smsNumber = process.env.TWILIO_SMS_NUMBER || twilioFrom.replace(/^whatsapp:/, '');
+    // Force WhatsApp delivery via template
+    const twilioFrom = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '';
     const formattedPhone = phone.replace(/\s+/g, '');
-    
-    let message;
-    try {
-      message = await twilioClient.messages.create({
-        from: smsNumber,
-        to: formattedPhone,
-        body: `Your Neerzy verification code is: ${otpCode}. It expires in 10 minutes.`
-      });
-      console.log(`✅ OTP sent via SMS to ${formattedPhone}. SID: ${message.sid}`);
-    } catch (smsErr: any) {
-      console.warn(`⚠️ SMS failed (${smsErr?.code || smsErr?.message}), trying WhatsApp...`);
-      
-      const contentSid = process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID;
-      const waFrom = twilioFrom.startsWith('whatsapp:') ? twilioFrom : `whatsapp:${twilioFrom}`;
-      
-      if (contentSid) {
-        message = await twilioClient.messages.create({
-          from: waFrom,
-          to: `whatsapp:${formattedPhone}`,
-          contentSid: contentSid,
-          contentVariables: JSON.stringify({ "1": otpCode }),
-        });
-      } else {
-        // Free-form fallback (may fail with 63016 outside messaging window)
-        message = await twilioClient.messages.create({
-          from: waFrom,
-          to: `whatsapp:${formattedPhone}`,
-          body: `Your Neerzy verification code is: ${otpCode}. It expires in 10 minutes.`
-        });
-      }
-      console.log(`✅ OTP sent via WhatsApp to ${formattedPhone}. SID: ${message!.sid}`);
+    const toNumber = `whatsapp:${formattedPhone}`;
+    const contentSid = process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID;
+
+    if (!contentSid) {
+      return NextResponse.json({ error: "WhatsApp template not configured" }, { status: 500 });
     }
+
+    try {
+      const message = await twilioClient.messages.create({
+        from: twilioFrom,
+        to: toNumber,
+        contentSid: contentSid,
+        contentVariables: JSON.stringify({ "1": otpCode }),
+      });
+      console.log(`✅ WhatsApp OTP sent to ${toNumber}. SID: ${message.sid}`);
+      return NextResponse.json({ success: true, sid: message.sid });
+    } catch (waErr: any) {
+      console.error(`❌ WhatsApp OTP failed for ${toNumber}:`, waErr.message);
+      return NextResponse.json({ 
+        error: "Failed to send WhatsApp OTP", 
+        details: waErr.message 
+      }, { status: 500 });
+    }
+
 
     return NextResponse.json({ success: true });
 

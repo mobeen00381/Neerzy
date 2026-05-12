@@ -63,51 +63,34 @@ export async function POST(req: Request) {
         console.error("[SIGNUP] Supabase OTP insert error:", otpError);
         return NextResponse.json({ error: "Failed to store verification code" }, { status: 500 });
       }
-      console.log(`[SIGNUP] OTP stored successfully, sending via Twilio...`);
+      console.log(`[SIGNUP] OTP stored successfully, sending via Twilio WhatsApp...`);
 
       const twilioClient = twilio(twilioSid, twilioToken);
+      const toNumber = `whatsapp:${formattedPhone}`;
+      const contentSid = process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID;
 
-      // Prefer a dedicated SMS number if available, otherwise strip whatsapp: prefix
-      const smsNumber = process.env.TWILIO_SMS_NUMBER || twilioFrom.replace(/^whatsapp:/, '');
-      
-      // Strategy: try SMS first (no messaging window restriction).
-      // If SMS fails (number not SMS-capable), fall back to WhatsApp with a template.
-      let message;
-      try {
-        message = await twilioClient.messages.create({
-          from: smsNumber,
-          to: formattedPhone,
-          body: `Your Neerzy verification code is: ${otp}. It expires in 10 minutes.`
-        });
-        console.log(`[SIGNUP] ✅ OTP sent via SMS. SID: ${message.sid}`);
-        return NextResponse.json({ message: "OTP sent via SMS" });
-      } catch (smsErr: any) {
-        console.warn(`[SIGNUP] ⚠️ SMS failed (${smsErr?.code || smsErr?.message}), trying WhatsApp template...`);
+      if (!contentSid) {
+        console.error("[SIGNUP] ❌ Missing TWILIO_WHATSAPP_OTP_TEMPLATE_SID");
+        return NextResponse.json({ error: "Messaging configuration error" }, { status: 500 });
       }
 
-      // Fallback: send via WhatsApp using a Content Template (avoids 63016 messaging window error)
-      // Free-form WhatsApp messages require the user to have messaged you in the last 24h.
-      // Templates are pre-approved and can be sent anytime.
-      const contentSid = process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID;
-      if (contentSid) {
-        message = await twilioClient.messages.create({
-          from: twilioFrom.startsWith('whatsapp:') ? twilioFrom : `whatsapp:${twilioFrom}`,
-          to: `whatsapp:${formattedPhone}`,
+      try {
+        const message = await twilioClient.messages.create({
+          from: process.env.TWILIO_WHATSAPP_NUMBER || twilioFrom,
+          to: toNumber,
           contentSid: contentSid,
           contentVariables: JSON.stringify({ "1": otp }),
         });
-        console.log(`[SIGNUP] ✅ OTP sent via WhatsApp template. SID: ${message.sid}`);
-        return NextResponse.json({ message: "OTP sent via WhatsApp" });
-      }
 
-      // Last resort: try free-form WhatsApp (will fail with 63016 if outside window)
-      message = await twilioClient.messages.create({
-        from: twilioFrom.startsWith('whatsapp:') ? twilioFrom : `whatsapp:${twilioFrom}`,
-        to: `whatsapp:${formattedPhone}`,
-        body: `Your Neerzy verification code is: ${otp}. It expires in 10 minutes.`
-      });
-      console.log(`[SIGNUP] ✅ OTP sent via WhatsApp free-form. SID: ${message.sid}`);
-      return NextResponse.json({ message: "OTP sent via WhatsApp" });
+        console.log(`[SIGNUP] ✅ WhatsApp OTP sent via template. SID: ${message.sid}`);
+        return NextResponse.json({ message: "OTP sent via WhatsApp" });
+      } catch (waErr: any) {
+        console.error(`[SIGNUP] ❌ WhatsApp OTP failed:`, waErr.message);
+        return NextResponse.json({ 
+          error: "Failed to send WhatsApp OTP",
+          details: waErr.message 
+        }, { status: 500 });
+      }
     }
 
     if (method === "email") {
