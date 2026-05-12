@@ -55,7 +55,21 @@ export async function POST(req: Request) {
     const reviewLink = business?.google_review_link || `https://search.google.com/local/writereview?placeid=${business?.google_place_id || 'DEFAULT_PLACE_ID'}`;
 
     // Send WhatsApp to customer
-    await sendWhatsApp(job.customer_phone, `Hi ${job.customer_name}! 👋\n\nThanks for choosing us for your service. Would you mind leaving a quick review? It helps us grow! ⭐\n\n🔗 ${reviewLink}\n\nReply STOP to opt out.`);
+    const reviewTemplateSid = process.env.TWILIO_WHATSAPP_REVIEW_TEMPLATE_SID;
+    
+    if (reviewTemplateSid) {
+      // Assuming the template variables are: 1 = customer name, 2 = review link
+      // If the template only has one variable, adjust accordingly. 
+      // Typical review template: "Hi {{1}}, thanks for your business! Please leave a review: {{2}}"
+      await sendTwilioMessage(
+        job.customer_phone, 
+        "", 
+        reviewTemplateSid, 
+        { "1": job.customer_name, "2": reviewLink }
+      );
+    } else {
+      await sendWhatsApp(job.customer_phone, `Hi ${job.customer_name}! 👋\n\nThanks for choosing us for your service. Would you mind leaving a quick review? It helps us grow! ⭐\n\n🔗 ${reviewLink}\n\nReply STOP to opt out.`);
+    }
 
     // Update status
     await supabaseAdmin
