@@ -41,20 +41,13 @@ export async function POST(req: Request) {
     const twilioFrom = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '';
     const formattedPhone = phone.replace(/\s+/g, '');
     const toNumber = `whatsapp:${formattedPhone}`;
-    const contentSid = process.env.TWILIO_WHATSAPP_OTP_TEMPLATE_SID;
-
-    if (!contentSid) {
-      return NextResponse.json({ error: "WhatsApp template not configured" }, { status: 500 });
-    }
-
     try {
       const message = await twilioClient.messages.create({
         from: twilioFrom,
         to: toNumber,
-        contentSid: contentSid,
-        contentVariables: JSON.stringify({ "1": otpCode }),
+        body: `Your Neerzy verification code is ${otpCode}. This code expires in 10 minutes.`,
       });
-      console.log(`✅ WhatsApp OTP sent to ${toNumber}. SID: ${message.sid}`);
+      console.log(`✅ Sandbox WhatsApp OTP sent to ${toNumber}. SID: ${message.sid}`);
       return NextResponse.json({ success: true, sid: message.sid });
     } catch (waErr: any) {
       console.error(`❌ WhatsApp OTP failed for ${toNumber}:`, waErr.message);

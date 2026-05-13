@@ -17,25 +17,13 @@ export async function sendTwilioMessage(
   const formattedTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
 
   try {
-    // If template SID is provided, use it
-    if (templateSid) {
-      const message = await client.messages.create({
-        from: fromNumber,
-        to: formattedTo,
-        contentSid: templateSid,
-        contentVariables: variables ? JSON.stringify(variables) : undefined,
-      });
-      console.log(`✅ WhatsApp template message sent: ${message.sid}`);
-      return message;
-    }
-
-    // Otherwise, try standard message
+    // Standard message for Sandbox (No templates)
     const message = await client.messages.create({
       body,
       from: fromNumber,
       to: formattedTo,
     });
-    console.log(`✅ WhatsApp message sent: ${message.sid}`);
+    console.log(`✅ Sandbox WhatsApp message sent: ${message.sid}`);
     return message;
   } catch (error: any) {
     console.error("❌ Twilio Error:", error.message || error);

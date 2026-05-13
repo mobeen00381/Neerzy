@@ -37,7 +37,6 @@ export async function POST(request: Request) {
     from: 'whatsapp:+14155238886',  // Sandbox only
     to: to,                          // whatsapp:+92...
     body: `Your Neerzy verification code is ${otp}. This code expires in 10 minutes.`,
-    // ⚠️ NO contentSid, NO contentVariables, NO other params
   });
 
   return Response.json({ success: true, sid: msg.sid });
