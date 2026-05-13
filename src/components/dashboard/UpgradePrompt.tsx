@@ -2,7 +2,11 @@
 import { Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-export function UpgradePrompt() {
+interface UpgradePromptProps {
+  currentPlan?: string;
+}
+
+export function UpgradePrompt({ currentPlan = 'free' }: UpgradePromptProps) {
   return (
     <div className="bg-white rounded-[2rem] p-8 border-2 border-dashed border-slate-200 flex flex-col items-center text-center">
       <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-6">

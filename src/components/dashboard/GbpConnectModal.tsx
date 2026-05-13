@@ -1,58 +1,76 @@
 // components/dashboard/GbpConnectModal.tsx
+"use client";
+
 import { useState } from "react";
-import { Building2, Check, Globe, Loader2, AlertCircle } from "lucide-react";
+import { Building2, Check, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-export function GbpConnectModal() {
+interface GbpConnectModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userId?: string;
+}
+
+export function GbpConnectModal({ isOpen, onClose, userId }: GbpConnectModalProps) {
   const [status, setStatus] = useState<"idle" | "connecting" | "success" | "error">("idle");
 
   const handleConnect = () => {
     setStatus("connecting");
-    // Simulate OAuth flow
-    setTimeout(() => setStatus("success"), 2000);
+    // Simulate OAuth flow for Google Business Profile
+    setTimeout(() => {
+      setStatus("success");
+      setTimeout(onClose, 1500);
+    }, 2000);
   };
 
-  return (
-    <div className="bg-slate-900 text-white rounded-[2rem] p-8 shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-blue-600/40 transition-all duration-700" />
-      
-      <div className="relative z-10">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-14 h-14 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center">
-            <Building2 className="w-8 h-8 text-blue-400" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold">Google Business Profile</h2>
-            <p className="text-slate-400 text-sm">Required for automation</p>
-          </div>
-        </div>
+  if (!isOpen) return null;
 
-        {status === "success" ? (
-          <div className="animate-in zoom-in duration-300">
-             <div className="flex items-center gap-3 text-green-400 font-bold mb-6">
-               <div className="w-6 h-6 bg-green-400/20 rounded-full flex items-center justify-center">
-                 <Check className="w-4 h-4" />
-               </div>
-               Connected to Action Plumbers
-             </div>
-             <Button variant="outline" className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white">
-               Change Business
-             </Button>
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" 
+        onClick={onClose} 
+      />
+      
+      <div className="relative bg-white text-slate-900 rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+        <button 
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="p-10">
+          <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center mb-8">
+            <Building2 className="w-10 h-10 text-blue-600" />
           </div>
-        ) : (
-          <>
-            <p className="text-slate-300 text-sm mb-8 leading-relaxed">
-              Connect your Google Business Profile to allow Neerzy to post updates automatically whenever you send a photo on WhatsApp.
-            </p>
+
+          <h2 className="text-3xl font-black mb-3 tracking-tight">Google Business</h2>
+          <p className="text-slate-500 font-medium mb-10 leading-relaxed">
+            Link your Google Business Profile to Neerzy. This allows our AI to automatically post your WhatsApp updates directly to your public listing.
+          </p>
+
+          {status === "success" ? (
+            <div className="flex flex-col items-center justify-center py-4 animate-in fade-in slide-in-from-bottom-2">
+               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                 <Check className="w-8 h-8" />
+               </div>
+               <p className="font-black text-xl text-slate-900">Successfully Connected!</p>
+            </div>
+          ) : (
             <Button 
               onClick={handleConnect}
               disabled={status === "connecting"}
-              className="w-full bg-blue-600 hover:bg-blue-700 h-14 text-lg font-black rounded-2xl"
+              className="w-full bg-blue-600 hover:bg-blue-700 h-16 text-xl font-black rounded-2xl shadow-xl shadow-blue-100"
             >
-              {status === "connecting" ? <Loader2 className="animate-spin" /> : "Connect Profile"}
+              {status === "connecting" ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="animate-spin" /> Connecting...
+                </div>
+              ) : "Connect Profile"}
             </Button>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
