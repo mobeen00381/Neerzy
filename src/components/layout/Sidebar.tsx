@@ -25,10 +25,10 @@ export function Sidebar() {
     <aside className="w-72 bg-white border-r border-slate-200 hidden lg:flex flex-col h-screen sticky top-0 overflow-hidden">
       <div className="p-8">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="bg-blue-600 p-2.5 rounded-2xl shadow-lg shadow-blue-100">
+          <div className="bg-[#25D366] p-2.5 rounded-2xl shadow-lg shadow-teal-100">
             <Zap className="h-6 w-6 text-white" />
           </div>
-          <span className="text-2xl font-black tracking-tighter text-slate-900 uppercase">NEERZY</span>
+          <span className="text-2xl font-black tracking-tighter text-[#0F5C4D] uppercase">NEERZY</span>
         </Link>
       </div>
 
@@ -39,7 +39,7 @@ export function Sidebar() {
             href={item.href}
             className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-bold transition-all ${
               pathname === item.href 
-                ? "bg-blue-50 text-blue-600" 
+                ? "bg-teal-50 text-[#0F5C4D]" 
                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >

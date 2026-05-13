@@ -1,16 +1,18 @@
 // lib/theme.ts
 export const neerzyTheme = {
   colors: {
-    primary: '#2563EB',      // Blue (adjust to match your home page)
-    primaryDark: '#1D4ED8',
-    secondary: '#64748B',    // Gray
-    background: '#F8FAFC',   // Light bg
+    primary: '#25D366',      // WhatsApp Green
+    primaryDark: '#1DA851',  // Darker Green for hover
+    secondary: '#0F5C4D',    // Deep Teal / Dark Header
+    accent: '#F59E0B',       // Amber / Alert
+    background: '#F8FAFC',
     card: '#FFFFFF',
     text: '#0F172A',
     textMuted: '#64748B',
     success: '#10B981',
     warning: '#F59E0B',
     error: '#EF4444',
+    googleBlue: '#4285F4',
   },
   fonts: {
     heading: 'Inter, sans-serif',
@@ -23,8 +25,8 @@ export const neerzyTheme = {
     xl: '2rem',
   },
   borderRadius: {
-    sm: '0.375rem',
-    md: '0.5rem',
-    lg: '0.75rem',
+    sm: '0.75rem',
+    md: '1rem',
+    lg: '2rem', // Premium rounded look
   },
 };

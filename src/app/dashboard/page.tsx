@@ -78,7 +78,7 @@ export default function DashboardPage() {
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
             Welcome back, <br className="md:hidden" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#25D366] to-[#0F5C4D]">
               {user?.business_name || user?.user_metadata?.business_name || "Trader"}
             </span>
           </h1>
@@ -88,7 +88,7 @@ export default function DashboardPage() {
           <div className="px-6 py-3 bg-slate-50 rounded-xl">
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Session Type</p>
             <p className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> WhatsApp Connected
+              <span className="w-2 h-2 rounded-full bg-[#25D366] animate-pulse" /> WhatsApp Connected
             </p>
           </div>
         </div>
@@ -106,15 +106,15 @@ export default function DashboardPage() {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-             <div className="bg-slate-900 text-white rounded-[2rem] p-8 shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-blue-600/40 transition-all duration-700" />
+             <div className="bg-[#0F5C4D] text-white rounded-[2rem] p-8 shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#25D366]/20 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-[#25D366]/40 transition-all duration-700" />
                 <h3 className="text-xl font-bold mb-2 relative z-10">Google Business Profile</h3>
-                <p className="text-slate-400 text-sm mb-8 relative z-10 leading-relaxed">
+                <p className="text-slate-200 text-sm mb-8 relative z-10 leading-relaxed">
                   Connect your profile to enable automatic WhatsApp posting.
                 </p>
                 {user?.gbp_connected ? (
-                   <div className="flex items-center gap-3 text-green-400 font-bold py-3 px-6 bg-white/5 rounded-2xl border border-white/10 w-fit">
-                      <div className="w-5 h-5 bg-green-400/20 rounded-full flex items-center justify-center">
+                   <div className="flex items-center gap-3 text-[#25D366] font-bold py-3 px-6 bg-white/5 rounded-2xl border border-white/10 w-fit">
+                      <div className="w-5 h-5 bg-[#25D366]/20 rounded-full flex items-center justify-center">
                         <CheckCircle2 className="w-3 h-3" />
                       </div>
                       Connected
@@ -122,7 +122,7 @@ export default function DashboardPage() {
                 ) : (
                   <button 
                     onClick={() => setShowGbpModal(true)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 h-14 text-lg font-black rounded-2xl transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                    className="w-full bg-[#25D366] hover:bg-[#1DA851] text-slate-900 h-14 text-lg font-black rounded-2xl transition-all shadow-lg shadow-teal-900/20 active:scale-95"
                   >
                     Connect Profile
                   </button>

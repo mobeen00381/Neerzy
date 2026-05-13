@@ -8,6 +8,7 @@ import { GlobalChatWrapper } from "@/components/chat/GlobalChatWrapper";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import QueryProvider from "@/components/providers/QueryProvider";
 import { initMonitoring } from "@/lib/monitoring";
+import Script from "next/script";
 
 initMonitoring();
 
@@ -40,9 +41,12 @@ export default function RootLayout({
         <link rel="preconnect" href="https://cdn.paddle.com" />
         <link rel="preconnect" href="https://accounts.google.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-        <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
       <body className="min-h-full flex flex-col font-sans bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+        <Script 
+          src="https://accounts.google.com/gsi/client" 
+          strategy="afterInteractive"
+        />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <QueryProvider>
             <Header />

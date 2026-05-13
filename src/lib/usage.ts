@@ -1,11 +1,6 @@
 // lib/usage.ts
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabase';
 import { PlanType, PLAN_LIMITS, getRemainingDays } from './plans';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export interface UsageStats {
   totalPostsUsed: number;
