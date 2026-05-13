@@ -26,22 +26,39 @@ export async function POST(request: Request) {
     const { data: otpVerification, error: otpError } = await supabaseAdmin
       .from('otp_verifications')
       .select('*')
-      .eq('phone_number', phoneNumber)
+      .eq('phone', phoneNumber)
       .eq('code', otpCode)
       .eq('used', false)
       .gt('expires_at', new Date().toISOString())
-      .single();
+      .maybeSingle();
+
+    console.log('🔍 OTP query result:', {
+      found: !!otpVerification,
+      error: otpError?.message,
+      queryParams: {
+        phoneColumn: 'phone',
+        codeColumn: 'code',
+        phoneNumber,
+        otpCode,
+      },
+    });
 
     if (otpError || !otpVerification) {
-      return Response.json({ error: 'Invalid or expired OTP' }, { status: 400 });
+      return Response.json(
+        { 
+          error: 'Invalid or expired OTP',
+          debug: otpError?.message || 'OTP not found'
+        }, 
+        { status: 400 }
+      );
     }
 
     // 🔍 STEP 2: Check if user already exists
     const { data: existingUser } = await supabaseAdmin
       .from('users') // or 'profiles' - whichever table stores user data
       .select('id, email, selected_plan')
-      .eq('phone_number', phoneNumber)
-      .single();
+      .eq('phone', phoneNumber)
+      .maybeSingle();
 
     if (existingUser) {
       // ✅ User exists - mark OTP as used & return success (login flow)
@@ -106,10 +123,9 @@ export async function POST(request: Request) {
       .eq('id', otpVerification.id);
 
     // Create public profile (if you use a separate profiles table)
-    // Checking if 'profiles' or 'users' is used. The snippet tries 'profiles' here.
     await supabaseAdmin.from('profiles').upsert({
       id: authUser.user.id,
-      phone_number: phoneNumber,
+      phone: phoneNumber,
       selected_plan: plan || 'free',
       created_at: new Date().toISOString(),
     });

@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
   await supabase.from('otp_verifications').insert({
-    phone_number: e164,
+    phone: e164,
     code: otp,
     expires_at: new Date(Date.now() + 600000).toISOString(),
     used: false,
