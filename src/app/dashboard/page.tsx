@@ -1,99 +1,104 @@
-'use client';
+// app/dashboard/page.tsx
+"use client";
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/Button';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { PlanStatusCard } from "@/components/dashboard/PlanStatusCard";
+import { GbpConnectModal } from "@/components/dashboard/GbpConnectModal";
+import { AppDownloadCard } from "@/components/dashboard/AppDownloadCard";
+import { PostUsageTracker } from "@/components/dashboard/PostUsageTracker";
+import { UpgradePrompt } from "@/components/dashboard/UpgradePrompt";
+import { getUsageStats } from "@/lib/usage";
+import { Loader2, Sparkles } from "lucide-react";
 
-import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
-import { PostsManager } from '@/components/dashboard/PostsManager';
-import { ReviewsManager } from '@/components/dashboard/ReviewsManager';
-import { BestPracticesGuide } from '@/components/dashboard/BestPracticesGuide';
-
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'posts' | 'reviews' | 'best-practices'>('analytics');
+export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState({ totalPosts: 0 });
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    async function getUser() {
+    async function initDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
+      if (user) {
+        setUser(user);
+        const usage = await getUsageStats(user.id);
+        setStats(usage);
       }
-      setUser(user);
       setLoading(false);
     }
-    getUser();
-  }, [supabase.auth, router]);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
+    initDashboard();
+  }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#25D366]"></div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+        <p className="font-bold text-slate-500 animate-pulse">Initializing your dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Dashboard Header */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#25D366] rounded-lg p-1.5 shadow-sm">
-            <span className="text-black font-black text-xl leading-none block">N</span>
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      {/* Welcome Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest mb-3">
+            <Sparkles className="w-4 h-4" /> System Status: Optimal
           </div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Neerzy Dashboard</h1>
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+            Welcome back, <br className="md:hidden" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              {user?.user_metadata?.business_name || user?.email?.split('@')[0]}
+            </span>
+          </h1>
         </div>
-        <div className="flex items-center gap-6">
-          <div className="hidden md:block text-right">
-            <div className="text-sm font-semibold text-slate-900 dark:text-white">{user?.email}</div>
-            <div className="text-xs text-slate-500 uppercase font-bold tracking-wider">Free Plan</div>
+        <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="px-6 py-3 bg-slate-50 rounded-xl">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Session Type</p>
+            <p className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500" /> WhatsApp Connected
+            </p>
           </div>
-          <button 
-            onClick={handleSignOut}
-            className="text-sm font-medium text-red-500 hover:text-red-600 transition-colors"
-          >
-            Sign Out
-          </button>
         </div>
-      </header>
+      </div>
 
-      {/* Main Navigation */}
-      <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 overflow-x-auto whitespace-nowrap scrollbar-hide">
-        <div className="container mx-auto flex gap-8">
-          {(['analytics', 'posts', 'reviews', 'best-practices'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-4 px-1 border-b-2 font-bold text-sm uppercase tracking-widest transition-all ${
-                activeTab === tab 
-                  ? 'border-[#25D366] text-[#0F5C4D] dark:text-[#25D366]' 
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              {tab.replace('-', ' ')}
-            </button>
-          ))}
-        </div>
-      </nav>
+      {/* Primary Metrics */}
+      <PostUsageTracker total={stats.totalPosts} monthly={stats.totalPosts} />
 
-      {/* Dynamic Content Area */}
-      <main className="container mx-auto p-6 md:p-10">
-        <div className="max-w-6xl mx-auto">
-          {activeTab === 'analytics' && <AnalyticsPanel userId={user?.id} />}
-          {activeTab === 'posts' && <PostsManager userId={user?.id} />}
-          {activeTab === 'reviews' && <ReviewsManager userId={user?.id} />}
-          {activeTab === 'best-practices' && <BestPracticesGuide trade={user?.user_metadata?.trade_type} />}
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Connection & Setup */}
+        <div className="lg:col-span-2 space-y-8">
+          <GbpConnectModal />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-2 gap-4">
+                   {[
+                     { label: "New Post", icon: "📸", color: "bg-blue-50 text-blue-600" },
+                     { label: "Settings", icon: "⚙️", color: "bg-slate-50 text-slate-600" },
+                     { label: "Analytics", icon: "📊", color: "bg-indigo-50 text-indigo-600" },
+                     { label: "Help", icon: "🆘", color: "bg-rose-50 text-rose-600" },
+                   ].map(action => (
+                     <button key={action.label} className="flex flex-col items-center justify-center p-4 rounded-2xl border border-slate-50 hover:border-blue-100 hover:bg-blue-50/30 transition-all group">
+                        <span className="text-2xl mb-2 group-hover:scale-110 transition-transform">{action.icon}</span>
+                        <span className="text-xs font-bold text-slate-600">{action.label}</span>
+                     </button>
+                   ))}
+                </div>
+             </div>
+             <AppDownloadCard />
+          </div>
         </div>
-      </main>
+
+        {/* Right Column: Plan & Upsell */}
+        <div className="space-y-8">
+          <PlanStatusCard tier={user?.user_metadata?.selected_plan || "free"} used={stats.totalPosts} />
+          <UpgradePrompt />
+        </div>
+      </div>
     </div>
   );
 }
