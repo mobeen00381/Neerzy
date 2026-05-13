@@ -1,52 +1,87 @@
 // components/dashboard/PostUsageTracker.tsx
-import { BarChart3, TrendingUp, History } from "lucide-react";
-import { UsageStats } from "@/lib/usage";
-import { PlanType } from "@/lib/plans";
+import { PlanType, PLAN_LIMITS } from '@/lib/plans';
 
 interface PostUsageTrackerProps {
-  usage: UsageStats | null;
+  usage: any;
   plan: PlanType;
-  onLimitReached?: () => void;
+  onLimitReached: () => void;
 }
 
 export function PostUsageTracker({ usage, plan, onLimitReached }: PostUsageTrackerProps) {
-  const stats = [
-    { 
-      label: "Today's Posts", 
-      value: usage?.dailyPostsUsed || 0, 
-      icon: TrendingUp, 
-      color: "text-green-600", 
-      bg: "bg-green-50" 
-    },
-    { 
-      label: "Remaining Today", 
-      value: usage?.remainingToday || 0, 
-      icon: BarChart3, 
-      color: "text-blue-600", 
-      bg: "bg-blue-50" 
-    },
-    { 
-      label: "Trial Left", 
-      value: `${usage?.daysLeft || 0}d`, 
-      icon: History, 
-      color: "text-orange-600", 
-      bg: "bg-orange-50" 
-    },
-  ];
+  const planConfig = PLAN_LIMITS[plan];
+  
+  if (!usage) return null;
+
+  const dailyPercent = Math.min(100, (usage.dailyPostsUsed / planConfig.dailyPosts) * 100);
+  const totalPercent = planConfig.totalPosts === -1 
+    ? 0 
+    : Math.min(100, (usage.totalPostsUsed / planConfig.totalPosts) * 100);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-      {stats.map((stat) => (
-        <div key={stat.label} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col justify-between">
-          <div className={`${stat.bg} ${stat.color} w-12 h-12 rounded-2xl flex items-center justify-center mb-4`}>
-            <stat.icon className="w-6 h-6" />
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 h-full flex flex-col">
+      <h3 className="text-xl font-black text-slate-900 mb-6 tracking-tight">Post Usage</h3>
+      
+      <div className="space-y-8 flex-1">
+        {/* Daily Limit */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Today's Posts</span>
+            <span className="text-sm font-black text-slate-900">
+              {usage.dailyPostsUsed} / {planConfig.dailyPosts}
+            </span>
           </div>
-          <div>
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">{stat.label}</p>
-            <p className="text-2xl font-black text-slate-900">{stat.value}</p>
+          <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-1000 ${
+                usage.remainingToday <= 0 ? 'bg-rose-500' : 'bg-blue-600'
+              }`}
+              style={{ width: `${dailyPercent}%` }}
+            />
           </div>
+          {usage.remainingToday <= 0 && (
+            <p className="mt-3 text-[10px] font-black text-rose-500 uppercase tracking-widest">
+              Daily limit reached. Resets at midnight UTC.
+            </p>
+          )}
         </div>
-      ))}
+
+        {/* Total Limit */}
+        {planConfig.totalPosts !== -1 && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Total Posts</span>
+              <span className="text-sm font-black text-slate-900">
+                {usage.totalPostsUsed} / {planConfig.totalPosts}
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-1000 ${
+                  usage.remainingTotal <= 0 ? 'bg-rose-500' : 'bg-indigo-600'
+                }`}
+                style={{ width: `${totalPercent}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Action Button */}
+      <div className="mt-8">
+        {usage.isLimited ? (
+          <button
+            onClick={onLimitReached}
+            className="w-full py-4 bg-slate-50 text-slate-400 rounded-2xl cursor-not-allowed text-sm font-black uppercase tracking-widest border-2 border-dashed border-slate-200"
+            disabled
+          >
+            Limit Reached • Upgrade to Post More
+          </button>
+        ) : (
+          <button className="w-full py-4 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-all text-sm font-black active:scale-95 shadow-xl shadow-slate-200">
+            Create New Post →
+          </button>
+        )}
+      </div>
     </div>
   );
 }
