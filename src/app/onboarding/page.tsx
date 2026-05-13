@@ -27,10 +27,10 @@ function OnboardingContent() {
 
   // Pass to OTP verification API
   const verifyOTP = async (code: string) => {
-    const res = await fetch('/api/auth/verify-otp', {
+    const res = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, code, plan: selectedPlan }),
+      body: JSON.stringify({ phoneNumber: phone, otpCode: code, plan: selectedPlan }),
     });
     // ...
   };
