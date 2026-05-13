@@ -1,6 +1,7 @@
-// app/api/auth/send-otp/route.ts - SANDBOX ONLY
+// app/api/auth/send-otp/route.ts - SECURE OTP VERSION
 import { createClient } from '@supabase/supabase-js';
 import twilio from 'twilio';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   const { phoneNumber } = await request.json();
@@ -13,17 +14,20 @@ export async function POST(request: Request) {
 
   // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const salt = await bcrypt.genSalt(10);
+  const otpHash = await bcrypt.hash(otp, salt);
 
   // Store in Supabase
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+  
   await supabase.from('otp_verifications').insert({
     phone: e164,
-    otp: otp,
+    otp_hash: otpHash,
     expires_at: new Date(Date.now() + 600000).toISOString(),
-    is_used: false,
+    attempts: 0
   });
 
   // Twilio client
@@ -39,6 +43,6 @@ export async function POST(request: Request) {
     body: `Your Neerzy verification code is ${otp}. This code expires in 10 minutes.`,
   });
 
-  console.log('✅ Sent:', { from: 'whatsapp:+14155238886', to, sid: msg.sid });
+  console.log('✅ Sent Secure OTP:', { from: 'whatsapp:+14155238886', to, sid: msg.sid });
   return Response.json({ success: true, sid: msg.sid });
 }

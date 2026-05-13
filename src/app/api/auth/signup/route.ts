@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 function generateJWT(user: any) {
   return jwt.sign(
@@ -22,47 +23,50 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // 🔍 STEP 1: Verify OTP first
-    const { data: otpVerification, error: otpError } = await supabaseAdmin
+    // 🔍 STEP 1: Fetch OTP record by phone
+    const { data: otpRecord, error: fetchError } = await supabaseAdmin
       .from('otp_verifications')
       .select('*')
       .eq('phone', phoneNumber)
-      .eq('otp', otpCode)
-      .eq('is_used', false)
+      .is('verified_at', null)
       .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
-    console.log('🔍 OTP query result:', {
-      found: !!otpVerification,
-      error: otpError?.message,
-      queryParams: {
-        phoneColumn: 'phone',
-        otpColumn: 'otp',
-        isUsedColumn: 'is_used',
-        phoneNumber,
-        otpCode,
-      },
-    });
-
-    if (otpError || !otpVerification) {
+    if (fetchError || !otpRecord) {
+      console.error('❌ OTP fetch failed:', fetchError);
       return Response.json(
-        { 
-          error: 'Invalid or expired OTP',
-          debug: otpError?.message || 'OTP not found'
-        }, 
+        { error: 'Invalid or expired OTP', debug: 'OTP record not found or already verified' },
         { status: 400 }
       );
     }
 
-    // ✅ OTP valid - mark as used
+    // 🔐 STEP 2: Compare plain OTP with hashed value
+    const isValidOtp = await bcrypt.compare(otpCode, otpRecord.otp_hash);
+
+    if (!isValidOtp) {
+      console.log('❌ OTP mismatch - hash comparison failed');
+      return Response.json(
+        { error: 'Invalid or expired OTP', debug: 'Hash mismatch' },
+        { status: 400 }
+      );
+    }
+
+    // ✅ STEP 3: Mark as verified
     await supabaseAdmin
       .from('otp_verifications')
-      .update({ is_used: true, used_at: new Date().toISOString() })
-      .eq('id', otpVerification.id);
+      .update({ 
+        verified_at: new Date().toISOString(),
+        attempts: (otpRecord.attempts || 0) + 1
+      })
+      .eq('id', otpRecord.id);
 
-    // 🔍 STEP 2: Check if user already exists
+    console.log('✅ OTP verified successfully');
+
+    // 🔍 STEP 4: Check if user already exists
     const { data: existingUser } = await supabaseAdmin
-      .from('users') // or 'profiles' - whichever table stores user data
+      .from('users')
       .select('id, email, selected_plan')
       .eq('phone', phoneNumber)
       .maybeSingle();
@@ -83,10 +87,10 @@ export async function POST(request: Request) {
       });
     }
 
-    // 🔍 STEP 3: Create NEW user (only if doesn't exist)
+    // 🔍 STEP 5: Create NEW user
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       phone: phoneNumber,
-      password: Math.random().toString(36).slice(-10), // Random password for phone auth
+      password: Math.random().toString(36).slice(-10),
       user_metadata: {
         phone_number: phoneNumber,
         selected_plan: plan || 'free',
@@ -95,11 +99,8 @@ export async function POST(request: Request) {
     });
 
     if (authError) {
-      // Handle "phone already registered" from Auth specifically
       if (authError.message?.includes('already registered') || authError.code === 'user_already_exists') {
-        // Fallback: fetch the existing user from auth
         const { data: { user } } = await supabaseAdmin.auth.admin.getUserByPhone(phoneNumber);
-        
         const userData = { id: user?.id, phone: phoneNumber };
         return Response.json({
           success: true,
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
       throw authError;
     }
 
-    // Create public profile (if you use a separate profiles table)
+    // Create public profile
     await supabaseAdmin.from('profiles').upsert({
       id: authUser.user.id,
       phone: phoneNumber,
