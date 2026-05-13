@@ -8,12 +8,12 @@ import { GbpConnectModal } from "@/components/dashboard/GbpConnectModal";
 import { AppDownloadCard } from "@/components/dashboard/AppDownloadCard";
 import { PostUsageTracker } from "@/components/dashboard/PostUsageTracker";
 import { UpgradePrompt } from "@/components/dashboard/UpgradePrompt";
-import { getUsageStats } from "@/lib/usage";
+import { getUserUsage, UsageStats } from "@/lib/usage";
 import { Loader2, Sparkles } from "lucide-react";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({ totalPosts: 0 });
+  const [stats, setStats] = useState<UsageStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,7 +21,11 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
-        const usage = await getUsageStats(user.id);
+        const usage = await getUserUsage(
+          user.id, 
+          (user.user_metadata?.selected_plan || 'free') as any,
+          user.created_at
+        );
         setStats(usage);
       }
       setLoading(false);
@@ -64,7 +68,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Primary Metrics */}
-      <PostUsageTracker total={stats.totalPosts} monthly={stats.totalPosts} />
+      <PostUsageTracker 
+        total={stats?.totalPostsUsed || 0} 
+        monthly={stats?.dailyPostsUsed || 0} 
+      />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -95,7 +102,10 @@ export default function DashboardPage() {
 
         {/* Right Column: Plan & Upsell */}
         <div className="space-y-8">
-          <PlanStatusCard tier={user?.user_metadata?.selected_plan || "free"} used={stats.totalPosts} />
+          <PlanStatusCard 
+            tier={user?.user_metadata?.selected_plan || "free"} 
+            used={stats?.totalPostsUsed || 0} 
+          />
           <UpgradePrompt />
         </div>
       </div>
