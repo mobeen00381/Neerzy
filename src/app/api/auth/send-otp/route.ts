@@ -1,4 +1,4 @@
-// app/api/auth/send-otp/route.ts - MINIMAL SANDBOX VERSION
+// app/api/auth/send-otp/route.ts - SANDBOX ONLY
 import { createClient } from '@supabase/supabase-js';
 import twilio from 'twilio';
 
@@ -32,12 +32,13 @@ export async function POST(request: Request) {
     process.env.TWILIO_AUTH_TOKEN
   );
 
-  // 🔥 SANDBOX CALL - ONLY 3 PARAMS, NO TEMPLATES
+  // 🔥 SANDBOX: Hardcoded sandbox number + plain body
   const msg = await client.messages.create({
-    from: 'whatsapp:+14155238886',  // Sandbox only
-    to: to,                          // whatsapp:+92...
+    from: 'whatsapp:+14155238886',  // ✅ SANDBOX ONLY
+    to: to,
     body: `Your Neerzy verification code is ${otp}. This code expires in 10 minutes.`,
   });
 
+  console.log('✅ Sent:', { from: 'whatsapp:+14155238886', to, sid: msg.sid });
   return Response.json({ success: true, sid: msg.sid });
 }
