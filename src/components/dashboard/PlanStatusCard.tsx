@@ -9,13 +9,17 @@ interface PlanStatusCardProps {
 
 export function PlanStatusCard({ tier, used }: PlanStatusCardProps) {
   const plan = getPlan(tier);
-  const percentage = Math.min(Math.round((used / plan.postLimit) * 100), 100);
+  const isUnlimited = plan.totalPosts === -1;
+  const percentage = isUnlimited ? 0 : Math.min(Math.round((used / plan.totalPosts) * 100), 100);
 
   return (
     <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
+          <div 
+            className="p-2 rounded-xl"
+            style={{ backgroundColor: `${plan.color}10`, color: plan.color }}
+          >
             <Zap className="w-5 h-5 fill-current" />
           </div>
           <div>
@@ -31,18 +35,24 @@ export function PlanStatusCard({ tier, used }: PlanStatusCardProps) {
       <div className="space-y-4">
         <div className="flex justify-between items-end">
           <span className="text-sm font-bold text-slate-600">Post Usage</span>
-          <span className="text-sm font-black text-slate-900">{used} / {plan.postLimit}</span>
+          <span className="text-sm font-black text-slate-900">
+            {used} / {isUnlimited ? "∞" : plan.totalPosts}
+          </span>
         </div>
         
-        <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-blue-600 rounded-full transition-all duration-1000"
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
+        {!isUnlimited && (
+          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div 
+              className="h-full rounded-full transition-all duration-1000"
+              style={{ width: `${percentage}%`, backgroundColor: plan.color }}
+            />
+          </div>
+        )}
 
         <p className="text-xs text-slate-400 leading-relaxed">
-          Your plan resets on the 1st of every month. {plan.postLimit - used} posts remaining.
+          {isUnlimited 
+            ? "You have unlimited lifetime posts on this plan."
+            : `Your plan allows for ${plan.totalPosts} lifetime posts. ${plan.totalPosts - used} remaining.`}
         </p>
       </div>
     </div>

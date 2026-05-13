@@ -1,51 +1,74 @@
 // lib/plans.ts
-export type PlanTier = 'free' | 'starter' | 'pro' | 'unlimited';
+export type PlanType = 'free' | 'pro' | 'growth';
 
-export interface PlanConfig {
-  id: PlanTier;
+export interface PlanLimits {
   name: string;
-  price: number;
-  postLimit: number;
-  features: string[];
-  description: string;
+  price: string;
+  trialDays: number;        // Trial period in days
+  totalPosts: number;       // Lifetime post limit
+  dailyPosts: number;       // Max posts per day
+  features: string[];       // Feature list
+  color: string;            // Card accent color
 }
 
-export const PLANS: Record<PlanTier, PlanConfig> = {
+export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   free: {
-    id: 'free',
-    name: 'Free Trial',
-    price: 0,
-    postLimit: 5,
-    features: ['5 Google Posts', 'Basic SEO', 'WhatsApp Support'],
-    description: 'Perfect for trying out Neerzy.'
-  },
-  starter: {
-    id: 'starter',
-    name: 'Starter',
-    price: 49,
-    postLimit: 20,
-    features: ['20 Google Posts/mo', 'Enhanced SEO', 'Priority WhatsApp'],
-    description: 'Great for growing local businesses.'
+    name: 'Free',
+    price: '$0/mo',
+    trialDays: 30,
+    totalPosts: 5,
+    dailyPosts: 1,
+    features: [
+      '1 Google Business Profile',
+      'Basic post scheduling',
+      'Email support',
+      'Neerzy branding on posts',
+    ],
+    color: '#64748B', // Gray
   },
   pro: {
-    id: 'pro',
-    name: 'Professional',
-    price: 99,
-    postLimit: 50,
-    features: ['50 Google Posts/mo', 'Advanced SEO', 'Review Automation'],
-    description: 'For businesses that want to dominate.'
+    name: 'Pro',
+    price: '$29/mo',
+    trialDays: 0,
+    totalPosts: 100,
+    dailyPosts: 5,
+    features: [
+      '3 Google Business Profiles',
+      'Advanced scheduling & analytics',
+      'Priority support',
+      'Custom branding removal',
+      'Auto-reply templates',
+    ],
+    color: '#2563EB', // Blue
   },
-  unlimited: {
-    id: 'unlimited',
-    name: 'Unlimited',
-    price: 199,
-    postLimit: 1000, // Effectively unlimited
-    features: ['Unlimited Posts', 'Custom SEO Strategy', 'White-glove Setup'],
-    description: 'The ultimate visibility package.'
-  }
+  growth: {
+    name: 'Growth',
+    price: '$79/mo',
+    trialDays: 0,
+    totalPosts: -1,     // -1 = unlimited
+    dailyPosts: 20,
+    features: [
+      'Unlimited Google Business Profiles',
+      'Team collaboration (5 seats)',
+      'Dedicated account manager',
+      'API access',
+      'White-label reporting',
+      'Custom integrations',
+    ],
+    color: '#7C3AED', // Purple
+  },
 };
 
-export function getPlan(tier: string | null | undefined): PlanConfig {
-  const t = (tier?.toLowerCase() as PlanTier) || 'free';
-  return PLANS[t] || PLANS.free;
+export function getRemainingDays(startDate: string, trialDays: number): number {
+  const start = new Date(startDate);
+  const end = new Date(start);
+  end.setDate(end.getDate() + trialDays);
+  const now = new Date();
+  const diff = end.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+export function getPlan(tier: string | null | undefined): PlanLimits {
+  const t = (tier?.toLowerCase() as PlanType) || 'free';
+  return PLAN_LIMITS[t] || PLAN_LIMITS.free;
 }
