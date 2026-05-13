@@ -11,7 +11,7 @@ export async function sendTwilioMessage(
 ) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const fromNumber = process.env.TWILIO_PHONE_NUMBER || "whatsapp:+18338872999";
+  const fromNumber = "whatsapp:+14155238886"; // SANDBOX ONLY
 
   const client = twilio(accountSid, authToken);
   const formattedTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;

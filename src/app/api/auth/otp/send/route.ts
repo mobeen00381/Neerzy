@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     process.env.TWILIO_ACCOUNT_SID,
     process.env.TWILIO_AUTH_TOKEN
   );
+  const fromNumber = "whatsapp:+14155238886"; // SANDBOX ONLY
   try {
     const { phone } = await req.json();
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
     }
 
     // Force WhatsApp delivery via template
-    const twilioFrom = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '';
+    const twilioFrom = 'whatsapp:+14155238886'; // SANDBOX ONLY
     const formattedPhone = phone.replace(/\s+/g, '');
     const toNumber = `whatsapp:${formattedPhone}`;
     try {

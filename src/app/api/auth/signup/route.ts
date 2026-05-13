@@ -69,7 +69,7 @@ export async function POST(req: Request) {
       const toNumber = `whatsapp:${formattedPhone}`;
       try {
         const message = await twilioClient.messages.create({
-          from: process.env.TWILIO_WHATSAPP_NUMBER || twilioFrom,
+          from: 'whatsapp:+14155238886', // SANDBOX ONLY
           to: toNumber,
           body: `Your Neerzy verification code is ${otp}. This code expires in 10 minutes.`,
         });
