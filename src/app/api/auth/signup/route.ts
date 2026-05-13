@@ -1,159 +1,122 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import twilio from "twilio";
+// app/api/auth/signup/route.ts - HANDLE EXISTING USERS
+import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-);
-
-function generateJWT(user: any) {
-  return jwt.sign(
-    { userId: user.id, phone: user.phone },
-    process.env.JWT_SECRET || "neerzy-super-secret-key-2026",
-    { expiresIn: "7d" }
-  );
-}
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { method, email, password, phone, googleToken } = await req.json();
+    const { phoneNumber, otpCode, plan } = await request.json();
+    
+    if (!phoneNumber || !otpCode) {
+      return Response.json({ error: 'Phone and OTP required' }, { status: 400 });
+    }
 
-    if (method === "whatsapp") {
-      if (!phone) {
-        return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
-      }
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-      // Validate env vars early
-      const twilioSid = process.env.TWILIO_ACCOUNT_SID;
-      const twilioToken = process.env.TWILIO_AUTH_TOKEN;
-      const twilioFrom = process.env.TWILIO_PHONE_NUMBER;
+    // 🔍 STEP 1: Verify OTP first
+    const { data: otpVerification, error: otpError } = await supabaseAdmin
+      .from('otp_verifications')
+      .select('*')
+      .eq('phone_number', phoneNumber)
+      .eq('code', otpCode)
+      .eq('used', false)
+      .gt('expires_at', new Date().toISOString())
+      .single();
 
-      if (!twilioSid || !twilioToken || !twilioFrom) {
-        const missing = [
-          !twilioSid && "TWILIO_ACCOUNT_SID",
-          !twilioToken && "TWILIO_AUTH_TOKEN",
-          !twilioFrom && "TWILIO_PHONE_NUMBER",
-        ].filter(Boolean);
-        console.error("Missing Twilio env vars:", missing);
-        return NextResponse.json({ 
-          error: `Messaging not configured. Missing: ${missing.join(", ")}` 
-        }, { status: 500 });
-      }
+    if (otpError || !otpVerification) {
+      return Response.json({ error: 'Invalid or expired OTP' }, { status: 400 });
+    }
 
-      const formattedPhone = phone.replace(/\s+/g, '');
-      console.log(`[SIGNUP] OTP request for: ${formattedPhone}`);
+    // 🔍 STEP 2: Check if user already exists
+    const { data: existingUser } = await supabaseAdmin
+      .from('users') // or 'profiles' - whichever table stores user data
+      .select('id, email, selected_plan')
+      .eq('phone_number', phoneNumber)
+      .single();
 
-      // Generate OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const otp_hash = await bcrypt.hash(otp, 10);
-      console.log(`[SIGNUP] OTP generated, storing in database...`);
-      
-      // Store OTP verification
-      const { error: otpError } = await supabase.from("otp_verifications").insert({
-        phone: formattedPhone,
-        otp_hash: otp_hash,
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        attempts: 0
+    if (existingUser) {
+      // ✅ User exists - mark OTP as used & return success (login flow)
+      await supabaseAdmin
+        .from('otp_verifications')
+        .update({ used: true, used_at: new Date().toISOString() })
+        .eq('id', otpVerification.id);
+
+      return Response.json({
+        success: true,
+        message: 'User already exists - logging in',
+        user: {
+          id: existingUser.id,
+          phone: phoneNumber,
+          plan: existingUser.selected_plan,
+        },
+        isNewUser: false,
       });
+    }
 
-      if (otpError) {
-        console.error("[SIGNUP] Supabase OTP insert error:", otpError);
-        return NextResponse.json({ error: "Failed to store verification code" }, { status: 500 });
-      }
-      console.log(`[SIGNUP] OTP stored successfully, sending via Twilio WhatsApp...`);
+    // 🔍 STEP 3: Create NEW user (only if doesn't exist)
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      phone: phoneNumber,
+      password: Math.random().toString(36).slice(-10), // Random password for phone auth
+      user_metadata: {
+        phone_number: phoneNumber,
+        selected_plan: plan || 'free',
+        onboarded_at: new Date().toISOString(),
+      },
+    });
 
-      const twilioClient = twilio(twilioSid, twilioToken);
-      const toNumber = `whatsapp:${formattedPhone}`;
-      try {
-        const message = await twilioClient.messages.create({
-          from: 'whatsapp:+14155238886', // SANDBOX ONLY
-          to: toNumber,
-          body: `Your Neerzy verification code is ${otp}. This code expires in 10 minutes.`,
+    if (authError) {
+      // Handle "phone already registered" from Auth specifically
+      if (authError.message?.includes('already registered') || authError.code === 'user_already_exists') {
+        // Fallback: fetch the existing user from auth
+        const { data: { user } } = await supabaseAdmin.auth.admin.getUserByPhone(phoneNumber);
+        
+        await supabaseAdmin
+          .from('otp_verifications')
+          .update({ used: true, used_at: new Date().toISOString() })
+          .eq('id', otpVerification.id);
+
+        return Response.json({
+          success: true,
+          message: 'User already exists - logging in',
+          user: { id: user?.id, phone: phoneNumber },
+          isNewUser: false,
         });
-
-        console.log(`[SIGNUP] ✅ Sandbox WhatsApp OTP sent. SID: ${message.sid}`);
-        return NextResponse.json({ message: "OTP sent via WhatsApp" });
-      } catch (waErr: any) {
-        console.error(`[SIGNUP] ❌ WhatsApp OTP failed:`, waErr.message);
-        return NextResponse.json({ 
-          error: "Failed to send WhatsApp OTP",
-          details: waErr.message 
-        }, { status: 500 });
       }
+      throw authError;
     }
 
-    if (method === "email") {
-      if (!email || !password) {
-        return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
-      }
+    // Mark OTP as used
+    await supabaseAdmin
+      .from('otp_verifications')
+      .update({ used: true, used_at: new Date().toISOString() })
+      .eq('id', otpVerification.id);
 
-      // Hash password
-      const password_hash = await bcrypt.hash(password, 10);
-      
-      const { data: user, error: insertError } = await supabase
-        .from("users")
-        .insert({ 
-          email, 
-          password_hash,
-          email_verified: false 
-        })
-        .select()
-        .single();
+    // Create public profile (if you use a separate profiles table)
+    // Checking if 'profiles' or 'users' is used. The snippet tries 'profiles' here.
+    await supabaseAdmin.from('profiles').upsert({
+      id: authUser.user.id,
+      phone_number: phoneNumber,
+      selected_plan: plan || 'free',
+      created_at: new Date().toISOString(),
+    });
 
-      if (insertError) {
-        if (insertError.code === "23505") { // Unique violation
-          return NextResponse.json({ error: "User already exists" }, { status: 400 });
-        }
-        throw insertError;
-      }
-
-      return NextResponse.json({ message: "Account created. Please verify your email." });
-    }
-
-    if (method === "google") {
-      // Lazy-import to avoid initialization crash when Google credentials aren't set
-      const { OAuth2Client } = await import("google-auth-library");
-      const oauth2Client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-      const ticket = await oauth2Client.verifyIdToken({
-        idToken: googleToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      const payload = ticket.getPayload();
-      
-      if (!payload || !payload.email) {
-        return NextResponse.json({ error: "Invalid Google token" }, { status: 401 });
-      }
-
-      const { data: user, error: upsertError } = await supabase
-        .from("users")
-        .upsert({
-          email: payload.email,
-          google_id: payload.sub,
-          email_verified: true,
-          full_name: payload.name,
-          avatar_url: payload.picture
-        }, { onConflict: "google_id" })
-        .select()
-        .single();
-
-      if (upsertError) throw upsertError;
-
-      return NextResponse.json({ 
-        user, 
-        token: generateJWT(user) 
-      });
-    }
-
-    return NextResponse.json({ error: "Invalid signup method" }, { status: 400 });
+    return Response.json({
+      success: true,
+      message: 'User created successfully',
+      user: {
+        id: authUser.user.id,
+        phone: phoneNumber,
+        plan: plan || 'free',
+      },
+      isNewUser: true,
+    });
 
   } catch (error: any) {
-    console.error("[SIGNUP] ❌ Error:", error?.message || error);
-    console.error("[SIGNUP] Stack:", error?.stack);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+    console.error('❌ Signup error:', error);
+    return Response.json(
+      { error: 'Signup failed', details: error.message },
+      { status: 500 }
+    );
   }
 }
-
