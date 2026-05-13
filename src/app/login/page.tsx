@@ -79,6 +79,12 @@ function LoginContent() {
 
     setStatus("loading");
     try {
+      console.log('📤 Sending to API:', {
+        phoneNumber: phone,
+        otpCode: otp,
+        plan: plan,
+      });
+
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
