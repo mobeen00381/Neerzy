@@ -21,9 +21,9 @@ export async function POST(request: Request) {
   );
   await supabase.from('otp_verifications').insert({
     phone: e164,
-    code: otp,
+    otp: otp,
     expires_at: new Date(Date.now() + 600000).toISOString(),
-    used: false,
+    is_used: false,
   });
 
   // Twilio client

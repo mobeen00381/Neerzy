@@ -27,8 +27,8 @@ export async function POST(request: Request) {
       .from('otp_verifications')
       .select('*')
       .eq('phone', phoneNumber)
-      .eq('code', otpCode)
-      .eq('used', false)
+      .eq('otp', otpCode)
+      .eq('is_used', false)
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
 
@@ -37,7 +37,8 @@ export async function POST(request: Request) {
       error: otpError?.message,
       queryParams: {
         phoneColumn: 'phone',
-        codeColumn: 'code',
+        otpColumn: 'otp',
+        isUsedColumn: 'is_used',
         phoneNumber,
         otpCode,
       },
@@ -53,6 +54,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // ✅ OTP valid - mark as used
+    await supabaseAdmin
+      .from('otp_verifications')
+      .update({ is_used: true, used_at: new Date().toISOString() })
+      .eq('id', otpVerification.id);
+
     // 🔍 STEP 2: Check if user already exists
     const { data: existingUser } = await supabaseAdmin
       .from('users') // or 'profiles' - whichever table stores user data
@@ -61,12 +68,6 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (existingUser) {
-      // ✅ User exists - mark OTP as used & return success (login flow)
-      await supabaseAdmin
-        .from('otp_verifications')
-        .update({ used: true, used_at: new Date().toISOString() })
-        .eq('id', otpVerification.id);
-
       const user = {
         id: existingUser.id,
         phone: phoneNumber,
@@ -99,11 +100,6 @@ export async function POST(request: Request) {
         // Fallback: fetch the existing user from auth
         const { data: { user } } = await supabaseAdmin.auth.admin.getUserByPhone(phoneNumber);
         
-        await supabaseAdmin
-          .from('otp_verifications')
-          .update({ used: true, used_at: new Date().toISOString() })
-          .eq('id', otpVerification.id);
-
         const userData = { id: user?.id, phone: phoneNumber };
         return Response.json({
           success: true,
@@ -115,12 +111,6 @@ export async function POST(request: Request) {
       }
       throw authError;
     }
-
-    // Mark OTP as used
-    await supabaseAdmin
-      .from('otp_verifications')
-      .update({ used: true, used_at: new Date().toISOString() })
-      .eq('id', otpVerification.id);
 
     // Create public profile (if you use a separate profiles table)
     await supabaseAdmin.from('profiles').upsert({
