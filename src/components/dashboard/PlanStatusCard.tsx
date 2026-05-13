@@ -1,72 +1,81 @@
 // components/dashboard/PlanStatusCard.tsx
-import { Zap, ShieldCheck } from "lucide-react";
-import { getPlan, PlanType } from "@/lib/plans";
-import { UsageStats } from "@/lib/usage";
+import { PlanType, PLAN_LIMITS, getRemainingDays } from '@/lib/plans';
 
 interface PlanStatusCardProps {
   plan: PlanType;
-  usage: UsageStats | null;
+  usage: any;
   trialStart?: string;
 }
 
-export function PlanStatusCard({ plan: tier, usage, trialStart }: PlanStatusCardProps) {
-  const planDetails = getPlan(tier);
-  const isUnlimited = planDetails.totalPosts === -1;
-  const used = usage?.totalPostsUsed || 0;
-  const percentage = isUnlimited ? 0 : Math.min(Math.round((used / planDetails.totalPosts) * 100), 100);
-
+export function PlanStatusCard({ plan, usage, trialStart }: PlanStatusCardProps) {
+  const planConfig = PLAN_LIMITS[plan];
+  // Calculate days left: either from usage object or calculated fresh from trialStart
+  const daysLeft = usage?.daysLeft || (planConfig.trialDays > 0 ? getRemainingDays(trialStart || new Date().toISOString(), planConfig.trialDays) : Infinity);
+  
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 h-full">
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div 
-            className="p-2 rounded-xl"
-            style={{ backgroundColor: `${planDetails.color}10`, color: planDetails.color }}
-          >
-            <Zap className="w-5 h-5 fill-current" />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-900">{planDetails.name} Plan</h3>
-            <p className="text-xs text-slate-500 font-medium capitalize">{tier} Tier</p>
-          </div>
+        <div>
+          <h3 className="text-xl font-black text-slate-900 tracking-tight">Your Plan</h3>
+          <p className="text-sm text-slate-500 font-medium">{planConfig.name} Tier</p>
         </div>
-        <div className="bg-green-50 text-green-600 text-[10px] font-black px-2 py-1 rounded-lg flex items-center gap-1">
-          <ShieldCheck className="w-3 h-3" /> ACTIVE
+        <div 
+          className="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest"
+          style={{ 
+            backgroundColor: `${planConfig.color}15`,
+            color: planConfig.color 
+          }}
+        >
+          {planConfig.price}
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex justify-between items-end">
-          <span className="text-sm font-bold text-slate-600">Total Posts</span>
-          <span className="text-sm font-black text-slate-900">
-            {used} / {isUnlimited ? "∞" : planDetails.totalPosts}
-          </span>
-        </div>
-        
-        {!isUnlimited && (
-          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+      {/* Trial Countdown */}
+      {planConfig.trialDays > 0 && (
+        <div className="mb-8 p-6 bg-blue-50/50 rounded-[1.5rem] border border-blue-100/50">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-black text-blue-900 uppercase tracking-widest">Trial Period</span>
+            <span className="text-xl font-black text-blue-600">
+              {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+            </span>
+          </div>
+          <div className="w-full bg-blue-200/50 rounded-full h-3 overflow-hidden">
             <div 
-              className="h-full rounded-full transition-all duration-1000"
-              style={{ width: `${percentage}%`, backgroundColor: planDetails.color }}
+              className="bg-blue-600 h-full rounded-full transition-all duration-1000"
+              style={{ width: `${Math.min(100, (daysLeft / planConfig.trialDays) * 100)}%` }}
             />
           </div>
-        )}
-
-        <div className="pt-2">
-          {tier === 'free' && usage && (
-            <div className="bg-blue-50 text-blue-700 p-3 rounded-xl text-xs font-bold flex items-center justify-between">
-               <span>Trial Ends In:</span>
-               <span>{usage.daysLeft} Days</span>
-            </div>
-          )}
         </div>
+      )}
 
-        <p className="text-xs text-slate-400 leading-relaxed">
-          {isUnlimited 
-            ? "You have unlimited lifetime posts on this plan."
-            : `Your plan allows for ${planDetails.totalPosts} lifetime posts. ${planDetails.totalPosts - used} remaining.`}
-        </p>
+      {/* Features List */}
+      <div className="space-y-4 flex-1">
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Included Features</p>
+        <ul className="space-y-3">
+          {planConfig.features.slice(0, 4).map((feature, i) => (
+            <li key={i} className="flex items-center text-sm text-slate-600 font-medium">
+              <div className="w-5 h-5 bg-green-50 rounded-lg flex items-center justify-center mr-3 shrink-0">
+                <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                </svg>
+              </div>
+              {feature}
+            </li>
+          ))}
+          {planConfig.features.length > 4 && (
+            <li className="text-xs text-slate-400 font-bold ml-8">
+              + {planConfig.features.length - 4} more features
+            </li>
+          )}
+        </ul>
       </div>
+
+      {/* Upgrade Button */}
+      {plan === 'free' && (
+        <button className="mt-8 w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl hover:shadow-xl hover:shadow-blue-100 transition-all text-sm font-black active:scale-95">
+          Upgrade to Pro Tier →
+        </button>
+      )}
     </div>
   );
 }
