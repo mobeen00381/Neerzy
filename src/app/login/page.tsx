@@ -53,10 +53,10 @@ function LoginContent() {
 
     setStatus("loading");
     try {
-      const res = await fetch("/api/auth/signup", {
+      const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method: "whatsapp", phone })
+        body: JSON.stringify({ phoneNumber: phone })
       });
       const data = await res.json();
       if (res.ok) {
@@ -79,10 +79,10 @@ function LoginContent() {
 
     setStatus("loading");
     try {
-      const res = await fetch("/api/auth/verify-otp", {
+      const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code: otp, plan })
+        body: JSON.stringify({ phoneNumber: phone, otpCode: otp, plan })
       });
       const data = await res.json();
       if (res.ok && data.token) {

@@ -1,5 +1,13 @@
-// app/api/auth/signup/route.ts - HANDLE EXISTING USERS
 import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
+
+function generateJWT(user: any) {
+  return jwt.sign(
+    { userId: user.id, phone: user.phone_number || user.phone },
+    process.env.JWT_SECRET || "neerzy-super-secret-key-2026",
+    { expiresIn: "7d" }
+  );
+}
 
 export async function POST(request: Request) {
   try {
@@ -42,14 +50,17 @@ export async function POST(request: Request) {
         .update({ used: true, used_at: new Date().toISOString() })
         .eq('id', otpVerification.id);
 
+      const user = {
+        id: existingUser.id,
+        phone: phoneNumber,
+        plan: existingUser.selected_plan,
+      };
+
       return Response.json({
         success: true,
         message: 'User already exists - logging in',
-        user: {
-          id: existingUser.id,
-          phone: phoneNumber,
-          plan: existingUser.selected_plan,
-        },
+        user,
+        token: generateJWT(user),
         isNewUser: false,
       });
     }
@@ -76,10 +87,12 @@ export async function POST(request: Request) {
           .update({ used: true, used_at: new Date().toISOString() })
           .eq('id', otpVerification.id);
 
+        const userData = { id: user?.id, phone: phoneNumber };
         return Response.json({
           success: true,
           message: 'User already exists - logging in',
-          user: { id: user?.id, phone: phoneNumber },
+          user: userData,
+          token: generateJWT(userData),
           isNewUser: false,
         });
       }
@@ -101,14 +114,17 @@ export async function POST(request: Request) {
       created_at: new Date().toISOString(),
     });
 
+    const newUser = {
+      id: authUser.user.id,
+      phone: phoneNumber,
+      plan: plan || 'free',
+    };
+
     return Response.json({
       success: true,
       message: 'User created successfully',
-      user: {
-        id: authUser.user.id,
-        phone: phoneNumber,
-        plan: plan || 'free',
-      },
+      user: newUser,
+      token: generateJWT(newUser),
       isNewUser: true,
     });
 
