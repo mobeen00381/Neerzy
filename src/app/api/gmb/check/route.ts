@@ -10,8 +10,8 @@ export async function POST(req: Request) {
   try {
     const { businessName, address, userId } = await req.json();
 
-    if (!businessName || !userId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!businessName) {
+      return NextResponse.json({ error: 'Missing business name' }, { status: 400 });
     }
 
     // 1. Call Google Places API (New v1 Search Text)
@@ -48,26 +48,29 @@ export async function POST(req: Request) {
 
     // 3. Save to Supabase jobs table
     // Note: This assumes the jobs table has been updated with these GMB columns
-    const { error: dbError } = await supabase.from('jobs').insert({
-      user_id: userId,
-      plan_tier: 'starter',
-      status: 'gmb_checked',
-      title: `GMB Check: ${businessName}`,
-      gmb_place_id: place.id,
-      gmb_business_name: place.displayName?.text,
-      gmb_address: place.formattedAddress,
-      gmb_phone: place.nationalPhoneNumber,
-      gmb_website: place.websiteUri,
-      gmb_rating: place.rating,
-      gmb_review_count: place.userRatingCount,
-      gmb_health_score: score,
-      gmb_missing_items: missingItems,
-      content: JSON.stringify({ missingItems, score })
-    });
+    // 3. Save to Supabase jobs table if userId is present
+    if (userId) {
+      const { error: dbError } = await supabase.from('jobs').insert({
+        user_id: userId,
+        plan_tier: 'starter',
+        status: 'gmb_checked',
+        title: `GMB Check: ${businessName}`,
+        gmb_place_id: place.id,
+        gmb_business_name: place.displayName?.text,
+        gmb_address: place.formattedAddress,
+        gmb_phone: place.nationalPhoneNumber,
+        gmb_website: place.websiteUri,
+        gmb_rating: place.rating,
+        gmb_review_count: place.userRatingCount,
+        gmb_health_score: score,
+        gmb_missing_items: missingItems,
+        content: JSON.stringify({ missingItems, score })
+      });
 
-    if (dbError) {
-      console.error('DB Error:', dbError);
-      throw dbError;
+      if (dbError) {
+        console.error('DB Error:', dbError);
+        // We don't throw here to avoid failing the search if DB save fails
+      }
     }
 
     return NextResponse.json({
