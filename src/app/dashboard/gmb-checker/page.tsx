@@ -1,322 +1,218 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { debounce } from 'lodash';
 import { 
-  Search, Shield, AlertCircle, CheckCircle2, 
-  ArrowRight, Loader2, Star, MapPin, Globe, Phone,
-  Camera, MessageSquare, Gauge
+  Search, Shield, MapPin, Loader2, ArrowRight, Star,
+  AlertCircle, LayoutGrid, Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function GMBChecker() {
-  const [businessName, setBusinessName] = useState('');
-  const [address, setAddress] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Debounced search (wait 300ms after user stops typing)
+  const searchBusinesses = useRef(
+    debounce(async (searchQuery: string) => {
+      if (searchQuery.length < 2) {
+        setResults([]);
+        setShowDropdown(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/places/search?q=${encodeURIComponent(searchQuery)}`);
+        const data = await res.json();
+        
+        if (data.results && data.results.length > 0) {
+          setResults(data.results);
+          setShowDropdown(true);
+          setSelectedIndex(-1);
+        } else {
+          setResults([]);
+          setShowDropdown(false);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300)
+  ).current;
+
+  // Trigger search when query changes
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
+    searchBusinesses(query);
+    return () => searchBusinesses.cancel();
+  }, [query, searchBusinesses]);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
     };
-    fetchUser();
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleCheck = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId) {
-      alert("Please log in to use this feature.");
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const res = await fetch('/api/gmb/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessName,
-          address,
-          userId
-        })
-      });
-
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setResult(data);
-    } catch (err: any) {
-      alert(err.message || "Failed to check GMB listing");
-    } finally {
-      setLoading(false);
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev < results.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+      e.preventDefault();
+      selectBusiness(results[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      setShowDropdown(false);
     }
   };
 
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  const handleWhatsAppAction = async (action: string) => {
-    setActionLoading(action);
-    try {
-      const res = await fetch('/api/whatsapp/send-gmb-action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          placeId: result.placeId,
-          action,
-          // For demo, we use the business phone if available, or a placeholder
-          phoneNumber: result.phone || "+1234567890" 
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(`✅ Success! WhatsApp message sent to ${data.sentTo}`);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (err: any) {
-      alert(err.message || "Failed to send WhatsApp message");
-    } finally {
-      setActionLoading(null);
-    }
+  const selectBusiness = (business: any) => {
+    setQuery(business.name);
+    setShowDropdown(false);
+    router.push(`/dashboard/gmb-report?placeId=${business.placeId}&name=${encodeURIComponent(business.name)}`);
   };
-
-  if (result?.success) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-              {result.gmb_business_name || "GMB Health Report"}
-            </h1>
-            <p className="text-slate-600 font-bold flex items-center gap-2 mt-1">
-              <MapPin className="h-4 w-4 text-blue-600" /> {result.gmb_address || "Location Analysis"}
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={() => setResult(null)}
-            className="rounded-2xl border-slate-300 text-slate-700 font-black"
-          >
-            Check another business
-          </Button>
-        </div>
-
-        {/* Score Hero Card */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-10 border border-slate-100 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
-              <Shield size={180} />
-            </div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="p-4 bg-blue-50 rounded-2xl">
-                  <Gauge className="text-blue-600 h-8 w-8" />
-                </div>
-                <div>
-                  <p className="text-sm font-black text-slate-500 uppercase tracking-widest">Visibility Health</p>
-                  <h2 className="text-3xl font-black text-slate-900">Health Score</h2>
-                </div>
-              </div>
-
-              <div className="flex items-end gap-2 mb-8">
-                <span className={`text-8xl font-black tracking-tighter ${result.healthScore >= 80 ? 'text-green-500' : 'text-orange-500'}`}>
-                  {result.healthScore}
-                </span>
-                <span className="text-3xl font-bold text-slate-400 mb-4">/100</span>
-              </div>
-
-              <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden mb-8">
-                <div 
-                  className={`h-full transition-all duration-1000 ease-out ${result.healthScore >= 80 ? 'bg-green-500' : 'bg-orange-500'}`}
-                  style={{ width: `${result.healthScore}%` }}
-                />
-              </div>
-
-              <p className="text-slate-700 font-bold leading-relaxed max-w-md italic">
-                {result.healthScore >= 80 
-                  ? "Your profile is in excellent shape! Regular posting will maintain this visibility." 
-                  : "Your profile has critical gaps. Fixing these missing items will significantly improve your local ranking."}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-900/10 h-full flex flex-col justify-between">
-              <div>
-                <Star className="text-yellow-400 h-10 w-10 mb-6" fill="currentColor" />
-                <h3 className="text-2xl font-bold mb-2">Customer Trust</h3>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-4xl font-black">{result.rating || 'N/A'}</span>
-                  <div className="text-xs text-slate-300 uppercase font-black tracking-tighter">
-                    Rating based on<br/>{result.reviewCount || 0} reviews
-                  </div>
-                </div>
-              </div>
-              <p className="text-slate-300 text-sm font-medium">
-                Higher ratings and review counts trigger the Google Map Pack algorithm.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Audit Sections */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Missing Items */}
-          <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-lg shadow-slate-100/50">
-            <div className="flex items-center gap-3 mb-8">
-              <AlertCircle className="text-orange-600 h-6 w-6" />
-              <h3 className="text-xl font-black text-slate-900">Optimization Required</h3>
-            </div>
-
-            {result.missingItems.length > 0 ? (
-              <div className="space-y-4">
-                {result.missingItems.map((item: string) => (
-                  <div key={item} className="flex items-center gap-4 p-4 bg-orange-50/50 rounded-2xl border border-orange-100">
-                    <div className="bg-orange-100 p-2 rounded-xl">
-                      {item === 'photos' && <Camera className="h-4 w-4 text-orange-600" />}
-                      {item === 'website' && <Globe className="h-4 w-4 text-orange-600" />}
-                      {item === 'phone' && <Phone className="h-4 w-4 text-orange-600" />}
-                      {item === 'reviews' && <Star className="h-4 w-4 text-orange-600" />}
-                      {item === 'address' && <MapPin className="h-4 w-4 text-orange-600" />}
-                    </div>
-                    <span className="font-black text-orange-800 capitalize">Missing {item}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                <p className="font-bold text-slate-900">All Core Fields Found!</p>
-                <p className="text-slate-600 text-sm font-bold">Your technical setup is solid.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Action Hub */}
-          <div className="bg-blue-600 rounded-[2.5rem] p-10 text-white shadow-xl shadow-blue-200 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-8">
-                <Search className="h-6 w-6" />
-                <h3 className="text-xl font-black">AI Recommendations</h3>
-              </div>
-              <p className="text-blue-50 font-bold mb-8 leading-relaxed">
-                {result.nextSteps === 'generate_post' 
-                  ? "Your profile is ready for scaling. Start generating AI-powered local posts to dominate your neighborhood."
-                  : "We recommend optimizing your basic info first. However, starting with reviews can jumpstart your trust score."}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <Button 
-                onClick={() => handleWhatsAppAction('generate_post')}
-                disabled={!!actionLoading}
-                className="w-full bg-white text-blue-600 hover:bg-blue-50 h-14 rounded-2xl font-black text-lg group shadow-lg disabled:opacity-50"
-              >
-                {actionLoading === 'generate_post' ? <Loader2 className="animate-spin" /> : (
-                  <>Generate AI Post <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
-                )}
-              </Button>
-              <Button 
-                onClick={() => handleWhatsAppAction('send_review')}
-                disabled={!!actionLoading}
-                className="w-full bg-blue-700 text-white hover:bg-blue-800 h-14 rounded-2xl font-black text-lg group border-none disabled:opacity-50 shadow-inner"
-              >
-                {actionLoading === 'send_review' ? <Loader2 className="animate-spin" /> : (
-                  <>Send Review Request <MessageSquare className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-3xl mx-auto animate-in fade-in duration-700">
-      <div className="text-center mb-12">
-        <div className="inline-flex p-4 bg-blue-100 rounded-3xl mb-6">
+    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in duration-700">
+      <div className="text-center space-y-4">
+        <div className="inline-flex p-4 bg-blue-100 rounded-3xl mb-2">
           <Shield className="h-10 w-10 text-blue-600" />
         </div>
-        <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tighter">GBP Health Audit</h1>
-        <p className="text-xl text-slate-600 font-bold">Instantly analyze any Google Business Profile in seconds.</p>
+        <h1 className="text-5xl font-black text-slate-900 tracking-tighter">
+          Check Any Business <span className="text-blue-600">Google Maps</span> Visibility
+        </h1>
+        <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto">
+          Start typing a business name to run an instant AI-powered health audit.
+        </p>
       </div>
 
-      <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 p-10 md:p-16 border border-slate-100 relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50" />
-        
-        <form onSubmit={handleCheck} className="relative z-10 space-y-8">
-          <div className="space-y-3">
-            <label className="text-sm font-black text-slate-600 uppercase tracking-widest ml-1">Business Name</label>
-            <div className="relative group">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="e.g. Acme Plumbing London"
-                value={businessName}
-                onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-3xl focus:border-blue-500 focus:bg-white outline-none transition-all font-bold text-xl text-slate-900 placeholder:text-slate-400"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-sm font-black text-slate-600 uppercase tracking-widest ml-1">Location Address (Optional)</label>
-            <div className="relative group">
-              <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="Street name or city to improve accuracy"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-3xl focus:border-blue-500 focus:bg-white outline-none transition-all font-bold text-lg text-slate-900 placeholder:text-slate-400"
-              />
-            </div>
-          </div>
-
-          <Button
-            type="submit"
-            disabled={loading || !businessName}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black h-20 text-2xl rounded-3xl shadow-xl shadow-blue-100 transition-all active:scale-[0.98] disabled:opacity-50"
-          >
+      <div className="relative z-50 max-w-3xl mx-auto" ref={dropdownRef}>
+        {/* Search Input Box */}
+        <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 p-3 border border-slate-100 relative group transition-all focus-within:ring-8 focus-within:ring-blue-50">
+          <div className="relative flex items-center">
+            <Search className="absolute left-6 h-7 w-7 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => query.length >= 2 && setShowDropdown(true)}
+              placeholder="e.g. Acme Plumbing London"
+              className="w-full pl-16 pr-24 py-6 bg-transparent border-none outline-none font-bold text-2xl text-slate-900 placeholder:text-slate-300"
+              autoComplete="off"
+            />
             {loading ? (
-              <div className="flex items-center gap-3">
-                <Loader2 className="animate-spin h-8 w-8" />
-                <span>Auditing Google...</span>
+              <div className="absolute right-8">
+                <Loader2 className="animate-spin h-7 w-7 text-blue-600" />
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <span>Run Health Check</span>
-                <ArrowRight />
+              <div className="absolute right-8 opacity-20">
+                <ArrowRight className="h-7 w-7" />
               </div>
             )}
-          </Button>
-          
-          <div className="pt-4 flex items-center justify-center gap-8 opacity-40">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-              <Shield size={12} /> Secure Audit
+          </div>
+        </div>
+
+        {/* Autocomplete Dropdown */}
+        {showDropdown && results.length > 0 && (
+          <div className="absolute w-full mt-4 bg-white border border-slate-100 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden animate-in slide-in-from-top-2 duration-300">
+            <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Search Results</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Esc to close</span>
             </div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-              <Star size={12} fill="currentColor" /> Real-time Data
+            <div className="max-h-[450px] overflow-y-auto">
+              {results.map((business, index) => (
+                <button
+                  key={business.placeId}
+                  onClick={() => selectBusiness(business)}
+                  className={`w-full p-6 text-left transition-all border-b border-slate-50 last:border-b-0 flex items-start gap-6 group ${
+                    index === selectedIndex ? 'bg-blue-50' : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <div className={`flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-transform group-hover:scale-110 ${
+                    index === selectedIndex ? 'bg-white shadow-sm' : 'bg-white border border-slate-100'
+                  }`}>
+                    {business.types?.includes('restaurant') ? '🍽️' : 
+                     business.types?.includes('store') ? '🛍️' : 
+                     business.types?.includes('health') ? '🏥' : 
+                     business.types?.includes('home_improvement') ? '🛠️' : '🏢'}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="font-black text-xl text-slate-900 truncate">
+                        {business.name}
+                      </p>
+                      {business.rating && (
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-black">
+                          <Star className="h-3 w-3 fill-current" /> {business.rating}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-slate-500 font-medium flex items-center gap-1.5 text-sm mb-2">
+                      <MapPin className="h-3.5 w-3.5 text-slate-300" /> {business.address}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {(business.types || []).slice(0, 2).map((type: string) => (
+                        <span key={type} className="text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-400 px-2.5 py-1 rounded-md">
+                          {type.replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center self-center pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ArrowRight className="h-5 w-5 text-blue-600" />
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
-        </form>
+        )}
+
+        {/* No Results Fallback */}
+        {showDropdown && query.length >= 2 && results.length === 0 && !loading && (
+          <div className="absolute w-full mt-4 bg-white border border-slate-100 rounded-[2.5rem] shadow-2xl p-12 text-center animate-in zoom-in-95 duration-300">
+            <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="h-10 w-10 text-slate-300" />
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">No businesses found</h3>
+            <p className="text-slate-500 font-medium max-w-xs mx-auto">
+              We couldn't find any listings matching "{query}". Try a different name or add a city.
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+      {/* Feature Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20 max-w-5xl mx-auto">
         {[
-          { title: "Review Count", desc: "Checks for minimum trust threshold of 5 reviews." },
-          { title: "Media Audit", desc: "Analyzes photo presence for listing engagement." },
-          { title: "Contact Data", desc: "Ensures website and phone are clickable and active." }
-        ].map((item, i) => (
-          <div key={i} className="text-center space-y-2 opacity-50">
-            <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">{item.title}</h4>
-            <p className="text-sm text-slate-500 font-medium">{item.desc}</p>
+          { icon: Zap, color: 'text-yellow-500', bg: 'bg-yellow-50', title: 'Instant Audit', desc: 'Get a full visibility score in under 3 seconds.' },
+          { icon: LayoutGrid, color: 'text-purple-500', bg: 'bg-purple-50', title: 'Grid Analysis', desc: 'See how you rank across your local neighborhood.' },
+          { icon: Shield, color: 'text-blue-500', bg: 'bg-blue-50', title: 'Actionable Gaps', desc: 'Identify exactly what is missing from your profile.' }
+        ].map((feature, i) => (
+          <div key={i} className="bg-white p-8 rounded-[2rem] border border-slate-50 shadow-sm hover:shadow-xl transition-all group">
+            <div className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+              <feature.icon className={`h-7 w-7 ${feature.color}`} />
+            </div>
+            <h4 className="text-xl font-black text-slate-900 mb-2">{feature.title}</h4>
+            <p className="text-slate-500 font-medium text-sm leading-relaxed">{feature.desc}</p>
           </div>
         ))}
       </div>
