@@ -88,13 +88,17 @@ export default function GMBChecker() {
       <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">GMB Health Report</h1>
-            <p className="text-slate-500 font-medium">Real-time visibility analysis for your Google Business Profile.</p>
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+              {result.gmb_business_name || "GMB Health Report"}
+            </h1>
+            <p className="text-slate-600 font-bold flex items-center gap-2 mt-1">
+              <MapPin className="h-4 w-4 text-blue-600" /> {result.gmb_address || "Location Analysis"}
+            </p>
           </div>
           <Button 
             variant="outline" 
             onClick={() => setResult(null)}
-            className="rounded-2xl border-slate-200"
+            className="rounded-2xl border-slate-300 text-slate-700 font-black"
           >
             Check another business
           </Button>
@@ -102,7 +106,7 @@ export default function GMBChecker() {
 
         {/* Score Hero Card */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-10 border border-slate-50 relative overflow-hidden">
+          <div className="md:col-span-2 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-10 border border-slate-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03]">
               <Shield size={180} />
             </div>
@@ -113,7 +117,7 @@ export default function GMBChecker() {
                   <Gauge className="text-blue-600 h-8 w-8" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Visibility Health</p>
+                  <p className="text-sm font-black text-slate-500 uppercase tracking-widest">Visibility Health</p>
                   <h2 className="text-3xl font-black text-slate-900">Health Score</h2>
                 </div>
               </div>
@@ -122,7 +126,7 @@ export default function GMBChecker() {
                 <span className={`text-8xl font-black tracking-tighter ${result.healthScore >= 80 ? 'text-green-500' : 'text-orange-500'}`}>
                   {result.healthScore}
                 </span>
-                <span className="text-3xl font-bold text-slate-300 mb-4">/100</span>
+                <span className="text-3xl font-bold text-slate-400 mb-4">/100</span>
               </div>
 
               <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden mb-8">
@@ -132,7 +136,7 @@ export default function GMBChecker() {
                 />
               </div>
 
-              <p className="text-slate-600 font-medium leading-relaxed max-w-md italic">
+              <p className="text-slate-700 font-bold leading-relaxed max-w-md italic">
                 {result.healthScore >= 80 
                   ? "Your profile is in excellent shape! Regular posting will maintain this visibility." 
                   : "Your profile has critical gaps. Fixing these missing items will significantly improve your local ranking."}
@@ -147,12 +151,12 @@ export default function GMBChecker() {
                 <h3 className="text-2xl font-bold mb-2">Customer Trust</h3>
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-4xl font-black">{result.rating || 'N/A'}</span>
-                  <div className="text-xs text-slate-400 uppercase font-black tracking-tighter">
+                  <div className="text-xs text-slate-300 uppercase font-black tracking-tighter">
                     Rating based on<br/>{result.reviewCount || 0} reviews
                   </div>
                 </div>
               </div>
-              <p className="text-slate-400 text-sm font-medium">
+              <p className="text-slate-300 text-sm font-medium">
                 Higher ratings and review counts trigger the Google Map Pack algorithm.
               </p>
             </div>
@@ -164,7 +168,7 @@ export default function GMBChecker() {
           {/* Missing Items */}
           <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-lg shadow-slate-100/50">
             <div className="flex items-center gap-3 mb-8">
-              <AlertCircle className="text-orange-500 h-6 w-6" />
+              <AlertCircle className="text-orange-600 h-6 w-6" />
               <h3 className="text-xl font-black text-slate-900">Optimization Required</h3>
             </div>
 
@@ -179,7 +183,7 @@ export default function GMBChecker() {
                       {item === 'reviews' && <Star className="h-4 w-4 text-orange-600" />}
                       {item === 'address' && <MapPin className="h-4 w-4 text-orange-600" />}
                     </div>
-                    <span className="font-bold text-orange-700 capitalize">Missing {item}</span>
+                    <span className="font-black text-orange-800 capitalize">Missing {item}</span>
                   </div>
                 ))}
               </div>
@@ -187,7 +191,7 @@ export default function GMBChecker() {
               <div className="text-center py-8">
                 <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
                 <p className="font-bold text-slate-900">All Core Fields Found!</p>
-                <p className="text-slate-500 text-sm">Your technical setup is solid.</p>
+                <p className="text-slate-600 text-sm font-bold">Your technical setup is solid.</p>
               </div>
             )}
           </div>
@@ -199,7 +203,7 @@ export default function GMBChecker() {
                 <Search className="h-6 w-6" />
                 <h3 className="text-xl font-black">AI Recommendations</h3>
               </div>
-              <p className="text-blue-100 font-medium mb-8">
+              <p className="text-blue-50 font-bold mb-8 leading-relaxed">
                 {result.nextSteps === 'generate_post' 
                   ? "Your profile is ready for scaling. Start generating AI-powered local posts to dominate your neighborhood."
                   : "We recommend optimizing your basic info first. However, starting with reviews can jumpstart your trust score."}
@@ -219,7 +223,7 @@ export default function GMBChecker() {
               <Button 
                 onClick={() => handleWhatsAppAction('send_review')}
                 disabled={!!actionLoading}
-                className="w-full bg-blue-700 text-white hover:bg-blue-800 h-14 rounded-2xl font-black text-lg group border-none disabled:opacity-50"
+                className="w-full bg-blue-700 text-white hover:bg-blue-800 h-14 rounded-2xl font-black text-lg group border-none disabled:opacity-50 shadow-inner"
               >
                 {actionLoading === 'send_review' ? <Loader2 className="animate-spin" /> : (
                   <>Send Review Request <MessageSquare className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
@@ -239,7 +243,7 @@ export default function GMBChecker() {
           <Shield className="h-10 w-10 text-blue-600" />
         </div>
         <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tighter">GBP Health Audit</h1>
-        <p className="text-xl text-slate-500 font-medium">Instantly analyze any Google Business Profile in seconds.</p>
+        <p className="text-xl text-slate-600 font-bold">Instantly analyze any Google Business Profile in seconds.</p>
       </div>
 
       <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 p-10 md:p-16 border border-slate-100 relative overflow-hidden">
@@ -247,30 +251,30 @@ export default function GMBChecker() {
         
         <form onSubmit={handleCheck} className="relative z-10 space-y-8">
           <div className="space-y-3">
-            <label className="text-sm font-black text-slate-400 uppercase tracking-widest ml-1">Business Name</label>
+            <label className="text-sm font-black text-slate-600 uppercase tracking-widest ml-1">Business Name</label>
             <div className="relative group">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="text"
                 placeholder="e.g. Acme Plumbing London"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-blue-500 focus:bg-white outline-none transition-all font-bold text-xl text-slate-900 placeholder:text-slate-300"
+                className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-3xl focus:border-blue-500 focus:bg-white outline-none transition-all font-bold text-xl text-slate-900 placeholder:text-slate-400"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-3">
-            <label className="text-sm font-black text-slate-400 uppercase tracking-widest ml-1">Location Address (Optional)</label>
+            <label className="text-sm font-black text-slate-600 uppercase tracking-widest ml-1">Location Address (Optional)</label>
             <div className="relative group">
-              <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-300 group-focus-within:text-blue-500 transition-colors" />
+              <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="text"
                 placeholder="Street name or city to improve accuracy"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-3xl focus:border-blue-500 focus:bg-white outline-none transition-all font-bold text-lg text-slate-900 placeholder:text-slate-300"
+                className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-slate-200 rounded-3xl focus:border-blue-500 focus:bg-white outline-none transition-all font-bold text-lg text-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>
