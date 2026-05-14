@@ -11,7 +11,7 @@ import { PostUsageTracker } from "@/components/dashboard/PostUsageTracker";
 import { UpgradePrompt } from "@/components/dashboard/UpgradePrompt";
 import { getUserUsage, UsageStats } from "@/lib/usage";
 import { PlanType } from "@/lib/plans";
-import { Loader2, Sparkles, Clock, ChevronRight } from "lucide-react";
+import { Loader2, Sparkles, Clock, ChevronRight, CheckCircle2 } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -128,8 +128,22 @@ export default function DashboardPage() {
                   </button>
                 )}
              </div>
-             <AppDownloadCard />
+             
+             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col justify-between group hover:shadow-xl transition-all cursor-pointer" onClick={() => router.push('/dashboard/gmb-checker')}>
+               <div>
+                  <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">🛡️</div>
+                  <h3 className="text-xl font-black text-slate-900 mb-2">Local SEO Audit</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                    Instantly check your visibility score and audit missing GMB technical fields.
+                  </p>
+               </div>
+               <button className="text-sm font-black text-blue-600 flex items-center gap-1">
+                 Run Health Check <ChevronRight className="w-4 h-4" />
+               </button>
+             </div>
           </div>
+          
+          <AppDownloadCard />
 
           {/* Recent Activity */}
           <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
