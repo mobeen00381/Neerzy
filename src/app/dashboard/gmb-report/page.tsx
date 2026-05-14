@@ -89,7 +89,7 @@ function ReportContent() {
         <AlertCircle className="h-20 w-20 text-red-500 mx-auto mb-6" />
         <h2 className="text-3xl font-black text-slate-900 mb-2">Report Failed</h2>
         <p className="text-slate-500 mb-8">We couldn't generate the audit for this business.</p>
-        <Button onClick={() => router.push('/dashboard/gmb-checker')}>Try again</Button>
+        <Button onClick={() => router.push('/gmb-audit-tool')}>Try again</Button>
       </div>
     );
   }
@@ -107,7 +107,7 @@ function ReportContent() {
         </div>
         <Button 
           variant="outline" 
-          onClick={() => router.push('/dashboard/gmb-checker')}
+          onClick={() => router.push('/gmb-audit-tool')}
           className="rounded-2xl border-slate-300 text-slate-700 font-black"
         >
           Check another

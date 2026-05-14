@@ -129,7 +129,7 @@ export default function DashboardPage() {
                 )}
              </div>
              
-             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col justify-between group hover:shadow-xl transition-all cursor-pointer" onClick={() => router.push('/dashboard/gmb-checker')}>
+             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col justify-between group hover:shadow-xl transition-all cursor-pointer" onClick={() => router.push('/gmb-audit-tool')}>
                <div>
                   <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">🛡️</div>
                   <h3 className="text-xl font-black text-slate-900 mb-2">Local SEO Audit</h3>

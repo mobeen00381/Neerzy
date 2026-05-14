@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
-  { icon: Shield, label: "GMB Checker", href: "/dashboard/gmb-checker" },
+  { icon: Shield, label: "GMB Audit", href: "/gmb-audit-tool" },
   { icon: Send, label: "Posts", href: "/dashboard/posts" },
   { icon: MessageSquare, label: "Reviews", href: "/dashboard/reviews" },
   { icon: History, label: "History", href: "/dashboard/history" },
