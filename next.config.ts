@@ -3,6 +3,20 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  async redirects() {
+    return [
+      {
+        source: '/gmb-checker',
+        destination: '/gmb-audit-tool',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/gmb-checker',
+        destination: '/gmb-audit-tool',
+        permanent: true,
+      },
+    ];
+  },
 
   async headers() {
     return [

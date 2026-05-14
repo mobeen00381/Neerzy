@@ -32,7 +32,7 @@ export default function CheckerPage() {
 
       setLoading(true);
       try {
-        const res = await fetch(`/api/places/search?q=${encodeURIComponent(searchQuery)}`);
+        const res = await fetch(`/api/gmb/search?q=${encodeURIComponent(searchQuery)}`);
         const data = await res.json();
         
         if (data.results && data.results.length > 0) {
