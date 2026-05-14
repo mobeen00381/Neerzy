@@ -1,30 +1,20 @@
 'use client';
-
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { debounce } from 'lodash';
-import { 
-  Search, Shield, MapPin, Loader2, ArrowRight, Star,
-  AlertCircle, LayoutGrid, Zap, CheckCircle2, Gauge, Check
-} from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 
-export default function CheckerPage() {
+export default function GMBAuditTool() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [auditLoading, setAuditLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Debounced search
-  const searchBusinesses = useRef(
-    debounce(async (searchQuery: string) => {
-      if (searchQuery.length < 2) {
+  // Real-time search with debounce
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (query.length < 3) {
         setResults([]);
         setShowDropdown(false);
         return;
@@ -32,7 +22,7 @@ export default function CheckerPage() {
 
       setLoading(true);
       try {
-        const res = await fetch(`/api/gmb/search?q=${encodeURIComponent(searchQuery)}`);
+        const res = await fetch(`/api/gmb/search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
         
         if (data.results && data.results.length > 0) {
@@ -45,172 +35,227 @@ export default function CheckerPage() {
         }
       } catch (error) {
         console.error('Search error:', error);
-        setResults([]);
       } finally {
         setLoading(false);
       }
-    }, 300)
-  ).current;
+    }, 300);
 
-  useEffect(() => {
-    searchBusinesses(query);
-    return () => searchBusinesses.cancel();
-  }, [query, searchBusinesses]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const selectBusiness = (business: any) => {
     setQuery(business.name);
     setShowDropdown(false);
-    router.push(`/gmb-report?placeId=${business.placeId}&name=${encodeURIComponent(business.name)}`);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedIndex(prev => (prev < results.length - 1 ? prev + 1 : prev));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedIndex(prev => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
-      e.preventDefault();
-      selectBusiness(results[selectedIndex]);
-    } else if (e.key === 'Escape') {
-      setShowDropdown(false);
-    }
+    // Navigate to audit report
+    router.push(`/dashboard/audit-report?placeId=${business.placeId}&name=${encodeURIComponent(business.name)}`);
   };
 
   return (
-    <div className="min-h-screen font-sans bg-slate-50">
-      {/* HERO SECTION */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-24 overflow-hidden bg-gradient-to-br from-[#0F5C4D] via-[#073a30] to-black">
-        
-        {/* Background Pattern */}
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#25D366] opacity-[0.05] rounded-full blur-3xl -mr-32 -mt-32 animate-pulse"></div>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-green-900 to-teal-900">
+      {/* Header */}
+      <header className="bg-emerald-950/50 backdrop-blur-md border-b border-emerald-800">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">N</span>
+            </div>
+            <span className="text-white font-bold text-xl">Neerzy</span>
+          </div>
+          <nav className="hidden md:flex gap-6">
+            <a href="/features" className="text-emerald-100 hover:text-white transition">Features</a>
+            <a href="/pricing" className="text-emerald-100 hover:text-white transition">Pricing</a>
+            <a href="/gmb-audit-tool" className="text-white font-semibold">GMB Audit Tool</a>
+          </nav>
+          <div className="flex gap-3">
+            <button className="text-emerald-100 hover:text-white px-4 py-2">Log in</button>
+            <button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full font-semibold transition">
+              Get Started
+            </button>
+          </div>
+        </div>
+      </header>
 
-        <div className="container mx-auto px-6 max-w-5xl relative z-10 text-center">
-          
-          <div className="animate-in fade-in slide-in-from-top-8 duration-1000">
-            <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tighter leading-tight">
-              Audit Any Business on <span className="text-[#25D366]">Google Maps</span>
-            </h1>
-            <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto font-medium">
-              Free instant local visibility report. Find gaps in your profile and dominate the Map Pack.
-            </p>
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-6 py-16">
+        {/* Hero */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Check Any Business Google Maps &<br />
+            <span className="text-green-400">Local SERP Rankings for Free</span>
+          </h1>
+          <p className="text-emerald-200 text-lg">
+            Find the Business Profile first
+          </p>
+        </div>
+
+        {/* Search Box */}
+        <div className="bg-white rounded-2xl shadow-2xl p-8 mb-8" ref={dropdownRef}>
+          {/* Steps */}
+          <div className="flex items-center justify-center mb-8">
+            <div className="flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full font-semibold">
+              <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
+              <span>Business Profile</span>
+            </div>
+            <div className="w-12 h-0.5 bg-gray-300 mx-2"></div>
+            <div className="flex items-center gap-2 text-gray-400 px-4 py-2">
+              <span className="bg-gray-200 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
+              <span>Keywords</span>
+            </div>
+            <div className="w-12 h-0.5 bg-gray-300 mx-2"></div>
+            <div className="flex items-center gap-2 text-gray-400 px-4 py-2">
+              <span className="bg-gray-200 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
+              <span>Rankings</span>
+            </div>
           </div>
 
-          <div className="relative z-50 max-w-3xl mx-auto" ref={dropdownRef}>
-            <div className="bg-white rounded-[2.5rem] shadow-2xl p-3 border border-white/10 relative group transition-all focus-within:ring-8 focus-within:ring-[#25D366]/10 animate-in zoom-in-95 duration-700">
-              <div className="relative flex items-center">
-                <Search className="absolute left-6 h-7 w-7 text-slate-300 group-focus-within:text-[#25D366] transition-colors" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onFocus={() => query.length >= 2 && setShowDropdown(true)}
-                  placeholder="e.g. blacksmith door handles"
-                  className="w-full pl-16 pr-24 py-6 bg-transparent border-none outline-none font-bold text-2xl text-slate-900 placeholder:text-slate-300"
-                  autoComplete="off"
-                />
-                {loading ? (
-                  <div className="absolute right-8">
-                    <Loader2 className="animate-spin h-7 w-7 text-[#25D366]" />
-                  </div>
-                ) : (
-                  <div className="absolute right-8 opacity-20">
-                    <ArrowRight className="h-7 w-7" />
-                  </div>
-                )}
-              </div>
+          {/* Search Input */}
+          <div className="relative">
+            <div className="text-gray-800 font-semibold mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Find the Business Profile first
+            </div>
+            
+            <div className="relative">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="blacksmith door handles"
+                className="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl text-lg focus:border-green-500 focus:outline-none transition"
+              />
+              <svg
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {loading && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full"></div>
+                </div>
+              )}
+              {query && (
+                <button
+                  onClick={() => { setQuery(''); setResults([]); setShowDropdown(false); }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
 
-            {/* Autocomplete Dropdown */}
+            <div className="mt-2 flex items-start gap-2 text-sm text-gray-500">
+              <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>A Google Business Profile name is what customers see in the listing on Google Maps.</span>
+            </div>
+
+            {/* Autocomplete Results */}
             {showDropdown && results.length > 0 && (
-              <div className="absolute w-full mt-4 bg-white border border-slate-100 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden animate-in slide-in-from-top-2 duration-300 text-left">
-                <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Search Results</span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Esc to close</span>
-                </div>
-                <div className="max-h-[400px] overflow-y-auto">
-                  {results.map((business, index) => (
-                    <button
-                      key={business.placeId}
-                      onClick={() => selectBusiness(business)}
-                      className={`w-full p-6 text-left transition-all border-b border-slate-50 last:border-b-0 flex items-start gap-6 group ${
-                        index === selectedIndex ? 'bg-green-50' : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className={`flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-transform group-hover:scale-110 ${
-                        index === selectedIndex ? 'bg-white shadow-sm' : 'bg-white border border-slate-100'
-                      }`}>
-                        {business.types?.includes('restaurant') ? '🍽️' : 
-                         business.types?.includes('store') ? '🛍️' : 
-                         business.types?.includes('health') ? '🏥' : '🏢'}
+              <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl max-h-96 overflow-y-auto">
+                {results.map((business, index) => (
+                  <button
+                    key={business.placeId}
+                    onClick={() => selectBusiness(business)}
+                    className={`w-full p-4 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0 ${
+                      index === selectedIndex ? 'bg-green-50 border-l-4 border-l-green-500' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-3xl">
+                        🏪
                       </div>
-                      
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="font-black text-xl text-slate-900 truncate">
-                            {business.name}
-                          </p>
-                          {business.rating && (
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-black">
-                              <Star className="h-3 w-3 fill-current" /> {business.rating}
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-slate-500 font-medium flex items-center gap-1.5 text-sm mb-2">
-                          <MapPin className="h-3.5 w-3.5 text-slate-300" /> {business.address}
+                        <p className="font-bold text-lg text-gray-900">
+                          {business.name}
                         </p>
+                        <p className="text-sm text-gray-600">
+                          {business.address}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-sm">
+                          {business.rating && (
+                            <span className="flex items-center gap-1 text-yellow-600 font-semibold">
+                              ⭐ {business.rating} ({business.reviewCount} reviews)
+                            </span>
+                          )}
+                          {business.phone && (
+                            <span className="text-gray-500">📞 {business.phone}</span>
+                          )}
+                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs capitalize">
+                            {business.businessType}
+                          </span>
+                        </div>
                       </div>
-
-                      <div className="flex items-center self-center pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <ArrowRight className="h-5 w-5 text-[#25D366]" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                      <svg
+                        className="w-6 h-6 text-gray-400 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
 
-            {error && (
-              <div className="mt-4 flex items-center gap-2 text-red-500 font-bold bg-red-50 p-4 rounded-2xl animate-in shake duration-500">
-                <AlertCircle className="h-5 w-5" />
-                {error}
+            {/* No Results */}
+            {showDropdown && query.length >= 3 && results.length === 0 && !loading && (
+              <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-lg p-6 text-center">
+                <p className="text-gray-500">No businesses found. Try a different search term.</p>
               </div>
             )}
+          </div>
 
-            <div className="mt-8 flex flex-wrap justify-center gap-8 opacity-60">
-               {['No Credit Card Required', 'Takes < 10 Seconds', 'Free Instant Report'].map((tag, i) => (
-                 <div key={i} className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-[0.2em]">
-                   <Check className="text-[#25D366] h-4 w-4" /> {tag}
-                 </div>
-               ))}
+          {/* CTA Button */}
+          <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
+            <button className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full font-bold text-lg transition shadow-lg hover:shadow-xl">
+              Start with 5 Free Posts
+            </button>
+            <button className="text-emerald-700 hover:text-emerald-900 px-8 py-4 font-semibold flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Watch tutorial
+            </button>
+          </div>
+
+          {/* Features */}
+          <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">No credit card required</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">Takes &lt; 60 seconds</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span className="font-semibold">Free instant report</span>
             </div>
           </div>
         </div>
+      </main>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30 animate-bounce">
-           <div className="w-px h-8 bg-white rounded-full"></div>
-        </div>
-      </section>
-
-      {/* FOOTER PADDING */}
-      <div className="bg-white py-20 text-center">
-         <p className="text-slate-400 text-xs italic">
-           Neerzy is an independent platform and is not affiliated with Google or WhatsApp.
-         </p>
+      {/* Footer Disclaimer */}
+      <div className="text-center py-8 text-emerald-300/60 text-sm">
+        Neerzy is an independent platform and is not affiliated with Google or WhatsApp.
       </div>
     </div>
   );
