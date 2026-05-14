@@ -248,7 +248,7 @@ export default function Page() {
           <h2 style={{ fontSize: '42px', marginBottom: '24px' }}>Check how visible your business is on Google</h2>
           <div style={{ background: '#fff', padding: '40px', borderRadius: '32px', boxShadow: 'var(--shadow-md)', display: 'flex', gap: '16px', alignItems: 'center' }}>
             <input type="text" placeholder="Enter your business name..." style={{ flex: 1, padding: '16px 24px', borderRadius: '50px', border: '1px solid #eee', fontSize: '16px' }} />
-            <Link href="/checker" className="btn btn-primary" style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>Check Score</Link>
+            <Link href="/gmb-audit-tool" className="btn btn-primary" style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>Check Score</Link>
           </div>
           <p style={{ marginTop: '20px', color: '#666' }}>Free instant visibility report</p>
         </div>

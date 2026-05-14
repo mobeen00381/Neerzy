@@ -27,7 +27,7 @@ export default function Header() {
               Pricing
             </Link>
             <Link
-              href="/checker"
+              href="/gmb-audit-tool"
               className="flex items-center text-sm font-medium text-white/80 hover:text-[#25D366] transition-colors"
             >
               GMB Checker
