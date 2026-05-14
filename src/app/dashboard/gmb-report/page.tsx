@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Shield, AlertCircle, CheckCircle2, 
   ArrowRight, Loader2, Star, MapPin, Globe, Phone,
-  Camera, MessageSquare, Gauge
+  Camera, MessageSquare, Gauge, Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
