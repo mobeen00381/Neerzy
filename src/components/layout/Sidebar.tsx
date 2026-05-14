@@ -1,13 +1,14 @@
 // components/layout/Sidebar.tsx
 "use client";
 
-import { LayoutDashboard, Send, MessageSquare, History, Settings, Zap, LogOut } from "lucide-react";
+import { LayoutDashboard, Send, MessageSquare, History, Settings, Zap, LogOut, Shield } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
+  { icon: Shield, label: "GMB Checker", href: "/dashboard/gmb-checker" },
   { icon: Send, label: "Posts", href: "/dashboard/posts" },
   { icon: MessageSquare, label: "Reviews", href: "/dashboard/reviews" },
   { icon: History, label: "History", href: "/dashboard/history" },
