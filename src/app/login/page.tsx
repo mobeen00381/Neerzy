@@ -91,12 +91,14 @@ function LoginContent() {
         body: JSON.stringify({ phoneNumber: phone, otpCode: otp, plan })
       });
       const data = await res.json();
-      if (res.ok && data.token) {
-        // Redirect to onboarding if a plan was selected, otherwise dashboard
+      if (res.ok && data.success) {
+        // ✅ CRITICAL: Redirect to dashboard or onboarding
+        const targetUrl = data.redirect || "/dashboard";
+        
         if (plan || data.isNewUser) {
           router.push(`/onboarding?plan=${plan || 'free'}`);
         } else {
-          router.push("/dashboard");
+          router.push(targetUrl);
         }
       } else {
         throw new Error(data.error || "Failed to verify OTP");
