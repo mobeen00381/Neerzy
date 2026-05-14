@@ -91,7 +91,10 @@ export async function POST(request: Request) {
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       phone: phoneNumber,
       password: Math.random().toString(36).slice(-10),
+      phone_confirm: true,           // ← CRITICAL: Skips phone confirmation for OTP
       user_metadata: {
+        signup_method: 'otp',
+        otp_verified: true,
         phone_number: phoneNumber,
         selected_plan: plan || 'free',
         onboarded_at: new Date().toISOString(),

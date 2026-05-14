@@ -67,6 +67,8 @@ export async function POST(req: Request) {
       phone: formattedPhone,
       phone_confirm: true,
       user_metadata: { 
+        signup_method: 'otp',
+        otp_verified: true,
         phone_number: formattedPhone,
         selected_plan: plan || 'free',
         plan_status: 'trial',
