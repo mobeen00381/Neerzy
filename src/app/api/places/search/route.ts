@@ -9,29 +9,40 @@ export async function GET(req: Request) {
       return NextResponse.json({ results: [] });
     }
 
-    // Call Google Places API - Text Search (Legacy API as requested)
-    const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
-    url.searchParams.set('query', query);
-    url.searchParams.set('key', process.env.GOOGLE_PLACES_API_KEY!);
-    url.searchParams.set('language', 'en');
+    if (!process.env.GOOGLE_PLACES_API_KEY) {
+      console.error('CRITICAL: GOOGLE_PLACES_API_KEY is missing from environment');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
 
-    const res = await fetch(url.toString());
+    // Call Google Places API - New v1 Search Text (More reliable for modern keys)
+    const res = await fetch(
+      `https://places.googleapis.com/v1/places:searchText`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': process.env.GOOGLE_PLACES_API_KEY!,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.types'
+        },
+        body: JSON.stringify({ textQuery: query })
+      }
+    );
+
     const data = await res.json();
 
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      console.error('Places API Error:', data);
+    if (data.error) {
+      console.error('Places API Error:', data.error);
       return NextResponse.json({ results: [] }, { status: 500 });
     }
 
     // Format results for autocomplete
-    const results = (data.results || []).map((place: any) => ({
-      placeId: place.place_id,
-      name: place.name,
-      address: place.formatted_address,
+    const results = (data.places || []).map((place: any) => ({
+      placeId: place.id,
+      name: place.displayName?.text,
+      address: place.formattedAddress,
       rating: place.rating || null,
-      reviewCount: place.user_ratings_total || 0,
-      types: place.types || [],
-      icon: place.icon || null
+      reviewCount: place.userRatingCount || 0,
+      types: place.types || []
     }));
 
     return NextResponse.json({ results, status: data.status });
