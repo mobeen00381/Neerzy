@@ -81,6 +81,7 @@ export async function POST(request: Request) {
       return Response.json({
         success: true,
         message: 'User already exists - logging in',
+        redirect: '/dashboard',
         user,
         token: generateJWT(user),
         isNewUser: false,
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
         return Response.json({
           success: true,
           message: 'User already exists - logging in',
+          redirect: '/dashboard',
           user: userData,
           token: generateJWT(userData),
           isNewUser: false,
@@ -133,6 +135,7 @@ export async function POST(request: Request) {
     return Response.json({
       success: true,
       message: 'User created successfully',
+      redirect: '/dashboard',
       user: newUser,
       token: generateJWT(newUser),
       isNewUser: true,

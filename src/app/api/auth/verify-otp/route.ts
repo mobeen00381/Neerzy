@@ -101,19 +101,21 @@ export async function POST(req: Request) {
       authUser = authData.user;
     }
 
-    // Keep custom users table in sync
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .upsert({ 
-        id: authUser.id,
-        phone: formattedPhone, 
-        whatsapp_verified: true,
-        plan: plan || 'starter'
-      }, { onConflict: "phone" })
-      .select()
-      .single();
+    // ✅ 2. Create/Update profile in your 'profiles' table (CRITICAL)
+    await supabase.from('profiles').upsert({
+      id: authUser.id,
+      phone: formattedPhone,
+      onboarded_at: new Date().toISOString(),
+      selected_plan: plan || 'free',
+    }, { onConflict: 'id' });
 
-    if (userError) throw userError;
+    // Keep custom users table in sync (Optional, but maintained for compatibility)
+    await supabase.from("users").upsert({ 
+      id: authUser.id,
+      phone: formattedPhone, 
+      whatsapp_verified: true,
+      plan: plan || 'starter'
+    }, { onConflict: "phone" });
 
     // Log onboarding completion
     await supabase.from('audit_logs').insert({
@@ -121,11 +123,13 @@ export async function POST(req: Request) {
       meta: { phone: formattedPhone, plan: plan || 'starter', user_id: authUser.id },
     });
 
+    // ✅ 3. Return redirect URL to frontend
     return NextResponse.json({ 
       success: true, 
+      redirect: '/dashboard',  // ← This tells frontend where to go
       userId: authUser.id,
-      user, 
-      token: generateJWT(user) 
+      user: { id: authUser.id, phone: formattedPhone },
+      token: generateJWT({ id: authUser.id, phone: formattedPhone }) 
     });
 
   } catch (error: any) {
