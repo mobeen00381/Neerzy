@@ -122,7 +122,7 @@ export default function GMBAuditTool() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="blacksmith door handles"
+                placeholder="John's Plumbing Hub"
                 className="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl text-lg text-gray-900 focus:border-green-500 focus:outline-none transition"
               />
               <svg
