@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
                 https://cdn.paddle.com 
                 https://www.googletagmanager.com 
                 https://apis.google.com 
+                https://accounts.google.com 
                 https://vercel.live 
                 https://*.vercel.app;
               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
