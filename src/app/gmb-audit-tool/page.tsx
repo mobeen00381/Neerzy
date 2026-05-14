@@ -51,66 +51,43 @@ export default function GMBAuditTool() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-green-900 to-teal-900">
-      {/* Header */}
-      <header className="bg-emerald-950/50 backdrop-blur-md border-b border-emerald-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">N</span>
-            </div>
-            <span className="text-white font-bold text-xl">Neerzy</span>
-          </div>
-          <nav className="hidden md:flex gap-6">
-            <a href="/features" className="text-emerald-100 hover:text-white transition">Features</a>
-            <a href="/pricing" className="text-emerald-100 hover:text-white transition">Pricing</a>
-            <a href="/gmb-audit-tool" className="text-white font-semibold">GMB Audit Tool</a>
-          </nav>
-          <div className="flex gap-3">
-            <button className="text-emerald-100 hover:text-white px-4 py-2">Log in</button>
-            <button className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full font-semibold transition">
-              Get Started
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)]">
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-16">
+      <main className="max-w-4xl mx-auto px-6 py-20">
         {/* Hero */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-[#0F5C4D] mb-4">
             Check Any Business Google Maps &<br />
-            <span className="text-green-400">Local SERP Rankings for Free</span>
+            <span className="text-[#25D366]">Local SERP Rankings for Free</span>
           </h1>
-          <p className="text-emerald-200 text-lg">
+          <p className="text-[#4F635F] text-lg">
             Find the Business Profile first
           </p>
         </div>
 
         {/* Search Box */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 mb-8" ref={dropdownRef}>
+        <div className="bg-white rounded-[24px] shadow-xl border border-[rgba(15,92,77,0.05)] p-8 mb-8" ref={dropdownRef}>
           {/* Steps */}
           <div className="flex items-center justify-center mb-8">
-            <div className="flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full font-semibold">
-              <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
+            <div className="flex items-center gap-2 bg-[#d4f9e2] text-[#0F5C4D] px-4 py-2 rounded-full font-semibold">
+              <span className="bg-[#25D366] text-black w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
               <span>Business Profile</span>
             </div>
-            <div className="w-12 h-0.5 bg-gray-300 mx-2"></div>
+            <div className="w-12 h-0.5 bg-gray-200 mx-2"></div>
             <div className="flex items-center gap-2 text-gray-400 px-4 py-2">
-              <span className="bg-gray-200 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
+              <span className="bg-gray-100 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
               <span>Keywords</span>
             </div>
-            <div className="w-12 h-0.5 bg-gray-300 mx-2"></div>
+            <div className="w-12 h-0.5 bg-gray-200 mx-2"></div>
             <div className="flex items-center gap-2 text-gray-400 px-4 py-2">
-              <span className="bg-gray-200 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
+              <span className="bg-gray-100 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
               <span>Rankings</span>
             </div>
           </div>
 
           {/* Search Input */}
           <div className="relative">
-            <div className="text-gray-800 font-semibold mb-3 flex items-center gap-2">
+            <div className="text-[#0F5C4D] font-semibold mb-3 flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -123,7 +100,7 @@ export default function GMBAuditTool() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="John's Plumbing Hub"
-                className="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl text-lg text-gray-900 focus:border-green-500 focus:outline-none transition"
+                className="w-full p-4 pl-12 border-2 border-gray-100 rounded-xl text-lg text-gray-900 focus:border-[#25D366] focus:outline-none transition"
               />
               <svg
                 className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400"
@@ -135,7 +112,7 @@ export default function GMBAuditTool() {
               </svg>
               {loading && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <div className="animate-spin h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full"></div>
+                  <div className="animate-spin h-6 w-6 border-2 border-[#25D366] border-t-transparent rounded-full"></div>
                 </div>
               )}
               {query && (
@@ -150,7 +127,7 @@ export default function GMBAuditTool() {
               )}
             </div>
 
-            <div className="mt-2 flex items-start gap-2 text-sm text-gray-500">
+            <div className="mt-2 flex items-start gap-2 text-sm text-[#4F635F]">
               <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -159,17 +136,17 @@ export default function GMBAuditTool() {
 
             {/* Autocomplete Results */}
             {showDropdown && results.length > 0 && (
-              <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl max-h-96 overflow-y-auto">
+              <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-100 rounded-xl shadow-2xl max-h-96 overflow-y-auto">
                 {results.map((business, index) => (
                   <button
                     key={business.placeId}
                     onClick={() => selectBusiness(business)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0 ${
-                      index === selectedIndex ? 'bg-green-50 border-l-4 border-l-green-500' : ''
+                    className={`w-full p-4 text-left hover:bg-[#F0F7F5] transition border-b border-gray-50 last:border-b-0 ${
+                      index === selectedIndex ? 'bg-[#d4f9e2] border-l-4 border-l-[#25D366]' : ''
                     }`}
                   >
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-3xl overflow-hidden">
+                      <div className="flex-shrink-0 w-16 h-16 bg-gray-50 rounded-lg flex items-center justify-center text-3xl overflow-hidden">
                         {business.photoUrl ? (
                           <img src={business.photoUrl} alt={business.name} className="w-full h-full object-cover" />
                         ) : (
@@ -177,10 +154,10 @@ export default function GMBAuditTool() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-lg text-gray-900">
+                        <p className="font-bold text-lg text-[#0F5C4D]">
                           {business.name}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-[#4F635F]">
                           {business.address}
                         </p>
                         <div className="flex items-center gap-4 mt-2 text-sm">
@@ -190,9 +167,9 @@ export default function GMBAuditTool() {
                             </span>
                           )}
                           {business.phone && (
-                            <span className="text-gray-500">📞 {business.phone}</span>
+                            <span className="text-[#4F635F]">📞 {business.phone}</span>
                           )}
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs capitalize">
+                          <span className="px-2 py-1 bg-gray-100 text-[#4F635F] rounded text-xs capitalize">
                             {business.businessType}
                           </span>
                         </div>
@@ -213,18 +190,18 @@ export default function GMBAuditTool() {
 
             {/* No Results */}
             {showDropdown && query.length >= 3 && results.length === 0 && !loading && (
-              <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-lg p-6 text-center">
-                <p className="text-gray-500">No businesses found. Try a different search term.</p>
+              <div className="absolute z-50 w-full mt-2 bg-white border-2 border-gray-100 rounded-xl shadow-lg p-6 text-center">
+                <p className="text-[#4F635F]">No businesses found. Try a different search term.</p>
               </div>
             )}
           </div>
 
           {/* CTA Button */}
           <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full font-bold text-lg transition shadow-lg hover:shadow-xl">
+            <button className="bg-[#25D366] hover:scale-105 text-black px-8 py-4 rounded-full font-bold text-lg transition shadow-lg hover:shadow-xl">
               Start with 5 Free Posts
             </button>
-            <button className="text-emerald-700 hover:text-emerald-900 px-8 py-4 font-semibold flex items-center justify-center gap-2">
+            <button className="text-[#0F5C4D] hover:text-[#167a66] px-8 py-4 font-semibold flex items-center justify-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -234,31 +211,31 @@ export default function GMBAuditTool() {
           </div>
 
           {/* Features */}
-          <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-gray-600">
+          <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm text-[#4F635F]">
             <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#25D366]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="font-semibold">No credit card required</span>
+              <span className="font-semibold text-[#0F5C4D]">No credit card required</span>
             </div>
             <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#25D366]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="font-semibold">Takes &lt; 60 seconds</span>
+              <span className="font-semibold text-[#0F5C4D]">Takes &lt; 60 seconds</span>
             </div>
             <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#25D366]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="font-semibold">Free instant report</span>
+              <span className="font-semibold text-[#0F5C4D]">Free instant report</span>
             </div>
           </div>
         </div>
       </main>
 
       {/* Footer Disclaimer */}
-      <div className="text-center py-8 text-emerald-300/60 text-sm">
+      <div className="text-center py-8 text-[#4F635F]/60 text-sm">
         Neerzy is an independent platform and is not affiliated with Google or WhatsApp.
       </div>
     </div>
