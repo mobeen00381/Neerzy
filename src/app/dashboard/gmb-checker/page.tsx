@@ -55,6 +55,34 @@ export default function GMBChecker() {
     }
   };
 
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const handleWhatsAppAction = async (action: string) => {
+    setActionLoading(action);
+    try {
+      const res = await fetch('/api/whatsapp/send-gmb-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          placeId: result.placeId,
+          action,
+          // For demo, we use the business phone if available, or a placeholder
+          phoneNumber: result.phone || "+1234567890" 
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`✅ Success! WhatsApp message sent to ${data.sentTo}`);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to send WhatsApp message");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (result?.success) {
     return (
       <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -180,16 +208,22 @@ export default function GMBChecker() {
 
             <div className="space-y-4">
               <Button 
-                onClick={() => router.push(`/dashboard/generate-post?placeId=${result.placeId}`)}
-                className="w-full bg-white text-blue-600 hover:bg-blue-50 h-14 rounded-2xl font-black text-lg group shadow-lg"
+                onClick={() => handleWhatsAppAction('generate_post')}
+                disabled={!!actionLoading}
+                className="w-full bg-white text-blue-600 hover:bg-blue-50 h-14 rounded-2xl font-black text-lg group shadow-lg disabled:opacity-50"
               >
-                Generate AI Post <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                {actionLoading === 'generate_post' ? <Loader2 className="animate-spin" /> : (
+                  <>Generate AI Post <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
+                )}
               </Button>
               <Button 
-                onClick={() => router.push(`/dashboard/send-review?placeId=${result.placeId}`)}
-                className="w-full bg-blue-700 text-white hover:bg-blue-800 h-14 rounded-2xl font-black text-lg group border-none"
+                onClick={() => handleWhatsAppAction('send_review')}
+                disabled={!!actionLoading}
+                className="w-full bg-blue-700 text-white hover:bg-blue-800 h-14 rounded-2xl font-black text-lg group border-none disabled:opacity-50"
               >
-                Send Review Request <MessageSquare className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                {actionLoading === 'send_review' ? <Loader2 className="animate-spin" /> : (
+                  <>Send Review Request <MessageSquare className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
+                )}
               </Button>
             </div>
           </div>
