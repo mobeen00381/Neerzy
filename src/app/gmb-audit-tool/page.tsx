@@ -169,8 +169,12 @@ export default function GMBAuditTool() {
                     }`}
                   >
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-3xl">
-                        🏪
+                      <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-3xl overflow-hidden">
+                        {business.photoUrl ? (
+                          <img src={business.photoUrl} alt={business.name} className="w-full h-full object-cover" />
+                        ) : (
+                          "🏪"
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-lg text-gray-900">
