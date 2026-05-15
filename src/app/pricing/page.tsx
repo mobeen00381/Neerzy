@@ -10,7 +10,7 @@ const PLANS = [
     price: '0',
     bestFor: 'Trying Neerzy for the first time',
     cta: 'Start Free',
-    href: '/login?plan=free',
+    href: '/signup?plan=free',
     highlight: false,
     features: [
       { text: '5 WhatsApp posts total', included: true },
@@ -28,7 +28,7 @@ const PLANS = [
     price: '39',
     bestFor: 'Solo traders & small businesses',
     cta: 'Start Pro',
-    href: '/login?plan=pro',
+    href: '/signup?plan=pro',
     highlight: true,
     badge: 'Most Popular',
     features: [
@@ -47,7 +47,7 @@ const PLANS = [
     price: '79',
     bestFor: 'Growing businesses posting regularly',
     cta: 'Start Growth',
-    href: '/login?plan=growth',
+    href: '/signup?plan=growth',
     highlight: false,
     features: [
       { text: '60 posts per month', included: true },

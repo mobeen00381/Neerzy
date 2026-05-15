@@ -273,7 +273,7 @@ function LoginContent() {
               )}
 
               <p className="text-center text-sm text-slate-500 mt-10">
-                New to Neerzy? <Link href="/#pricing" className="text-blue-600 font-black hover:underline">Get started free</Link>
+                New to Neerzy? <Link href="/signup" className="text-blue-600 font-black hover:underline">Create an account</Link>
               </p>
             </>
           )}

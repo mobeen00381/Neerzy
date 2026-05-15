@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 function generateJWT(user: any) {
@@ -18,122 +18,105 @@ function generateJWT(user: any) {
 
 export async function POST(req: Request) {
   try {
-    const { phone, otp, code, plan } = await req.json();
-    const actualOtp = otp || code;
+    const { phone, otp, plan } = await req.json();
 
-    if (!phone || !actualOtp) {
-      return NextResponse.json({ error: "Phone and OTP are required" }, { status: 400 });
+    if (!phone || !otp) {
+      return NextResponse.json({ error: 'Phone and OTP required' }, { status: 400 });
     }
 
-    const formattedPhone = phone.replace(/\s+/g, '');
+    const formattedPhone = phone.replace(/[^\d+]/g, '').startsWith('+') 
+      ? phone.replace(/[^\d+]/g, '') 
+      : `+${phone.replace(/[^\d+]/g, '')}`;
 
-    // Find unexpired OTP record
-    const { data: record, error: fetchError } = await supabase
-      .from("otp_verifications")
-      .select("*")
-      .eq("phone", formattedPhone)
-      .is("verified_at", null)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
+    // 1. Find OTP record
+    const { data: otpData, error: otpError } = await supabase
+      .from('otp_verifications')
+      .select('*')
+      .eq('phone', formattedPhone)
+      .is('verified_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
-    if (fetchError || !record) {
-      return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 });
+    if (otpError || !otpData) {
+      return NextResponse.json({ error: 'Invalid or expired OTP' }, { status: 400 });
     }
 
-    // Verify OTP hash
-    const valid = await bcrypt.compare(actualOtp, record.otp_hash);
-    
-    if (!valid) {
-      // Increment attempts, lock after 5 fails (logic could be added here)
-      await supabase
-        .from("otp_verifications")
-        .update({ attempts: (record.attempts || 0) + 1 })
-        .eq("id", record.id);
-        
-      return NextResponse.json({ error: "Invalid OTP" }, { status: 400 });
+    // 2. Verify OTP hash (SECURE COMPARED TO PLAIN TEXT)
+    const isValid = await bcrypt.compare(otp, otpData.otp_hash);
+    if (!isValid) {
+      await supabase.from('otp_verifications').update({ attempts: (otpData.attempts || 0) + 1 }).eq('id', otpData.id);
+      return NextResponse.json({ error: 'Invalid OTP' }, { status: 400 });
     }
 
-    // Mark as verified
+    // 3. Mark OTP as verified
     await supabase
-      .from("otp_verifications")
+      .from('otp_verifications')
       .update({ verified_at: new Date().toISOString() })
-      .eq("id", record.id);
+      .eq('id', otpData.id);
 
-    // Create/update user with plan via Supabase Admin Auth
+    // 4. Handle User Creation (Supabase Auth + Custom Tables)
     let authUser;
-    const { data: authData, error: createError } = await supabase.auth.admin.createUser({
+    
+    // Create/Update in Supabase Auth (Crucial for onboarding/getUser)
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       phone: formattedPhone,
       phone_confirm: true,
       user_metadata: { 
         signup_method: 'otp',
         otp_verified: true,
-        phone_number: formattedPhone,
-        selected_plan: plan || 'free',
-        plan_status: 'trial',
-      },
+        selected_plan: plan || 'free'
+      }
     });
 
-    if (createError && createError.message.includes('already exists')) {
-      // Find existing user in custom table
-      const { data: existingUser } = await supabase
-        .from("users")
-        .select("id")
-        .eq("phone", formattedPhone)
-        .single();
-        
-      if (existingUser) {
-        authUser = { id: existingUser.id };
-        await supabase.auth.admin.updateUserById(existingUser.id, {
-          user_metadata: {
-            phone_number: formattedPhone,
-            selected_plan: plan || 'free',
-            plan_status: 'trial',
-          }
-        });
-      } else {
-        throw createError;
-      }
-    } else if (createError) {
-      throw createError;
+    if (authError && authError.message.includes('already registered')) {
+      const { data: { user } } = await supabase.auth.admin.getUserByPhone(formattedPhone);
+      authUser = user;
+    } else if (authError) {
+      throw authError;
     } else {
       authUser = authData.user;
     }
 
-    // ✅ 2. Create/Update profile in your 'profiles' table (CRITICAL)
+    // Upsert into custom 'users' table
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('phone', formattedPhone)
+      .maybeSingle();
+
+    if (!existingUser) {
+      await supabase
+        .from('users')
+        .insert({
+          id: authUser?.id,
+          phone: formattedPhone,
+          plan: plan || 'free',
+          created_at: new Date().toISOString()
+        });
+    }
+
+    // Upsert into 'profiles' table (Required by dashboard)
     await supabase.from('profiles').upsert({
-      id: authUser.id,
+      id: authUser?.id,
       phone: formattedPhone,
-      onboarded_at: new Date().toISOString(),
       selected_plan: plan || 'free',
-    }, { onConflict: 'id' });
-
-    // Keep custom users table in sync (Optional, but maintained for compatibility)
-    await supabase.from("users").upsert({ 
-      id: authUser.id,
-      phone: formattedPhone, 
-      whatsapp_verified: true,
-      plan: plan || 'starter'
-    }, { onConflict: "phone" });
-
-    // Log onboarding completion
-    await supabase.from('audit_logs').insert({
-      action: 'user_onboarded',
-      meta: { phone: formattedPhone, plan: plan || 'starter', user_id: authUser.id },
+      onboarded_at: new Date().toISOString()
     });
 
-    // ✅ 3. Return redirect URL to frontend
-    return NextResponse.json({ 
-      success: true, 
-      redirect: '/dashboard',  // ← This tells frontend where to go
-      userId: authUser.id,
-      user: { id: authUser.id, phone: formattedPhone },
-      token: generateJWT({ id: authUser.id, phone: formattedPhone }) 
+    return NextResponse.json({
+      success: true,
+      userId: authUser?.id,
+      message: 'OTP verified successfully',
+      token: generateJWT({ id: authUser?.id, phone: formattedPhone })
     });
 
   } catch (error: any) {
-    console.error("OTP Verification Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Verify OTP Error:', error);
+    return NextResponse.json({ 
+      error: 'Verification failed. Please try again.',
+      details: error.message
+    }, { status: 500 });
   }
 }
