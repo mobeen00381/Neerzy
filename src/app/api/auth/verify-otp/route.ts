@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import twilio from 'twilio';
 import jwt from 'jsonwebtoken';
 
 const supabase = createClient(
@@ -24,37 +24,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Phone and OTP required' }, { status: 400 });
     }
 
-    const formattedPhone = phone.replace(/[^\d+]/g, '').startsWith('+') 
-      ? phone.replace(/[^\d+]/g, '') 
-      : `+${phone.replace(/[^\d+]/g, '')}`;
+    const cleanPhone = phone.replace(/[^\d+]/g, '');
+    const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
 
-    // 1. Find OTP record
-    const { data: otpData, error: otpError } = await supabase
-      .from('otp_verifications')
-      .select('*')
-      .eq('phone', formattedPhone)
-      .is('verified_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    // 1. Verify OTP using Twilio Verify
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
 
-    if (otpError || !otpData) {
+    const verificationCheck = await client.verify.v2
+      .services(process.env.TWILIO_VERIFY_SERVICE_SID!)
+      .verificationChecks
+      .create({ to: formattedPhone, code: otp });
+
+    if (verificationCheck.status !== 'approved') {
       return NextResponse.json({ error: 'Invalid or expired OTP' }, { status: 400 });
     }
-
-    // 2. Verify OTP hash (SECURE COMPARED TO PLAIN TEXT)
-    const isValid = await bcrypt.compare(otp, otpData.otp_hash);
-    if (!isValid) {
-      await supabase.from('otp_verifications').update({ attempts: (otpData.attempts || 0) + 1 }).eq('id', otpData.id);
-      return NextResponse.json({ error: 'Invalid OTP' }, { status: 400 });
-    }
-
-    // 3. Mark OTP as verified
-    await supabase
-      .from('otp_verifications')
-      .update({ verified_at: new Date().toISOString() })
-      .eq('id', otpData.id);
 
     // 4. Handle User Creation (Supabase Auth + Custom Tables)
     let authUser;
