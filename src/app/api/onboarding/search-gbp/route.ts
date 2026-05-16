@@ -5,69 +5,54 @@ export async function POST(req: Request) {
     const { query } = await req.json();
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    console.log('🔍 Search Query:', query);
-    console.log('🔑 API Key exists:', !!apiKey);
-    console.log('🔑 API Key starts with:', apiKey?.substring(0, 10) + '...');
+    console.log('🔍 Searching for:', query);
+    console.log('🔑 API Key loaded:', apiKey ? 'YES' : 'NO');
 
     if (!apiKey) {
       return NextResponse.json({ 
-        error: 'Google API key not configured',
-        places: []
+        error: 'API key missing', 
+        places: [] 
       }, { status: 500 });
     }
 
-    if (!query || query.trim().length < 3) {
-      return NextResponse.json({ 
-        error: 'Search query too short',
-        places: []
-      }, { status: 400 });
-    }
-
-    const url = 'https://places.googleapis.com/v1/places:searchText';
+    // ✅ USE TEXT SEARCH API (More reliable for business search)
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
     
-    console.log('📡 Calling Google Places API...');
+    console.log('📡 Calling:', url.substring(0, 100) + '...');
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.placeId,places.googleMapsUri'
-      },
-      body: JSON.stringify({ 
-        textQuery: query,
-        languageCode: 'en'
-      })
-    });
+    const res = await fetch(url);
+    const data = await res.json();
 
-    console.log('📥 Response Status:', res.status);
+    console.log('📥 Google Response Status:', data.status);
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      console.error('❌ Google API Error:', errorData);
+    if (data.status !== 'OK') {
+      console.error('❌ Google API Error:', data);
       return NextResponse.json({ 
-        error: `Google API error: ${res.status}`,
-        details: errorData,
-        places: []
+        error: data.error_message || data.status,
+        places: [],
+        debug: data
       }, { status: res.status });
     }
 
-    const data = await res.json();
-    console.log('✅ Response received. Places count:', data.places?.length || 0);
-    
-    if (data.places && data.places.length > 0) {
-      console.log('📍 First result:', data.places[0].displayName);
-    }
+    // Transform results to match our expected format
+    const places = data.results.map((result: any) => ({
+      placeId: result.place_id,
+      displayName: { text: result.name },
+      formattedAddress: result.formatted_address,
+      googleMapsUri: `https://maps.google.com/?q=${result.place_id}`
+    }));
 
+    console.log('✅ Found', places.length, 'places');
+    
     return NextResponse.json({ 
-      places: data.places || [],
-      count: data.places?.length || 0
+      places,
+      count: places.length
     });
 
   } catch (error: any) {
-    console.error('💥 Search API Error:', error);
+    console.error('💥 Search Error:', error);
     return NextResponse.json({ 
-      error: error.message || 'Search failed',
+      error: error.message,
       places: []
     }, { status: 500 });
   }
