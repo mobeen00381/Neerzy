@@ -17,13 +17,14 @@ export async function POST(req: Request) {
       process.env.TWILIO_AUTH_TOKEN
     );
 
-    // ✅ USE VERIFY API (not Messages API!)
+    // ✅ USE VERIFY API with explicit Template SID
     const verification = await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_SID!)
       .verifications
       .create({ 
         to: formattedPhone, 
-        channel: 'whatsapp'
+        channel: 'whatsapp',
+        templateSid: 'HXae27daecf4d89e88ac375dcc5677507f' // Using approved template from .env.local
       });
 
     return NextResponse.json({ 
