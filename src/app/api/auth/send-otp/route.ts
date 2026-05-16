@@ -10,24 +10,21 @@ export async function POST(req: Request) {
     }
 
     // Format phone to E.164 (e.g., +923...)
-    const cleanPhone = phone.replace(/[^\d+]/g, '');
-    const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
+    const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
 
     const client = twilio(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
     );
 
-    // Send via WhatsApp using your Verify Service
+    // ✅ USE VERIFY API (not Messages API!)
     const verification = await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_SID!)
       .verifications
       .create({ 
         to: formattedPhone, 
-        channel: 'whatsapp' // Sends OTP via WhatsApp automatically
+        channel: 'whatsapp'
       });
-
-    console.log('✅ Twilio Verify OTP Sent:', { to: formattedPhone, sid: verification.sid });
 
     return NextResponse.json({ 
       success: true, 
@@ -41,4 +38,3 @@ export async function POST(req: Request) {
     }, { status: 500 });
   }
 }
-
