@@ -30,6 +30,9 @@ function SignupContent() {
       
       if (res.ok) {
         setStep('otp');
+        if (data.test_otp) {
+          alert(`🔐 TEST MODE: Your OTP is ${data.test_otp}`);
+        }
       } else {
         setError(data.error || 'Failed to send verification code');
       }
