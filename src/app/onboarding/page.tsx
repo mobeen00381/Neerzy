@@ -10,7 +10,6 @@ import {
   CheckCircle2, 
   ArrowRight, 
   Loader2,
-  Globe,
   AlertCircle
 } from 'lucide-react';
 
@@ -79,6 +78,9 @@ function OnboardingContent() {
     setLoading(true);
     setError('');
 
+    // Ensure we get the place ID correctly from the response
+    const placeId = selectedPlace.placeId || selectedPlace.place_id || selectedPlace.id;
+
     try {
       const res = await fetch('/api/onboarding/complete', {
         method: 'POST',
@@ -88,10 +90,10 @@ function OnboardingContent() {
           businessName,
           address: selectedPlace.formattedAddress || '',
           category,
-          google_place_id: selectedPlace.id || selectedPlace.placeId || selectedPlace.place_id,
+          google_place_id: placeId || null,
           google_maps_url: selectedPlace.googleMapsUri || '',
-          review_link: (selectedPlace.id || selectedPlace.placeId) 
-            ? `https://search.google.com/local/writereview?placeid=${selectedPlace.id || selectedPlace.placeId}` 
+          review_link: placeId 
+            ? `https://search.google.com/local/writereview?placeid=${placeId}` 
             : null
         })
       });
@@ -197,29 +199,34 @@ function OnboardingContent() {
 
             {searchResults.length > 0 && (
               <div className="border-2 border-slate-100 rounded-2xl max-h-48 overflow-y-auto bg-slate-50/30 p-2 space-y-2">
-                {searchResults.map((place: any) => (
-                  <button
-                    key={place.id || place.placeId}
-                    type="button"
-                    onClick={() => setSelectedPlace(place)}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-start gap-4 ${
-                      (selectedPlace?.id === place.id || selectedPlace?.placeId === place.placeId)
-                        ? 'border-[#25D366] bg-emerald-50 shadow-sm' 
-                        : 'border-transparent bg-white hover:border-emerald-100'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <div className="font-bold text-slate-900">{place.displayName?.text}</div>
-                      <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {place.formattedAddress}
+                {searchResults.map((place: any) => {
+                  const placeId = place.placeId || place.place_id || place.id;
+                  const isSelected = selectedPlace && (selectedPlace.placeId || selectedPlace.place_id || selectedPlace.id) === placeId;
+                  
+                  return (
+                    <button
+                      key={placeId}
+                      type="button"
+                      onClick={() => setSelectedPlace(place)}
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-start gap-4 ${
+                        isSelected
+                          ? 'border-[#25D366] bg-emerald-50 shadow-sm' 
+                          : 'border-transparent bg-white hover:border-emerald-100'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="font-bold text-slate-900">{place.displayName?.text}</div>
+                        <div className="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {place.formattedAddress}
+                        </div>
                       </div>
-                    </div>
-                    {(selectedPlace?.id === place.id || selectedPlace?.placeId === place.placeId) && (
-                      <CheckCircle2 className="w-5 h-5 text-[#25D366] mt-1 shrink-0" />
-                    )}
-                  </button>
-                ))}
+                      {isSelected && (
+                        <CheckCircle2 className="w-5 h-5 text-[#25D366] mt-1 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
