@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="container mx-auto px-4 py-12 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <h3 className="font-bold text-lg text-slate-900">Neerzy</h3>
+            <img src="/images/logo.png" alt="Neerzy Logo" className="h-10 w-auto object-contain" />
             <p className="text-sm text-slate-500">
               Done-for-you SEO websites and Google Business management for local service businesses.
             </p>
@@ -34,7 +34,7 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-slate-900 mb-4">Legal</h4>
             <ul className="space-y-2 text-sm text-slate-500">
-              <li><Link href="/privacy" className="hover:text-[#0F5C4D] transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/privacy-policy" className="hover:text-[#0F5C4D] transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms" className="hover:text-[#0F5C4D] transition-colors">Terms of Service</Link></li>
               <li><Link href="/cookies" className="hover:text-[#0F5C4D] transition-colors">Cookie Policy</Link></li>
             </ul>

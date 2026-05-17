@@ -25,11 +25,8 @@ export function Sidebar() {
   return (
     <aside className="w-72 bg-white border-r border-slate-200 hidden lg:flex flex-col h-screen sticky top-0 overflow-hidden">
       <div className="p-8">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="bg-[#25D366] p-2.5 rounded-2xl shadow-lg shadow-teal-100">
-            <Zap className="h-6 w-6 text-white" />
-          </div>
-          <span className="text-2xl font-black tracking-tighter text-[#0F5C4D] uppercase">NEERZY</span>
+        <Link href="/dashboard" className="flex items-center">
+          <img src="/images/logo.png" alt="Neerzy Logo" className="h-10 w-auto object-contain" />
         </Link>
       </div>
 

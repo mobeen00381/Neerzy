@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
         destination: '/gmb-audit-tool',
         permanent: true,
       },
+      {
+        source: '/privacy',
+        destination: '/privacy-policy',
+        permanent: true,
+      },
     ];
   },
 

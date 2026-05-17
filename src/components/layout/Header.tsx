@@ -7,11 +7,8 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#075E54] backdrop-blur-md transition-colors duration-300">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex gap-6 md:gap-10">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="bg-[#25D366] rounded-lg p-1.5 shadow-sm">
-              <span className="text-black font-black text-xl leading-none block">N</span>
-            </div>
-            <span className="inline-block font-bold text-xl text-white tracking-tight">Neerzy</span>
+          <Link href="/" className="flex items-center">
+            <img src="/images/logo.png" alt="Neerzy Logo" className="h-10 w-auto object-contain" />
           </Link>
           <nav className="hidden md:flex gap-6 items-center">
             <Link

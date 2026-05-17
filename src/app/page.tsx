@@ -268,7 +268,7 @@ export default function Page() {
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
             <div>
-              <h4 className="text-white font-bold mb-4">Neerzy</h4>
+              <img src="/images/logo.png" alt="Neerzy Logo" className="h-10 w-auto object-contain mb-4" />
               <p className="text-sm max-w-sm leading-relaxed">
                 The content workflow and marketing assistance platform designed for local traders. Improve your local visibility without leaving WhatsApp.
               </p>
@@ -285,7 +285,7 @@ export default function Page() {
                 <h5 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Legal</h5>
                 <ul className="space-y-2 text-sm">
                   <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-                  <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                  <li><Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
                   <li><Link href="/cookies" className="hover:text-white transition-colors">Cookie Policy</Link></li>
                 </ul>
               </div>

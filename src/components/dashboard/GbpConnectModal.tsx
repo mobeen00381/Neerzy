@@ -106,7 +106,7 @@ export function GbpConnectModal({ isOpen, onClose, userId }: GbpConnectModalProp
           </button>
           
           <p className="text-[10px] text-slate-400 text-center font-black uppercase tracking-widest mt-8">
-            By connecting, you agree to our <a href="/terms" className="text-blue-600 hover:underline">Terms</a> and <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a>.
+            By connecting, you agree to our <a href="/terms" className="text-blue-600 hover:underline">Terms</a> and <a href="/privacy-policy" className="text-blue-600 hover:underline">Privacy Policy</a>.
           </p>
         </div>
       </div>

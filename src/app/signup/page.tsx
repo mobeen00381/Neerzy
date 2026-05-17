@@ -80,8 +80,8 @@ function SignupContent() {
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 border border-emerald-100/20">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 rounded-2xl mb-6 shadow-sm">
-              <Zap className="w-8 h-8 text-[#25D366]" />
+            <div className="inline-flex items-center justify-center mb-6">
+              <img src="/images/logo.png" alt="Neerzy Logo" className="h-16 w-auto object-contain" />
             </div>
             <h1 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">
               {step === 'phone' ? 'Join Neerzy' : 'Enter Code'}

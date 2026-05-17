@@ -113,11 +113,8 @@ function LoginContent() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100">
         <div className="p-10">
-          <div className="flex items-center gap-2 mb-10 justify-center">
-            <div className="bg-blue-600 p-2.5 rounded-2xl shadow-lg shadow-blue-200">
-              <Zap className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-black tracking-tighter text-slate-900">NEERZY</span>
+          <div className="flex items-center mb-10 justify-center">
+            <img src="/images/logo.png" alt="Neerzy Logo" className="h-12 w-auto object-contain" />
           </div>
 
           {status === "success" ? (
