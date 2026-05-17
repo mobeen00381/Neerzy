@@ -32,7 +32,6 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          <ThemeToggle />
           <Link href="/login" className="hidden sm:inline-block">
             <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 font-medium">Log in</Button>
           </Link>

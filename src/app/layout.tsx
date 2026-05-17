@@ -42,12 +42,12 @@ export default function RootLayout({
         <link rel="preconnect" href="https://accounts.google.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
       </head>
-      <body className="min-h-full flex flex-col font-sans bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      <body className="min-h-full flex flex-col font-sans bg-white text-slate-900 transition-colors duration-300">
         <Script 
           src="https://accounts.google.com/gsi/client" 
           strategy="afterInteractive"
         />
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <QueryProvider>
             <Header />
             <main className="flex-1 flex flex-col">
