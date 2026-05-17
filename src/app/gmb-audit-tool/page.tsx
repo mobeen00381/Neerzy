@@ -8,7 +8,9 @@ import {
   ArrowRight, 
   Loader2, 
   CheckCircle2, 
-  TrendingUp 
+  TrendingUp, 
+  MapPin, 
+  Star 
 } from 'lucide-react';
 
 export default function GBMAuditTool() {
@@ -41,7 +43,7 @@ export default function GBMAuditTool() {
       const res = await fetch('/api/audit/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, limit: 15 }) // Get max results
+        body: JSON.stringify({ query, limit: 15 })
       });
       const data = await res.json();
       
@@ -66,8 +68,6 @@ export default function GBMAuditTool() {
 
   const handleRunAudit = () => {
     if (!selectedBusiness) return;
-    
-    // Navigate to audit results page with business data
     router.push(`/gmb-audit-tool/results?placeId=${selectedBusiness.placeId}&name=${encodeURIComponent(selectedBusiness.displayName?.text || selectedBusiness.name)}`);
   };
 
@@ -83,14 +83,14 @@ export default function GBMAuditTool() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)] py-20 px-6 font-sans relative overflow-hidden flex items-center justify-center">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)] py-20 px-6 font-sans relative overflow-hidden flex flex-col justify-center items-center">
       {/* Decorative background vectors */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[35%] h-[35%] bg-emerald-500/5 blur-[100px] rounded-full" />
         <div className="absolute top-[60%] -right-[10%] w-[40%] h-[40%] bg-teal-500/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="max-w-3xl w-full mx-auto relative z-10 space-y-8">
+      <div className="max-w-4xl w-full mx-auto relative z-10 space-y-12">
         
         {/* Header */}
         <div className="text-center animate-in fade-in slide-in-from-top-4 duration-500">
@@ -105,88 +105,86 @@ export default function GBMAuditTool() {
           </p>
         </div>
 
-        {/* Search Box with Autocomplete */}
-        <div className="bg-white rounded-[2.5rem] shadow-2xl p-6 border border-emerald-50/10 animate-in fade-in zoom-in-95 duration-300 relative space-y-4" ref={dropdownRef}>
-          <label className="block text-sm font-bold text-slate-700 ml-2">
-            Search Your Business
-          </label>
-          <div className="relative group flex items-center gap-3 px-4 py-3 bg-slate-50/50 rounded-2xl border-2 border-slate-100 focus-within:border-[#25D366] focus-within:bg-white transition-all">
-            <Search className="h-6 w-6 text-slate-400 group-focus-within:text-[#25D366] transition-colors shrink-0" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setSelectedBusiness(null);
-              }}
-              onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-              className="flex-1 text-lg outline-none text-slate-800 placeholder-slate-400 bg-transparent font-semibold"
-              placeholder="Start typing your business name..."
-              autoComplete="off"
-            />
-            {loading && (
-              <Loader2 className="animate-spin h-6 w-6 text-[#25D366] shrink-0" />
+        {/* Search Box with Autocomplete - FIXED Z-INDEX */}
+        <div className="relative z-[100] max-w-3xl mx-auto w-full" ref={dropdownRef}>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl p-4 border border-emerald-50/10 animate-in fade-in zoom-in-95 duration-300">
+            
+            <div className="flex items-center gap-3 px-4 py-3 bg-slate-50/50 rounded-2xl border-2 border-slate-100 focus-within:border-[#25D366] focus-within:bg-white transition-all">
+              <Search className="h-6 w-6 text-slate-400 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedBusiness(null);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                className="flex-1 text-lg outline-none text-slate-800 placeholder-slate-400 bg-transparent font-semibold min-w-0"
+                placeholder="Start typing your business name..."
+                autoComplete="off"
+              />
+              {loading && (
+                <Loader2 className="animate-spin h-6 w-6 text-[#25D366] shrink-0" />
+              )}
+            </div>
+
+            {/* 🔽 Autocomplete Dropdown - FIXED POSITIONING */}
+            {showDropdown && (
+              <div className="absolute left-4 right-4 mt-3 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-[380px] overflow-y-auto z-[150] p-2 space-y-1">
+                {searchResults.length > 0 ? (
+                  <>
+                    <div className="p-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50 bg-slate-50/50 rounded-t-xl sticky top-0 z-10">
+                      Select your business:
+                    </div>
+                    {searchResults.map((place: any, idx: number) => (
+                      <button
+                        key={place.placeId || idx}
+                        onClick={() => handleSelectBusiness(place)}
+                        className={`w-full text-left p-4 rounded-xl border border-transparent hover:border-emerald-100 hover:bg-emerald-50/50 transition-all flex items-start gap-4 cursor-pointer ${
+                          selectedBusiness?.placeId === place.placeId ? 'bg-emerald-50 border-l-4 border-l-[#25D366]' : ''
+                        }`}
+                      >
+                        <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 shrink-0 mt-0.5">
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-slate-900 text-lg leading-tight truncate">
+                            {place.displayName?.text || place.name}
+                          </div>
+                          <div className="text-sm font-semibold text-slate-500 mt-1 truncate">
+                            {place.formattedAddress || place.formatted_address}
+                          </div>
+                          {place.rating !== undefined && place.rating > 0 && (
+                            <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold">
+                              <span className="flex items-center gap-1 text-amber-600 bg-amber-50 border border-amber-100/50 px-2 py-0.5 rounded-lg">
+                                ⭐ {place.rating} ({place.user_ratings_total || 0} reviews)
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                ) : searchQuery.trim().length >= 3 && !loading ? (
+                  <div className="p-8 text-center text-slate-500 font-semibold">
+                    <span className="text-4xl mb-2 block">🔍</span>
+                    No businesses found. Try a different search term.
+                  </div>
+                ) : null}
+              </div>
             )}
+
           </div>
+        </div>
 
-          {/* 🔽 Dropdown Suggestions */}
-          {showDropdown && searchResults.length > 0 && (
-            <div 
-              className="absolute z-50 w-[calc(100%-3rem)] left-6 mt-1 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 space-y-1"
-              style={{ top: '100%' }}
-            >
-              {searchResults.map((place: any, index: number) => {
-                const placeId = place.placeId || place.place_id;
-                return (
-                  <button
-                    key={placeId || index}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleSelectBusiness(place);
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    className="w-full text-left p-4 rounded-xl border border-transparent hover:border-emerald-100 hover:bg-emerald-50/50 transition-all flex items-start gap-4 cursor-pointer"
-                  >
-                    <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 shrink-0 mt-0.5">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-slate-900 truncate">
-                        {place.displayName?.text || place.name}
-                      </div>
-                      <div className="text-xs font-semibold text-slate-500 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="truncate">{place.formattedAddress || place.formatted_address}</span>
-                        {place.rating !== undefined && place.rating > 0 && (
-                          <span className="flex items-center gap-0.5 shrink-0 text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded text-[10px]">
-                            ⭐ {place.rating} ({place.user_ratings_total || 0})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* No results message */}
-          {searchQuery.trim().length >= 3 && searchResults.length === 0 && !loading && (
-            <div className="absolute z-50 w-[calc(100%-3rem)] left-6 mt-1 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 text-xs font-semibold text-slate-500 text-center" style={{ top: '100%' }}>
-              No businesses found. Try a different search term.
-            </div>
-          )}
-
-          {/* Selected Business Preview */}
-          {selectedBusiness && (
-            <div className="bg-emerald-50/70 border-2 border-emerald-100 p-6 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 mt-4 text-left">
+        {/* ✅ Selected Business Preview + Audit Button */}
+        {selectedBusiness && (
+          <div className="max-w-2xl mx-auto w-full animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="bg-emerald-50/70 border-2 border-emerald-100 p-6 rounded-3xl shadow-lg space-y-3">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-6 h-6 text-[#25D366]" />
-                <span className="font-bold text-emerald-800">Business Selected</span>
+                <h3 className="font-bold text-emerald-800 text-lg">Business Selected</h3>
               </div>
               <div className="space-y-2 text-sm text-slate-700 font-semibold pl-9">
                 <div><strong className="text-slate-900">Name:</strong> {selectedBusiness.displayName?.text || selectedBusiness.name}</div>
@@ -201,21 +199,38 @@ export default function GBMAuditTool() {
                 )}
               </div>
             </div>
-          )}
 
-          {/* Action Trigger Button */}
-          <button
-            onClick={handleRunAudit}
-            disabled={!selectedBusiness || loading}
-            className="w-full bg-[#0F5C4D] hover:bg-[#073a30] text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 text-lg"
-          >
-            <span>🚀 Run Free Audit Now →</span>
-          </button>
+            {/* 🚀 Audit Trigger Button */}
+            <button
+              onClick={handleRunAudit}
+              className="w-full mt-6 bg-[#0F5C4D] hover:bg-[#073a30] text-white py-5 rounded-2xl font-black text-xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] outline-none flex items-center justify-center gap-2"
+            >
+              <span>🚀 Run Free Audit Now →</span>
+            </button>
 
-          <p className="text-xs font-bold text-slate-400 mt-4 text-center">
-            🔒 Free audit — no signup required
-          </p>
+            <p className="text-center font-bold text-slate-400 mt-4 text-xs">
+              Takes less than 30 seconds • No signup required
+            </p>
+          </div>
+        )}
 
+        {/* Features Matrix Grid */}
+        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto pt-8 pb-12">
+          <div className="text-center space-y-3 p-6 bg-white/50 rounded-3xl border border-slate-100 hover:border-emerald-100 hover:bg-white/80 transition-all">
+            <div className="text-4xl">⚡</div>
+            <h3 className="font-black text-[#0F5C4D] text-lg">Instant Results</h3>
+            <p className="text-[#4F635F] text-sm font-medium">Get your comprehensive audit score in seconds</p>
+          </div>
+          <div className="text-center space-y-3 p-6 bg-white/50 rounded-3xl border border-slate-100 hover:border-emerald-100 hover:bg-white/80 transition-all">
+            <div className="text-4xl">🔍</div>
+            <h3 className="font-black text-[#0F5C4D] text-lg">Detailed Analysis</h3>
+            <p className="text-[#4F635F] text-sm font-medium">5 core categories evaluated dynamically</p>
+          </div>
+          <div className="text-center space-y-3 p-6 bg-white/50 rounded-3xl border border-slate-100 hover:border-emerald-100 hover:bg-white/80 transition-all">
+            <div className="text-4xl">💡</div>
+            <h3 className="font-black text-[#0F5C4D] text-lg">Actionable Tips</h3>
+            <p className="text-[#4F635F] text-sm font-medium">Learn exactly how to boost your organic reach</p>
+          </div>
         </div>
 
       </div>
