@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Building2, 
   Search, 
@@ -8,17 +9,17 @@ import {
   Loader2, 
   AlertCircle, 
   CheckCircle2, 
-  XCircle, 
-  TrendingUp, 
   Star, 
-  Image as ImageIcon, 
-  Zap, 
-  Compass, 
+  TrendingUp, 
   ArrowLeft,
-  Crown
+  Crown,
+  Smartphone,
+  Cpu,
+  Zap
 } from 'lucide-react';
 
 export default function GBMAuditTool() {
+  const router = useRouter();
   const [step, setStep] = useState<'search' | 'results' | 'audit'>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -29,7 +30,6 @@ export default function GBMAuditTool() {
   // Search businesses
   const searchBusinesses = async (query: string) => {
     if (query.trim().length < 3) return;
-    
     setLoading(true);
     try {
       const res = await fetch('/api/audit/search', {
@@ -47,11 +47,10 @@ export default function GBMAuditTool() {
     }
   };
 
-  // Run audit on selected business
+  // Run audit
   const runAudit = async (business: any) => {
     setSelectedBusiness(business);
     setLoading(true);
-    
     try {
       const res = await fetch('/api/audit/run', {
         method: 'POST',
@@ -69,6 +68,11 @@ export default function GBMAuditTool() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // CTA: Go to YOUR pricing page
+  const handleGetStarted = () => {
+    router.push('/pricing?utm_source=audit-tool&utm_medium=cta');
   };
 
   return (
@@ -90,7 +94,7 @@ export default function GBMAuditTool() {
             Free Google Business Profile Audit
           </h1>
           <p className="text-lg font-medium text-[#4F635F] max-w-2xl mx-auto">
-            Discover how to improve your local SEO, fix ranking drop-offs, and attract more customers automatically.
+            See how your profile compares — then fix it with Neerzy in minutes
           </p>
         </div>
 
@@ -98,7 +102,7 @@ export default function GBMAuditTool() {
         {step === 'search' && !loading && (
           <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 max-w-2xl mx-auto border border-emerald-50/10 animate-in fade-in zoom-in-95 duration-300">
             <label className="block text-sm font-bold text-slate-700 ml-1 mb-3">
-              Enter your business name & city
+              Enter your business name
             </label>
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1 group">
@@ -109,7 +113,7 @@ export default function GBMAuditTool() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && searchBusinesses(searchQuery)}
                   className="w-full pl-12 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:border-[#25D366] focus:bg-white bg-slate-50/50 outline-none transition-all font-semibold text-slate-900"
-                  placeholder="e.g. Starbucks New York"
+                  placeholder="e.g. Ali Plumbing Karachi"
                 />
               </div>
               <button
@@ -121,7 +125,9 @@ export default function GBMAuditTool() {
                 <ArrowRight className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-[11px] font-bold text-slate-400 mt-3 ml-1 uppercase tracking-wider">Requires minimum 3 characters</p>
+            <p className="text-xs font-bold text-slate-400 mt-4 text-center">
+              🔒 Free audit — no signup required
+            </p>
           </div>
         )}
 
@@ -130,7 +136,7 @@ export default function GBMAuditTool() {
           <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 max-w-2xl mx-auto border border-emerald-50/10 animate-in fade-in zoom-in-95 duration-300">
             <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
               <Building2 className="text-[#25D366] w-6 h-6" />
-              <span>Select Your Business</span>
+              <span>Select your business</span>
             </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {searchResults.length > 0 ? (
@@ -174,7 +180,11 @@ export default function GBMAuditTool() {
         {/* Step 3: Audit Report */}
         {step === 'audit' && auditData && !loading && (
           <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-            <AuditReport audit={auditData} business={selectedBusiness} />
+            <AuditReport 
+              audit={auditData} 
+              business={selectedBusiness}
+              onGetStarted={handleGetStarted}
+            />
           </div>
         )}
 
@@ -184,7 +194,7 @@ export default function GBMAuditTool() {
             <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-xl border border-slate-100 mb-6">
               <Loader2 className="animate-spin h-10 w-10 text-[#25D366]" />
             </div>
-            <p className="text-slate-900 font-black text-xl tracking-tight">Analyzing Business Profile...</p>
+            <p className="text-slate-900 font-black text-xl tracking-tight">Analyzing profile...</p>
             <p className="text-slate-500 font-medium text-sm mt-1">Collecting local listing and SEO ranking signals</p>
           </div>
         )}
@@ -195,7 +205,11 @@ export default function GBMAuditTool() {
 }
 
 // Audit Report Component
-function AuditReport({ audit, business }: { audit: any; business: any }) {
+function AuditReport({ audit, business, onGetStarted }: { 
+  audit: any; 
+  business: any;
+  onGetStarted: () => void;
+}) {
   const overallScore = Math.round(
     (audit.completeness.score * 0.25 +
      audit.visualContent.score * 0.20 +
@@ -246,88 +260,36 @@ function AuditReport({ audit, business }: { audit: any; business: any }) {
             {overallScore >= 80 ? (
               <span className="flex items-center justify-center gap-2">
                 <span>🎉</span>
-                <span>Excellent profile! Strong Local SEO footprint.</span>
+                <span>Great profile! Strong Local SEO footprint.</span>
               </span>
             ) : overallScore >= 60 ? (
               <span className="flex items-center justify-center gap-2">
                 <span>⚠️</span>
-                <span>Good profile, but crucial opportunities are being missed.</span>
+                <span>Good profile, but can improve details.</span>
               </span>
             ) : (
               <span className="flex items-center justify-center gap-2">
                 <span>🚨</span>
-                <span>Critical local visibility issues found. Action required.</span>
+                <span>Needs attention. Critical local visibility issues found.</span>
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Detailed Scores Grid */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <AuditSection 
-          title="Profile Completeness"
-          icon={<CheckCircle2 className="w-5 h-5" />}
-          score={audit.completeness.score}
-          maxScore={25}
-          actualScore={audit.completeness.actualScore}
-          checks={audit.completeness.checks}
-        />
-        
-        <AuditSection 
-          title="Visual Content"
-          icon={<ImageIcon className="w-5 h-5" />}
-          score={audit.visualContent.score}
-          maxScore={20}
-          actualScore={audit.visualContent.actualScore}
-          checks={audit.visualContent.checks}
-        />
-        
-        <AuditSection 
-          title="Reviews & Reputation"
-          icon={<Star className="w-5 h-5" />}
-          score={audit.reviews.score}
-          maxScore={25}
-          actualScore={audit.reviews.actualScore}
-          checks={audit.reviews.checks}
-        />
-        
-        <AuditSection 
-          title="Engagement & Activity"
-          icon={<Zap className="w-5 h-5" />}
-          score={audit.engagement.score}
-          maxScore={15}
-          actualScore={audit.engagement.actualScore}
-          checks={audit.engagement.checks}
-        />
-        
-        <AuditSection 
-          title="SEO Optimization"
-          icon={<Compass className="w-5 h-5" />}
-          score={audit.seo.score}
-          maxScore={15}
-          actualScore={audit.seo.actualScore}
-          checks={audit.seo.checks}
-          className="md:col-span-2"
-        />
-      </div>
-
-      {/* Action Items */}
+      {/* Key Issues Found ("What's Holding You Back") */}
       <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 border border-emerald-50/10">
         <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
           <Crown className="w-6 h-6 text-yellow-500" />
-          <span>Priority Improvements</span>
+          <span>What's Holding You Back</span>
         </h3>
         <div className="space-y-4">
-          {audit.recommendations.map((rec: any, idx: number) => (
+          {audit.recommendations.slice(0, 4).map((rec: any, idx: number) => (
             <div key={idx} className="flex items-start gap-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-emerald-100/50 transition-all">
               <span className="text-3xl shrink-0 p-2 bg-white rounded-xl shadow-sm leading-none">{rec.icon}</span>
               <div>
                 <div className="font-bold text-slate-900 text-lg leading-snug">{rec.title}</div>
                 <div className="text-sm font-medium text-slate-500 mt-1">{rec.description}</div>
-                <div className="inline-flex mt-3 text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-[#0F5C4D] px-2.5 py-1 rounded-full">
-                  Impact: {rec.impact}
-                </div>
               </div>
             </div>
           ))}
@@ -342,96 +304,96 @@ function AuditReport({ audit, business }: { audit: any; business: any }) {
           <div className="absolute -bottom-[30%] -right-[10%] w-[45%] h-[45%] bg-teal-500/10 blur-[100px] rounded-full" />
         </div>
 
-        <div className="relative z-10 max-w-xl mx-auto space-y-6">
-          <h3 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">
-            Ready to Dominate Local Search?
-          </h3>
-          <p className="text-lg font-medium text-slate-200/90 leading-relaxed">
-            Dominate local organic maps traffic, fix structural visibility drop-offs, and manage your WhatsApp funnels easily.
-          </p>
-          <button
-            onClick={() => window.location.href = '/pricing'}
-            className="w-full sm:w-auto bg-[#25D366] hover:bg-[#1ebd59] text-black font-black text-lg px-10 py-5 rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] outline-none"
-          >
-            Boost Your Score Instantly →
-          </button>
-          <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">
-            Fixed monthly plans starting from $99/month
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Individual Audit Section Component
-function AuditSection({ title, icon, score, maxScore, actualScore, checks, className = '' }: any) {
-  const isGood = score >= 80;
-  const isWarning = score >= 60;
-  
-  const getThemeColor = () => {
-    if (isGood) return 'text-[#25D366] bg-[#25D366]/10';
-    if (isWarning) return 'text-amber-500 bg-amber-500/10';
-    return 'text-rose-500 bg-rose-500/10';
-  };
-
-  const getTextColor = () => {
-    if (isGood) return 'text-[#25D366]';
-    if (isWarning) return 'text-amber-500';
-    return 'text-rose-500';
-  };
-
-  const getBgBarColor = () => {
-    if (isGood) return 'bg-[#25D366]';
-    if (isWarning) return 'bg-amber-500';
-    return 'bg-rose-500';
-  };
-
-  return (
-    <div className={`bg-white rounded-3xl shadow-xl p-8 border-2 border-slate-100 flex flex-col justify-between transition-all hover:shadow-2xl ${className}`}>
-      <div>
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl ${getThemeColor()} shrink-0`}>
-              {icon}
-            </div>
-            <h3 className="text-lg font-black text-slate-900 leading-snug">{title}</h3>
+        <div className="relative z-10 max-w-3xl mx-auto space-y-8">
+          <div className="space-y-3">
+            <h3 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">
+              Fix This with Neerzy
+            </h3>
+            <p className="text-lg font-medium text-slate-200/90 leading-relaxed max-w-xl mx-auto">
+              Send a job photo on WhatsApp → Get Google Posts, website updates & review requests in minutes
+            </p>
           </div>
           
-          <div className="text-right">
-            <div className={`text-3xl font-black leading-none ${getTextColor()}`}>
-              {score}%
+          {/* Your Pricing Preview Blocks */}
+          <div className="grid md:grid-cols-3 gap-6 text-left pt-4">
+            
+            {/* Free Plan Block */}
+            <div className="bg-white/10 border border-white/10 rounded-2xl p-6 backdrop-blur-sm transition-all hover:bg-white/15">
+              <div className="font-bold text-slate-300 uppercase tracking-widest text-xs">Free</div>
+              <div className="text-3xl font-black mt-2 text-white">$0</div>
+              <div className="text-sm font-semibold text-slate-200 mt-3 opacity-90">5 posts to try</div>
             </div>
-            <div className="text-xs font-bold text-slate-400 mt-1">{actualScore}/{maxScore} pts</div>
+
+            {/* Pro Plan Block (Highlighted) */}
+            <div className="bg-white/20 border-2 border-[#25D366] rounded-2xl p-6 shadow-xl relative backdrop-blur-md transition-all hover:bg-white/25 transform md:scale-105">
+              <div className="absolute -top-3 right-4 bg-[#25D366] text-black font-black uppercase text-[9px] px-2.5 py-1 rounded-full tracking-wider shadow-md">
+                Popular ⭐
+              </div>
+              <div className="font-bold text-[#25D366] uppercase tracking-widest text-xs">Pro</div>
+              <div className="text-3xl font-black mt-2 text-white">$39<span className="text-sm font-bold opacity-80">/mo</span></div>
+              <div className="text-sm font-bold text-white mt-3">25 posts/month</div>
+            </div>
+
+            {/* Growth Plan Block */}
+            <div className="bg-white/10 border border-white/10 rounded-2xl p-6 backdrop-blur-sm transition-all hover:bg-white/15">
+              <div className="font-bold text-slate-300 uppercase tracking-widest text-xs">Growth</div>
+              <div className="text-3xl font-black mt-2 text-white">$79<span className="text-sm font-bold opacity-80">/mo</span></div>
+              <div className="text-sm font-semibold text-slate-200 mt-3 opacity-90">60 posts/month</div>
+            </div>
+
+          </div>
+          
+          <div className="pt-4 space-y-4">
+            <button
+              onClick={onGetStarted}
+              className="w-full sm:w-auto bg-[#25D366] hover:bg-[#1ebd59] text-black font-black text-lg px-12 py-5 rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] outline-none"
+            >
+              Start Free Trial →
+            </button>
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">
+              No credit card required • Cancel anytime
+            </p>
           </div>
         </div>
-        
-        {/* Progress Bar */}
-        <div className="w-full bg-slate-100 rounded-full h-3 mb-6 overflow-hidden">
-          <div 
-            className={`h-3 rounded-full transition-all duration-1000 ${getBgBarColor()}`}
-            style={{ width: `${score}%` }}
-          ></div>
+      </div>
+
+      {/* How It Works Section */}
+      <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 border border-emerald-50/10">
+        <h3 className="text-2xl font-black text-slate-900 mb-10 text-center">
+          How Neerzy Fixes Your Profile
+        </h3>
+        <div className="grid md:grid-cols-3 gap-8 text-center relative">
+          
+          {/* Step 1 */}
+          <div className="space-y-4 relative group">
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl mx-auto flex items-center justify-center shadow-sm group-hover:bg-[#25D366]/10 transition-colors">
+              <Smartphone className="w-8 h-8 text-[#25D366]" />
+            </div>
+            <h4 className="font-bold text-slate-900 text-lg">1. Send Photo</h4>
+            <p className="text-sm font-semibold text-slate-500">WhatsApp a job photo</p>
+          </div>
+
+          {/* Step 2 */}
+          <div className="space-y-4 relative group">
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl mx-auto flex items-center justify-center shadow-sm group-hover:bg-[#25D366]/10 transition-colors">
+              <Cpu className="w-8 h-8 text-[#25D366]" />
+            </div>
+            <h4 className="font-bold text-slate-900 text-lg">2. AI Creates Content</h4>
+            <p className="text-sm font-semibold text-slate-500">Google Posts + Website + Reviews</p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="space-y-4 relative group">
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl mx-auto flex items-center justify-center shadow-sm group-hover:bg-[#25D366]/10 transition-colors">
+              <CheckCircle2 className="w-8 h-8 text-[#25D366]" />
+            </div>
+            <h4 className="font-bold text-slate-900 text-lg">3. Publish in 60s</h4>
+            <p className="text-sm font-semibold text-slate-500">No complex dashboards needed</p>
+          </div>
+
         </div>
       </div>
-      
-      {/* Checks Checklist */}
-      <div className="space-y-3.5 mt-auto">
-        {checks.map((check: any, idx: number) => (
-          <div key={idx} className="flex items-start gap-3 text-sm">
-            <span className="shrink-0 mt-0.5">
-              {check.passed ? (
-                <CheckCircle2 className="w-4 h-4 text-[#25D366]" />
-              ) : (
-                <XCircle className="w-4 h-4 text-rose-500" />
-              )}
-            </span>
-            <span className={`font-semibold ${check.passed ? 'text-slate-800' : 'text-slate-400'}`}>
-              {check.label}
-            </span>
-          </div>
-        ))}
-      </div>
+
     </div>
   );
 }
