@@ -26,7 +26,7 @@ export function Sidebar() {
     <aside className="w-72 bg-white border-r border-slate-200 hidden lg:flex flex-col h-screen sticky top-0 overflow-hidden">
       <div className="p-8">
         <Link href="/dashboard" className="flex items-center">
-          <img src="/images/logo.png" alt="Neerzy Logo" className="h-10 w-auto object-contain" />
+          <img src="/images/logo.png" alt="Neerzy Logo" className="h-14 w-auto object-contain" />
         </Link>
       </div>
 

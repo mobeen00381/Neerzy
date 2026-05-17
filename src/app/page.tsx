@@ -304,7 +304,7 @@ export default function Page() {
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
             <div>
-              <img src="/images/logo.png" alt="Neerzy Logo" className="h-10 w-auto object-contain mb-4" />
+              <img src="/images/logo.png" alt="Neerzy Logo" className="h-16 w-auto object-contain mb-4" />
               <p className="text-sm max-w-sm leading-relaxed">
                 The content workflow and marketing assistance platform designed for local traders. Improve your local visibility without leaving WhatsApp.
               </p>
