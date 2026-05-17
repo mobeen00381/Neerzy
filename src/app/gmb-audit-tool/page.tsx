@@ -159,8 +159,13 @@ export default function GBMAuditTool() {
                       <div className="font-bold text-slate-900 truncate">
                         {place.displayName?.text || place.name}
                       </div>
-                      <div className="text-xs font-semibold text-slate-500 mt-1 truncate">
-                        {place.formattedAddress || place.formatted_address}
+                      <div className="text-xs font-semibold text-slate-500 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="truncate">{place.formattedAddress || place.formatted_address}</span>
+                        {place.rating !== undefined && place.rating > 0 && (
+                          <span className="flex items-center gap-0.5 shrink-0 text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded text-[10px]">
+                            ⭐ {place.rating} ({place.user_ratings_total || 0})
+                          </span>
+                        )}
                       </div>
                     </div>
                   </button>
@@ -178,7 +183,7 @@ export default function GBMAuditTool() {
 
           {/* Selected Business Preview */}
           {selectedBusiness && (
-            <div className="bg-emerald-50/70 border-2 border-emerald-100 p-6 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 mt-4">
+            <div className="bg-emerald-50/70 border-2 border-emerald-100 p-6 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 mt-4 text-left">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-6 h-6 text-[#25D366]" />
                 <span className="font-bold text-emerald-800">Business Selected</span>
@@ -186,6 +191,14 @@ export default function GBMAuditTool() {
               <div className="space-y-2 text-sm text-slate-700 font-semibold pl-9">
                 <div><strong className="text-slate-900">Name:</strong> {selectedBusiness.displayName?.text || selectedBusiness.name}</div>
                 <div><strong className="text-slate-900">Address:</strong> {selectedBusiness.formattedAddress || selectedBusiness.formatted_address}</div>
+                {selectedBusiness.rating !== undefined && selectedBusiness.rating > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <strong className="text-slate-900">Rating:</strong> 
+                    <span className="flex items-center gap-1 text-amber-600 bg-amber-50 border border-amber-100/50 px-2 py-0.5 rounded-lg text-xs">
+                      ⭐ {selectedBusiness.rating} ({selectedBusiness.user_ratings_total || 0} reviews)
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -194,10 +207,9 @@ export default function GBMAuditTool() {
           <button
             onClick={handleRunAudit}
             disabled={!selectedBusiness || loading}
-            className="w-full bg-[#0F5C4D] hover:bg-[#073a30] text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+            className="w-full bg-[#0F5C4D] hover:bg-[#073a30] text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 text-lg"
           >
-            <span>Analyze Profile</span>
-            <ArrowRight className="w-5 h-5" />
+            <span>🚀 Run Free Audit Now →</span>
           </button>
 
           <p className="text-xs font-bold text-slate-400 mt-4 text-center">
