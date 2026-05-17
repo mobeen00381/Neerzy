@@ -131,7 +131,7 @@ export default function GBMAuditTool() {
 
             {/* 🔽 Autocomplete Dropdown - FIXED POSITIONING */}
             {showDropdown && (
-              <div className="absolute left-4 right-4 mt-3 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-[380px] overflow-y-auto z-[150] p-2 space-y-1">
+              <div className="absolute left-4 right-4 mt-3 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-[380px] overflow-y-auto z-[150] p-2 space-y-1 z-dropdown">
                 {searchResults.length > 0 ? (
                   <>
                     <div className="p-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50 bg-slate-50/50 rounded-t-xl sticky top-0 z-10">

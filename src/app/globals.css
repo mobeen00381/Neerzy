@@ -498,3 +498,14 @@
 .rotate-x-5 {
   transform: rotateX(5deg);
 }
+
+/* Ensure dropdowns appear above everything */
+.z-dropdown {
+  z-index: 9999 !important;
+}
+
+/* Prevent footer overlap */
+main {
+  position: relative;
+  z-index: 1;
+}
