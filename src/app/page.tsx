@@ -299,43 +299,7 @@ export default function Page() {
         </div>
       </section>
 
-      {/* Footer Copy */}
-      <footer style={{ background: '#073a30', color: 'rgba(255,255,255,0.6)', padding: '60px 0', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start text-left">
-            <div>
-              <img src="/images/logo-white.svg" alt="Neerzy Logo" className="h-16 w-auto object-contain mb-4" />
-              <p className="text-sm max-w-sm leading-relaxed">
-                The content workflow and marketing assistance platform designed for local traders. Improve your local visibility without leaving WhatsApp.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-8">
-              <div>
-                <h5 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Product</h5>
-                <ul className="space-y-2 text-sm">
-                  <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
-                  <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h5 className="text-white font-bold text-xs uppercase tracking-widest mb-4">Legal</h5>
-                <ul className="space-y-2 text-sm">
-                  <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-                  <li><Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                  <li><Link href="/cookies" className="hover:text-white transition-colors">Cookie Policy</Link></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-xs">© {new Date().getFullYear()} Neerzy.com. All rights reserved.</p>
-            <p className="text-[10px] max-w-md text-center md:text-right leading-tight italic">
-              Neerzy is an independent platform and is not affiliated with, endorsed by, or a partner of Google or WhatsApp. Google Business Profile and WhatsApp are trademarks of their respective owners.
-            </p>
-          </div>
-        </div>
-      </footer>
+
     </div>
   );
 }
