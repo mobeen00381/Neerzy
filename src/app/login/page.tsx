@@ -114,7 +114,7 @@ function LoginContent() {
       <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100">
         <div className="p-10">
           <div className="flex items-center mb-10 justify-center">
-            <img src="/images/logo.png" alt="Neerzy Logo" className="h-20 w-auto object-contain" />
+            <img src="/images/logo.svg" alt="Neerzy Logo" className="h-20 w-auto object-contain" />
           </div>
 
           {status === "success" ? (

@@ -81,7 +81,7 @@ function SignupContent() {
         <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 border border-emerald-100/20">
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center mb-6">
-              <img src="/images/logo.png" alt="Neerzy Logo" className="h-24 w-auto object-contain" />
+              <img src="/images/logo.svg" alt="Neerzy Logo" className="h-24 w-auto object-contain" />
             </div>
             <h1 className="text-3xl font-black text-slate-900 mb-3 tracking-tight">
               {step === 'phone' ? 'Join Neerzy' : 'Enter Code'}

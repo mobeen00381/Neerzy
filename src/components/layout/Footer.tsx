@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="container mx-auto px-4 py-12 md:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <img src="/images/logo.png" alt="Neerzy Logo" className="h-16 w-auto object-contain" />
+            <img src="/images/logo.svg" alt="Neerzy Logo" className="h-16 w-auto object-contain" />
             <p className="text-sm text-slate-500">
               Done-for-you SEO websites and Google Business management for local service businesses.
             </p>
