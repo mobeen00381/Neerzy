@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Building2, 
@@ -16,6 +16,7 @@ function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone = searchParams.get('phone') || '';
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -45,13 +46,14 @@ function OnboardingContent() {
 
     const timer = setTimeout(async () => {
       await performSearch(searchQuery);
-    }, 400); // 400ms debounce
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   const performSearch = async (query: string) => {
     try {
+      setLoading(true);
       const res = await fetch('/api/onboarding/search-gbp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -63,18 +65,27 @@ function OnboardingContent() {
       if (res.ok && data.places?.length > 0) {
         setSearchResults(data.places);
         setShowDropdown(true);
+        setError('');
       } else {
         setSearchResults([]);
         setShowDropdown(false);
+        if (data.places?.length === 0) {
+          setError('No businesses found. Try a different search term.');
+        }
       }
     } catch (err) {
       console.error('Search failed:', err);
       setSearchResults([]);
+      setError('Search failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   // 🎯 Handle place selection - auto-fill form
   const handleSelectPlace = (place: any) => {
+    console.log(' Selected place:', place);
+    
     setSelectedPlace(place);
     setShowDropdown(false);
     
@@ -82,11 +93,11 @@ function OnboardingContent() {
     setFormData({
       businessName: place.displayName?.text || place.name || '',
       address: place.formattedAddress || place.formatted_address || '',
-      category: place.types?.[0] || 'Other', // Google returns types like "restaurant", "plumber"
+      category: place.types?.[0] || 'Other',
       google_place_id: place.placeId || place.place_id || '',
       google_maps_url: place.googleMapsUri || place.google_maps_url || '',
-      review_link: place.placeId 
-        ? `https://search.google.com/local/writereview?placeid=${place.placeId}` 
+      review_link: place.placeId || place.place_id
+        ? `https://search.google.com/local/writereview?placeid=${place.placeId || place.place_id}` 
         : ''
     });
     
@@ -130,14 +141,16 @@ function OnboardingContent() {
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.search-container')) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   return (
@@ -170,7 +183,7 @@ function OnboardingContent() {
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* 🔍 Search Input with Autocomplete */}
-            <div className="search-container relative space-y-2">
+            <div className="relative space-y-2" ref={dropdownRef}>
               <label className="block text-sm font-bold text-slate-700 ml-1">
                 Search Your Business *
               </label>
@@ -194,22 +207,33 @@ function OnboardingContent() {
               
               {/* 🔽 Dropdown Suggestions */}
               {showDropdown && searchResults.length > 0 && (
-                <div className="absolute z-20 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 space-y-1">
-                  {searchResults.map((place: any) => {
+                <div 
+                  className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 space-y-1"
+                  style={{ top: '100%', left: 0, right: 0 }}
+                >
+                  {searchResults.map((place: any, index: number) => {
                     const placeId = place.placeId || place.place_id;
                     return (
                       <button
-                        key={placeId}
+                        key={placeId || index}
                         type="button"
-                        onClick={() => handleSelectPlace(place)}
-                        className="w-full text-left p-4 rounded-xl border border-transparent hover:border-emerald-100 hover:bg-emerald-50/50 transition-all flex items-start gap-4"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSelectPlace(place);
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                        className="w-full text-left p-4 rounded-xl border border-transparent hover:border-emerald-100 hover:bg-emerald-50/50 transition-all flex items-start gap-4 cursor-pointer"
                       >
                         <MapPin className="w-5 h-5 text-[#25D366] mt-1 shrink-0" />
-                        <div>
-                          <div className="font-bold text-slate-900">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-bold text-slate-900 truncate">
                             {place.displayName?.text || place.name}
                           </div>
-                          <div className="text-xs font-medium text-slate-500 mt-1">
+                          <div className="text-xs font-medium text-slate-500 mt-1 truncate">
                             {place.formattedAddress || place.formatted_address}
                           </div>
                           {place.types?.[0] && (
@@ -224,10 +248,18 @@ function OnboardingContent() {
                 </div>
               )}
               
-              {/* 🔍 Autocomplete Guidance Info */}
-              {searchQuery.trim().length >= 3 && searchResults.length === 0 && !loading && (
-                <div className="absolute z-20 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 text-xs font-semibold text-slate-500">
-                  Type more to see suggestions...
+              {/* 🔍 Searching Indicator */}
+              {loading && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 flex items-center justify-center gap-3 text-xs font-semibold text-slate-500">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#25D366]" />
+                  <span>Searching...</span>
+                </div>
+              )}
+
+              {/* No results message */}
+              {searchQuery.trim().length >= 3 && searchResults.length === 0 && !loading && !error && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 text-xs font-semibold text-slate-500 text-center">
+                  No businesses found. Try a different search term.
                 </div>
               )}
             </div>
@@ -237,7 +269,7 @@ function OnboardingContent() {
               <div className="bg-emerald-50/70 border-2 border-emerald-100 p-6 rounded-[2rem] space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-6 h-6 text-[#25D366]" />
-                  <span className="font-bold text-emerald-800">Connected Profile</span>
+                  <span className="font-bold text-emerald-800">Business Selected</span>
                 </div>
                 <div className="space-y-2 text-sm text-slate-700 font-semibold pl-9">
                   <div><strong className="text-slate-900">Name:</strong> {formData.businessName}</div>
@@ -277,7 +309,7 @@ function OnboardingContent() {
               </details>
             )}
 
-            {/* 🚀 Submission Button */}
+            {/* 🚀 Action Button */}
             <button
               type="submit"
               disabled={loading || !selectedPlace}
