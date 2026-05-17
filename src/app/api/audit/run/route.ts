@@ -3,10 +3,10 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const { placeId, businessName } = await req.json();
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
 
-    // 🎭 MOCK MODE: Return realistic mock audit data for testing
-    if (!apiKey || placeId?.startsWith('mock') || process.env.NODE_ENV === 'development') {
+    // 🎭 MOCK MODE: Only return mock audit data if no API key OR if placeId is a mock ID
+    if (!apiKey || placeId?.startsWith('mock')) {
       const mockAudit = {
         completeness: {
           score: 85,
@@ -92,21 +92,56 @@ export async function POST(req: Request) {
       return NextResponse.json(mockAudit);
     }
 
-    // 🌍 REAL GOOGLE API CALL
+    // 🌍 REAL GOOGLE PLACES API (v1) CALL
+    console.log('🔍 Fetching place details via new Places API (v1) for:', placeId);
     const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_address,formatted_phone_number,website,opening_hours,reviews,photos,user_ratings_total,rating,editorial_summary&key=${apiKey}`
+      `https://places.googleapis.com/v1/places/${placeId}`,
+      {
+        method: 'GET',
+        headers: {
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,currentOpeningHours,reviews,photos,userRatingCount,rating,editorialSummary,types'
+        }
+      }
     );
     
-    const data = await res.json();
+    const placeData = await res.json();
     
-    if (data.status !== 'OK') {
+    if (placeData.error) {
+      console.error('Places API v1 error:', placeData.error);
       return NextResponse.json({ error: 'Failed to get details' }, { status: 500 });
     }
 
-    const place = data.result;
+    // Normalize new API fields to match the format expected by audit functions
+    const place = {
+      name: placeData.displayName?.text || '',
+      formatted_address: placeData.formattedAddress || '',
+      formatted_phone_number: placeData.nationalPhoneNumber || placeData.internationalPhoneNumber || '',
+      website: placeData.websiteUri || '',
+      opening_hours: placeData.currentOpeningHours || null,
+      reviews: placeData.reviews || [],
+      photos: placeData.photos || [],
+      user_ratings_total: placeData.userRatingCount || 0,
+      rating: placeData.rating || 0,
+      editorial_summary: placeData.editorialSummary || null,
+      types: placeData.types || []
+    };
+
+    console.log(`✅ Place details loaded: ${place.name}, ${place.user_ratings_total} reviews, ${place.photos.length} photos`);
     
+    // Build the profile photo URL from the first photo
+    let photoUrl = '';
+    if (placeData.photos && placeData.photos.length > 0) {
+      const photoName = placeData.photos[0].name;
+      photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${apiKey}`;
+    }
+
     // Run audit checks
     const audit = {
+      photoUrl,
+      businessAddress: place.formatted_address,
+      businessRating: place.rating,
+      businessReviewCount: place.user_ratings_total,
       completeness: auditCompleteness(place),
       visualContent: auditVisualContent(place),
       reviews: auditReviews(place),

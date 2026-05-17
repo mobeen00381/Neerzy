@@ -145,9 +145,22 @@ export default function GBMAuditTool() {
                           selectedBusiness?.placeId === place.placeId ? 'bg-emerald-50 border-l-4 border-l-[#25D366]' : ''
                         }`}
                       >
-                        <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 shrink-0 mt-0.5">
-                          <Building2 className="w-5 h-5" />
-                        </div>
+                        {place.photoUrl ? (
+                          <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 mt-0.5 border border-slate-100 shadow-sm">
+                            <img 
+                              src={place.photoUrl} 
+                              alt={place.displayName?.text || place.name}
+                              className="w-full h-full object-cover"
+                              onError={(e: any) => {
+                                e.target.parentElement.innerHTML = '<div class="w-full h-full bg-emerald-50 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F5C4D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div>';
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 shrink-0 mt-0.5">
+                            <Building2 className="w-5 h-5" />
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-slate-900 text-lg leading-tight truncate">
                             {place.displayName?.text || place.name}
