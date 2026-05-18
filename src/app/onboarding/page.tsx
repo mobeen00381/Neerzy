@@ -83,6 +83,7 @@ function OnboardingContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          phone: phone,
           businessName: selectedBusiness.displayName?.text || selectedBusiness.name,
           address: selectedBusiness.formattedAddress || selectedBusiness.formatted_address,
           category: selectedBusiness.types?.[0] || 'Other',
