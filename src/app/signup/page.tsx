@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
 import { 
   Sparkles, 
   Mail, 
@@ -13,7 +13,9 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 
-export default function SignupPage() {
+import { Suspense } from 'react';
+
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const plan = searchParams.get('plan') || 'free';
@@ -22,8 +24,6 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const supabase = createClientComponentClient();
 
   const handleGoogleSignup = async () => {
     setLoading(true);
@@ -201,5 +201,18 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 font-bold space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        <span className="text-xs uppercase tracking-widest font-black text-slate-500">Initializing Secure Auth Session...</span>
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   );
 }
