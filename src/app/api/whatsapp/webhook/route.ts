@@ -3,12 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import twilio from 'twilio';
 
+// ✅ Use correct server-side env vars from your .env
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY 
+});
+
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
@@ -23,6 +27,7 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     
+    // Parse parameters from the inbound Twilio form-encoded payload
     const from = (formData.get('From') as string)?.replace('whatsapp:', '') || '';
     const to = (formData.get('To') as string) || '';
     const body = (formData.get('Body') as string) || '';
@@ -44,6 +49,7 @@ export async function POST(req: Request) {
         return await handleSendReview(from, to);
       }
 
+      // Check if message matches customer name and phone details: e.g. "John Doe +1234567890"
       const phoneMatch = body.match(/(\+?\d{10,15})/);
       if (phoneMatch) {
         const name = body.replace(phoneMatch[1], '').trim() || 'Customer';
@@ -54,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     if (mediaUrl0 && numMedia > 0) {
-      console.log('💾 Saving image:', mediaUrl0);
+      console.log('💾 Saving image draft:', mediaUrl0);
       await saveDraft(from, { imageUrl: mediaUrl0 });
     }
 
@@ -135,23 +141,23 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
       .limit(1)
       .single();
 
-    if (fetchError) {
+    if (fetchError || !draft) {
       console.error('❌ Database fetch error:', fetchError);
-      return await sendTwilioMessage(phone, "❌ Error fetching your data. Please try again.", fromNumber);
+      return await sendTwilioMessage(phone, "⚠️ *No active draft found.*\n\nSend details or photos first, then type *POST*.", fromNumber);
     }
 
-    if (!draft || !draft.images?.length) {
+    if (!draft.images?.length) {
       return await sendTwilioMessage(phone, "⚠️ *No images found.*\n\nSend photos first, then type *POST*.", fromNumber);
     }
 
-    console.log('📊 Found draft with', draft.images.length, 'images');
+    console.log('📊 Found draft with', draft.images.length, 'images. Generating post...');
 
-    // AI Generation
+    // AI Generation via OpenAI
     const aiResponse = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{
         role: "user",
-        content: `Create a Google Post for ${draft.customer_name || 'Client'}. Job details/description: ${draft.voice_note || 'Job completed successfully'}.
+        content: `Create a Google Post for ${draft.customer_name || 'Client'}. Job details: ${draft.voice_note || 'Completed successfully'}.
         Format:
         HEADLINE: (max 40 chars)
         BODY: (max 250 chars)
@@ -165,15 +171,15 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
 
     console.log('🤖 AI Generated:', parsed.headline);
 
-    // Save to DB
+    // Save generated content to database
     await supabase.from('pending_posts').update({
       google_post: postContent,
       status: 'generated'
     }).eq('id', draft.id);
 
-    // Send Template
+    // Send WhatsApp Template: Post Ready
     try {
-      console.log('📤 Sending template:', process.env.TWILIO_TEMPLATE_POST_READY);
+      console.log('📤 Sending post ready template:', process.env.TWILIO_TEMPLATE_POST_READY);
       await sendTwilioTemplate(phone, process.env.TWILIO_TEMPLATE_POST_READY!, {
         '1': parsed.headline,
         '2': parsed.body,
@@ -182,8 +188,8 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
       }, fromNumber);
       console.log('✅ Template sent successfully');
     } catch (templateError: any) {
-      console.error('❌ Template error:', templateError.message);
-      // Fallback: Send as regular text
+      console.error('❌ Template sending failed, falling back to standard message:', templateError.message);
+      // Fallback: Send raw text message if template SID is invalid or unapproved
       await sendTwilioMessage(phone, `📝 *${parsed.headline}*\n\n${parsed.body}\n\n${parsed.cta}\n\n${parsed.hashtags}`, fromNumber);
     }
 
@@ -217,12 +223,30 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       .single();
 
     if (!post?.customer_phone) {
-      return await sendTwilioMessage(phone, "⚠️ *No pending post found.*", fromNumber);
+      return await sendTwilioMessage(phone, "⚠️ *No pending generated post found.*", fromNumber);
     }
 
+    // 🔍 Dynamic Lookup: Find this business profile's actual connected Google Maps review link
+    let reviewLink = 'https://g.page/r/your-review-link';
+    try {
+      const { data: business } = await supabase
+        .from('business_profiles')
+        .select('review_link')
+        .eq('user_phone', phone)
+        .maybeSingle();
+
+      if (business?.review_link) {
+        reviewLink = business.review_link;
+        console.log(`✅ Loaded connected Google review link: "${reviewLink}"`);
+      }
+    } catch (dbError) {
+      console.warn('⚠️ Failed to load dynamic review link from business_profiles, using default fallback.', dbError);
+    }
+
+    // Send Review Request Template using dynamic review link
     await sendTwilioTemplate(post.customer_phone, process.env.TWILIO_TEMPLATE_REVIEW_REQUEST!, {
       '1': post.customer_name || 'Customer',
-      '2': 'https://g.page/r/your-review-link'
+      '2': reviewLink
     }, fromNumber);
 
     await supabase.from('pending_posts').update({ status: 'published' }).eq('id', post.id);
@@ -231,13 +255,14 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
   } catch (error: any) {
     console.error('❌ handleSendReview error:', error);
-    return await sendTwilioMessage(phone, `❌ Error: ${error.message}`);
+    return await sendTwilioMessage(phone, `❌ Error: ${error.message}`, fromNumber);
   }
 }
 
 async function sendTwilioMessage(to: string, text: string, fromNumber?: string) {
   try {
-    const defaultFrom = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    // Check both TWILIO_PHONE_NUMBER and TWILIO_WHATSAPP_NUMBER for env robustness
+    const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
     const from = fromNumber || defaultFrom;
     console.log('📤 Sending message to:', to, 'from:', from);
     
@@ -248,24 +273,18 @@ async function sendTwilioMessage(to: string, text: string, fromNumber?: string) 
     });
     
     console.log('✅ Message sent! SID:', message.sid);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, sid: message.sid });
   } catch (error: any) {
     console.error('❌ sendTwilioMessage error:', error.message);
-    console.error('Error details:', {
-      code: error.code,
-      status: error.status,
-      moreInfo: error.moreInfo
-    });
     throw error;
   }
 }
 
 async function sendTwilioTemplate(to: string, sid: string, vars: any, fromNumber?: string) {
   try {
-    const defaultFrom = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
     const from = fromNumber || defaultFrom;
     console.log('📤 Sending template SID:', sid, 'to:', to, 'from:', from);
-    console.log('Variables:', vars);
     
     const message = await twilioClient.messages.create({
       from: from,
@@ -283,7 +302,7 @@ async function sendTwilioTemplate(to: string, sid: string, vars: any, fromNumber
 
 async function sendTwilioMedia(to: string, url: string, caption: string, fromNumber?: string) {
   try {
-    const defaultFrom = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
     const from = fromNumber || defaultFrom;
     console.log('📤 Sending media:', url, 'from:', from);
     
@@ -315,4 +334,3 @@ function extractLine(lines: string[], prefix: string) {
   const line = lines.find(l => l.toUpperCase().includes(prefix.toUpperCase()));
   return line ? line.replace(new RegExp(prefix, 'i'), '').trim() : '';
 }
-
