@@ -1,101 +1,313 @@
 import { NextResponse } from 'next/server';
-import { getSession, createSession, updateSession, WhatsAppSession } from '@/lib/whatsapp-sessions';
-import { transcribeAudio } from '@/lib/whisper';
-import { sendTwilioMessage } from '@/lib/twilio';
-import { supabase } from '@/lib/supabase';
-// Assuming enrichLocationData and createGBPDraft are available as in inbound/route.ts
-// import { enrichLocationData } from '@/lib/google';
-// import { createGBPDraft } from '@/lib/gbp';
+import { createClient } from '@supabase/supabase-js';
+import OpenAI from 'openai';
+import twilio from 'twilio';
 
-// Helper to map sendWhatsApp to Twilio
-const sendWhatsApp = async (to: string, body: string) => {
-  return sendTwilioMessage(to, body);
-};
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-import { generateAndSavePost } from '@/lib/generate-post';
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
+// GET - Webhook verification
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  if (searchParams.get('hub.verify_token') === process.env.WHATSAPP_VERIFY_TOKEN) {
+    return new NextResponse(searchParams.get('hub.challenge'), { status: 200 });
+  }
+  return new NextResponse('Forbidden', { status: 403 });
+}
+
+// POST - Main WhatsApp Handler
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
-    const body = Object.fromEntries(formData) as Record<string, string>;
-    const fromPhone = body.From.replace('whatsapp:', '').replace('+', '');
+    const body = await req.json();
+    const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
     
-    let session = await getSession(fromPhone);
-    if (!session) session = await createSession(fromPhone);
+    if (!message) return NextResponse.json({});
 
-    // 1. Handle Images (up to 5)
-    const numMedia = parseInt(body.NumMedia || '0');
-    if (numMedia > 0) {
-      const newImages = [];
-      for (let i = 0; i < Math.min(numMedia, 5); i++) {
-        newImages.push(body[`MediaUrl${i}`]); // Twilio uses 0-indexed MediaUrl for some things, but standard is MediaUrl0, MediaUrl1 etc. Let's use what user provided: MediaUrl${i+1} or MediaUrl0
-      }
-      
-      // Twilio uses MediaUrl0, MediaUrl1 ...
-      const actualImages = [];
-      for (let i = 0; i < numMedia; i++) {
-        if (body[`MediaUrl${i}`]) actualImages.push(body[`MediaUrl${i}`]);
+    const from = message.from;
+    const type = message.type;
+
+    // Handle text messages
+    if (type === 'text') {
+      const text = message.text.body.toUpperCase();
+
+      if (text === 'POST') {
+        return await handleGeneratePost(from);
       }
 
-      session.accumulated_images = [...(session.accumulated_images || []), ...actualImages].slice(0, 5);
-      await updateSession(session.id, { 
-        accumulated_images: session.accumulated_images,
-        step: 'awaiting_content' 
-      });
-      await sendWhatsApp(`+${fromPhone}`, `📸 ${actualImages.length} photo(s) saved. Send more, or describe the job.`);
-      return NextResponse.json({ status: 'images_saved' });
-    }
-
-    // 2. Handle Voice Notes
-    if (body.MediaContentType0?.includes('audio')) {
-      const audioUrl = body.MediaUrl0;
-      const transcript = await transcribeAudio(audioUrl); // OpenAI Whisper
-      session.transcript = (session.transcript || '') + ' ' + transcript;
-      await updateSession(session.id, { transcript: session.transcript });
-      await sendWhatsApp(`+${fromPhone}`, `🎤 Voice noted: "${transcript}". Continue or send customer details.`);
-      return NextResponse.json({ status: 'audio_transcribed' });
-    }
-
-    // 3. Handle Text (Job Description or Customer Details)
-    const text = body.Body?.trim() || "";
-    
-    if (session.step === 'awaiting_content' || session.step === 'initial') {
-      // Check if text contains customer pattern: "Name +Phone"
-      const customerMatch = text.match(/^(.+?)\s*([+\d\s()-]{7,})$/);
-      if (customerMatch) {
-        session.customer_name = customerMatch[1].trim();
-        session.customer_phone = customerMatch[2].replace(/\s/g, '');
-        session.step = 'processing';
-        await updateSession(session.id, {
-          customer_name: session.customer_name,
-          customer_phone: session.customer_phone,
-          step: session.step
-        });
-        
-        // Trigger AI generation
-        await sendWhatsApp(`+${fromPhone}`, `⏳ Processing job for ${session.customer_name}... generating content.`);
-        const jobId = await generateAndSavePost(session);
-        
-        // Reset session step after successful generation
-        await updateSession(session.id, { step: 'completed' });
-        
-        await sendWhatsApp(`+${fromPhone}`, `✅ Post created!\n\n🔗 Review & publish:\nhttps://www.neerzy.com/publish/${jobId}\n\nTap to copy, download images & open Google.`);
-        return NextResponse.json({ status: 'post_generated' });
-      } else {
-        // Append to job description
-        session.transcript = (session.transcript || '') + ' ' + text;
-        await updateSession(session.id, { 
-          transcript: session.transcript,
-          step: 'awaiting_content'
-        });
-        await sendWhatsApp(`+${fromPhone}`, `📝 Noted. Send more details or customer info (e.g., John +14441112233).`);
-        return NextResponse.json({ status: 'text_noted' });
+      if (text === 'DONE') {
+        return await handleSendReview(from);
       }
+
+      // Save customer info or notes
+      await saveDraft(from, message);
     }
 
-    return NextResponse.json({ status: 'ignored' });
-  } catch (error: any) {
-    console.error("Webhook Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Handle images
+    if (type === 'image') {
+      const mediaUrl = await getMediaUrl(message.image.id);
+      await saveDraft(from, { type: 'image', url: mediaUrl });
+    }
+
+    // Handle voice notes
+    if (type === 'audio') {
+      const mediaUrl = await getMediaUrl(message.audio.id);
+      await saveDraft(from, { type: 'audio', url: mediaUrl });
+    }
+
+    // Confirmation reply
+    return await sendTwilioMessage(from, {
+      body: "✅ *Saved.*\n\nSend more photos or type *POST* when ready."
+    });
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    return NextResponse.json({});
   }
+}
+
+// Save draft to database
+async function saveDraft(phone: string, data: any) {
+  const { data: existing } = await supabase
+    .from('pending_posts')
+    .select('id, images, customer_phone')
+    .eq('user_phone', phone)
+    .eq('status', 'draft')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (data.type === 'text') {
+    const textBody = data.text?.body || data.body || '';
+    // Extract customer info: "Mike +923006291617"
+    const phoneMatch = textBody.match(/(\+?\d{10,15})/);
+    if (phoneMatch) {
+      const customerName = textBody.replace(phoneMatch[1], '').trim() || 'Customer';
+      
+      if (!existing) {
+        await supabase.from('pending_posts').insert({
+          user_phone: phone,
+          customer_name: customerName,
+          customer_phone: phoneMatch[1],
+          images: [],
+          status: 'draft'
+        });
+      } else {
+        await supabase.from('pending_posts').update({
+          customer_name: customerName,
+          customer_phone: phoneMatch[1]
+        }).eq('id', existing.id);
+      }
+    } else {
+      // Save text description as a note
+      if (!existing) {
+        await supabase.from('pending_posts').insert({
+          user_phone: phone,
+          voice_note: textBody,
+          status: 'draft'
+        });
+      } else {
+        await supabase.from('pending_posts').update({
+          voice_note: textBody
+        }).eq('id', existing.id);
+      }
+    }
+  }
+  
+  if (data.type === 'image') {
+    const newImages = existing?.images ? [...existing.images, data.url] : [data.url];
+    
+    if (!existing) {
+      await supabase.from('pending_posts').insert({
+        user_phone: phone,
+        images: newImages,
+        status: 'draft'
+      });
+    } else {
+      await supabase.from('pending_posts').update({
+        images: newImages
+      }).eq('id', existing.id);
+    }
+  }
+
+  if (data.type === 'audio') {
+    if (!existing) {
+      await supabase.from('pending_posts').insert({
+        user_phone: phone,
+        voice_note: data.url,
+        status: 'draft'
+      });
+    } else {
+      await supabase.from('pending_posts').update({
+        voice_note: data.url
+      }).eq('id', existing.id);
+    }
+  }
+}
+
+// Generate AI Post & Send via Twilio Template
+async function handleGeneratePost(phone: string) {
+  const { data: draft } = await supabase
+    .from('pending_posts')
+    .select('*')
+    .eq('user_phone', phone)
+    .eq('status', 'draft')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!draft || !draft.images?.length) {
+    return await sendTwilioMessage(phone, {
+      body: "⚠️ *No images found.*\n\nSend photos first, then type *POST*."
+    });
+  }
+
+  // AI Generation
+  const aiResponse = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [{
+      role: "user",
+      content: `Create Google Post for ${draft.customer_name || 'Customer'}'s job. Job details/description: ${draft.voice_note || 'Job completed successfully'}.
+      Format:
+      HEADLINE: (max 40 chars)
+      BODY: (max 250 chars)
+      CTA: (short)
+      HASHTAGS: (3 max)`
+    }]
+  });
+
+  const postContent = aiResponse.choices[0].message.content || '';
+  const parsed = parsePostContent(postContent);
+
+  // Save generated post
+  await supabase.from('pending_posts').update({
+    google_post: postContent,
+    status: 'generated'
+  }).eq('id', draft.id);
+
+  // Send using APPROVED TEMPLATE: neerzy_ai_post_ready
+  await sendTwilioTemplate(phone, 
+    process.env.TWILIO_TEMPLATE_POST_READY!,
+    {
+      '1': parsed.headline,
+      '2': parsed.body,
+      '3': parsed.cta,
+      '4': parsed.hashtags
+    }
+  );
+
+  // Send images as media
+  for (let i = 0; i < draft.images.length; i++) {
+    await sendTwilioMessage(phone, {
+      body: `📎 Image ${i+1}/${draft.images.length}`,
+      mediaUrl: [draft.images[i]]
+    });
+  }
+
+  // Instructions
+  return await sendTwilioMessage(phone, {
+    body: `📋 *To Publish:*
+
+1. Copy text from template above
+2. Download all images (tap each)
+3. Open Google Business app
+4. Paste + Upload
+5. Click "Post"
+
+✅ When done, type *DONE* to send review to ${draft.customer_name}.`
+  });
+}
+
+// Send Review Request via Twilio Template
+async function handleSendReview(phone: string) {
+  const { data: post } = await supabase
+    .from('pending_posts')
+    .select('*')
+    .eq('user_phone', phone)
+    .eq('status', 'generated')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!post?.customer_phone) {
+    return await sendTwilioMessage(phone, {
+      body: "⚠️ *No pending post.*\n\nStart a new job first."
+    });
+  }
+
+  // Send using APPROVED TEMPLATE: neerzy_review_request
+  await sendTwilioTemplate(post.customer_phone,
+    process.env.TWILIO_TEMPLATE_REVIEW_REQUEST!,
+    {
+      '1': post.customer_name || 'Customer',
+      '2': 'https://g.page/r/your-business-review-link'
+    }
+  );
+
+  // Mark as published
+  await supabase.from('pending_posts').update({
+    status: 'published'
+  }).eq('id', post.id);
+
+  return await sendTwilioMessage(phone, {
+    body: `✅ *Review sent!*
+
+👤 To: ${post.customer_name}
+📱 ${post.customer_phone}
+
+🎯 Ready for next job?`
+  });
+}
+
+// Send regular WhatsApp message
+async function sendTwilioMessage(to: string, content: any) {
+  await twilioClient.messages.create({
+    from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917',
+    to: `whatsapp:${to}`,
+    ...content
+  });
+  return NextResponse.json({});
+}
+
+// Send template message
+async function sendTwilioTemplate(to: string, templateSid: string, variables: any) {
+  await twilioClient.messages.create({
+    from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917',
+    to: `whatsapp:${to}`,
+    contentSid: templateSid,
+    contentVariables: JSON.stringify(variables)
+  });
+  return NextResponse.json({});
+}
+
+// Helper functions
+function parsePostContent(content: string) {
+  const lines = content.split('\n');
+  return {
+    headline: extractLine(lines, 'HEADLINE:') || 'Great Work!',
+    body: extractLine(lines, 'BODY:') || 'Job completed successfully.',
+    cta: extractLine(lines, 'CTA:') || 'Contact us!',
+    hashtags: extractLine(lines, 'HASHTAGS:') || '#Service',
+    full: content
+  };
+}
+
+function extractLine(lines: string[], prefix: string) {
+  const line = lines.find(l => l.toUpperCase().includes(prefix.toUpperCase()));
+  return line ? line.replace(new RegExp(prefix, 'i'), '').trim() : '';
+}
+
+async function getMediaUrl(mediaId: string) {
+  const res = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
+    headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` }
+  });
+  const json = await res.json();
+  return json.url;
 }

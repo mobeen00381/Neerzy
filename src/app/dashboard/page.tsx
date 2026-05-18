@@ -16,7 +16,12 @@ import {
   PlusCircle, 
   Activity,
   Heart,
-  Loader2
+  Loader2,
+  Calendar,
+  Star,
+  User,
+  Image as ImageIcon,
+  ExternalLink
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -24,24 +29,15 @@ export default function Dashboard() {
   const [businessName, setBusinessName] = useState('Your Business');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalPosts: 12,
-    thisMonth: 4,
-    avgRating: 4.6,
-    totalReviews: 48,
-    profileViews: 1247,
-    websiteClicks: 89
+    totalPosts: 0,
+    publishedPosts: 0,
+    reviewsReceived: 0,
+    thisMonth: 0
   });
-  
-  const [recentActivity, setRecentActivity] = useState([
-    { id: 1, type: 'post', message: 'Google Post published', date: '2 hours ago', status: 'success' },
-    { id: 2, type: 'review', message: 'New 5-star review received', date: '5 hours ago', status: 'success' },
-    { id: 3, type: 'photo', message: '3 photos uploaded', date: '1 day ago', status: 'success' },
-    { id: 4, type: 'post', message: 'Google Post published', date: '2 days ago', status: 'success' },
-  ]);
+  const [posts, setPosts] = useState<any[]>([]);
 
-  // Load authenticated user and active GMB metrics if available
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -49,37 +45,73 @@ export default function Dashboard() {
           return;
         }
 
+        // Fetch profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (profile) {
-          if (profile.business_name) {
-            setBusinessName(profile.business_name);
-          }
-          // Fetch ratings total or photos count if they exist on the profile
-          setStats(prev => ({
-            ...prev,
-            avgRating: profile.rating || 4.6,
-            totalReviews: profile.review_count || 48,
-          }));
+        if (profile && profile.business_name) {
+          setBusinessName(profile.business_name);
+        }
+
+        // Fetch posts
+        const { data: postsData } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (postsData) {
+          // Calculate stats
+          const total = postsData.length;
+          const published = postsData.filter(p => p.status === 'published').length;
+          const currentMonth = postsData.filter(p => {
+            const date = new Date(p.created_at);
+            const now = new Date();
+            return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+          }).length;
+
+          setStats({
+            totalPosts: total,
+            publishedPosts: published,
+            thisMonth: currentMonth,
+            reviewsReceived: 0 // Fetch or mock
+          });
+
+          setPosts(postsData.slice(0, 10));
         }
       } catch (err) {
-        console.error('Failed to fetch user:', err);
+        console.error('Failed to load dashboard data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUser();
+    fetchUserAndData();
   }, [router]);
+
+  const parseCustomerDetails = (details: any) => {
+    if (!details) return null;
+    if (typeof details === 'string') {
+      try {
+        return JSON.parse(details);
+      } catch (e) {
+        return null;
+      }
+    }
+    return details;
+  };
+
+  // Calculate Health Score
+  const healthScore = stats.totalPosts > 0 
+    ? Math.min(100, Math.round((stats.publishedPosts / stats.totalPosts) * 60 + 40)) 
+    : 0;
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+        <Loader2 className="w-10 h-10 animate-spin text-[#25D366]" />
         <p className="font-bold text-slate-500 animate-pulse">Initializing your dashboard...</p>
       </div>
     );
@@ -88,11 +120,11 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
       
-      {/* 🏆 Dashboard Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 text-[#25D366] font-black text-xs uppercase tracking-widest mb-2">
-            <Sparkles className="w-4 h-4" /> System Status: Optimal
+            <Sparkles className="w-4 h-4 animate-pulse" /> System Status: Optimal
           </div>
           <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
             Welcome back, <br className="md:hidden" />
@@ -100,7 +132,7 @@ export default function Dashboard() {
               {businessName}
             </span>
           </h2>
-          <p className="text-slate-500 font-semibold text-sm mt-1">Manage your Google Business Profile</p>
+          <p className="text-slate-500 font-semibold text-sm mt-1">Manage your Google Business Profile & Campaigns</p>
         </div>
         <div className="flex items-center gap-4 bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm">
           <div className="px-6 py-3 bg-slate-50 rounded-xl">
@@ -112,141 +144,179 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 📊 Stats Grid */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Total Posts"
           value={stats.totalPosts}
-          subtitle={`${stats.thisMonth} this month`}
+          subtitle="Generated by AI"
           icon="📝"
-          trend="+2 posts"
+          trend={`${stats.totalPosts > 0 ? '+100%' : '0'} active`}
         />
         <StatCard 
-          title="Avg Rating"
-          value={stats.avgRating}
-          subtitle={`${stats.totalReviews} reviews`}
+          title="Published Posts"
+          value={stats.publishedPosts}
+          subtitle="Live on Google"
+          icon="✅"
+          trend={`${stats.totalPosts > 0 ? Math.round((stats.publishedPosts / stats.totalPosts) * 100) : 0}% rate`}
+        />
+        <StatCard 
+          title="This Month"
+          value={stats.thisMonth}
+          subtitle="Monthly volume"
+          icon="📅"
+          trend="Current cycle"
+        />
+        <StatCard 
+          title="Reviews Received"
+          value={stats.reviewsReceived}
+          subtitle="From campaigns"
           icon="⭐"
-          trend="+0.2 rating"
-        />
-        <StatCard 
-          title="Profile Views"
-          value={stats.profileViews}
-          subtitle="Last 30 days"
-          icon="👁"
-          trend="+12% views"
-        />
-        <StatCard 
-          title="Website Clicks"
-          value={stats.websiteClicks}
-          subtitle="Last 30 days"
-          icon="🔗"
-          trend="+8% clicks"
+          trend="Standard rating"
         />
       </div>
 
-      {/* 🧩 Main Activity & Actions Grid */}
+      {/* Activity and Actions Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Recent Activity List */}
+        {/* Recent Posts Section */}
         <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between overflow-hidden">
           <div>
-            <div className="p-6 border-b border-slate-50 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-emerald-600" />
-              <h3 className="font-extrabold text-slate-800 text-lg">Recent Activity</h3>
+            <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-extrabold text-slate-800 text-lg">Recent Google Posts</h3>
+              </div>
+              <span className="text-xs font-bold text-slate-400">Showing last 10</span>
             </div>
-            <div className="divide-y divide-slate-50">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="p-6 hover:bg-slate-50/50 transition-all flex items-center justify-between group cursor-pointer">
-                  <div className="flex items-center gap-4">
-                    <div className="w-3 h-3 bg-[#25D366] rounded-full shrink-0 animate-pulse" />
-                    <div>
-                      <p className="text-sm font-extrabold text-slate-800 leading-tight">{activity.message}</p>
-                      <p className="text-xs font-semibold text-slate-400 mt-1 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {activity.date}
-                      </p>
+            
+            {posts.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p className="font-semibold text-slate-500">No posts generated yet</p>
+                <p className="text-xs text-slate-400 mt-1">Start by sending details of your first job on WhatsApp!</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {posts.map((post) => {
+                  const customer = parseCustomerDetails(post.customer_details);
+                  return (
+                    <div key={post.id} className="p-6 hover:bg-slate-50/50 transition-all flex flex-col gap-3 group">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-slate-800 text-base">{post.business_name || 'Local Business'}</span>
+                          {customer && (
+                            <span className="flex items-center gap-1 px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">
+                              <User className="w-3 h-3" /> {customer.name}
+                            </span>
+                          )}
+                        </div>
+                        <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg border ${
+                          post.status === 'published' 
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+                            : 'bg-blue-50 border-blue-200 text-blue-700'
+                        }`}>
+                          {post.status}
+                        </span>
+                      </div>
+                      
+                      {post.google_post_content && (
+                        <p className="text-slate-600 text-sm font-medium line-clamp-2 leading-relaxed">
+                          {post.google_post_content}
+                        </p>
+                      )}
+
+                      {post.image_urls && Array.isArray(post.image_urls) && post.image_urls.length > 0 && (
+                        <div className="flex gap-2 overflow-x-auto py-1">
+                          {post.image_urls.map((url: string, index: number) => (
+                            <div key={index} className="relative w-12 h-12 rounded-xl overflow-hidden border border-slate-100 shadow-sm flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                              <img src={url} alt={`Job Image ${index + 1}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 mt-1">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" /> {new Date(post.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                        </span>
+                        {post.status === 'published' && post.published_at && (
+                          <span className="text-emerald-600 flex items-center gap-1 font-bold">
+                            <CheckCircle2 className="w-3 h-3" /> Published {new Date(post.published_at).toLocaleDateString(undefined, { dateStyle: 'short' })}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <span className="px-3 py-1 bg-emerald-50 border border-emerald-100/50 text-[10px] font-black text-emerald-700 uppercase tracking-wider rounded-lg">
-                    {activity.status}
-                  </span>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-          <div className="p-6 border-t border-slate-50">
+          <div className="p-6 border-t border-slate-50 bg-slate-50/20">
             <button className="text-sm font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-1 group">
-              <span>View all activity</span>
+              <span>View detailed analytics</span>
               <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>
 
         {/* Quick Actions List */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 space-y-6">
-          <div className="border-b border-slate-50 pb-4">
-            <h3 className="font-extrabold text-slate-800 text-lg">Quick Actions</h3>
+        <div className="space-y-6">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 space-y-6">
+            <div className="border-b border-slate-50 pb-4">
+              <h3 className="font-extrabold text-slate-800 text-lg">Quick Actions</h3>
+            </div>
+            <div className="space-y-4">
+              <QuickActionButton 
+                icon={<FileText className="w-5 h-5 text-indigo-500" />}
+                title="Create Campaign"
+                description="Trigger new WhatsApp job postings"
+                color="indigo"
+                onClick={() => router.push('/dashboard/posts')}
+              />
+              <QuickActionButton 
+                icon={<Camera className="w-5 h-5 text-emerald-500" />}
+                title="Google Photos"
+                description="Manage storefront albums"
+                color="emerald"
+                onClick={() => router.push('/dashboard/posts')}
+              />
+              <QuickActionButton 
+                icon={<MessageSquare className="w-5 h-5 text-amber-500" />}
+                title="Reviews Inbox"
+                description="Auto-replies & feedback"
+                color="amber"
+                onClick={() => router.push('/dashboard/reviews')}
+              />
+              <QuickActionButton 
+                icon={<BarChart3 className="w-5 h-5 text-teal-500" />}
+                title="Audit Report"
+                description="Run GBP optimization test"
+                color="teal"
+                onClick={() => router.push('/gmb-audit-tool')}
+              />
+            </div>
           </div>
-          <div className="space-y-4">
-            <QuickActionButton 
-              icon={<FileText className="w-5 h-5 text-indigo-500" />}
-              title="Create Post"
-              description="Share an update with customers"
-              color="indigo"
-              onClick={() => router.push('/dashboard/posts')}
-            />
-            <QuickActionButton 
-              icon={<Camera className="w-5 h-5 text-emerald-500" />}
-              title="Upload Photos"
-              description="Add new storefront photos"
-              color="emerald"
-              onClick={() => router.push('/dashboard/posts')}
-            />
-            <QuickActionButton 
-              icon={<MessageSquare className="w-5 h-5 text-amber-500" />}
-              title="Reply to Reviews"
-              description="2 reviews need responses"
-              color="amber"
-              badge="2"
-              onClick={() => router.push('/dashboard/reviews')}
-            />
-            <QuickActionButton 
-              icon={<BarChart3 className="w-5 h-5 text-teal-500" />}
-              title="View Analytics"
-              description="See search performance"
-              color="teal"
-              onClick={() => router.push('/gmb-audit-tool')}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ❤️ Profile Health Section */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-            <h3 className="font-extrabold text-slate-800 text-lg">Profile Health Score</h3>
-          </div>
-          <span className="text-2xl font-black text-[#0F5C4D]">78/100</span>
-        </div>
-        
-        <div className="w-full bg-slate-100 rounded-full h-3 mb-6 overflow-hidden">
-          <div className="bg-gradient-to-r from-[#25D366] to-[#0F5C4D] h-full rounded-full transition-all duration-1000" style={{ width: '78%' }}></div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-slate-50 text-sm">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 bg-[#25D366] rounded-full shrink-0" />
-            <span className="text-slate-500 font-semibold">Completeness: <strong className="text-slate-800 font-extrabold">85%</strong></span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 bg-amber-400 rounded-full shrink-0" />
-            <span className="text-slate-500 font-semibold">Photos: <strong className="text-slate-800 font-extrabold">45/100</strong></span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 bg-[#25D366] rounded-full shrink-0" />
-            <span className="text-slate-500 font-semibold">Reviews: <strong className="text-slate-800 font-extrabold">4.6★</strong></span>
-          </div>
+          
+          {/* Profile Health Score */}
+          {stats.totalPosts > 0 && (
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 space-y-4 animate-in fade-in duration-1000">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-5 h-5 text-rose-500 fill-rose-500 animate-pulse" />
+                  <h3 className="font-extrabold text-slate-800 text-base">Campaign Health Score</h3>
+                </div>
+                <span className="text-xl font-black text-[#0F5C4D]">{healthScore}/100</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-gradient-to-r from-[#25D366] to-[#0F5C4D] h-full rounded-full transition-all duration-1000" style={{ width: `${healthScore}%` }}></div>
+              </div>
+              <div className="text-[11px] font-semibold text-slate-400 leading-snug flex items-center justify-between">
+                <span>Published Rate: <strong>{Math.round((stats.publishedPosts / stats.totalPosts) * 100)}%</strong></span>
+                <span>Active Posts: <strong>{stats.totalPosts}</strong></span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
@@ -263,7 +333,7 @@ function StatCard({ title, value, subtitle, icon, trend }: {
   trend: string;
 }) {
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all">
+    <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
       <div className="flex items-center justify-between mb-4">
         <span className="text-3xl bg-slate-50 w-12 h-12 rounded-2xl flex items-center justify-center border border-slate-100/50 shadow-inner">{icon}</span>
         <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100/50 px-2.5 py-1 rounded-lg">
