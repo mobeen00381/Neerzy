@@ -45,17 +45,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ places: mockResults, count: mockResults.length, mode: 'mock' });
     }
 
-    // 🌍 REAL GOOGLE API CALL
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`,
+    // 🌍 REAL GOOGLE API CALL (v1 modern SearchText)
+    const response = await fetch(
+      'https://places.googleapis.com/v1/places:searchText',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.photos,places.types'
+        },
+        body: JSON.stringify({
+          textQuery: query,
+          languageCode: 'en',
+          regionCode: 'PK' // Matches Pakistani region from GMB search
+        })
+      }
     );
     
-    const data = await res.json();
+    const data = await response.json();
     
-    if (data.status !== 'OK') {
-      console.warn('⚠️ Google API status:', data.status);
-      // Even if Google API returns an error status (e.g. OVER_QUERY_LIMIT, INVALID_REQUEST),
-      // we fall back to mock results instead of breaking the onboarding flow!
+    if (!response.ok) {
+      console.warn('⚠️ Google Places API error:', data);
+      // Fallback to mock results instead of breaking the onboarding flow!
       const mockResults = [
         {
           placeId: `mock_${Date.now()}_fallback`,
@@ -71,16 +83,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ places: mockResults, mode: 'mock_fallback' });
     }
 
-    const places = data.results.map((result: any) => ({
-      placeId: result.place_id,
-      name: result.name,
-      displayName: { text: result.name },
-      formattedAddress: result.formatted_address,
-      formatted_address: result.formatted_address,
-      rating: result.rating,
-      user_ratings_total: result.user_ratings_total,
-      types: result.types
-    }));
+    const places = (data.places || []).map((place: any) => {
+      const pName = place.displayName?.text || 'Unknown';
+      const pId = place.id;
+      return {
+        placeId: pId,
+        name: pName,
+        displayName: place.displayName || { text: pName },
+        formattedAddress: place.formattedAddress || '',
+        formatted_address: place.formattedAddress || '',
+        rating: place.rating || null,
+        user_ratings_total: place.userRatingCount || 0,
+        types: place.types || [],
+        primaryType: place.types?.find((t: string) => !t.includes('point_of_interest')) || 'Business',
+        photoUrl: place.photos?.length > 0 
+          ? `https://places.googleapis.com/v1/${place.photos[0].name}/media?key=${apiKey}&maxWidthPx=100&maxHeightPx=100` 
+          : null
+      };
+    });
 
     return NextResponse.json({ places });
   } catch (error) {
