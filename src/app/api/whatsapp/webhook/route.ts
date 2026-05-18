@@ -14,29 +14,38 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// GET - Webhook verification
+// GET - Health check / verification
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  if (searchParams.get('hub.verify_token') === process.env.WHATSAPP_VERIFY_TOKEN) {
-    return new NextResponse(searchParams.get('hub.challenge'), { status: 200 });
-  }
-  return new NextResponse('Forbidden', { status: 403 });
+  return new NextResponse('OK', { status: 200 });
 }
 
-// POST - Main WhatsApp Handler
+// POST - Main WhatsApp Handler (Twilio Inbound)
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const message = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-    
-    if (!message) return NextResponse.json({});
+    let from = '';
+    let textBody = '';
+    let mediaUrl = '';
 
-    const from = message.from;
-    const type = message.type;
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const body = await req.json();
+      from = (body.From || '').replace('whatsapp:', '').trim();
+      textBody = body.Body || '';
+      mediaUrl = body.MediaUrl0 || '';
+    } else {
+      const formData = await req.formData();
+      from = (formData.get('From') as string || '').replace('whatsapp:', '').trim();
+      textBody = formData.get('Body') as string || '';
+      mediaUrl = formData.get('MediaUrl0') as string || '';
+    }
+    
+    if (!from) {
+      return NextResponse.json({});
+    }
 
     // Handle text messages
-    if (type === 'text') {
-      const text = message.text.body.toUpperCase();
+    if (textBody) {
+      const text = textBody.toUpperCase().trim();
 
       if (text === 'POST') {
         return await handleGeneratePost(from);
@@ -47,19 +56,12 @@ export async function POST(req: Request) {
       }
 
       // Save customer info or notes
-      await saveDraft(from, message);
+      await saveDraft(from, { type: 'text', body: textBody });
     }
 
-    // Handle images
-    if (type === 'image') {
-      const mediaUrl = await getMediaUrl(message.image.id);
+    // Handle media (images)
+    if (mediaUrl) {
       await saveDraft(from, { type: 'image', url: mediaUrl });
-    }
-
-    // Handle voice notes
-    if (type === 'audio') {
-      const mediaUrl = await getMediaUrl(message.audio.id);
-      await saveDraft(from, { type: 'audio', url: mediaUrl });
     }
 
     // Confirmation reply
@@ -304,10 +306,3 @@ function extractLine(lines: string[], prefix: string) {
   return line ? line.replace(new RegExp(prefix, 'i'), '').trim() : '';
 }
 
-async function getMediaUrl(mediaId: string) {
-  const res = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, {
-    headers: { Authorization: `Bearer ${process.env.META_ACCESS_TOKEN}` }
-  });
-  const json = await res.json();
-  return json.url;
-}
