@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 import twilio from 'twilio';
 
-// Initialize Clients
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -15,14 +14,13 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// GET - Health check / Verification
+// GET - Health Check / Verification
 export async function GET(req: Request) {
   return new NextResponse('OK', { status: 200 });
 }
 
 export async function POST(req: Request) {
   try {
-    // Parse Twilio Form Data
     const formData = await req.formData();
     
     const from = (formData.get('From') as string)?.replace('whatsapp:', '') || '';
@@ -32,49 +30,41 @@ export async function POST(req: Request) {
 
     if (!from) return NextResponse.json({});
 
-    console.log(`📥 Message from ${from}: "${body}"`);
+    console.log(`📥 Message from ${from}: "${body}" (Media: ${numMedia})`);
 
-    // --- HANDLE TEXT ---
     if (body) {
       const text = body.toUpperCase().trim();
 
-      // 1. Command: POST
       if (text === 'POST') {
         return await handleGeneratePost(from);
       }
 
-      // 2. Command: DONE
       if (text === 'DONE') {
         return await handleSendReview(from);
       }
 
-      // 3. Regular Text (Customer Info or Notes)
       const phoneMatch = body.match(/(\+?\d{10,15})/);
       if (phoneMatch) {
-        // Save Customer Info: "Mike +923..."
         const name = body.replace(phoneMatch[1], '').trim() || 'Customer';
         await saveDraft(from, { customerName: name, customerPhone: phoneMatch[1] });
       } else {
-        // Save Note
         await saveDraft(from, { voice_note: body });
       }
     }
 
-    // --- HANDLE IMAGES ---
     if (mediaUrl0 && numMedia > 0) {
+      console.log('💾 Saving image:', mediaUrl0);
       await saveDraft(from, { imageUrl: mediaUrl0 });
     }
 
-    // Confirmation Reply
     return await sendTwilioMessage(from, "✅ *Saved.*\n\nSend more photos or type *POST* when ready.");
 
   } catch (error) {
-    console.error(' Webhook Error:', error);
+    console.error('❌ Webhook Error:', error);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }
 
-// --- HELPER: Save to Database ---
 async function saveDraft(phone: string, data: any) {
   const { data: existing } = await supabase
     .from('pending_posts')
@@ -85,7 +75,6 @@ async function saveDraft(phone: string, data: any) {
     .limit(1)
     .single();
 
-  // Save Customer Info
   if (data.customerName) {
     if (!existing) {
       await supabase.from('pending_posts').insert({
@@ -118,7 +107,6 @@ async function saveDraft(phone: string, data: any) {
     }
   }
 
-  // Save Image
   if (data.imageUrl) {
     const newImages = existing?.images ? [...existing.images, data.imageUrl] : [data.imageUrl];
     if (!existing) {
@@ -133,117 +121,178 @@ async function saveDraft(phone: string, data: any) {
   }
 }
 
-// --- INTENT: Generate Post ---
 async function handleGeneratePost(phone: string) {
-  const { data: draft } = await supabase
-    .from('pending_posts')
-    .select('*')
-    .eq('user_phone', phone)
-    .eq('status', 'draft')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+  try {
+    console.log('🔍 Fetching draft for:', phone);
+    
+    const { data: draft, error: fetchError } = await supabase
+      .from('pending_posts')
+      .select('*')
+      .eq('user_phone', phone)
+      .eq('status', 'draft')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-  if (!draft || !draft.images?.length) {
-    return await sendTwilioMessage(phone, "⚠️ *No images found.*\n\nSend photos first, then type *POST*.");
+    if (fetchError) {
+      console.error('❌ Database fetch error:', fetchError);
+      return await sendTwilioMessage(phone, "❌ Error fetching your data. Please try again.");
+    }
+
+    if (!draft || !draft.images?.length) {
+      return await sendTwilioMessage(phone, "⚠️ *No images found.*\n\nSend photos first, then type *POST*.");
+    }
+
+    console.log('📊 Found draft with', draft.images.length, 'images');
+
+    // AI Generation
+    const aiResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{
+        role: "user",
+        content: `Create a Google Post for ${draft.customer_name || 'Client'}. Job details/description: ${draft.voice_note || 'Job completed successfully'}.
+        Format:
+        HEADLINE: (max 40 chars)
+        BODY: (max 250 chars)
+        CTA: (short)
+        HASHTAGS: (3 max)`
+      }]
+    });
+
+    const postContent = aiResponse.choices[0].message.content || '';
+    const parsed = parsePostContent(postContent);
+
+    console.log('🤖 AI Generated:', parsed.headline);
+
+    // Save to DB
+    await supabase.from('pending_posts').update({
+      google_post: postContent,
+      status: 'generated'
+    }).eq('id', draft.id);
+
+    // Send Template
+    try {
+      console.log('📤 Sending template:', process.env.TWILIO_TEMPLATE_POST_READY);
+      await sendTwilioTemplate(phone, process.env.TWILIO_TEMPLATE_POST_READY!, {
+        '1': parsed.headline,
+        '2': parsed.body,
+        '3': parsed.cta,
+        '4': parsed.hashtags
+      });
+      console.log('✅ Template sent successfully');
+    } catch (templateError: any) {
+      console.error('❌ Template error:', templateError.message);
+      // Fallback: Send as regular text
+      await sendTwilioMessage(phone, `📝 *${parsed.headline}*\n\n${parsed.body}\n\n${parsed.cta}\n\n${parsed.hashtags}`);
+    }
+
+    // Send Images (max 5)
+    const imagesToSend = draft.images.slice(0, 5);
+    for (let i = 0; i < imagesToSend.length; i++) {
+      try {
+        await sendTwilioMedia(phone, imagesToSend[i], `📎 Image ${i+1}/${imagesToSend.length}`);
+      } catch (mediaError) {
+        console.error('❌ Media send error:', mediaError);
+      }
+    }
+
+    return await sendTwilioMessage(phone, `📋 *To Publish:*\n1. Copy text above\n2. Download images\n3. Post to Google\n\n✅ Type *DONE* when published.`);
+
+  } catch (error: any) {
+    console.error('❌ handleGeneratePost error:', error);
+    return await sendTwilioMessage(phone, `❌ Error: ${error.message}\n\nPlease try again.`);
   }
-
-  // AI Call
-  console.log('🤖 Calling OpenAI...');
-  const aiResponse = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{
-      role: "user",
-      content: `Create a Google Post for ${draft.customer_name || 'Client'}. Job details/description: ${draft.voice_note || 'Job completed successfully'}.
-      Format:
-      HEADLINE: (max 40 chars)
-      BODY: (max 250 chars)
-      CTA: (short)
-      HASHTAGS: (3 max)`
-    }]
-  });
-
-  const postContent = aiResponse.choices[0].message.content || '';
-  const parsed = parsePostContent(postContent);
-
-  // Save to DB
-  await supabase.from('pending_posts').update({
-    google_post: postContent,
-    status: 'generated'
-  }).eq('id', draft.id);
-
-  // 1. Send Template
-  await sendTwilioTemplate(phone, process.env.TWILIO_TEMPLATE_POST_READY!, {
-    '1': parsed.headline,
-    '2': parsed.body,
-    '3': parsed.cta,
-    '4': parsed.hashtags
-  });
-
-  // 2. Send Images
-  for (let i = 0; i < draft.images.length; i++) {
-    await sendTwilioMedia(phone, draft.images[i], `📎 Image ${i+1}/${draft.images.length}`);
-  }
-
-  // 3. Instructions
-  return await sendTwilioMessage(phone, `📋 *To Publish:*\n1. Copy text above\n2. Download images\n3. Post to Google\n\n✅ Type *DONE* when published.`);
 }
 
-// --- INTENT: Send Review ---
 async function handleSendReview(phone: string) {
-  const { data: post } = await supabase
-    .from('pending_posts')
-    .select('*')
-    .eq('user_phone', phone)
-    .eq('status', 'generated')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
+  try {
+    const { data: post } = await supabase
+      .from('pending_posts')
+      .select('*')
+      .eq('user_phone', phone)
+      .eq('status', 'generated')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-  if (!post?.customer_phone) {
-    return await sendTwilioMessage(phone, "⚠️ *No pending post found.*");
+    if (!post?.customer_phone) {
+      return await sendTwilioMessage(phone, "⚠️ *No pending post found.*");
+    }
+
+    await sendTwilioTemplate(post.customer_phone, process.env.TWILIO_TEMPLATE_REVIEW_REQUEST!, {
+      '1': post.customer_name || 'Customer',
+      '2': 'https://g.page/r/your-review-link'
+    });
+
+    await supabase.from('pending_posts').update({ status: 'published' }).eq('id', post.id);
+
+    return await sendTwilioMessage(phone, `✅ *Review sent to ${post.customer_name}!*`);
+
+  } catch (error: any) {
+    console.error('❌ handleSendReview error:', error);
+    return await sendTwilioMessage(phone, `❌ Error: ${error.message}`);
   }
-
-  // Send Template to Customer
-  await sendTwilioTemplate(post.customer_phone, process.env.TWILIO_TEMPLATE_REVIEW_REQUEST!, {
-    '1': post.customer_name || 'Customer',
-    '2': 'https://g.page/r/your-review-link' // Replace with your actual link
-  });
-
-  // Mark Published
-  await supabase.from('pending_posts').update({ status: 'published' }).eq('id', post.id);
-
-  return await sendTwilioMessage(phone, `✅ *Review sent to ${post.customer_name}!*`);
 }
 
-// --- Twilio Helpers ---
 async function sendTwilioMessage(to: string, text: string) {
-  await twilioClient.messages.create({
-    from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917',
-    to: `whatsapp:${to}`,
-    body: text
-  });
-  return NextResponse.json({ success: true });
+  try {
+    const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    console.log('📤 Sending message to:', to, 'from:', fromNumber);
+    
+    const message = await twilioClient.messages.create({
+      from: fromNumber,
+      to: `whatsapp:${to}`,
+      body: text
+    });
+    
+    console.log('✅ Message sent! SID:', message.sid);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('❌ sendTwilioMessage error:', error.message);
+    console.error('Error details:', {
+      code: error.code,
+      status: error.status,
+      moreInfo: error.moreInfo
+    });
+    throw error;
+  }
 }
 
 async function sendTwilioTemplate(to: string, sid: string, vars: any) {
-  await twilioClient.messages.create({
-    from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917',
-    to: `whatsapp:${to}`,
-    contentSid: sid,
-    contentVariables: JSON.stringify(vars)
-  });
-  return NextResponse.json({ success: true });
+  try {
+    console.log('📤 Sending template SID:', sid, 'to:', to);
+    console.log('Variables:', vars);
+    
+    const message = await twilioClient.messages.create({
+      from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917',
+      to: `whatsapp:${to}`,
+      contentSid: sid,
+      contentVariables: JSON.stringify(vars)
+    });
+    
+    console.log('✅ Template sent! SID:', message.sid);
+  } catch (error: any) {
+    console.error('❌ sendTwilioTemplate error:', error.message);
+    throw error;
+  }
 }
 
 async function sendTwilioMedia(to: string, url: string, caption: string) {
-  await twilioClient.messages.create({
-    from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917',
-    to: `whatsapp:${to}`,
-    body: caption,
-    mediaUrl: [url]
-  });
-  return NextResponse.json({ success: true });
+  try {
+    console.log('📤 Sending media:', url);
+    
+    const message = await twilioClient.messages.create({
+      from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917',
+      to: `whatsapp:${to}`,
+      body: caption,
+      mediaUrl: [url]
+    });
+    
+    console.log('✅ Media sent! SID:', message.sid);
+  } catch (error: any) {
+    console.error('❌ sendTwilioMedia error:', error.message);
+    throw error;
+  }
 }
 
 function parsePostContent(content: string) {
