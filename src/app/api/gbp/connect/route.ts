@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         address: data.address,
         category: data.category,
         google_place_id: data.googlePlaceId,
-        google_maps_url: `https://maps.google.com/?q=${data.googlePlaceId}`,
+        google_maps_url: data.googleMapsUrl || `https://search.google.com/local/dashboard?q=place_id:${data.googlePlaceId}`,
         review_link: `https://search.google.com/local/writereview?placeid=${data.googlePlaceId}`,
         created_at: new Date().toISOString()
       }, { onConflict: 'user_phone' });

@@ -97,6 +97,7 @@ function OnboardingContent() {
           address: selectedBusiness.formattedAddress,
           category: selectedBusiness.primaryType,
           googlePlaceId: selectedBusiness.placeId,
+          googleMapsUrl: selectedBusiness.googleMapsUri, // Direct GBP Link for merchant posts
           plan
         })
       });

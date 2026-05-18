@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.photos,places.types'
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.photos,places.types,places.googleMapsUri'
         },
         body: JSON.stringify({
           textQuery: query,
@@ -98,7 +98,8 @@ export async function POST(req: Request) {
         primaryType: place.types?.find((t: string) => !t.includes('point_of_interest')) || 'Business',
         photoUrl: place.photos?.length > 0 
           ? `https://places.googleapis.com/v1/${place.photos[0].name}/media?key=${apiKey}&maxWidthPx=100&maxHeightPx=100` 
-          : null
+          : null,
+        googleMapsUri: place.googleMapsUri || null
       };
     });
 
