@@ -9,33 +9,21 @@ import {
   CheckCircle2, 
   ArrowRight, 
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Star
 } from 'lucide-react';
 
 function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const phone = searchParams.get('phone') || '';
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
-  // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedPlace, setSelectedPlace] = useState<any>(null);
-  
-  // Auto-filled form state
-  const [formData, setFormData] = useState({
-    businessName: '',
-    address: '',
-    category: '',
-    google_place_id: '',
-    google_maps_url: '',
-    review_link: ''
-  });
+  const [error, setError] = useState('');
 
   // 🔍 Debounced search as user types
   useEffect(() => {
@@ -45,95 +33,72 @@ function OnboardingContent() {
     }
 
     const timer = setTimeout(async () => {
-      await performSearch(searchQuery);
+      await searchGBP(searchQuery);
     }, 400);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const performSearch = async (query: string) => {
+  const searchGBP = async (query: string) => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      const res = await fetch('/api/onboarding/search-gbp', {
+      const res = await fetch('/api/gbp/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query })
       });
-      
       const data = await res.json();
       
-      if (res.ok && data.places?.length > 0) {
-        setSearchResults(data.places);
+      if (res.ok) {
+        setSearchResults(data.places || []);
         setShowDropdown(true);
-        setError('');
       } else {
+        setError(data.error || 'Failed to fetch search results');
         setSearchResults([]);
-        setShowDropdown(false);
-        if (data.places?.length === 0) {
-          setError('No businesses found. Try a different search term.');
-        }
       }
     } catch (err) {
-      console.error('Search failed:', err);
+      console.error('Search error:', err);
+      setError('Search error. Please try again.');
       setSearchResults([]);
-      setError('Search failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 🎯 Handle place selection - auto-fill form
-  const handleSelectPlace = (place: any) => {
-    console.log(' Selected place:', place);
-    
-    setSelectedPlace(place);
+  const handleSelectBusiness = (place: any) => {
+    setSelectedBusiness(place);
     setShowDropdown(false);
-    
-    // Auto-fill form with Google data
-    setFormData({
-      businessName: place.displayName?.text || place.name || '',
-      address: place.formattedAddress || place.formatted_address || '',
-      category: place.types?.[0] || 'Other',
-      google_place_id: place.placeId || place.place_id || '',
-      google_maps_url: place.googleMapsUri || place.google_maps_url || '',
-      review_link: place.placeId || place.place_id
-        ? `https://search.google.com/local/writereview?placeid=${place.placeId || place.place_id}` 
-        : ''
-    });
-    
     setSearchQuery(place.displayName?.text || place.name || '');
   };
 
-  // Submit & Save
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleComplete = async () => {
+    if (!selectedBusiness) return;
     
-    if (!selectedPlace) {
-      setError('Please select your business from the suggestions');
-      return;
-    }
-
     setLoading(true);
     setError('');
-
+    
     try {
-      const res = await fetch('/api/onboarding/complete', {
+      const res = await fetch('/api/gbp/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone,
-          ...formData
+          businessName: selectedBusiness.displayName?.text || selectedBusiness.name,
+          address: selectedBusiness.formattedAddress || selectedBusiness.formatted_address,
+          category: selectedBusiness.types?.[0] || 'Other',
+          googlePlaceId: selectedBusiness.placeId || selectedBusiness.place_id
         })
       });
-
+      
       if (res.ok) {
         router.push('/dashboard');
       } else {
         const data = await res.json();
-        setError(data.error || 'Failed to save profile');
+        setError(data.error || 'Failed to complete setup');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      console.error('Connection error:', err);
+      setError('Connection error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -169,8 +134,8 @@ function OnboardingContent() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-50 rounded-2xl mb-6 shadow-sm">
               <Building2 className="w-8 h-8 text-[#25D366]" />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Connect Your Business</h1>
-            <p className="text-slate-500 font-medium leading-relaxed">Search and select your Google Business Profile</p>
+            <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Connect Google Business</h1>
+            <p className="text-slate-500 font-medium leading-relaxed font-sans">Search and select your business profile</p>
           </div>
 
           {error && (
@@ -180,7 +145,7 @@ function OnboardingContent() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             
             {/* 🔍 Search Input with Autocomplete */}
             <div className="relative space-y-2" ref={dropdownRef}>
@@ -194,7 +159,7 @@ function OnboardingContent() {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    setSelectedPlace(null);
+                    setSelectedBusiness(null);
                     setShowDropdown(true);
                   }}
                   onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
@@ -213,6 +178,7 @@ function OnboardingContent() {
                 >
                   {searchResults.map((place: any, index: number) => {
                     const placeId = place.placeId || place.place_id;
+                    const isSelected = selectedBusiness?.placeId === placeId || selectedBusiness?.place_id === placeId;
                     return (
                       <button
                         key={placeId || index}
@@ -220,13 +186,15 @@ function OnboardingContent() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          handleSelectPlace(place);
+                          handleSelectBusiness(place);
                         }}
                         onMouseDown={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                         }}
-                        className="w-full text-left p-4 rounded-xl border border-transparent hover:border-emerald-100 hover:bg-emerald-50/50 transition-all flex items-start gap-4 cursor-pointer"
+                        className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-4 cursor-pointer ${
+                          isSelected ? 'border-emerald-500 bg-emerald-50/60' : 'border-transparent hover:border-emerald-100 hover:bg-emerald-50/30'
+                        }`}
                       >
                         <MapPin className="w-5 h-5 text-[#25D366] mt-1 shrink-0" />
                         <div className="flex-1 min-w-0">
@@ -236,11 +204,19 @@ function OnboardingContent() {
                           <div className="text-xs font-medium text-slate-500 mt-1 truncate">
                             {place.formattedAddress || place.formatted_address}
                           </div>
-                          {place.types?.[0] && (
-                            <span className="inline-flex mt-2 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">
-                              {place.types[0].replace(/_/g, ' ')}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            {place.types?.[0] && (
+                              <span className="inline-flex text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                                {place.types[0].replace(/_/g, ' ')}
+                              </span>
+                            )}
+                            {place.rating && (
+                              <span className="inline-flex items-center gap-0.5 text-amber-500 text-xs font-bold">
+                                <Star className="w-3.5 h-3.5 fill-current" />
+                                <span>{place.rating} ({place.user_ratings_total || 0})</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );
@@ -252,74 +228,37 @@ function OnboardingContent() {
               {loading && (
                 <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 flex items-center justify-center gap-3 text-xs font-semibold text-slate-500">
                   <Loader2 className="w-4 h-4 animate-spin text-[#25D366]" />
-                  <span>Searching...</span>
-                </div>
-              )}
-
-              {/* No results message */}
-              {searchQuery.trim().length >= 3 && searchResults.length === 0 && !loading && !error && (
-                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl p-4 text-xs font-semibold text-slate-500 text-center">
-                  No businesses found. Try a different search term.
+                  <span>Searching Google...</span>
                 </div>
               )}
             </div>
 
             {/* ✅ Selected Business Preview */}
-            {selectedPlace && (
+            {selectedBusiness && (
               <div className="bg-emerald-50/70 border-2 border-emerald-100 p-6 rounded-[2rem] space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-6 h-6 text-[#25D366]" />
                   <span className="font-bold text-emerald-800">Business Selected</span>
                 </div>
                 <div className="space-y-2 text-sm text-slate-700 font-semibold pl-9">
-                  <div><strong className="text-slate-900">Name:</strong> {formData.businessName}</div>
-                  <div><strong className="text-slate-900">Address:</strong> {formData.address}</div>
-                  <div><strong className="text-slate-900">Category:</strong> {formData.category}</div>
+                  <div><strong className="text-slate-900">Name:</strong> {selectedBusiness.displayName?.text || selectedBusiness.name}</div>
+                  <div><strong className="text-slate-900">Address:</strong> {selectedBusiness.formattedAddress || selectedBusiness.formatted_address}</div>
+                  <div><strong className="text-slate-900">Category:</strong> {selectedBusiness.types?.[0]?.replace(/_/g, ' ') || 'Other'}</div>
                 </div>
               </div>
             )}
 
-            {/* 📝 Editable Fields (Optional Details) */}
-            {selectedPlace && (
-              <details className="border-2 border-slate-100 rounded-[2.5rem] p-4 bg-slate-50/50 transition-all select-none">
-                <summary className="cursor-pointer text-sm font-bold text-slate-700 hover:text-slate-950 flex items-center gap-2 outline-none">
-                  <span>✏️</span> Edit details (optional)
-                </summary>
-                <div className="mt-4 space-y-4">
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-slate-600 ml-1">Business Name</label>
-                    <input
-                      type="text"
-                      value={formData.businessName}
-                      onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:border-[#25D366] focus:bg-white bg-white outline-none transition-all font-semibold text-slate-900"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-slate-600 ml-1">Category</label>
-                    <input
-                      type="text"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl focus:border-[#25D366] focus:bg-white bg-white outline-none transition-all font-semibold text-slate-900"
-                      placeholder="e.g. Plumber, Restaurant, Salon"
-                    />
-                  </div>
-                </div>
-              </details>
-            )}
-
             {/* 🚀 Action Button */}
             <button
-              type="submit"
-              disabled={loading || !selectedPlace}
+              onClick={handleComplete}
+              disabled={loading || !selectedBusiness}
               className="w-full bg-[#0F5C4D] hover:bg-[#073a30] text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
-              ) : selectedPlace ? (
+              ) : selectedBusiness ? (
                 <>
-                  <span>Continue to Dashboard</span>
+                  <span>Complete Setup</span>
                   <ArrowRight className="w-5 h-5" />
                 </>
               ) : (
@@ -327,7 +266,7 @@ function OnboardingContent() {
               )}
             </button>
 
-          </form>
+          </div>
         </div>
       </div>
     </div>
