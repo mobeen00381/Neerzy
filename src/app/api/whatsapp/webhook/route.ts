@@ -177,70 +177,62 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
       status: 'generated'
     }).eq('id', draft.id);
 
-    // Send WhatsApp Template: Post Ready
-    try {
-      console.log('📤 Sending post ready template:', process.env.TWILIO_TEMPLATE_POST_READY);
-      await sendTwilioTemplate(phone, process.env.TWILIO_TEMPLATE_POST_READY!, {
-        '1': parsed.headline,
-        '2': parsed.body,
-        '3': parsed.cta,
-        '4': parsed.hashtags
-      }, fromNumber);
-      console.log('✅ Template sent successfully');
-    } catch (templateError: any) {
-      console.error('❌ Template sending failed, falling back to standard message:', templateError.message);
-      // Fallback: Send raw text message if template SID is invalid or unapproved
-      await sendTwilioMessage(phone, `📝 *${parsed.headline}*\n\n${parsed.body}\n\n${parsed.cta}\n\n${parsed.hashtags}`, fromNumber);
-    }
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // MESSAGE 1: Send the full AI post text directly in WhatsApp
+    // User can long-press to copy — NO redirect to any page
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const fullPostText = `📋 *COPY THIS POST:*\n\n*${parsed.headline}*\n\n${parsed.body}\n\n${parsed.cta}\n\n${parsed.hashtags}\n\n_👆 Long press this message → Copy_`;
 
-    // Send Images (max 5)
+    await sendTwilioMessage(phone, fullPostText, fromNumber);
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // MESSAGE 2: Send Images as WhatsApp media (user saves directly to gallery)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const imagesToSend = draft.images.slice(0, 5);
     for (let i = 0; i < imagesToSend.length; i++) {
       try {
-        await sendTwilioMedia(phone, imagesToSend[i], `📎 Image ${i+1}/${imagesToSend.length}`, fromNumber);
+        await sendTwilioMedia(phone, imagesToSend[i], `📸 Photo ${i+1}/${imagesToSend.length} — Tap to save to gallery`, fromNumber);
       } catch (mediaError) {
         console.error('❌ Media send error:', mediaError);
       }
     }
 
-    // Build the 3 action links
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // MESSAGE 3: Image download links + GBP post link
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const appUrl = 'https://neerzy.com';
 
-    // Link 1: Publish page (copy post text + view images + mark done)
-    const publishLink = `${appUrl}/publish/${draft.id}`;
-
-    // Link 2: Image download links
-    const imageLinks = imagesToSend.map((img: string, i: number) =>
+    // Image download links
+    const imageDownloadLinks = imagesToSend.map((img: string, i: number) =>
       `${appUrl}/api/download-image?url=${encodeURIComponent(img)}&name=neerzy-photo-${i + 1}.jpg`
     );
 
-    // Link 3: GBP post link (from connected business profile)
-    let gbpLink = 'https://business.google.com/create-post';
+    // GBP post link — use Google Business Profile dashboard (always works)
+    let gbpLink = 'https://business.google.com/';
     try {
       const { data: business } = await supabase
         .from('business_profiles')
-        .select('google_maps_url, google_place_id')
+        .select('google_place_id')
         .eq('user_phone', phone)
         .maybeSingle();
 
-      if (business?.google_maps_url) {
-        gbpLink = business.google_maps_url;
-      } else if (business?.google_place_id) {
-        gbpLink = `https://search.google.com/local/posts?q=place_id:${business.google_place_id}`;
+      if (business?.google_place_id) {
+        // Direct link to Google Maps listing (user can click "Add update" from there)
+        gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
       }
     } catch (dbErr) {
-      console.warn('⚠️ Could not fetch GBP link from business_profiles:', dbErr);
+      console.warn('⚠️ Could not fetch GBP link:', dbErr);
     }
 
-    // Build the final message with all 3 clickable links
-    let linksMessage = `✅ *Post Ready! Here are your links:*\n\n`;
-    linksMessage += `📋 *1. Copy Post Text:*\n${publishLink}\n\n`;
-    linksMessage += `🖼️ *2. Download Images:*\n`;
-    imageLinks.forEach((link: string, i: number) => {
-      linksMessage += `   Photo ${i + 1}: ${link}\n`;
+    // Build links message
+    let linksMessage = `✅ *Your post is ready!*\n\n`;
+    linksMessage += `🖼️ *Download Images:*\n`;
+    imageDownloadLinks.forEach((link: string, i: number) => {
+      linksMessage += `Photo ${i + 1}: ${link}\n`;
     });
-    linksMessage += `\n🌐 *3. Open Google Business Profile:*\n${gbpLink}\n\n`;
-    linksMessage += `When done, type *DONE* to send a review request to your customer.`;
+    linksMessage += `\n🌐 *Open Google Business Profile:*\n${gbpLink}\n\n`;
+    linksMessage += `📌 *Steps:*\n1. Copy the post text above\n2. Save photos from chat\n3. Tap GBP link → Add Update → Paste & Upload\n\n`;
+    linksMessage += `✅ Type *DONE* when published to send review request to your customer.`;
 
     return await sendTwilioMessage(phone, linksMessage, fromNumber);
 
