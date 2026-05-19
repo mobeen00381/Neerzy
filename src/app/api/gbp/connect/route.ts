@@ -47,22 +47,50 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
     }
 
-    // Attempt to sync the business name with the logged-in user profile if available, for dashboard rendering
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
+    // Sync the business details with the user's profile
+    if (data.userId) {
+      try {
+        const { error: profileUpdateError } = await supabase
           .from('profiles')
-          .update({
+          .upsert({
+            id: data.userId,
             business_name: data.businessName,
-            company_name: data.businessName,
+            phone: targetPhone,
+            gbp_connected: true,
+            gbp_connected_at: new Date().toISOString(),
+            onboarded_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id);
-        console.log('✅ Synchronized public profile with business name.');
+          }, { onConflict: 'id' });
+
+        if (profileUpdateError) {
+          console.error('❌ Failed to upsert profiles table:', profileUpdateError);
+        } else {
+          console.log(`✅ Successfully upserted profile ID: ${data.userId} with business details & phone: ${targetPhone}`);
+        }
+      } catch (profileErr) {
+        console.error('❌ Unexpected error updating profile:', profileErr);
       }
-    } catch (profileErr) {
-      console.warn('⚠️ Public profile sync skipped or failed.', profileErr);
+    } else {
+      // Fallback: Attempt to sync via logged-in user session if userId was not provided in the payload
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: user.id,
+              business_name: data.businessName,
+              phone: targetPhone,
+              gbp_connected: true,
+              gbp_connected_at: new Date().toISOString(),
+              onboarded_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+          console.log('✅ Synchronized public profile via fallback auth session upsert.');
+        }
+      } catch (profileErr) {
+        console.warn('⚠️ Fallback public profile sync skipped.', profileErr);
+      }
     }
 
     return NextResponse.json({ success: true });
