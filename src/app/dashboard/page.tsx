@@ -121,16 +121,16 @@ export default function Dashboard() {
         const { data: defaultBProfile } = await supabase
           .from('business_profiles')
           .select('*')
-          .eq('user_phone', '+923056500917')
+          .eq('user_phone', '+923006291617')
           .maybeSingle();
 
         if (defaultBProfile) {
-          phone = '+923056500917';
+          phone = '+923006291617';
           // Update user metadata (always works client-side)
           try {
             const { data: updateRes } = await supabase.auth.updateUser({
               data: {
-                phone: '+923056500917',
+                phone: '+923006291617',
                 business_name: defaultBProfile.business_name,
                 gbp_connected: true
               }
@@ -148,7 +148,7 @@ export default function Dashboard() {
             const { data: updatedProfile } = await supabase
               .from('profiles')
               .update({
-                phone: '+923056500917',
+                phone: '+923006291617',
                 business_name: defaultBProfile.business_name
               })
               .eq('id', user.id)

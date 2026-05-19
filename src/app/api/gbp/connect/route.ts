@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     }
 
     if (!targetPhone) {
-      targetPhone = '+923056500917';
+      targetPhone = '+923006291617';
     }
 
     console.log(`🔗 Connecting business listing: "${data.businessName}" to phone: "${targetPhone}"`);

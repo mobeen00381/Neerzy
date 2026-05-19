@@ -117,7 +117,7 @@ async function handleMockOAuthBypass(userId: string | null) {
       .maybeSingle();
 
     // 2. Fetch the user's business profile
-    const phone = profile?.phone || "+923056500917";
+    const phone = profile?.phone || "+923006291617";
     const { data: bProfile } = await supabase
       .from("business_profiles")
       .select("*")
