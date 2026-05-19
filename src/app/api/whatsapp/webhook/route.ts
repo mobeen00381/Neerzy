@@ -236,14 +236,26 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       return await sendTwilioMessage(phone, "⚠️ *No pending generated post found.*", fromNumber);
     }
 
-    // 🔍 Dynamic Lookup: Find this business profile's actual connected Google Maps review link
-    let reviewLink = 'https://g.page/r/your-review-link';
+    // 🔍 Find the review link — try sender phone first, then fallback to any business profile
+    let reviewLink = '';
     try {
-      const { data: business } = await supabase
+      // Try exact phone match first
+      let { data: business } = await supabase
         .from('business_profiles')
         .select('review_link, google_place_id')
         .eq('user_phone', phone)
         .maybeSingle();
+
+      // If no match, get any business profile (user may have different WhatsApp number)
+      if (!business) {
+        const { data: anyBusiness } = await supabase
+          .from('business_profiles')
+          .select('review_link, google_place_id')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        business = anyBusiness;
+      }
 
       if (business?.review_link) {
         reviewLink = business.review_link;
@@ -255,8 +267,14 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       console.warn('⚠️ Failed to load review link:', dbError);
     }
 
-    // Send review request to customer via plain WhatsApp message
-    const customerName = post.customer_name || 'Customer';
+    if (!reviewLink) {
+      return await sendTwilioMessage(phone, "⚠️ *No Google Business Profile connected.* Please connect your GBP first at https://neerzy.com/onboarding", fromNumber);
+    }
+
+    // Clean customer name (remove newlines/extra whitespace)
+    const customerName = (post.customer_name || 'Customer').replace(/[\n\r]+/g, ' ').trim();
+
+    // Send review request to customer
     const reviewMessage = `Hi ${customerName}! 👋\n\nThank you for choosing our services! We'd really appreciate it if you could leave us a quick review. It helps us grow! ⭐\n\n🔗 ${reviewLink}\n\nThank you! 🙏`;
 
     try {
