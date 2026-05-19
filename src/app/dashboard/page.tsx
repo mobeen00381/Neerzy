@@ -71,6 +71,10 @@ export default function Dashboard() {
   // Sync state (Account tab)
   const [syncing, setSyncing] = useState(false);
 
+  // Business owner states
+  const [ownerInput, setOwnerInput] = useState('');
+  const [updatingOwner, setUpdatingOwner] = useState(false);
+
   // Scroll anchor for chat
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +82,13 @@ export default function Dashboard() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load owner input state when user updates
+  useEffect(() => {
+    if (user) {
+      setOwnerInput(user.user_metadata?.owner_name || user.user_metadata?.full_name || 'Business Owner');
+    }
+  }, [user]);
 
   // Load user data, profile, and business details
   useEffect(() => {
@@ -168,6 +179,25 @@ export default function Dashboard() {
     await new Promise(resolve => setTimeout(resolve, 2000));
     setSyncing(false);
     alert("Profile sync completed successfully!");
+  };
+
+  const handleSaveOwnerName = async () => {
+    if (!ownerInput.trim()) return;
+    setUpdatingOwner(true);
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        data: { owner_name: ownerInput }
+      });
+      if (error) throw error;
+      
+      setUser(data.user);
+      alert("Business owner name saved successfully!");
+    } catch (err) {
+      console.error("Error saving owner name:", err);
+      alert("Failed to update owner name.");
+    } finally {
+      setUpdatingOwner(false);
+    }
   };
 
   // Image upload handler
@@ -318,6 +348,7 @@ export default function Dashboard() {
   // Helper values for plan, business details
   const bName = businessProfile?.business_name || profile?.business_name || profile?.company_name || 'My Business Listing';
   const bLocation = businessProfile?.address || 'Not connected';
+  const ownerName = user?.user_metadata?.owner_name || user?.user_metadata?.full_name || 'Business Owner';
   
   const plan = profile?.selected_plan || user?.user_metadata?.selected_plan || 'free';
   const planLimits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
@@ -416,9 +447,11 @@ export default function Dashboard() {
           <div className="flex flex-col items-start md:items-end text-left md:text-right border-t md:border-t-0 md:border-l border-slate-200 pt-3 md:pt-0 md:pl-4">
             <div>
               <span className="font-extrabold text-sm text-slate-900 block leading-tight">{bName}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mt-0.5 flex items-center gap-1 md:justify-end">
-                <MapPin className="w-3 h-3 text-slate-400" /> {bLocation.split(',')[0]}
-              </span>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mt-1 flex flex-wrap items-center gap-2 md:justify-end">
+                <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3 text-slate-400" /> {bLocation.split(',')[0]}</span>
+                <span>•</span>
+                <span>👤 Owner: {ownerName}</span>
+              </div>
             </div>
             
             <div className="flex flex-wrap items-center gap-2.5 mt-2 text-[10px] font-extrabold text-slate-500">
@@ -876,6 +909,43 @@ export default function Dashboard() {
                         <ChevronRight className="w-4 h-4" />
                       </a>
                     )}
+                  </div>
+                </div>
+
+                {/* Business Owner Profile Card */}
+                <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Business Owner Profile</h3>
+                    <p className="text-xs text-slate-500 font-semibold mt-1">Manage the primary contact name for this business listing</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Business Owner Name</label>
+                      <div className="flex gap-3">
+                        <input
+                          type="text"
+                          value={ownerInput}
+                          onChange={(e) => setOwnerInput(e.target.value)}
+                          className="flex-1 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 outline-none text-sm text-slate-800 focus:border-emerald-500 font-semibold transition-all"
+                          placeholder="e.g. John Doe"
+                        />
+                        <button
+                          onClick={handleSaveOwnerName}
+                          disabled={updatingOwner}
+                          className="px-5 py-3 bg-[#0F5C4D] text-white rounded-xl hover:bg-[#0c4a3e] transition-all font-black text-xs flex items-center gap-1 active:scale-95 disabled:opacity-50 shrink-0"
+                        >
+                          {updatingOwner ? (
+                            <>
+                              <Loader2 className="animate-spin w-4 h-4" />
+                              <span>Saving...</span>
+                            </>
+                          ) : (
+                            <span>Save Name</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

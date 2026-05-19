@@ -1,7 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
+import { usePathname } from "next/navigation";
 
 export default function Footer() {
+  const pathname = usePathname();
+  const hideFooter = pathname?.startsWith('/dashboard') || 
+                     pathname?.startsWith('/onboarding') || 
+                     pathname?.startsWith('/welcome') || 
+                     pathname?.startsWith('/login') || 
+                     pathname?.startsWith('/signup') ||
+                     pathname?.startsWith('/checkout');
+
+  if (hideFooter) return null;
   return (
     <footer className="border-t border-slate-200 bg-slate-50">
       <div className="container mx-auto px-4 py-12 md:px-6">

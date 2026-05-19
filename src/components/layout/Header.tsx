@@ -1,8 +1,20 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "../ui/Button";
 import { ThemeToggle } from "./ThemeToggle";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
+  const pathname = usePathname();
+  const hideHeader = pathname?.startsWith('/dashboard') || 
+                     pathname?.startsWith('/onboarding') || 
+                     pathname?.startsWith('/welcome') || 
+                     pathname?.startsWith('/login') || 
+                     pathname?.startsWith('/signup') ||
+                     pathname?.startsWith('/checkout');
+
+  if (hideHeader) return null;
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#075E54] backdrop-blur-md transition-colors duration-300">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">

@@ -10,10 +10,23 @@ export async function POST(req: Request) {
   try {
     const data = await req.json();
     
-    // Determine target phone (relying on client body payload or sandbox number)
-    const targetPhone = data.phone || '+923056500917';
+    let targetPhone = data.phone;
+    if (!targetPhone && data.userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', data.userId)
+        .maybeSingle();
+      if (profile?.phone) {
+        targetPhone = profile.phone;
+      }
+    }
 
-    console.log(`🔗 Connecting business listing: "${data.businessName}" to phone: "${targetPhone}" (user_id completely removed)`);
+    if (!targetPhone) {
+      targetPhone = '+923056500917';
+    }
+
+    console.log(`🔗 Connecting business listing: "${data.businessName}" to phone: "${targetPhone}"`);
 
     // ✅ Removed user_id - just save the business info using upsert on user_phone to prevent duplicate key crashes
     const { error } = await supabase

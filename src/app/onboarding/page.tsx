@@ -93,6 +93,7 @@ function OnboardingContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user?.id,
+          phone: user?.phone || user?.user_metadata?.phone_number,
           businessName: selectedBusiness.name,
           address: selectedBusiness.formattedAddress,
           category: selectedBusiness.primaryType,
