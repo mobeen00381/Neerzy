@@ -168,12 +168,15 @@ export default function Dashboard() {
       // 2. Fetch business profile
       let bData = null;
       if (phone) {
-        const { data: fetchBData } = await supabase
-          .from('business_profiles')
-          .select('*')
-          .eq('user_phone', phone)
-          .maybeSingle();
-        bData = fetchBData;
+        try {
+          const res = await fetch(`/api/business-profile?phone=${encodeURIComponent(phone)}`);
+          if (res.ok) {
+            const json = await res.json();
+            bData = json.data;
+          }
+        } catch (err) {
+          console.error("Failed to fetch business profile from API:", err);
+        }
         setBusinessProfile(bData);
       }
 
@@ -229,6 +232,10 @@ export default function Dashboard() {
 
   // Connect to Google Business Profile simulation
   const triggerSync = async () => {
+    if (!businessProfile?.google_place_id) {
+      router.push('/onboarding');
+      return;
+    }
     setSyncing(true);
     try {
       await loadDashboardData();
