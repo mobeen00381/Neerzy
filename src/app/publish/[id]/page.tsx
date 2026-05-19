@@ -18,7 +18,7 @@ async function getJob(id: string) {
 
   if (!error && data) return data;
 
-  // Fallback to 'pending_posts' table for backward compatibility
+  // Fallback to 'pending_posts' table (WhatsApp flow stores data here)
   const { data: legacyData, error: legacyError } = await supabase
     .from("pending_posts")
     .select("*")
@@ -29,13 +29,32 @@ async function getJob(id: string) {
     return null;
   }
 
+  // Parse the AI-generated google_post content into structured fields
+  const googlePost = legacyData.google_post || '';
+  const lines = googlePost.split('\n');
+
+  const extractField = (prefix: string) => {
+    const line = lines.find((l: string) => l.toUpperCase().includes(prefix.toUpperCase()));
+    return line ? line.replace(new RegExp(`\\*{0,2}${prefix}\\*{0,2}`, 'i'), '').trim() : '';
+  };
+
+  const headline = extractField('HEADLINE:') || legacyData.customer_name || 'New Post';
+  const body = extractField('BODY:') || legacyData.voice_note || 'Job completed successfully.';
+  const cta = extractField('CTA:') || 'Contact us today!';
+  const hashtagsRaw = extractField('HASHTAGS:') || '#localbusiness';
+  const hashtags = hashtagsRaw.split(/\s+/).filter((t: string) => t.startsWith('#'));
+
   // Map legacy format to match what PublishClient expects
   return {
     id: legacyData.id,
-    title: legacyData.draft_name || "New Post",
-    content: "Content is being generated...",
-    hashtags: ["#localbusiness"],
-    media_urls: []
+    title: headline,
+    content: `${body}\n\n${cta}`,
+    hashtags: hashtags.length > 0 ? hashtags : ['#localbusiness'],
+    media_urls: legacyData.images || [],
+    customer_name: legacyData.customer_name,
+    customer_phone: legacyData.customer_phone,
+    user_phone: legacyData.user_phone,
+    status: legacyData.status
   };
 }
 

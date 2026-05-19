@@ -203,7 +203,46 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
       }
     }
 
-    return await sendTwilioMessage(phone, `📋 *To Publish:*\n1. Copy text above\n2. Download images\n3. Post to Google\n\n✅ Type *DONE* when published.`, fromNumber);
+    // Build the 3 action links
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
+
+    // Link 1: Publish page (copy post text + view images + mark done)
+    const publishLink = `${appUrl}/publish/${draft.id}`;
+
+    // Link 2: Image download links
+    const imageLinks = imagesToSend.map((img: string, i: number) =>
+      `${appUrl}/api/download-image?url=${encodeURIComponent(img)}&name=neerzy-photo-${i + 1}.jpg`
+    );
+
+    // Link 3: GBP post link (from connected business profile)
+    let gbpLink = 'https://business.google.com/create-post';
+    try {
+      const { data: business } = await supabase
+        .from('business_profiles')
+        .select('google_maps_url, google_place_id')
+        .eq('user_phone', phone)
+        .maybeSingle();
+
+      if (business?.google_maps_url) {
+        gbpLink = business.google_maps_url;
+      } else if (business?.google_place_id) {
+        gbpLink = `https://search.google.com/local/posts?q=place_id:${business.google_place_id}`;
+      }
+    } catch (dbErr) {
+      console.warn('⚠️ Could not fetch GBP link from business_profiles:', dbErr);
+    }
+
+    // Build the final message with all 3 clickable links
+    let linksMessage = `✅ *Post Ready! Here are your links:*\n\n`;
+    linksMessage += `📋 *1. Copy Post Text:*\n${publishLink}\n\n`;
+    linksMessage += `🖼️ *2. Download Images:*\n`;
+    imageLinks.forEach((link: string, i: number) => {
+      linksMessage += `   Photo ${i + 1}: ${link}\n`;
+    });
+    linksMessage += `\n🌐 *3. Open Google Business Profile:*\n${gbpLink}\n\n`;
+    linksMessage += `When done, type *DONE* to send a review request to your customer.`;
+
+    return await sendTwilioMessage(phone, linksMessage, fromNumber);
 
   } catch (error: any) {
     console.error('❌ handleGeneratePost error:', error);

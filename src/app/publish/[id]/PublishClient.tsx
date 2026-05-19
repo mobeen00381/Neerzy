@@ -4,12 +4,17 @@ import React, { useState } from "react";
 
 export default function PublishClient({ job }: { job: any }) {
   const [isMarking, setIsMarking] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
     const text = `${job.title}\n\n${job.content}\n\n${job.hashtags?.join(' ')}`;
     navigator.clipboard.writeText(text);
-    alert('✅ Post copied! Paste it in Google Business Profile.');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
   };
+
+  // Build the GBP post link
+  const gbpLink = 'https://business.google.com/create-post';
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-md mx-auto font-sans">
@@ -33,30 +38,35 @@ export default function PublishClient({ job }: { job: any }) {
         {/* 1. Copy Post */}
         <button 
           onClick={handleCopy}
-          className="w-full py-4 bg-teal-600 hover:bg-teal-700 transition-colors text-white rounded-2xl font-black shadow-lg shadow-teal-600/20 active:scale-[0.98]"
+          className={`w-full py-4 ${copied ? 'bg-green-600' : 'bg-teal-600 hover:bg-teal-700'} transition-colors text-white rounded-2xl font-black shadow-lg shadow-teal-600/20 active:scale-[0.98]`}
         >
-          📋 Copy Full Post
+          {copied ? '✅ Post Copied! Paste it in GBP.' : '📋 Copy Full Post'}
         </button>
 
         {/* 2. Download Images */}
         {job.media_urls && job.media_urls.length > 0 && (
-          <div className="grid grid-cols-2 gap-3">
-            {job.media_urls.map((url: string, i: number) => (
-              <a 
-                key={i}
-                href={`/api/download-image?url=${encodeURIComponent(url)}&name=neerzy-job-${i+1}.jpg`}
-                download
-                className="py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white text-center rounded-2xl font-bold text-sm shadow-md active:scale-[0.98]"
-              >
-                💾 Save Image {i+1}
-              </a>
-            ))}
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Download Images</p>
+            <div className="grid grid-cols-2 gap-3">
+              {job.media_urls.map((url: string, i: number) => (
+                <a 
+                  key={i}
+                  href={`/api/download-image?url=${encodeURIComponent(url)}&name=neerzy-photo-${i+1}.jpg`}
+                  download={`neerzy-photo-${i+1}.jpg`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white text-center rounded-2xl font-bold text-sm shadow-md active:scale-[0.98]"
+                >
+                  💾 Save Photo {i+1}
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
         {/* 3. Open GBP */}
         <a 
-          href="https://business.google.com/"
+          href={gbpLink}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white rounded-2xl font-black text-center block shadow-lg shadow-indigo-600/20 active:scale-[0.98]"
@@ -72,6 +82,7 @@ export default function PublishClient({ job }: { job: any }) {
             try {
               const res = await fetch('/api/jobs/mark-published', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ jobId: job.id })
               });
               const data = await res.json();
