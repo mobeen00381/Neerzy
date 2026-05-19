@@ -241,27 +241,34 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     try {
       const { data: business } = await supabase
         .from('business_profiles')
-        .select('review_link')
+        .select('review_link, google_place_id')
         .eq('user_phone', phone)
         .maybeSingle();
 
       if (business?.review_link) {
         reviewLink = business.review_link;
-        console.log(`✅ Loaded connected Google review link: "${reviewLink}"`);
+      } else if (business?.google_place_id) {
+        reviewLink = `https://search.google.com/local/writereview?placeid=${business.google_place_id}`;
       }
+      console.log(`✅ Review link: "${reviewLink}"`);
     } catch (dbError) {
-      console.warn('⚠️ Failed to load dynamic review link from business_profiles, using default fallback.', dbError);
+      console.warn('⚠️ Failed to load review link:', dbError);
     }
 
-    // Send Review Request Template using dynamic review link
-    await sendTwilioTemplate(post.customer_phone, process.env.TWILIO_TEMPLATE_REVIEW_REQUEST!, {
-      '1': post.customer_name || 'Customer',
-      '2': reviewLink
-    }, fromNumber);
+    // Send review request to customer via plain WhatsApp message
+    const customerName = post.customer_name || 'Customer';
+    const reviewMessage = `Hi ${customerName}! 👋\n\nThank you for choosing our services! We'd really appreciate it if you could leave us a quick review. It helps us grow! ⭐\n\n🔗 ${reviewLink}\n\nThank you! 🙏`;
+
+    try {
+      await sendTwilioMessage(post.customer_phone, reviewMessage, fromNumber);
+    } catch (sendErr: any) {
+      console.error('❌ Failed to send review to customer:', sendErr.message);
+      return await sendTwilioMessage(phone, `❌ Could not send review request to ${customerName}. Please check the customer phone number.`, fromNumber);
+    }
 
     await supabase.from('pending_posts').update({ status: 'published' }).eq('id', post.id);
 
-    return await sendTwilioMessage(phone, `✅ *Review sent to ${post.customer_name}!*`, fromNumber);
+    return await sendTwilioMessage(phone, `✅ *Review request sent to ${customerName}!*\n\n🔗 Review link: ${reviewLink}`, fromNumber);
 
   } catch (error: any) {
     console.error('❌ handleSendReview error:', error);
