@@ -28,7 +28,7 @@ export function GbpConnectModal({ isOpen, onClose, userId }: GbpConnectModalProp
       // Update user profile
       await supabase
         .from('profiles')
-        .update({ gbp_connected: true, gbp_connected_at: new Date().toISOString() })
+        .update({ updated_at: new Date().toISOString() })
         .eq('id', userId);
       
       onClose();

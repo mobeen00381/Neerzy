@@ -47,7 +47,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
     }
 
-    // Sync the business details with the user's profile
+    // Sync the business details with the user's Auth metadata (bulletproof source of truth)
+    if (data.userId) {
+      try {
+        await supabase.auth.admin.updateUserById(data.userId, {
+          user_metadata: {
+            phone: targetPhone,
+            business_name: data.businessName,
+            gbp_connected: true,
+            gbp_connected_at: new Date().toISOString(),
+            onboarded_at: new Date().toISOString()
+          }
+        });
+        console.log(`✅ Successfully updated auth user_metadata for user: ${data.userId}`);
+      } catch (authMetaErr) {
+        console.error('❌ Failed to update auth user_metadata:', authMetaErr);
+      }
+    }
+
+    // Try to sync with profiles table, but catch errors to prevent blocking setups
     if (data.userId) {
       try {
         const { error: profileUpdateError } = await supabase
@@ -56,34 +74,39 @@ export async function POST(req: Request) {
             id: data.userId,
             business_name: data.businessName,
             phone: targetPhone,
-            gbp_connected: true,
-            gbp_connected_at: new Date().toISOString(),
-            onboarded_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }, { onConflict: 'id' });
 
         if (profileUpdateError) {
-          console.error('❌ Failed to upsert profiles table:', profileUpdateError);
+          console.warn('⚠️ profiles table sync warning (can ignore if columns are missing):', profileUpdateError.message);
         } else {
-          console.log(`✅ Successfully upserted profile ID: ${data.userId} with business details & phone: ${targetPhone}`);
+          console.log(`✅ Successfully upserted profile ID: ${data.userId} in profiles table`);
         }
       } catch (profileErr) {
-        console.error('❌ Unexpected error updating profile:', profileErr);
+        console.warn('⚠️ Skip public profiles table update:', profileErr);
       }
     } else {
       // Fallback: Attempt to sync via logged-in user session if userId was not provided in the payload
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          // Update metadata via admin
+          await supabase.auth.admin.updateUserById(user.id, {
+            user_metadata: {
+              phone: targetPhone,
+              business_name: data.businessName,
+              gbp_connected: true,
+              gbp_connected_at: new Date().toISOString(),
+              onboarded_at: new Date().toISOString()
+            }
+          });
+          
           await supabase
             .from('profiles')
             .upsert({
               id: user.id,
               business_name: data.businessName,
               phone: targetPhone,
-              gbp_connected: true,
-              gbp_connected_at: new Date().toISOString(),
-              onboarded_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
           console.log('✅ Synchronized public profile via fallback auth session upsert.');

@@ -100,15 +100,24 @@ export default function Dashboard() {
       }
       setUser(user);
 
-      // 1. Fetch user profile
-      let { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+      // 1. Fetch user profile (safely wrap in case columns are missing or error out)
+      let profileData = null;
+      try {
+        const { data: fetchedProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+        profileData = fetchedProfile;
+      } catch (dbErr) {
+        console.warn('⚠️ Could not load profiles table:', dbErr);
+      }
+
+      // Get phone number from DB profile, auth phone, or auth user metadata
+      let phone = profileData?.phone || user?.phone || user?.user_metadata?.phone || user?.user_metadata?.phone_number;
 
       // HEAL / AUTO-LINK: Link to the default/sandbox profile if user phone is not set
-      if (profileData && !profileData.phone) {
+      if (!phone) {
         const { data: defaultBProfile } = await supabase
           .from('business_profiles')
           .select('*')
@@ -116,22 +125,40 @@ export default function Dashboard() {
           .maybeSingle();
 
         if (defaultBProfile) {
-          const { data: updatedProfile } = await supabase
-            .from('profiles')
-            .update({
-              phone: '+923056500917',
-              business_name: defaultBProfile.business_name,
-              gbp_connected: true,
-              gbp_connected_at: new Date().toISOString(),
-              onboarded_at: new Date().toISOString()
-            })
-            .eq('id', user.id)
-            .select()
-            .single();
-          
-          if (updatedProfile) {
-            profileData = updatedProfile;
-            console.log("🩹 Healed user profile with fallback business phone link.");
+          phone = '+923056500917';
+          // Update user metadata (always works client-side)
+          try {
+            const { data: updateRes } = await supabase.auth.updateUser({
+              data: {
+                phone: '+923056500917',
+                business_name: defaultBProfile.business_name,
+                gbp_connected: true
+              }
+            });
+            if (updateRes?.user) {
+              setUser(updateRes.user);
+            }
+            console.log("🩹 Healed user metadata with fallback business phone link.");
+          } catch (metaErr) {
+            console.error('❌ Failed to update user metadata in healing:', metaErr);
+          }
+
+          // Try updating profiles table, but catch errors to prevent dashboard crash
+          try {
+            const { data: updatedProfile } = await supabase
+              .from('profiles')
+              .update({
+                phone: '+923056500917',
+                business_name: defaultBProfile.business_name
+              })
+              .eq('id', user.id)
+              .select()
+              .single();
+            if (updatedProfile) {
+              profileData = updatedProfile;
+            }
+          } catch (dbErr) {
+            console.warn('⚠️ profiles table update skipped in healing:', dbErr);
           }
         }
       }
@@ -139,7 +166,6 @@ export default function Dashboard() {
       setProfile(profileData);
 
       // 2. Fetch business profile
-      const phone = profileData?.phone || user?.phone || user?.user_metadata?.phone_number;
       let bData = null;
       if (phone) {
         const { data: fetchBData } = await supabase
@@ -380,7 +406,7 @@ export default function Dashboard() {
   };
 
   // Helper values for plan, business details
-  const bName = businessProfile?.business_name || profile?.business_name || profile?.company_name || 'My Business Listing';
+  const bName = businessProfile?.business_name || profile?.business_name || user?.user_metadata?.business_name || profile?.company_name || 'My Business Listing';
   const bLocation = businessProfile?.address || 'Not connected';
   const ownerName = user?.user_metadata?.owner_name || user?.user_metadata?.full_name || 'Business Owner';
   
