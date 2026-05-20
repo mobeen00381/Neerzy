@@ -28,69 +28,12 @@ export default function ActionPage({ params }: { params: Promise<{ id: string }>
 
   const fetchData = async () => {
     try {
-      // First try pending_posts
-      const { data: postData, error: postErr } = await supabase
-        .from('pending_posts')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (postData && !postErr) {
-        setData({
-          ...postData,
-          google_post: postData.google_post || '',
-          images: postData.images || []
-        });
-
-        if (postData.user_phone) {
-          const { data: business } = await supabase
-            .from('business_profiles')
-            .select('business_name, google_place_id')
-            .eq('user_phone', postData.user_phone)
-            .maybeSingle();
-
-          if (business) {
-            if (business.business_name) {
-              setGbpLink(`https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`);
-            } else if (business.google_place_id) {
-              setGbpLink(`https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`);
-            }
-          }
-        }
-        return;
-      }
-
-      // Try jobs table
-      const { data: jobData, error: jobErr } = await supabase
-        .from('jobs')
-        .select('*, users(*)')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (jobData && !jobErr) {
-        setData({
-          ...jobData,
-          customer_name: jobData.customer_name,
-          google_post: [jobData.title, '', jobData.content, '', Array.isArray(jobData.hashtags) ? jobData.hashtags.join(' ') : ''].filter(Boolean).join('\n'),
-          images: jobData.media_urls || []
-        });
-
-        const userPhone = jobData.users?.whatsapp_phone;
-        if (userPhone) {
-          const { data: business } = await supabase
-            .from('business_profiles')
-            .select('business_name, google_place_id')
-            .eq('user_phone', userPhone)
-            .maybeSingle();
-
-          if (business) {
-            if (business.business_name) {
-              setGbpLink(`https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`);
-            } else if (business.google_place_id) {
-              setGbpLink(`https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`);
-            }
-          }
-        }
+      const res = await fetch(`/api/post-data/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch post data');
+      const postData = await res.json();
+      setData(postData);
+      if (postData.gbpLink) {
+        setGbpLink(postData.gbpLink);
       }
     } catch (err) {
       console.error('Failed to load post data:', err);
