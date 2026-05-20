@@ -35,7 +35,13 @@ export async function POST(req: Request) {
 
     if (userError || !user) {
       console.warn(`⚠️ [WhatsApp] User not found for number: ${cleanPhone}`);
-      const registerMessage = `Welcome to Neerzy! 👷‍♂️ It looks like your number isn't registered yet. \n\nPlease log in to your dashboard at ${process.env.NEXT_PUBLIC_APP_URL}/login and add your phone number in settings to start posting!`;
+      let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
+      if (appUrl.includes('vercel.app')) {
+        appUrl = 'https://www.neerzy.com';
+      }
+      appUrl = appUrl.replace(/\/$/, '');
+
+      const registerMessage = `Welcome to Neerzy! 👷‍♂️ It looks like your number isn't registered yet. \n\nPlease log in to your dashboard at ${appUrl}/login and add your phone number in settings to start posting!`;
       
       return new Response(
         `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${registerMessage}</Message></Response>`, 

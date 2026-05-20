@@ -1,11 +1,11 @@
 // lib/plans.ts
-export type PlanType = 'free' | 'pro' | 'growth';
+export type PlanType = 'free' | 'pro' | 'growth' | 'agency';
 
 export interface PlanLimits {
   name: string;
   price: string;
   trialDays: number;        // Trial period in days
-  totalPosts: number;       // Lifetime post limit
+  totalPosts: number;       // Lifetime/billing cycle post limit
   dailyPosts: number;       // Max posts per day
   features: string[];       // Feature list
   color: string;            // Card accent color
@@ -19,25 +19,29 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     totalPosts: 5,
     dailyPosts: 1,
     features: [
-      '1 Google Business Profile',
-      'Basic post scheduling',
-      'Email support',
-      'Neerzy branding on posts',
+      '5 WhatsApp posts total',
+      '1 post per day limit',
+      'Google post generation',
+      'Website update generation',
+      'Review request generation',
     ],
     color: '#64748B', // Gray
   },
   pro: {
     name: 'Pro',
-    price: '$29/mo',
+    price: '$39/mo',
     trialDays: 0,
-    totalPosts: 100,
-    dailyPosts: 5,
+    totalPosts: 25,
+    dailyPosts: 2,
     features: [
-      '3 Google Business Profiles',
-      'Advanced scheduling & analytics',
-      'Priority support',
-      'Custom branding removal',
-      'Auto-reply templates',
+      '25 posts per month',
+      '2 posts per day',
+      'WhatsApp workflow',
+      'Google post generation',
+      'Custom domain support',
+      'AI post content & captions',
+      'Voice note support',
+      'Basic analytics',
     ],
     color: '#2563EB', // Blue
   },
@@ -45,17 +49,37 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     name: 'Growth',
     price: '$79/mo',
     trialDays: 0,
-    totalPosts: -1,     // -1 = unlimited
-    dailyPosts: 20,
+    totalPosts: 60,
+    dailyPosts: 4,
     features: [
-      'Unlimited Google Business Profiles',
-      'Team collaboration (5 seats)',
-      'Dedicated account manager',
-      'API access',
-      'White-label reporting',
-      'Custom integrations',
+      '60 posts per month',
+      '4 posts per day',
+      'Social content generation',
+      'Facebook + Instagram content',
+      'Priority processing',
+      'Advanced analytics',
+      'Multi-location support',
+      'Review tracking dashboard',
     ],
     color: '#7C3AED', // Purple
+  },
+  agency: {
+    name: 'Agency',
+    price: '$199/mo',
+    trialDays: 0,
+    totalPosts: 250,
+    dailyPosts: 2,
+    features: [
+      '250 posts per month',
+      'Up to 10 clients',
+      '2 posts/day per client',
+      'Client management dashboard',
+      'White-label workflow',
+      'Bulk workflow tools',
+      'Shared team access',
+      'Priority support',
+    ],
+    color: '#10B981', // Emerald
   },
 };
 

@@ -8,7 +8,14 @@ export async function GET(req: Request) {
   if (!imageUrl) return new Response('Missing URL', { status: 400 });
 
   try {
-    const imageRes = await fetch(imageUrl);
+    const headers: HeadersInit = {};
+    if (imageUrl.includes('api.twilio.com') && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+      headers['Authorization'] = `Basic ${auth}`;
+    }
+
+    const imageRes = await fetch(imageUrl, { headers });
+    if (!imageRes.ok) throw new Error(`Failed to fetch from source: ${imageRes.status}`);
     const buffer = await imageRes.arrayBuffer();
     
     return new Response(buffer, {
@@ -18,7 +25,8 @@ export async function GET(req: Request) {
         'Cache-Control': 'public, max-age=31536000',
       },
     });
-  } catch {
+  } catch (error) {
+    console.error('Image download error:', error);
     return new Response('Failed to fetch image', { status: 500 });
   }
 }

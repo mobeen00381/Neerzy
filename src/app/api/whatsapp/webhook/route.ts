@@ -189,13 +189,38 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
       }
     }
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Send premium action page button link (consolidated flow)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://neerzy.com').replace(/\/$/, '');
-    const actionUrl = `${appUrl}/action/${draft.id}`;
+    // Notice about images download
+    await sendTwilioMessage(phone, `📸 *Photos are sent above. Tap and save them directly to your phone's gallery!*`, fromNumber);
 
-    // GBP link
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Send Post Text directly (User can long-press and copy on WhatsApp)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const lines = postContent.split('\n');
+    const extractField = (prefix: string) => {
+      const line = lines.find((l: string) => l.toUpperCase().includes(prefix.toUpperCase()));
+      return line ? line.replace(new RegExp(`\\*{0,2}${prefix}\\*{0,2}`, 'i'), '').trim() : '';
+    };
+
+    const headline = extractField('HEADLINE:') || draft.customer_name || 'New Post';
+    const body = extractField('BODY:') || draft.voice_note || '';
+    const cta = extractField('CTA:') || '';
+    const hashtags = extractField('HASHTAGS:') || '';
+
+    const formattedPostText = `📋 *Copy Post Text below:*
+
+${headline}
+
+${body}
+
+${cta}
+
+${hashtags}`;
+
+    await sendTwilioMessage(phone, formattedPostText, fromNumber);
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Resolve & Send GBP Link directly on WhatsApp
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     let gbpLink = 'https://business.google.com/';
     try {
       const { data: business } = await supabase
@@ -215,8 +240,26 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
       console.warn('⚠️ Could not fetch GBP link:', dbErr);
     }
 
-    // Single clean message with consolidated Action page link (with buttons)
-    const actionMessage = `✅ *Post Ready!*\n\n👉 *Manage Post & Publish (Copy Text, Download Images & Open GBP):*\n${actionUrl}\n\nType *DONE* when published.`;
+    const gbpMessage = `🌐 *Open GBP directly to paste & publish:*
+${gbpLink}
+
+(Paste the copied text above and select the saved photos)`;
+    await sendTwilioMessage(phone, gbpMessage, fromNumber);
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Send fallback action link (clean of vercel.app references)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
+    if (appUrl.includes('vercel.app')) {
+      appUrl = 'https://www.neerzy.com';
+    }
+    appUrl = appUrl.replace(/\/$/, '');
+    const actionUrl = `${appUrl}/action/${draft.id}`;
+
+    const actionMessage = `👉 *Or manage via Dashboard if needed:*
+${actionUrl}
+
+Type *DONE* when published.`;
 
     return await sendTwilioMessage(phone, actionMessage, fromNumber);
 

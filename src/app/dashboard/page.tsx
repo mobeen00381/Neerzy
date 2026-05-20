@@ -180,21 +180,64 @@ export default function Dashboard() {
         setBusinessProfile(bData);
       }
 
-      // 3. Fetch user posts and calculate stats
+      // 3. Fetch user posts from posts (web simulator) and pending_posts (WhatsApp drafts)
+      let whatsappPosts: any[] = [];
+      if (phone) {
+        try {
+          const { data: wpData } = await supabase
+            .from('pending_posts')
+            .select('*')
+            .eq('user_phone', phone)
+            .order('created_at', { ascending: true });
+          if (wpData) whatsappPosts = wpData;
+        } catch (wpErr) {
+          console.warn('⚠️ Could not load pending_posts:', wpErr);
+        }
+      }
+
       const { data: postsData } = await supabase
         .from('posts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
-      const dbMessages: Message[] = (postsData || []).map((p: any) => ({
+      const mappedWebMessages = (postsData || []).map((p: any) => ({
         id: p.id,
         text: p.content ? p.content.replace(/<[^>]*>/g, '') : '', // strip HTML
         image: p.image_url,
-        sender: 'user',
+        sender: 'user' as const,
         timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        created_at: new Date(p.created_at),
         status: p.status || 'published'
       }));
+
+      const mappedWAMessages = whatsappPosts.map((p: any) => {
+        const googlePost = p.google_post || '';
+        const lines = googlePost.split('\n');
+        const extractField = (prefix: string) => {
+          const line = lines.find((l: string) => l.toUpperCase().includes(prefix.toUpperCase()));
+          return line ? line.replace(new RegExp(`\\*{0,2}${prefix}\\*{0,2}`, 'i'), '').trim() : '';
+        };
+        const headline = extractField('HEADLINE:') || p.customer_name || 'New Post';
+        const body = extractField('BODY:') || p.voice_note || '';
+        const cta = extractField('CTA:') || '';
+        const hashtags = extractField('HASHTAGS:') || '';
+        const fullText = [headline, '', body, '', cta, '', hashtags].filter(Boolean).join('\n');
+
+        return {
+          id: p.id,
+          text: p.google_post ? fullText : `[Draft] Voice note: ${p.voice_note || 'Photo upload'}`,
+          image: p.images?.[0] || null,
+          sender: 'user' as const,
+          timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          created_at: new Date(p.created_at),
+          status: p.status === 'published' ? 'published' : 'draft'
+        };
+      });
+
+      const dbMessages = [...mappedWebMessages, ...mappedWAMessages].sort(
+        (a, b) => a.created_at.getTime() - b.created_at.getTime()
+      );
 
       const welcomeMessage: Message = {
         id: 'welcome',
@@ -205,11 +248,11 @@ export default function Dashboard() {
 
       setMessages([welcomeMessage, ...dbMessages]);
 
-      // Calculate counts
-      const totalCount = postsData?.length || 0;
+      // Calculate counts of published posts towards plan quotas
+      const totalCount = dbMessages.filter(p => p.status === 'published').length;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const dailyCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= today).length;
+      const dailyCount = dbMessages.filter(p => p.status === 'published' && p.created_at >= today).length;
 
       setStats({ total: totalCount, daily: dailyCount });
 
