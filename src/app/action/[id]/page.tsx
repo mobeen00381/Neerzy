@@ -20,18 +20,81 @@ export default function ActionPage({ params }: { params: Promise<{ id: string }>
   const [data, setData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [gbpLink, setGbpLink] = useState('https://business.google.com/');
 
   useEffect(() => {
     fetchData();
   }, [id]);
 
   const fetchData = async () => {
-    const { data: postData } = await supabase
-      .from('pending_posts')
-      .select('*')
-      .eq('id', id)
-      .single();
-    setData(postData);
+    try {
+      // First try pending_posts
+      const { data: postData, error: postErr } = await supabase
+        .from('pending_posts')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (postData && !postErr) {
+        setData({
+          ...postData,
+          google_post: postData.google_post || '',
+          images: postData.images || []
+        });
+
+        if (postData.user_phone) {
+          const { data: business } = await supabase
+            .from('business_profiles')
+            .select('business_name, google_place_id')
+            .eq('user_phone', postData.user_phone)
+            .maybeSingle();
+
+          if (business) {
+            if (business.business_name) {
+              setGbpLink(`https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`);
+            } else if (business.google_place_id) {
+              setGbpLink(`https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`);
+            }
+          }
+        }
+        return;
+      }
+
+      // Try jobs table
+      const { data: jobData, error: jobErr } = await supabase
+        .from('jobs')
+        .select('*, users(*)')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (jobData && !jobErr) {
+        setData({
+          ...jobData,
+          customer_name: jobData.customer_name,
+          google_post: [jobData.title, '', jobData.content, '', Array.isArray(jobData.hashtags) ? jobData.hashtags.join(' ') : ''].filter(Boolean).join('\n'),
+          images: jobData.media_urls || []
+        });
+
+        const userPhone = jobData.users?.whatsapp_phone;
+        if (userPhone) {
+          const { data: business } = await supabase
+            .from('business_profiles')
+            .select('business_name, google_place_id')
+            .eq('user_phone', userPhone)
+            .maybeSingle();
+
+          if (business) {
+            if (business.business_name) {
+              setGbpLink(`https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`);
+            } else if (business.google_place_id) {
+              setGbpLink(`https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load post data:', err);
+    }
   };
 
   const handleCopy = () => {
@@ -158,7 +221,7 @@ export default function ActionPage({ params }: { params: Promise<{ id: string }>
             3️⃣ Publish on Google
           </p>
           <a 
-            href="https://business.google.com/create" 
+            href={gbpLink} 
             target="_blank"
             rel="noopener noreferrer"
             className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-2xl font-black text-sm tracking-wider flex items-center justify-center gap-2 shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 hover:scale-[1.01] transition-all"

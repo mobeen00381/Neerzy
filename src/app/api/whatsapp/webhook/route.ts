@@ -190,28 +190,33 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Send 3 simple action buttons (short clean links)
+    // Send premium action page button link (consolidated flow)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const appUrl = 'https://neerzy.com';
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://neerzy.com').replace(/\/$/, '');
+    const actionUrl = `${appUrl}/action/${draft.id}`;
 
     // GBP link
     let gbpLink = 'https://business.google.com/';
     try {
       const { data: business } = await supabase
         .from('business_profiles')
-        .select('google_place_id')
+        .select('business_name, google_place_id')
         .eq('user_phone', phone)
         .maybeSingle();
 
-      if (business?.google_place_id) {
-        gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
+      if (business) {
+        if (business.business_name) {
+          gbpLink = `https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`;
+        } else if (business.google_place_id) {
+          gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
+        }
       }
     } catch (dbErr) {
       console.warn('⚠️ Could not fetch GBP link:', dbErr);
     }
 
-    // Single clean message with 3 short links
-    const actionMessage = `✅ *Post Ready!*\n\n📋 *Copy Post:*\n${appUrl}/copy/${draft.id}\n\n🖼️ *Download Images:*\n${appUrl}/images/${draft.id}\n\n🌐 *Open GBP:*\n${gbpLink}\n\nType *DONE* when published.`;
+    // Single clean message with consolidated Action page link (with buttons)
+    const actionMessage = `✅ *Post Ready!*\n\n👉 *Manage Post & Publish (Copy Text, Download Images & Open GBP):*\n${actionUrl}\n\nType *DONE* when published.`;
 
     return await sendTwilioMessage(phone, actionMessage, fromNumber);
 

@@ -12,11 +12,32 @@ async function getJob(id: string) {
   // First try the new 'jobs' table
   let { data, error } = await supabase
     .from("jobs")
-    .select("*")
+    .select("*, users(*)")
     .eq("id", id)
     .single();
 
-  if (!error && data) return data;
+  if (!error && data) {
+    let gbpLink = 'https://business.google.com/';
+    if (data.users?.whatsapp_phone) {
+      const { data: business } = await supabase
+        .from('business_profiles')
+        .select('business_name, google_place_id')
+        .eq('user_phone', data.users.whatsapp_phone)
+        .maybeSingle();
+
+      if (business) {
+        if (business.business_name) {
+          gbpLink = `https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`;
+        } else if (business.google_place_id) {
+          gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
+        }
+      }
+    }
+    return {
+      ...data,
+      gbpLink
+    };
+  }
 
   // Fallback to 'pending_posts' table (WhatsApp flow stores data here)
   const { data: legacyData, error: legacyError } = await supabase
@@ -27,6 +48,24 @@ async function getJob(id: string) {
 
   if (legacyError || !legacyData) {
     return null;
+  }
+
+  // Fetch business profile to build direct GBP link for legacy draft
+  let gbpLink = 'https://business.google.com/';
+  if (legacyData.user_phone) {
+    const { data: business } = await supabase
+      .from('business_profiles')
+      .select('business_name, google_place_id')
+      .eq('user_phone', legacyData.user_phone)
+      .maybeSingle();
+
+    if (business) {
+      if (business.business_name) {
+        gbpLink = `https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`;
+      } else if (business.google_place_id) {
+        gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
+      }
+    }
   }
 
   // Parse the AI-generated google_post content into structured fields
@@ -54,12 +93,14 @@ async function getJob(id: string) {
     customer_name: legacyData.customer_name,
     customer_phone: legacyData.customer_phone,
     user_phone: legacyData.user_phone,
-    status: legacyData.status
+    status: legacyData.status,
+    gbpLink: gbpLink
   };
 }
 
-export default async function PublishHelper({ params }: { params: { id: string } }) {
-  const job = await getJob(params.id);
+export default async function PublishHelper({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const job = await getJob(id);
 
   if (!job) {
     notFound();

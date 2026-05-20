@@ -14,7 +14,7 @@ export default function PublishClient({ job }: { job: any }) {
   };
 
   // Build the GBP post link
-  const gbpLink = 'https://business.google.com/create-post';
+  const gbpLink = job.gbpLink || 'https://business.google.com/';
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-md mx-auto font-sans">

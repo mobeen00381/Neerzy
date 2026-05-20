@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 
-export default function CopyPostPage({ params }: { params: { id: string } }) {
+export default function CopyPostPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [postText, setPostText] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -11,7 +12,7 @@ export default function CopyPostPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     async function loadPost() {
       try {
-        const res = await fetch(`/api/post-data/${params.id}`);
+        const res = await fetch(`/api/post-data/${id}`);
         if (!res.ok) throw new Error('Post not found');
         const data = await res.json();
         setPostText(data.text);
@@ -22,7 +23,8 @@ export default function CopyPostPage({ params }: { params: { id: string } }) {
       }
     }
     loadPost();
-  }, [params.id]);
+  }, [id]);
+
 
   const handleCopy = async () => {
     try {

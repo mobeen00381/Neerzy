@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 
-export default function DownloadImagesPage({ params }: { params: { id: string } }) {
+export default function DownloadImagesPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -11,7 +12,7 @@ export default function DownloadImagesPage({ params }: { params: { id: string } 
   useEffect(() => {
     async function loadImages() {
       try {
-        const res = await fetch(`/api/post-data/${params.id}`);
+        const res = await fetch(`/api/post-data/${id}`);
         if (!res.ok) throw new Error('Post not found');
         const data = await res.json();
         setImages(data.images || []);
@@ -22,7 +23,8 @@ export default function DownloadImagesPage({ params }: { params: { id: string } 
       }
     }
     loadImages();
-  }, [params.id]);
+  }, [id]);
+
 
   const handleDownload = async (url: string, index: number) => {
     try {
