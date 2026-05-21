@@ -38,6 +38,8 @@ export async function POST(req: Request) {
 
     console.log(`📥 Message from ${from} to ${to}: "${body}" (Media: ${numMedia})`);
 
+    let savedType = 'Message';
+
     if (body) {
       const text = body.toUpperCase().trim();
 
@@ -58,17 +60,20 @@ export async function POST(req: Request) {
       if (phoneMatch && !isMerchantPhone) {
         const name = body.replace(phoneMatch[1], '').trim() || 'Customer';
         await saveDraft(from, { customerName: name, customerPhone: phoneMatch[1] });
+        savedType = 'Customer detail for review link';
       } else {
         await saveDraft(from, { voice_note: body });
+        savedType = 'Description';
       }
     }
 
     if (mediaUrl0 && numMedia > 0) {
       console.log('💾 Saving image draft:', mediaUrl0);
       await saveDraft(from, { imageUrl: mediaUrl0 });
+      savedType = 'Photo';
     }
 
-    return await sendTwilioMessage(from, "✅ *Saved.*\n\nSend more photos or type *POST* when ready.", to);
+    return await sendTwilioMessage(from, `✅ *${savedType} saved.*\n\nSend more photos or type *POST* when ready.`, to);
 
   } catch (error) {
     console.error('❌ Webhook Error:', error);
@@ -283,7 +288,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       .limit(1)
       .single();
 
-    if (!post?.customer_phone) {
+    if (!post) {
       return await sendTwilioMessage(phone, "⚠️ *No pending generated post found.*", fromNumber);
     }
 
