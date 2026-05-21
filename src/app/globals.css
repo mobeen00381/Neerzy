@@ -414,6 +414,12 @@
   gap: 32px;
 }
 
+.vis-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+
 .vis-card {
   background: var(--bg-soft);
   padding: 48px;
@@ -452,12 +458,14 @@
   .trust-badges { justify-content: center; }
   .workflow-grid { grid-template-columns: repeat(2, 1fr); }
   .vis-grid { grid-template-columns: 1fr; }
+  .vis-grid-4 { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
   .hero-content h1 { font-size: 42px; }
   .nav-links { display: none; }
   .workflow-grid { grid-template-columns: 1fr; }
+  .vis-grid-4 { grid-template-columns: 1fr; }
 }
 /* Custom Animations for Checker Page */
 @keyframes float {

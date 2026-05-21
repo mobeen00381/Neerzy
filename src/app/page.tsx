@@ -182,14 +182,14 @@ export default function Page() {
           <div className="text-center mb-10">
             <h2 className="text-2xl md:text-4xl font-black text-[#0F5C4D]">Built for busy traders</h2>
           </div>
-          <div className="flex flex-wrap gap-4 justify-center">
+          <div className="flex flex-wrap lg:flex-nowrap gap-3 md:gap-4 justify-center">
             {[
               "No marketing skills needed",
               "No complicated dashboards",
               "No wasting time after work",
               "Just use WhatsApp like normal"
             ].map((text, i) => (
-              <div key={i} className="btn bg-white text-[#0F5C4D] border border-emerald-100 font-bold px-6 py-3 rounded-full cursor-default shadow-sm">
+              <div key={i} className="btn bg-white text-[#0F5C4D] border border-emerald-100 font-bold px-4 py-2 md:px-6 md:py-3 text-sm lg:text-base rounded-full cursor-default shadow-sm whitespace-nowrap">
                 <span className="text-[#25D366] mr-2">✔</span> {text}
               </div>
             ))}
@@ -231,7 +231,7 @@ export default function Page() {
               One WhatsApp message creates everything
             </h2>
           </div>
-          <div className="vis-grid">
+          <div className="vis-grid-4">
             {[
               { t: "Review requests", i: "⭐" },
               { t: "Google posts", i: "📍" },
@@ -255,29 +255,6 @@ export default function Page() {
           <div className="text-lg md:text-2xl font-extrabold">More activity = improved local visibility</div>
         </div>
       </div>
-
-      {/* GMB Checker */}
-      <section className="section-padding bg-[#F0F7F5]" id="gmb-checker">
-        <div className="container max-w-3xl text-center space-y-8">
-          <h2 className="text-3xl md:text-5xl font-black text-[#0F5C4D] leading-tight">
-            Check how visible your business is on Google
-          </h2>
-          <div className="flex flex-col sm:flex-row gap-4 items-center bg-white p-5 sm:p-8 rounded-[2.5rem] shadow-xl border border-slate-100/50">
-            <input 
-              type="text" 
-              placeholder="Enter your business name..." 
-              className="w-full sm:flex-1 px-6 py-4 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#25D366] text-base font-semibold text-slate-800" 
-            />
-            <Link 
-              href="/gmb-audit-tool" 
-              className="w-full sm:w-auto bg-[#0F5C4D] hover:bg-[#073a30] text-white font-black py-4 px-8 rounded-2xl shadow-lg transition-all active:scale-[0.98] text-center whitespace-nowrap"
-            >
-              Check Score
-            </Link>
-          </div>
-          <p className="text-slate-400 font-bold text-sm tracking-wider uppercase">Free instant visibility report</p>
-        </div>
-      </section>
 
       {/* Final CTA */}
       <section className="section-padding bg-gradient-to-br from-[#0F5C4D] to-[#073a30] text-white text-center">
