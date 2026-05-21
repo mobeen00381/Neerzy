@@ -145,34 +145,34 @@ export default function PricingPage() {
       </section>
 
       {/* Plans Section */}
-      <section id="plans" className="py-24 px-6">
-        <div className="container mx-auto max-w-7xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <section id="plans" className="py-20 px-4 md:px-6">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {PLANS.map((plan, i) => (
               <div 
                 key={i} 
-                className={`relative bg-white p-8 rounded-[24px] shadow-sm border-2 transition-all hover:shadow-xl hover:-translate-y-1 ${
+                className={`relative bg-white p-6 rounded-[20px] shadow-sm border-2 transition-all hover:shadow-xl hover:-translate-y-1 ${
                   plan.highlight ? 'border-[#0F5C4D] ring-4 ring-[#0F5C4D]/5' : 'border-slate-100'
                 }`}
               >
                 {plan.badge && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#0F5C4D] text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0F5C4D] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg whitespace-nowrap">
                     {plan.badge}
                   </div>
                 )}
                 
-                <div className="mb-8">
-                  <h3 className="text-lg font-black text-slate-400 uppercase tracking-widest mb-1">{plan.name}</h3>
+                <div className="mb-6">
+                  <h3 className="text-base font-black text-slate-400 uppercase tracking-widest mb-1">{plan.name}</h3>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-black text-slate-900">${plan.price}</span>
-                    {plan.price !== '0' && <span className="text-slate-400 font-bold">/mo</span>}
+                    <span className="text-3xl font-black text-slate-900">${plan.price}</span>
+                    {plan.price !== '0' && <span className="text-slate-400 font-bold text-sm">/mo</span>}
                   </div>
-                  <p className="mt-4 text-sm text-slate-500 font-medium leading-relaxed">{plan.bestFor}</p>
+                  <p className="mt-3 text-[13px] text-slate-500 font-medium leading-relaxed min-h-[40px]">{plan.bestFor}</p>
                 </div>
 
                 <Link 
                   href={plan.href}
-                  className={`block w-full py-4 rounded-xl text-center font-black transition-all active:scale-95 mb-10 ${
+                  className={`block w-full py-3 rounded-lg text-center text-sm font-black transition-all active:scale-95 mb-8 ${
                     plan.highlight 
                       ? 'bg-[#0F5C4D] text-white shadow-lg shadow-[#0F5C4D]/20 hover:bg-[#073a30]' 
                       : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
@@ -181,16 +181,16 @@ export default function PricingPage() {
                   {plan.cta}
                 </Link>
 
-                <ul className="space-y-4">
+                <ul className="space-y-3">
                   {plan.features.map((feature, j) => (
-                    <li key={j} className={`flex gap-3 text-sm ${feature.included ? 'text-slate-700' : 'text-slate-400 line-through opacity-50'}`}>
-                      <span className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                    <li key={j} className={`flex gap-2.5 text-[13px] ${feature.included ? 'text-slate-700' : 'text-slate-400 line-through opacity-50'}`}>
+                      <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[8px] mt-0.5 ${
                         feature.included ? 'bg-[#F0F7F5] text-[#25D366]' : 'bg-slate-100 text-slate-300'
                       }`}>
                         {feature.included ? '✔' : '✕'}
                       </span>
-                      <span className="flex items-center gap-1.5">
-                        {feature.text.includes('WhatsApp') && <WhatsAppIcon size={14} className="text-[#25D366]" />}
+                      <span className="flex items-start gap-1.5 leading-snug">
+                        {feature.text.includes('WhatsApp') && <WhatsAppIcon size={12} className="text-[#25D366] mt-0.5 shrink-0" />}
                         {feature.text}
                       </span>
                     </li>
