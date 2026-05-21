@@ -53,11 +53,8 @@ export async function POST(req: Request) {
 
       // Check if message matches customer name and phone details: e.g. "John Doe +1234567890"
       const phoneMatch = body.match(/(\+?\d{10,15})/);
-      const matchedPhone = phoneMatch ? phoneMatch[1].replace(/\D/g, '') : '';
-      const cleanFrom = from.replace(/\D/g, '');
-      const isMerchantPhone = matchedPhone === cleanFrom || (matchedPhone.length >= 8 && cleanFrom.endsWith(matchedPhone.slice(-8)));
 
-      if (phoneMatch && !isMerchantPhone) {
+      if (phoneMatch) {
         const name = body.replace(phoneMatch[1], '').trim() || 'Customer';
         await saveDraft(from, { customerName: name, customerPhone: phoneMatch[1] });
         savedType = 'Customer detail for review link';
@@ -306,7 +303,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       if (!business) {
         const { data: anyBusiness } = await supabase
           .from('business_profiles')
-          .select('review_link, google_place_id')
+          .select('review_link, google_place_id, business_name')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -330,29 +327,29 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     // Mark post as published
     await supabase.from('pending_posts').update({ status: 'published' }).eq('id', post.id);
 
-    // Check if the destination phone is empty or matches the merchant's phone number
-    const cleanCustomerPhone = post.customer_phone ? post.customer_phone.replace(/\D/g, '') : '';
-    const cleanMerchantPhone = phone.replace(/\D/g, '');
-    const isSelfSend = !cleanCustomerPhone || cleanCustomerPhone === cleanMerchantPhone || (cleanCustomerPhone.length >= 8 && cleanMerchantPhone.endsWith(cleanCustomerPhone.slice(-8)));
-
-    if (isSelfSend) {
-      return await sendTwilioMessage(phone, `✅ *Your Google Review link is ready!* \n\nShare this link with your customers to get reviews:\n🔗 ${reviewLink}`, fromNumber);
-    }
-
-    // Clean customer name (remove newlines/extra whitespace)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 3. Send Review Request
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const businessName = business?.business_name || 'Your Connected Business';
+    const targetCustomerPhone = post.customer_phone || phone; // Fallback to self-send if missing
     const customerName = (post.customer_name || 'Customer').replace(/[\n\r]+/g, ' ').trim();
-
-    // Send review request to customer
+    
+    // Always use the approved Twilio review template
     const reviewMessage = `Hi ${customerName}! 👋\n\nThank you for choosing our services! We'd really appreciate it if you could leave us a quick review. It helps us grow! ⭐\n\n🔗 ${reviewLink}\n\nThank you! 🙏`;
 
-    try {
-      await sendTwilioMessage(post.customer_phone, reviewMessage, fromNumber);
-    } catch (sendErr: any) {
-      console.error('❌ Failed to send review to customer:', sendErr.message);
-      return await sendTwilioMessage(phone, `❌ Could not send review request to ${customerName}. Please check the customer phone number.`, fromNumber);
+    await sendTwilioMessage(targetCustomerPhone, reviewMessage, fromNumber);
+
+    // If it's a real customer (not sending to yourself), send a confirmation to the merchant
+    const cleanCustomerPhone = targetCustomerPhone.replace(/\D/g, '');
+    const cleanMerchantPhone = phone.replace(/\D/g, '');
+    const isSelfSend = cleanCustomerPhone === cleanMerchantPhone || (cleanCustomerPhone.length >= 8 && cleanMerchantPhone.endsWith(cleanCustomerPhone.slice(-8)));
+
+    if (!isSelfSend) {
+      const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n🔗 Review link: ${reviewLink}`;
+      await sendTwilioMessage(phone, confirmMessage, fromNumber);
     }
 
-    return await sendTwilioMessage(phone, `✅ *Review request sent to ${customerName}!*\n\n🔗 Review link: ${reviewLink}`, fromNumber);
+    return NextResponse.json({ success: true });
 
   } catch (error: any) {
     console.error('❌ handleSendReview error:', error);
