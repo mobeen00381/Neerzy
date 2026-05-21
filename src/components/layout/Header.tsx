@@ -4,9 +4,25 @@ import Link from "next/link";
 import { Button } from "../ui/Button";
 import { ThemeToggle } from "./ThemeToggle";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Header() {
   const pathname = usePathname();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const hideHeader = pathname?.startsWith('/dashboard') || 
                      pathname?.startsWith('/onboarding') || 
                      pathname?.startsWith('/welcome') || 
@@ -44,12 +60,20 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          <Link href="/login" className="hidden sm:inline-block">
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 font-medium">Log in</Button>
-          </Link>
-          <Link href="/pricing#plans">
-            <Button className="bg-[#25D366] hover:bg-[#1da851] text-black shadow-md transition-all font-medium border-none rounded-full px-6">Get Started</Button>
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/dashboard">
+              <Button className="bg-[#25D366] hover:bg-[#1da851] text-black shadow-md transition-all font-medium border-none rounded-full px-6">Dashboard</Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="hidden sm:inline-block">
+                <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 font-medium">Log in</Button>
+              </Link>
+              <Link href="/pricing#plans">
+                <Button className="bg-[#25D366] hover:bg-[#1da851] text-black shadow-md transition-all font-medium border-none rounded-full px-6">Get Started</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

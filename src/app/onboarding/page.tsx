@@ -18,6 +18,35 @@ function OnboardingContent() {
   
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Check if already onboarded
+  useEffect(() => {
+    const checkStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.user_metadata?.gbp_connected) {
+        router.push('/dashboard');
+      } else if (user) {
+        // Fallback check: look up in business_profiles directly
+        const phone = user.phone || user.user_metadata?.phone_number || user.user_metadata?.phone;
+        if (phone) {
+          const { data } = await supabase
+            .from('business_profiles')
+            .select('google_place_id')
+            .eq('user_phone', phone)
+            .maybeSingle();
+            
+          if (data?.google_place_id) {
+            // Update metadata so we don't have to check DB next time
+            await supabase.auth.updateUser({
+              data: { gbp_connected: true }
+            });
+            router.push('/dashboard');
+          }
+        }
+      }
+    };
+    checkStatus();
+  }, [router]);
+
   // Real-time search as user types
   useEffect(() => {
     if (searchQuery.trim().length < 3) {
