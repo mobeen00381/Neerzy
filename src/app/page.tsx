@@ -1,11 +1,44 @@
+import type { Metadata } from "next";
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 
-// Mockup Page Components
+export const metadata: Metadata = {
+  title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
+  description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
+  alternates: {
+    canonical: 'https://www.neerzy.com',
+  },
+  openGraph: {
+    title: "Neerzy | Local Business Marketing Automation",
+    description: "Turn every job into more calls. We create Google posts, update your website, and send review requests instantly via WhatsApp.",
+    url: "https://www.neerzy.com",
+    siteName: "Neerzy",
+    locale: "en_US",
+    type: "website",
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Neerzy",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Send a job photo → we create your Google post, update your website, and send a review request instantly via WhatsApp.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+};
 
 export default function Page() {
   return (
     <div className="mockup-page">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
       <section className="hero">
         <div className="container hero-grid">

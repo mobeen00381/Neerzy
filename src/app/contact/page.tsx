@@ -1,6 +1,28 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact Us | Neerzy",
+  description: "Get in touch with the Neerzy team. We're here to help local traders grow their business online via WhatsApp.",
+  alternates: {
+    canonical: 'https://www.neerzy.com/contact',
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ContactPage",
+  "name": "Contact Us | Neerzy",
+  "description": "Get in touch with the Neerzy team.",
+  "url": "https://www.neerzy.com/contact"
+};
+
 export default function ContactPage() {
   return (
     <div className="container mx-auto px-6 py-20 max-w-4xl">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <h1 className="text-4xl font-bold mb-8 text-[#0F5C4D]">Contact Us</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         <div>

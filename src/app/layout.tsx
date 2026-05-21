@@ -20,9 +20,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
   description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
-  verification: {
-    google: "your_verification_code", // Replace with actual code from Search Console
-  },
 };
 
 export default function RootLayout({

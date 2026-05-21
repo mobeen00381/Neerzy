@@ -4,9 +4,21 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  "name": "About Us | Neerzy",
+  "description": "Built to help hardworking traders grow online. Neerzy makes marketing simple via WhatsApp.",
+  "url": "https://www.neerzy.com/about"
+};
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-[#25D366]/30">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       
       {/* SECTION 1 — HERO: Emotional & Human */}
       <section className="relative pt-24 pb-16 overflow-hidden border-b border-slate-50">

@@ -4,6 +4,14 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Pricing | Neerzy",
+  "description": "Pricing plans for Neerzy marketing automation.",
+  "url": "https://www.neerzy.com/pricing"
+};
+
 const PLANS = [
   {
     name: 'Free',
@@ -119,6 +127,10 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
       <section className="pt-24 pb-20 px-6 bg-white border-b border-slate-100">
         <div className="container mx-auto max-w-5xl text-center">
