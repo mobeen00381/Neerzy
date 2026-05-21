@@ -10,7 +10,7 @@ export default function Page() {
       <section className="hero">
         <div className="container hero-grid">
           <div className="hero-content">
-            <h1>Turn every job into more calls using <span className="text-[#25D366]"><WhatsAppIcon size={40} className="mr-2" />WhatsApp</span></h1>
+            <h1 className="font-black">Turn every job into more calls using <span className="text-[#25D366]"><WhatsAppIcon size={40} className="mr-2" />WhatsApp</span></h1>
             <p>Send a job photo → we help you create Google posts, update your website, and send review requests faster.</p>
             <div className="hero-ctas">
               <Link href="/pricing" className="btn btn-primary">Start with 5 Free Posts</Link>
