@@ -251,17 +251,16 @@ ${gbpLink}
     await sendTwilioMessage(phone, gbpMessage, fromNumber);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Send fallback action link (clean of vercel.app references)
+    // Send fallback link to Dashboard directly
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
     if (appUrl.includes('vercel.app')) {
       appUrl = 'https://www.neerzy.com';
     }
     appUrl = appUrl.replace(/\/$/, '');
-    const actionUrl = `${appUrl}/action/${draft.id}`;
 
-    const actionMessage = `👉 *Or manage via Dashboard if needed:*
-${actionUrl}
+    const actionMessage = `👉 *Or manage via Dashboard:*
+${appUrl}/dashboard
 
 Type *DONE* when published.`;
 

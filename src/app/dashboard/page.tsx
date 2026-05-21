@@ -24,7 +24,8 @@ import {
   Play,
   Square,
   Activity,
-  ChevronRight
+  ChevronRight,
+  Copy
 } from 'lucide-react';
 
 interface Message {
@@ -656,10 +657,9 @@ export default function Dashboard() {
                 <User className="w-5 h-5" />
               </div>
               <div className="flex-1 text-left min-w-0">
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between mb-3">
                   <span className="font-extrabold text-sm text-slate-900">Account & Listing</span>
                 </div>
-                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">Plan tier and Google Maps sync</p>
               </div>
             </button>
           </div>
@@ -690,7 +690,7 @@ export default function Dashboard() {
                     className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm relative ${
+                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm relative group ${
                         msg.sender === 'user'
                           ? 'bg-[#d9fdd3] text-slate-800 rounded-tr-none'
                           : 'bg-white text-slate-800 rounded-tl-none'
@@ -703,17 +703,31 @@ export default function Dashboard() {
                       )}
                       <p className="text-sm font-semibold whitespace-pre-wrap leading-relaxed">{msg.text}</p>
                       
-                      <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-slate-400 font-bold uppercase tracking-wide">
-                        <span>{msg.timestamp}</span>
-                        {msg.sender === 'user' && (
-                          <span>
-                            {msg.status === 'published' ? (
-                              <CheckCheck className="w-3.5 h-3.5 text-[#53bdeb]" />
-                            ) : (
-                              <Check className="w-3.5 h-3.5 text-slate-400" />
-                            )}
-                          </span>
-                        )}
+                      <div className="flex items-center justify-between mt-2">
+                        {/* Copy Button */}
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(msg.text);
+                            alert('Copied to clipboard!');
+                          }}
+                          className="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-emerald-700 transition-colors opacity-0 group-hover:opacity-100 bg-white/50 px-2 py-1 rounded"
+                          title="Copy message"
+                        >
+                          <Copy className="w-3 h-3" /> Copy
+                        </button>
+                        
+                        <div className="flex items-center gap-1 text-[9px] text-slate-400 font-bold uppercase tracking-wide ml-auto">
+                          <span>{msg.timestamp}</span>
+                          {msg.sender === 'user' && (
+                            <span>
+                              {msg.status === 'published' ? (
+                                <CheckCheck className="w-3.5 h-3.5 text-[#53bdeb]" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5 text-slate-400" />
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -835,39 +849,39 @@ export default function Dashboard() {
             <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto space-y-8 max-h-[calc(100vh-80px)]">
               <div className="max-w-4xl mx-auto space-y-8">
                 <div>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Performance Analytics</h2>
-                  <p className="text-sm text-slate-500 font-semibold mt-1">Real-time local search and engagement rankings from Google</p>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Real-Time Usage</h2>
+                  <p className="text-sm text-slate-500 font-semibold mt-1">Accurate usage statistics tracked directly from your WhatsApp and Dashboard activity</p>
                 </div>
 
                 {/* Analytics summary grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">GMB Views</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1">1,420</span>
-                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">▲ +12% vs last month</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Posts</span>
+                      <span className="text-3xl font-black text-slate-900 block mt-1">{stats.total}</span>
+                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">Lifetime generated posts</span>
                     </div>
                     <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-bold">
-                      👁️
+                      📝
                     </div>
                   </div>
 
                   <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Customer Actions</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1">248</span>
-                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">▲ +8% directions/calls</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Posts Today</span>
+                      <span className="text-3xl font-black text-slate-900 block mt-1">{stats.daily}</span>
+                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">Daily quota utilized</span>
                     </div>
                     <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl font-bold">
-                      📞
+                      ⚡
                     </div>
                   </div>
 
                   <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">SEO Health Score</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1">94%</span>
-                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">● Excellent visibility</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Active Plan</span>
+                      <span className="text-3xl font-black text-slate-900 block mt-1 capitalize">{plan}</span>
+                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">⏳ {daysCountdown}</span>
                     </div>
                     <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-xl font-bold">
                       ⭐
@@ -875,63 +889,28 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* SVG Visual Graph */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-wider">GBP Impressions (7 Days)</span>
-                    <span className="text-xs text-[#0F5C4D] font-bold">Total: 4.8K impressions</span>
-                  </div>
-                  
-                  {/* Mock Chart using SVG */}
-                  <div className="h-48 w-full flex items-end justify-between pt-4 px-2">
-                    {[
-                      { day: 'Mon', val: 40 },
-                      { day: 'Tue', val: 55 },
-                      { day: 'Wed', val: 75 },
-                      { day: 'Thu', val: 60 },
-                      { day: 'Fri', val: 85 },
-                      { day: 'Sat', val: 95 },
-                      { day: 'Sun', val: 110 }
-                    ].map((d, i) => (
-                      <div key={i} className="flex flex-col items-center gap-2 flex-1">
-                        <div className="w-full flex items-end justify-center h-32 bg-slate-50 rounded-xl relative group">
-                          <div 
-                            style={{ height: `${(d.val / 110) * 100}%` }}
-                            className="w-4 sm:w-6 bg-gradient-to-t from-emerald-600 to-teal-500 rounded-lg group-hover:from-emerald-500 group-hover:to-teal-400 transition-all duration-500" 
-                          />
-                          <span className="absolute -top-6 bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                            {d.val * 10} views
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{d.day}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Activity List */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm space-y-4">
-                  <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase">Recent Actions</h3>
+                  <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase">Recent Activity</h3>
                   
                   <div className="space-y-3">
-                    {[
-                      { action: "Sync Completed", time: "Just now", desc: "1 post pushed directly to GMB profile." },
-                      { action: "Review Synced", time: "2 hours ago", desc: "Imported 2 new 5-star customer ratings." },
-                      { action: "GMB Connected", time: "Yesterday", desc: "Successfully authenticated with Google Places API." }
-                    ].map((act, i) => (
+                    {messages.filter(m => m.sender === 'user').reverse().slice(0, 5).map((act, i) => (
                       <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm shrink-0">
                           ✓
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center">
-                            <span className="font-bold text-slate-900 text-xs">{act.action}</span>
-                            <span className="text-[10px] text-slate-400 font-bold">{act.time}</span>
+                            <span className="font-bold text-slate-900 text-xs truncate mr-2">{act.text.slice(0, 40) || 'Image/Voice Post'}...</span>
+                            <span className="text-[10px] text-slate-400 font-bold shrink-0">{act.timestamp}</span>
                           </div>
-                          <p className="text-[11px] text-slate-500 font-semibold mt-0.5">{act.desc}</p>
+                          <p className="text-[11px] text-slate-500 font-semibold mt-0.5 capitalize">Status: {act.status}</p>
                         </div>
                       </div>
                     ))}
+                    {messages.filter(m => m.sender === 'user').length === 0 && (
+                      <div className="p-4 text-center text-slate-500 text-sm font-medium">No posts generated yet. Start chatting to create a post!</div>
+                    )}
                   </div>
                 </div>
               </div>
