@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const { planId, userId, paymentMethodId } = body;
 
     // MOCK SUBSCRIPTION CREATION
-    // Real implementation: Stripe API to create customer, attach payment method, start subscription with 90 day trial
+    // Real implementation: Paddle API to create customer and start subscription with 90 day trial
 
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
