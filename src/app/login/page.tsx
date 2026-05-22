@@ -96,7 +96,7 @@ function LoginContent() {
         const targetUrl = data.redirect || "/dashboard";
         
         if (plan || data.isNewUser) {
-          router.push(`/onboarding?plan=${plan || 'free'}`);
+          router.push(`/welcome?plan=${plan || 'free'}`);
         } else {
           router.push(targetUrl);
         }

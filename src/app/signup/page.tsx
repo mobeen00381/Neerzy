@@ -33,7 +33,7 @@ function SignupForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/onboarding?plan=${plan}`,
+          redirectTo: `${window.location.origin}/welcome?plan=${plan}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
@@ -61,13 +61,13 @@ function SignupForm() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/onboarding?plan=${plan}`
+          emailRedirectTo: `${window.location.origin}/welcome?plan=${plan}`
         }
       });
       
       if (error) throw error;
       // Navigate to onboarding with parameters
-      router.push(`/onboarding?plan=${plan}`);
+      router.push(`/welcome?plan=${plan}`);
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
     } finally {

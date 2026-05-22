@@ -11,6 +11,16 @@ export default function WelcomePage() {
   const router = useRouter();
   const [gbpConnected, setGbpConnected] = useState(false);
   const [appDownloaded, setAppDownloaded] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
 
   useEffect(() => {
     async function getUser() {
@@ -48,13 +58,21 @@ export default function WelcomePage() {
     window.location.href = authUrl;
   };
 
-  const handleDownloadApp = () => {
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setAppDownloaded(true);
+  const handleDownloadApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setAppDownloaded(true);
+        setDeferredPrompt(null);
+      }
     } else {
-      // In a real PWA this would trigger the install prompt
-      // For now we redirect to /dashboard to simulate "using the app"
-      window.location.href = '/dashboard';
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        setAppDownloaded(true);
+      } else {
+        setAppDownloaded(true);
+        window.location.href = '/dashboard';
+      }
     }
   };
 

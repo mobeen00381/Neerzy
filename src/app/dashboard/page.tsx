@@ -34,8 +34,10 @@ interface Message {
   image?: string | null;
   sender: 'user' | 'bot';
   timestamp: string;
+  date?: string;
   status?: string;
   isVoice?: boolean;
+  source?: 'webapp' | 'whatsapp';
 }
 
 export default function Dashboard() {
@@ -68,6 +70,28 @@ export default function Dashboard() {
   
   // PWA install prompt state
   const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleDownloadApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      setIsInstallOpen(true);
+    }
+  };
 
   // Sync state (Account tab)
   const [syncing, setSyncing] = useState(false);
@@ -208,8 +232,10 @@ export default function Dashboard() {
         image: p.image_url,
         sender: 'user' as const,
         timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date(p.created_at).toLocaleDateString(),
         created_at: new Date(p.created_at),
-        status: p.status || 'published'
+        status: p.status || 'published',
+        source: 'webapp' as const
       }));
 
       const mappedWAMessages = whatsappPosts.map((p: any) => {
@@ -231,8 +257,10 @@ export default function Dashboard() {
           image: p.images?.[0] || null,
           sender: 'user' as const,
           timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: new Date(p.created_at).toLocaleDateString(),
           created_at: new Date(p.created_at),
-          status: p.status === 'published' ? 'published' : 'draft'
+          status: p.status === 'published' ? 'published' : 'draft',
+          source: 'whatsapp' as const
         };
       });
 
@@ -415,8 +443,10 @@ export default function Dashboard() {
         image: newPost.image_url,
         sender: 'user',
         timestamp: new Date(newPost.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date(newPost.created_at).toLocaleDateString(),
         status: 'published',
-        isVoice
+        isVoice,
+        source: 'webapp'
       };
 
       setMessages(prev => [...prev, newMessage]);
@@ -546,7 +576,7 @@ export default function Dashboard() {
               Connect with WhatsApp
             </a>
             <button
-              onClick={() => setIsInstallOpen(true)}
+              onClick={handleDownloadApp}
               className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-700 bg-white rounded-xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm active:scale-95"
             >
               <Smartphone className="w-4 h-4" />
@@ -893,18 +923,28 @@ export default function Dashboard() {
                 <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm space-y-4">
                   <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase">Recent Activity</h3>
                   
-                  <div className="space-y-3">
-                    {messages.filter(m => m.sender === 'user').reverse().slice(0, 5).map((act, i) => (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    {messages.filter(m => m.sender === 'user').reverse().map((act, i) => (
                       <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-sm shrink-0">
-                          ✓
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${act.source === 'whatsapp' ? 'bg-[#25D366]/10 text-[#25D366]' : 'bg-emerald-50 text-emerald-700'}`}>
+                          {act.source === 'whatsapp' ? <MessageSquare className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center">
-                            <span className="font-bold text-slate-900 text-xs truncate mr-2">{act.text.slice(0, 40) || 'Image/Voice Post'}...</span>
-                            <span className="text-[10px] text-slate-400 font-bold shrink-0">{act.timestamp}</span>
+                            <span className="font-bold text-slate-900 text-xs truncate mr-2">{act.text.slice(0, 50) || 'Image/Voice Post'}...</span>
+                            <div className="text-right shrink-0">
+                              <span className="text-[10px] text-slate-400 font-bold block">{act.date || 'Today'}</span>
+                              <span className="text-[10px] text-slate-400 font-bold block mt-0.5">{act.timestamp}</span>
+                            </div>
                           </div>
-                          <p className="text-[11px] text-slate-500 font-semibold mt-0.5 capitalize">Status: {act.status}</p>
+                          <div className="flex justify-between items-center mt-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                              Via: {act.source === 'whatsapp' ? 'WhatsApp' : 'Web App'}
+                            </span>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${act.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {act.status}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))}
