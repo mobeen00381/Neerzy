@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     const body = (formData.get('Body') as string) || '';
     const numMedia = parseInt(formData.get('NumMedia') as string || '0', 10);
     const mediaUrl0 = formData.get('MediaUrl0') as string;
+    const mediaContentType0 = formData.get('MediaContentType0') as string;
 
     if (!from) return NextResponse.json({});
 
@@ -65,9 +66,39 @@ export async function POST(req: Request) {
     }
 
     if (mediaUrl0 && numMedia > 0) {
-      console.log('💾 Saving image draft:', mediaUrl0);
-      await saveDraft(from, { imageUrl: mediaUrl0 });
-      savedType = 'Photo';
+      if (mediaContentType0 && mediaContentType0.includes('audio')) {
+        console.log('🎙️ Received Voice Note:', mediaUrl0);
+        try {
+          const audioResponse = await fetch(mediaUrl0);
+          const buffer = await audioResponse.arrayBuffer();
+          
+          if (!process.env.OPENAI_API_KEY) {
+            console.warn("No OPENAI_API_KEY, mocking voice note transcription");
+            await saveDraft(from, { voice_note: "[Voice Note] Update recorded via WhatsApp" });
+            savedType = 'Voice Note';
+          } else {
+            const transcription = await openai.audio.transcriptions.create({
+              file: await (async () => {
+                const f = new File([buffer], "audio.ogg", { type: mediaContentType0 });
+                return f;
+              })(),
+              model: "whisper-1",
+            });
+            
+            console.log('✅ Transcribed:', transcription.text);
+            await saveDraft(from, { voice_note: transcription.text });
+            savedType = 'Voice Note';
+          }
+        } catch (err) {
+          console.error("❌ Whisper Transcription Failed:", err);
+          await saveDraft(from, { voice_note: "[Voice note transcription failed]" });
+          savedType = 'Voice Note';
+        }
+      } else {
+        console.log('💾 Saving image draft:', mediaUrl0);
+        await saveDraft(from, { imageUrl: mediaUrl0 });
+        savedType = 'Photo';
+      }
     }
 
     return await sendTwilioMessage(from, `✅ *${savedType} saved.*\n\nSend more photos or type *POST* when ready.`, to);

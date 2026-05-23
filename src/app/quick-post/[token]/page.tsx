@@ -1,7 +1,7 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
-import { Camera, Mic, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { use, useEffect, useState, useRef } from "react";
+import { Camera, Mic, ShieldCheck, CheckCircle2, Square } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
@@ -12,6 +12,10 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
   const [isValidToken, setIsValidToken] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     // Simulate secure token validation
@@ -23,7 +27,55 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
     }, 400); // reduced wait time
   }, [token]);
 
-  const handleSubmit = async (type: 'photo' | 'voice') => {
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+      alert("Could not access microphone.");
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    setIsRecording(false);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      const recorder = mediaRecorderRef.current;
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setIsSubmitting(true);
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'voicenote.webm');
+          const transcribeRes = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await transcribeRes.json();
+          const transcribedText = data.text || "Voice message update";
+          await handleSubmit('voice', transcribedText);
+        } catch (e) {
+          console.error("Failed to transcribe:", e);
+          await handleSubmit('voice', "Voice message update (transcription failed)");
+        }
+      };
+      recorder.stop();
+      recorder.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const handleSubmit = async (type: 'photo' | 'voice', content: string = "") => {
     setIsSubmitting(true);
     
     try {
@@ -33,7 +85,7 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
         body: JSON.stringify({
           token,
           type,
-          content: "", // Real implementation would pass base64 or text here
+          content,
           isDemoMessage: false
         }),
       });
@@ -112,19 +164,28 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
             )}
           </button>
 
-          <button 
-            onClick={() => handleSubmit('voice')} 
-            disabled={isSubmitting}
-            className="flex items-center justify-center gap-4 bg-blue-500 hover:bg-blue-600 text-white h-20 rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 transition-transform active:scale-95 disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <Mic className="w-7 h-7" /> Record Voice
-              </>
-            )}
-          </button>
+          {isRecording ? (
+            <button 
+              onClick={stopVoiceRecording} 
+              className="flex items-center justify-center gap-4 bg-red-500 hover:bg-red-600 text-white h-20 rounded-2xl font-bold text-lg shadow-xl shadow-red-500/20 transition-transform active:scale-95 animate-pulse"
+            >
+              <Square className="w-7 h-7 fill-current" /> Stop Recording
+            </button>
+          ) : (
+            <button 
+              onClick={startVoiceRecording} 
+              disabled={isSubmitting}
+              className="flex items-center justify-center gap-4 bg-blue-500 hover:bg-blue-600 text-white h-20 rounded-2xl font-bold text-lg shadow-xl shadow-blue-500/20 transition-transform active:scale-95 disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Mic className="w-7 h-7" /> Record Voice
+                </>
+              )}
+            </button>
+          )}
         </div>
         
         <p className="text-xs font-semibold text-slate-400 mt-8 uppercase tracking-widest">

@@ -67,6 +67,9 @@ export default function Dashboard() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordDuration, setRecordDuration] = useState(0);
   const recordingTimerRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   
   // PWA install prompt state
   const [isInstallOpen, setIsInstallOpen] = useState(false);
@@ -393,13 +396,30 @@ export default function Dashboard() {
     }
   };
 
-  // Mic voice recording simulation
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordDuration(0);
-    recordingTimerRef.current = setInterval(() => {
-      setRecordDuration(prev => prev + 1);
-    }, 1000);
+  // Mic voice recording logic
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      setRecordDuration(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordDuration(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Microphone access denied:", err);
+      alert("Could not access microphone. Please allow microphone permissions.");
+    }
   };
 
   const stopRecording = (shouldSend: boolean) => {
@@ -408,9 +428,46 @@ export default function Dashboard() {
     }
     setIsRecording(false);
 
-    if (shouldSend) {
-      const durationString = `${Math.floor(recordDuration / 60)}:${(recordDuration % 60).toString().padStart(2, '0')}`;
-      handleSendMessage(`🎙️ Voice Message (${durationString})`, undefined, true);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      const recorder = mediaRecorderRef.current;
+      
+      recorder.onstop = async () => {
+        if (shouldSend) {
+          setIsTranscribing(true);
+          const durationString = `${Math.floor(recordDuration / 60)}:${(recordDuration % 60).toString().padStart(2, '0')}`;
+          
+          try {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'voicenote.webm');
+            
+            const response = await fetch('/api/transcribe', {
+              method: 'POST',
+              body: formData,
+            });
+            const data = await response.json();
+            
+            if (data.text) {
+              handleSendMessage(`🎙️ [Voice Note]: ${data.text}`, undefined, true);
+            } else {
+              handleSendMessage(`🎙️ Voice Message (${durationString})`, undefined, true);
+            }
+          } catch (err) {
+            console.error("Transcription failed:", err);
+            handleSendMessage(`🎙️ Voice Message (${durationString})`, undefined, true);
+          } finally {
+            setIsTranscribing(false);
+          }
+        }
+      };
+      
+      recorder.stop();
+      recorder.stream.getTracks().forEach(track => track.stop());
+    } else {
+      if (shouldSend) {
+        const durationString = `${Math.floor(recordDuration / 60)}:${(recordDuration % 60).toString().padStart(2, '0')}`;
+        handleSendMessage(`🎙️ Voice Message (${durationString})`, undefined, true);
+      }
     }
     setRecordDuration(0);
   };
@@ -822,8 +879,8 @@ export default function Dashboard() {
                           handleSendMessage(inputValue);
                         }
                       }}
-                      disabled={isRecording}
-                      placeholder={isRecording ? "Recording voice message..." : "Type your Google Business post caption..."}
+                      disabled={isRecording || isTranscribing}
+                      placeholder={isTranscribing ? "Transcribing voice note..." : isRecording ? "Recording voice message..." : "Type your Google Business post caption..."}
                       className="w-full bg-white px-4 py-3 rounded-full outline-none text-sm text-slate-800 shadow-sm border border-slate-200/50 focus:border-emerald-500 transition-all font-semibold"
                     />
                   </div>
@@ -848,6 +905,11 @@ export default function Dashboard() {
                         <Send className="w-4 h-4" />
                       </button>
                     </div>
+                  ) : isTranscribing ? (
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full shrink-0">
+                      <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
+                      <span className="text-xs font-bold text-slate-500">Transcribing...</span>
+                    </div>
                   ) : (
                     <button
                       onClick={startRecording}
@@ -859,7 +921,7 @@ export default function Dashboard() {
                   )}
 
                   {/* Standard Send button */}
-                  {!isRecording && (
+                  {!isRecording && !isTranscribing && (
                     <button
                       onClick={() => handleSendMessage(inputValue)}
                       disabled={!inputValue.trim() && !pendingImage}
