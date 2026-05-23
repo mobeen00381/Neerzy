@@ -23,8 +23,8 @@ export async function POST(req: Request) {
     if (action === 'loadData') {
       const { data: dLinks } = await supabase.from("demo_links").select("*").order("created_at", { ascending: false });
       const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      const { data: webPosts } = await supabase.from("posts").select("user_id, status");
-      const { data: waPosts } = await supabase.from("pending_posts").select("user_phone, status");
+      const { data: webPosts } = await supabase.from("posts").select("id, user_id, status, content, image_url, created_at").order("created_at", { ascending: false });
+      const { data: waPosts } = await supabase.from("pending_posts").select("id, user_phone, status, google_post, voice_note, images, created_at").order("created_at", { ascending: false });
       
       return NextResponse.json({ 
         dLinks: dLinks || [], 
