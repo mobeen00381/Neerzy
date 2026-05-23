@@ -1,0 +1,71 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+export async function POST(req: Request) {
+  const authHeader = req.headers.get('authorization');
+  if (authHeader !== 'Bearer mobeenadmin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json({ error: 'Missing Supabase Config' }, { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  try {
+    const body = await req.json();
+    const { action } = body;
+
+    if (action === 'loadData') {
+      const { data: dLinks } = await supabase.from("demo_links").select("*").order("created_at", { ascending: false });
+      const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+      const { data: webPosts } = await supabase.from("posts").select("user_id, status");
+      const { data: waPosts } = await supabase.from("pending_posts").select("user_phone, status");
+      
+      return NextResponse.json({ 
+        dLinks: dLinks || [], 
+        profiles: profiles || [], 
+        webPosts: webPosts || [], 
+        waPosts: waPosts || [] 
+      });
+    }
+
+    if (action === 'loadHistory') {
+      const { userId, userPhone } = body;
+      let webPosts = [], waPosts = [];
+      if (userId) {
+        const { data } = await supabase.from("posts").select("*").eq("user_id", userId);
+        if (data) webPosts = data;
+      }
+      if (userPhone && userPhone !== "No phone") {
+        const { data } = await supabase.from("pending_posts").select("*").eq("user_phone", userPhone);
+        if (data) waPosts = data;
+      }
+      return NextResponse.json({ webPosts, waPosts });
+    }
+
+    if (action === 'generateDemoLink') {
+      const code = `early_access_${Math.random().toString(36).substring(2, 8)}`;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase.from("demo_links").insert([{ code, expires_at: expiresAt, used: false }]).select().single();
+      if (error) throw error;
+      return NextResponse.json({ data });
+    }
+
+    if (action === 'deleteDemoLink') {
+      const { id } = body;
+      const { error } = await supabase.from("demo_links").delete().eq("id", id);
+      if (error) throw error;
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

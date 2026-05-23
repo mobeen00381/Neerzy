@@ -97,20 +97,24 @@ export default function AdminDashboard() {
       setIsLoading(true);
       
       try {
-        // Fetch Demo Links
-        const { data: dLinks } = await supabase.from("demo_links").select("*").order("created_at", { ascending: false });
+        const res = await fetch('/api/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mobeenadmin' },
+          body: JSON.stringify({ action: 'loadData' })
+        });
+        if (!res.ok) throw new Error('Failed to fetch admin data');
+        const data = await res.json();
+
+        const dLinks = data.dLinks;
+        const profiles = data.profiles;
+        const webPosts = data.webPosts;
+        const waPosts = data.waPosts;
+
         if (dLinks) {
-          setDemoLinks(dLinks.map(d => ({
+          setDemoLinks(dLinks.map((d: any) => ({
             id: d.id, code: d.code, createdAt: d.created_at, expiresAt: d.expires_at, used: d.used, usedBy: d.used_by
           })));
         }
-
-        // Fetch Profiles
-        const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-        
-        // Fetch posts counts
-        const { data: webPosts } = await supabase.from("posts").select("user_id, status");
-        const { data: waPosts } = await supabase.from("pending_posts").select("user_phone, status");
 
         const webPostsCount = webPosts ? webPosts.length : 0;
         const waPostsCount = waPosts ? waPosts.length : 0;
@@ -119,13 +123,13 @@ export default function AdminDashboard() {
         let mappedUsers: UserProfile[] = [];
 
         if (profiles) {
-          mappedUsers = profiles.map(p => {
+          mappedUsers = profiles.map((p: any) => {
             // Calculate MRR roughly based on standard plans
             if (p.selected_plan === 'pro') mrrCalc += 39;
             if (p.selected_plan === 'growth') mrrCalc += 79;
             
-            const userWebPosts = webPosts?.filter(wp => wp.user_id === p.id).length || 0;
-            const userWaPosts = waPosts?.filter(wap => wap.user_phone === p.phone).length || 0;
+            const userWebPosts = webPosts?.filter((wp: any) => wp.user_id === p.id).length || 0;
+            const userWaPosts = waPosts?.filter((wap: any) => wap.user_phone === p.phone).length || 0;
 
             // Rough status calculation
             const status = (p.selected_plan === 'pro' || p.selected_plan === 'growth') ? 'Active' : 'Free';
@@ -167,17 +171,18 @@ export default function AdminDashboard() {
     setUserHistory([]);
 
     try {
-      let webPostsData: any[] = [];
-      const { data: webData } = await supabase.from("posts").select("*").eq("user_id", user.id);
-      if (webData) webPostsData = webData;
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mobeenadmin' },
+        body: JSON.stringify({ action: 'loadHistory', userId: user.id, userPhone: user.phone })
+      });
+      if (!res.ok) throw new Error('Failed to fetch user history');
+      const data = await res.json();
+      
+      const webPostsData = data.webPosts || [];
+      const waPostsData = data.waPosts || [];
 
-      let waPostsData: any[] = [];
-      if (user.phone && user.phone !== "No phone") {
-        const { data: waData } = await supabase.from("pending_posts").select("*").eq("user_phone", user.phone);
-        if (waData) waPostsData = waData;
-      }
-
-      const mappedWeb = webPostsData.map(p => ({
+      const mappedWeb = webPostsData.map((p: any) => ({
         id: p.id,
         text: p.content ? p.content.replace(/<[^>]*>/g, '') : '',
         image: p.image_url,
@@ -188,7 +193,7 @@ export default function AdminDashboard() {
         status: p.status || 'published'
       }));
 
-      const mappedWa = waPostsData.map(p => {
+      const mappedWa = waPostsData.map((p: any) => {
         const googlePost = p.google_post || '';
         const lines = googlePost.split('\n');
         const extractField = (prefix: string) => {
@@ -224,31 +229,29 @@ export default function AdminDashboard() {
 
   // Helpers for Demo Links
   const generateDemoLink = async () => {
-    const code = `early_access_${Math.random().toString(36).substring(2, 8)}`;
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mobeenadmin' },
+        body: JSON.stringify({ action: 'generateDemoLink' })
+      });
+      if (!res.ok) throw new Error('Failed');
+      const { data } = await res.json();
 
-    const { data, error } = await supabase
-      .from("demo_links")
-      .insert([{ code, expires_at: expiresAt, used: false }])
-      .select()
-      .single();
-
-    if (error) {
+      if (data) {
+        const newLink: DemoLink = {
+          id: data.id,
+          code: data.code,
+          createdAt: data.created_at,
+          expiresAt: data.expires_at,
+          used: data.used,
+          usedBy: data.used_by,
+        };
+        setDemoLinks(prev => [newLink, ...prev]);
+      }
+    } catch (error) {
       console.error("Error inserting link:", error);
       alert("Failed to create demo link right now!");
-      return;
-    }
-
-    if (data) {
-      const newLink: DemoLink = {
-        id: data.id,
-        code: data.code,
-        createdAt: data.created_at,
-        expiresAt: data.expires_at,
-        used: data.used,
-        usedBy: data.used_by,
-      };
-      setDemoLinks(prev => [newLink, ...prev]);
     }
   };
 
@@ -259,9 +262,16 @@ export default function AdminDashboard() {
   };
 
   const deleteLink = async (id: string) => {
-    const { error } = await supabase.from("demo_links").delete().eq("id", id);
-    if (!error) {
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mobeenadmin' },
+        body: JSON.stringify({ action: 'deleteDemoLink', id })
+      });
+      if (!res.ok) throw new Error('Failed');
       setDemoLinks(prev => prev.filter(l => l.id !== id));
+    } catch (error) {
+      console.error("Error deleting link:", error);
     }
   };
 
