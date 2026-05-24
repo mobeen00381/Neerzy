@@ -77,7 +77,7 @@ export default function WhatsAppMockup() {
         id: 'm3',
         sender: 'trader',
         type: 'text',
-        text: 'Amjad 03711291617'
+        text: 'Alex 2015550199'
       },
       delay: 1500
     },
@@ -137,7 +137,7 @@ export default function WhatsAppMockup() {
         type: 'card',
         cardContent: {
           headline: 'Job Completed Successfully! 🎉',
-          body: 'We\'re excited to announce that Amjad has successfully completed the recent project! Thanks to everyone for their hard work and dedication. Let\'s keep pushing forward together!',
+          body: 'We\'re excited to announce that Alex has successfully completed the recent project! Thanks to everyone for their hard work and dedication. Let\'s keep pushing forward together!',
           gbpLink: 'https://www.google.com/search?q=BlackSmith+Door+Handles',
           dashboardLink: 'https://www.neerzy.com/dashboard'
         }
@@ -172,7 +172,7 @@ export default function WhatsAppMockup() {
         id: 'm8',
         sender: 'neerzy',
         type: 'text',
-        text: '✅ *Review request sent to Amjad!*\n\n🔗 Review link: https://search.google.com/local/writereview?placeid=ChIJ8...'
+        text: '✅ *Review request sent to Alex!*\n\n🔗 Review link: https://search.google.com/local/writereview?placeid=ChIJ8...'
       },
       delay: 6000 // Let user read completed flow for 6 seconds
     }
