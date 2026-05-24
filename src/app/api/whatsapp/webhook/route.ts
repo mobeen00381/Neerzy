@@ -69,7 +69,15 @@ export async function POST(req: Request) {
       if (mediaContentType0 && mediaContentType0.includes('audio')) {
         console.log('🎙️ Received Voice Note:', mediaUrl0);
         try {
-          const audioResponse = await fetch(mediaUrl0);
+          const headers: HeadersInit = {};
+          if (mediaUrl0.includes('api.twilio.com') && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+            const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+            headers['Authorization'] = `Basic ${auth}`;
+          }
+          const audioResponse = await fetch(mediaUrl0, { headers });
+          if (!audioResponse.ok) {
+            throw new Error(`Failed to fetch audio from Twilio: ${audioResponse.status}`);
+          }
           const buffer = await audioResponse.arrayBuffer();
           
           if (!process.env.OPENAI_API_KEY) {
@@ -322,13 +330,16 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
     // 🔍 Find the review link — try sender phone first, then fallback to any business profile
     let reviewLink = '';
+    let business: any = null;
     try {
       // Try exact phone match first
-      let { data: business } = await supabase
+      const { data: exactBusiness } = await supabase
         .from('business_profiles')
-        .select('review_link, google_place_id')
+        .select('review_link, google_place_id, business_name')
         .eq('user_phone', phone)
         .maybeSingle();
+
+      business = exactBusiness;
 
       // If no match, get any business profile (user may have different WhatsApp number)
       if (!business) {
