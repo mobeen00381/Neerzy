@@ -373,7 +373,8 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     // 3. Send Review Request
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const businessName = business?.business_name || 'Your Connected Business';
-    const targetCustomerPhone = post.customer_phone || phone; // Fallback to self-send if missing
+    const rawCustomerPhone = post.customer_phone || phone; // Fallback to self-send if missing
+    const targetCustomerPhone = formatToE164(rawCustomerPhone, phone);
     const customerName = (post.customer_name || 'Customer').replace(/[\n\r]+/g, ' ').trim();
     
     // Always use the approved Twilio review template
@@ -473,4 +474,35 @@ function parsePostContent(content: string) {
 function extractLine(lines: string[], prefix: string) {
   const line = lines.find(l => l.toUpperCase().includes(prefix.toUpperCase()));
   return line ? line.replace(new RegExp(prefix, 'i'), '').trim() : '';
+}
+
+function formatToE164(rawPhone: string, merchantPhone: string): string {
+  // Clean all non-digit characters except leading +
+  let cleaned = rawPhone.replace(/[^\d+]/g, '');
+  
+  if (cleaned.startsWith('+')) {
+    return cleaned;
+  }
+  
+  // Extract merchant's country code if available
+  let merchantCountryCode = '92'; // default to Pakistan (since Neerzy is PK/Traders focused)
+  if (merchantPhone.startsWith('+')) {
+    const match = merchantPhone.match(/^\+(\d{1,4})/);
+    if (match) {
+      merchantCountryCode = match[1];
+    }
+  }
+  
+  // Handle leading 0 (common in local dialing formats like 0300... in PK, 07... in UK, etc.)
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
+  }
+  
+  // If the cleaned number already starts with the country code (without the +)
+  if (cleaned.startsWith(merchantCountryCode)) {
+    return `+${cleaned}`;
+  }
+  
+  // Otherwise, prepend the merchant's country code
+  return `+${merchantCountryCode}${cleaned}`;
 }
