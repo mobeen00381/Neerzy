@@ -53,20 +53,26 @@ export async function POST(req: Request) {
 
     // Get review link from business_profiles using the user's phone
     let reviewLink = 'https://g.page/r/your-review-link';
+    let businessName = 'Our Services';
     try {
       const lookupPhone = post.source === 'pending_posts' ? post.user_phone : null;
       
       if (lookupPhone) {
         const { data: business } = await supabaseAdmin
           .from('business_profiles')
-          .select('review_link, google_place_id')
+          .select('review_link, google_place_id, business_name')
           .eq('user_phone', lookupPhone)
           .maybeSingle();
 
-        if (business?.review_link) {
-          reviewLink = business.review_link;
-        } else if (business?.google_place_id) {
-          reviewLink = `https://search.google.com/local/writereview?placeid=${business.google_place_id}`;
+        if (business) {
+          if (business.review_link) {
+            reviewLink = business.review_link;
+          } else if (business.google_place_id) {
+            reviewLink = `https://search.google.com/local/writereview?placeid=${business.google_place_id}`;
+          }
+          if (business.business_name) {
+            businessName = business.business_name;
+          }
         }
       }
     } catch (dbErr) {
@@ -77,12 +83,20 @@ export async function POST(req: Request) {
     const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
     
     try {
+      const templateSid = process.env.TWILIO_TEMPLATE_REVIEW_REQUEST || 'HX36dc564715671fad2b3617c795984ee2';
+      const templateVars = {
+        "1": customerName,
+        "2": businessName,
+        "3": reviewLink
+      };
+
       await twilioClient.messages.create({
         from: defaultFrom,
         to: `whatsapp:${customerPhone}`,
-        body: `Hi ${customerName}! 👋\n\nThanks for choosing us for your service. Would you mind leaving a quick review? It helps us grow! ⭐\n\n🔗 ${reviewLink}\n\nReply STOP to opt out.`
+        contentSid: templateSid,
+        contentVariables: JSON.stringify(templateVars)
       });
-      console.log(`✅ Review request sent to ${customerName} at ${customerPhone}`);
+      console.log(`✅ Review request template sent to ${customerName} at ${customerPhone}`);
     } catch (twilioErr: any) {
       console.error('❌ Failed to send WhatsApp review request:', twilioErr.message);
       return NextResponse.json({ error: `Failed to send review: ${twilioErr.message}` }, { status: 500 });

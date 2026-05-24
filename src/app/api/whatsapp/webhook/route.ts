@@ -427,10 +427,15 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     const targetCustomerPhone = formatToE164(rawCustomerPhone, phone);
     const customerName = (post.customer_name || 'Customer').replace(/[\n\r]+/g, ' ').trim();
     
-    // Always use the approved Twilio review template
-    const reviewMessage = `Hi ${customerName}! 👋\n\nThank you for choosing our services! We'd really appreciate it if you could leave us a quick review. It helps us grow! ⭐\n\n🔗 ${reviewLink}\n\nThank you! 🙏`;
+    // Send the approved Twilio WhatsApp Template to prevent Error 63016 (no session window)
+    const templateSid = process.env.TWILIO_TEMPLATE_REVIEW_REQUEST || 'HX36dc564715671fad2b3617c795984ee2';
+    const templateVars = {
+      "1": customerName,
+      "2": businessName,
+      "3": reviewLink
+    };
 
-    await sendTwilioMessage(targetCustomerPhone, reviewMessage, fromNumber);
+    await sendTwilioTemplate(targetCustomerPhone, templateSid, templateVars, fromNumber);
 
     // If it's a real customer (not sending to yourself), send a confirmation to the merchant
     const cleanCustomerPhone = targetCustomerPhone.replace(/\D/g, '');
