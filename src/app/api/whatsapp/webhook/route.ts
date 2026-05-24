@@ -135,13 +135,15 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     .limit(1)
     .maybeSingle();
 
-  // 2. If no active draft, check for a recently generated post that hasn't been published yet
+  // 2. If no active draft, check for a recently generated post that hasn't been published yet (within last 2 hours)
   if (!existing && (data.customerName || data.customerPhone)) {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const { data: generated } = await supabase
       .from('pending_posts')
       .select('id, images, customer_phone, status')
       .eq('user_phone', phone)
       .eq('status', 'generated')
+      .gt('created_at', twoHoursAgo)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -342,8 +344,8 @@ Type *DONE* when published.`;
 
 async function handleSendReview(phone: string, fromNumber?: string) {
   try {
-    // 1. Try to find a generated post first
-    let { data: post } = await supabase
+    // 1. Try to find the last generated post
+    const { data: generatedPost } = await supabase
       .from('pending_posts')
       .select('*')
       .eq('user_phone', phone)
@@ -352,18 +354,24 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       .limit(1)
       .maybeSingle();
 
-    // 2. If no generated post, look for a draft post that has customer details (so they can send directly)
-    if (!post) {
-      const { data: draftPost } = await supabase
-        .from('pending_posts')
-        .select('*')
-        .eq('user_phone', phone)
-        .eq('status', 'draft')
-        .not('customer_phone', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      post = draftPost;
+    // 2. Try to find the last draft post that has customer details (so they can send directly)
+    const { data: draftPost } = await supabase
+      .from('pending_posts')
+      .select('*')
+      .eq('user_phone', phone)
+      .eq('status', 'draft')
+      .not('customer_phone', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let post = null;
+    if (generatedPost && draftPost) {
+      const genTime = new Date(generatedPost.created_at).getTime();
+      const draftTime = new Date(draftPost.created_at).getTime();
+      post = genTime >= draftTime ? generatedPost : draftPost;
+    } else {
+      post = generatedPost || draftPost;
     }
 
     if (!post) {
