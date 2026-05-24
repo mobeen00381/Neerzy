@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     console.log(`📥 Message from ${from} to ${to}: "${body}" (Media: ${numMedia})`);
 
     let savedType = 'Message';
+    let customInstructions = 'Send more photos or type *POST* when ready.';
 
     if (body) {
       const text = body.toUpperCase().trim();
@@ -57,8 +58,14 @@ export async function POST(req: Request) {
 
       if (phoneMatch) {
         const name = body.replace(phoneMatch[1], '').trim() || 'Customer';
-        await saveDraft(from, { customerName: name, customerPhone: phoneMatch[1] });
+        const formattedCustPhone = formatToE164(phoneMatch[1], from);
+        const postState = await saveDraft(from, { customerName: name, customerPhone: formattedCustPhone });
         savedType = 'Customer detail for review link';
+        if (postState === 'generated') {
+          customInstructions = `Type *DONE* to send the review link to ${name} now.`;
+        } else {
+          customInstructions = `Type *DONE* to send the review link immediately, or send photos/voice notes to create a post.`;
+        }
       } else {
         await saveDraft(from, { voice_note: body });
         savedType = 'Description';
@@ -109,7 +116,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return await sendTwilioMessage(from, `✅ *${savedType} saved.*\n\nSend more photos or type *POST* when ready.`, to);
+    return await sendTwilioMessage(from, `✅ *${savedType} saved.*\n\n${customInstructions}`, to);
 
   } catch (error) {
     console.error('❌ Webhook Error:', error);
@@ -117,15 +124,33 @@ export async function POST(req: Request) {
   }
 }
 
-async function saveDraft(phone: string, data: any) {
-  const { data: existing } = await supabase
+async function saveDraft(phone: string, data: any): Promise<string> {
+  // 1. Look for active draft first
+  let { data: existing } = await supabase
     .from('pending_posts')
-    .select('id, images, customer_phone')
+    .select('id, images, customer_phone, status')
     .eq('user_phone', phone)
     .eq('status', 'draft')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
+
+  // 2. If no active draft, check for a recently generated post that hasn't been published yet
+  if (!existing && (data.customerName || data.customerPhone)) {
+    const { data: generated } = await supabase
+      .from('pending_posts')
+      .select('id, images, customer_phone, status')
+      .eq('user_phone', phone)
+      .eq('status', 'generated')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (generated) {
+      existing = generated;
+    }
+  }
+
+  const targetStatus = existing ? existing.status : 'draft';
 
   if (data.customerName) {
     if (!existing) {
@@ -171,6 +196,8 @@ async function saveDraft(phone: string, data: any) {
       await supabase.from('pending_posts').update({ images: newImages }).eq('id', existing.id);
     }
   }
+
+  return targetStatus;
 }
 
 async function handleGeneratePost(phone: string, fromNumber?: string) {
@@ -315,17 +342,32 @@ Type *DONE* when published.`;
 
 async function handleSendReview(phone: string, fromNumber?: string) {
   try {
-    const { data: post } = await supabase
+    // 1. Try to find a generated post first
+    let { data: post } = await supabase
       .from('pending_posts')
       .select('*')
       .eq('user_phone', phone)
       .eq('status', 'generated')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    // 2. If no generated post, look for a draft post that has customer details (so they can send directly)
+    if (!post) {
+      const { data: draftPost } = await supabase
+        .from('pending_posts')
+        .select('*')
+        .eq('user_phone', phone)
+        .eq('status', 'draft')
+        .not('customer_phone', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      post = draftPost;
+    }
 
     if (!post) {
-      return await sendTwilioMessage(phone, "⚠️ *No pending generated post found.*", fromNumber);
+      return await sendTwilioMessage(phone, "⚠️ *No pending generated post or review draft found.*", fromNumber);
     }
 
     // 🔍 Find the review link — try sender phone first, then fallback to any business profile
