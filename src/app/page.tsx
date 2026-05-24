@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
+import WhatsAppMockup from '@/components/landing/WhatsAppMockup';
 
 export const metadata: Metadata = {
   title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
@@ -65,39 +66,7 @@ export default function Page() {
           </div>
 
           <div className="mockup-container">
-            <div className="wa-card">
-              <div className="wa-header">
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ccc' }}></div>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600 }}>Neerzy</div>
-                  <div style={{ fontSize: '10px', opacity: 0.8 }}>Online</div>
-                </div>
-              </div>
-              <div className="wa-body">
-                <div className="wa-bubble wa-sent">
-                  <img src="/images/plumber_job_photo.png" alt="Job photo" className="wa-image-preview" />
-                  Kitchen sink fixed for Mrs Smith. Clean finish.
-                </div>
-                <div className="wa-bubble wa-received">
-                  ✅ Job received! Processing...
-                </div>
-                <div className="ai-card">
-                  <div className="ai-status">✨ NEERZY MAGIC</div>
-                  <div style={{ fontSize: '11px', color: '#444' }}>
-                    <div style={{ marginBottom: '4px' }}>✅ Google post ready</div>
-                    <div style={{ marginBottom: '4px' }}>✅ Website updated</div>
-                    <div style={{ marginBottom: '4px' }}>✅ Review request prepared</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                    <div style={{ background: '#25D366', color: 'black', fontSize: '10px', padding: '6px 10px', borderRadius: '4px', fontWeight: 700 }}>COPY POST</div>
-                    <div style={{ background: '#0F5C4D', color: 'white', fontSize: '10px', padding: '6px 10px', borderRadius: '4px', fontWeight: 700 }}>OPEN GOOGLE</div>
-                  </div>
-                </div>
-              </div>
-              <div className="wa-footer">
-                <div className="wa-input"></div>
-              </div>
-            </div>
+            <WhatsAppMockup />
 
             {/* Floating Notification Cards */}
             <div className="floating-card" style={{ top: '10%', right: '-10%' }}>

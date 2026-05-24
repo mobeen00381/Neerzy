@@ -517,3 +517,13 @@ main {
   position: relative;
   z-index: 1;
 }
+
+/* Custom fadeIn animation for dynamic chat mockup */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
