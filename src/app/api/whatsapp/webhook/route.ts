@@ -435,7 +435,13 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       "3": reviewLink
     };
 
-    await sendTwilioTemplate(targetCustomerPhone, templateSid, templateVars, fromNumber);
+    // Use the billing-enabled toll-free number for sending the template review request to prevent Error 63020
+    let billingFrom = process.env.TWILIO_PHONE_NUMBER || 'whatsapp:+18338872999';
+    if (!billingFrom.startsWith('whatsapp:')) {
+      billingFrom = `whatsapp:${billingFrom}`;
+    }
+
+    await sendTwilioTemplate(targetCustomerPhone, templateSid, templateVars, billingFrom);
 
     // If it's a real customer (not sending to yourself), send a confirmation to the merchant
     const cleanCustomerPhone = targetCustomerPhone.replace(/\D/g, '');
