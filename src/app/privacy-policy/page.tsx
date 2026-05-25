@@ -1,4 +1,22 @@
+import type { Metadata } from 'next';
 import LegalLayout from '@/components/layout/LegalLayout';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | Neerzy',
+  description:
+    'Read the Neerzy Privacy Policy to understand how we collect, use, and protect your personal data when you use our local business marketing platform.',
+  alternates: {
+    canonical: 'https://www.neerzy.com/privacy-policy',
+  },
+  openGraph: {
+    title: 'Privacy Policy | Neerzy',
+    description: 'Learn how Neerzy handles your data and protects your privacy.',
+    url: 'https://www.neerzy.com/privacy-policy',
+    siteName: 'Neerzy',
+    type: 'website',
+  },
+};
+
 
 export default function PrivacyPage() {
   const sections = [

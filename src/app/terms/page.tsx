@@ -1,4 +1,23 @@
+import type { Metadata } from 'next';
 import LegalLayout from '@/components/layout/LegalLayout';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | Neerzy',
+  description:
+    'Read the Neerzy Terms of Service. Understand your rights and responsibilities when using our WhatsApp-based local business marketing platform.',
+  alternates: {
+    canonical: 'https://www.neerzy.com/terms',
+  },
+  openGraph: {
+    title: 'Terms of Service | Neerzy',
+    description: 'Neerzy Terms of Service — understand how our platform works and your responsibilities.',
+    url: 'https://www.neerzy.com/terms',
+    siteName: 'Neerzy',
+    type: 'website',
+  },
+};
+
+
 
 export default function TermsPage() {
   const sections = [

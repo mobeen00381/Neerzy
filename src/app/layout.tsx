@@ -18,8 +18,50 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
+  title: {
+    default: "Neerzy | Turn Every Job into More Calls via WhatsApp",
+    template: "%s | Neerzy"
+  },
   description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
+  metadataBase: new URL('https://www.neerzy.com'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: "Neerzy | Built for Local Traders",
+    description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
+    url: "https://www.neerzy.com",
+    siteName: "Neerzy",
+    images: [
+      {
+        url: "/og-images/neerzy-main.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Neerzy Local Marketing",
+      }
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
+    description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
+  },
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Neerzy",
+  "url": "https://www.neerzy.com",
+  "logo": "https://www.neerzy.com/images/logo.svg",
+  "description": "Done-for-you SEO websites and Google Business management for local service businesses via WhatsApp.",
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+1-833-887-2999",
+    "contactType": "customer service"
+  }
 };
 
 export default function RootLayout({
@@ -43,6 +85,10 @@ export default function RootLayout({
         <Script 
           src="https://accounts.google.com/gsi/client" 
           strategy="afterInteractive"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
         />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <QueryProvider>

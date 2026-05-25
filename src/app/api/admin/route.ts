@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'mobeen0381@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mobeenadmin';
+const JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'fallback-secret-neerzy-2026-xyz';
 
 export async function POST(req: Request) {
-  const authHeader = req.headers.get('authorization');
-  if (authHeader !== 'Bearer mobeenadmin') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
@@ -19,6 +19,31 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { action } = body;
+
+    // --- Authentication: Login Action ---
+    if (action === 'login') {
+      const { email, password } = body;
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
+        return NextResponse.json({ success: true, token });
+      }
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    // --- Authentication: Verify Token for protected actions ---
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
+    }
+    const token = authHeader.split(' ')[1];
+    
+    try {
+      jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid or expired token' }, { status: 401 });
+    }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     if (action === 'loadData') {
       const { data: dLinks } = await supabase.from("demo_links").select("*").order("created_at", { ascending: false });

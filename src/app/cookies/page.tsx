@@ -1,4 +1,23 @@
+import type { Metadata } from 'next';
 import LegalLayout from '@/components/layout/LegalLayout';
+
+export const metadata: Metadata = {
+  title: 'Cookie Policy | Neerzy',
+  description:
+    'Learn how Neerzy uses cookies to improve your experience. Understand essential and analytics cookies and how to manage your preferences.',
+  alternates: {
+    canonical: 'https://www.neerzy.com/cookies',
+  },
+  openGraph: {
+    title: 'Cookie Policy | Neerzy',
+    description: 'How Neerzy uses cookies to improve your experience on our local business marketing platform.',
+    url: 'https://www.neerzy.com/cookies',
+    siteName: 'Neerzy',
+    type: 'website',
+  },
+};
+
+
 
 export default function CookiesPage() {
   const sections = [

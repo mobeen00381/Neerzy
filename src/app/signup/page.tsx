@@ -190,7 +190,7 @@ function SignupForm() {
             By signing up, you agree to our{' '}
             <a href="/terms" className="text-emerald-500 hover:underline">Terms</a>{' '}
             and{' '}
-            <a href="/privacy" className="text-emerald-500 hover:underline">Privacy Policy</a>
+            <a href="/privacy-policy" className="text-emerald-500 hover:underline">Privacy Policy</a>
           </p>
         </div>
 

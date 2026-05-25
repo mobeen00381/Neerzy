@@ -2,6 +2,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  title: "Dashboard | Neerzy",
+  description: "Your Neerzy marketing dashboard — post updates, track performance, and manage your business profile.",
   robots: {
     index: false,
     follow: false,

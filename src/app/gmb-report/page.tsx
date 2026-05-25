@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { 
   Shield, AlertCircle, CheckCircle2, 
   ArrowRight, Loader2, Star, MapPin, Globe, Phone,

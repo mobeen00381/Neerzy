@@ -34,6 +34,7 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-slate-500">
               <li><Link href="/" className="hover:text-blue-500 transition-colors">Features</Link></li>
               <li><Link href="/pricing" className="hover:text-blue-500 transition-colors">Pricing</Link></li>
+              <li><Link href="/gmb-audit-tool" className="hover:text-blue-500 transition-colors">GMB Audit Tool</Link></li>
             </ul>
           </div>
           <div>

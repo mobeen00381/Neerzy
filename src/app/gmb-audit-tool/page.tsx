@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Head from 'next/head';
 import { 
   Building2, 
   Search, 
@@ -148,41 +147,6 @@ export default function GBMAuditTool() {
 
   return (
     <>
-      <Head>
-        {/* Primary Meta Tags */}
-        <title>Free Google Business Profile Audit Tool | GBP Checker 2026 - Neerzy</title>
-        <meta name="title" content="Free Google Business Profile Audit Tool | GBP Checker 2026 - Neerzy" />
-        <meta name="description" content="Free Google Business Profile audit tool. Check your GBP/GMB listing SEO in 30 seconds. Get instant score, actionable recommendations & improve local search rankings. No signup required." />
-        <meta name="keywords" content="google business profile audit, GBP audit tool, GMB audit free, google my business checker, local SEO audit, GBP checker, Google Business Profile optimizer, free GBP analysis" />
-        <meta name="author" content="Neerzy" />
-        <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://www.neerzy.com/gmb-audit-tool" />
-        
-        {/* Open Graph / Facebook */}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://www.neerzy.com/gmb-audit-tool" />
-        <meta property="og:title" content="Free Google Business Profile Audit Tool | Check Your GBP Score" />
-        <meta property="og:description" content="Free GBP audit tool. Analyze your Google Business Profile in seconds. Get actionable SEO recommendations to rank higher locally." />
-        <meta property="og:image" content="https://www.neerzy.com/og-images/gbp-audit-tool.jpg" />
-        <meta property="og:site_name" content="Neerzy" />
-
-        {/* Twitter */}
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://www.neerzy.com/gmb-audit-tool" />
-        <meta property="twitter:title" content="Free Google Business Profile Audit Tool | GBP Checker" />
-        <meta property="twitter:description" content="Free GBP audit tool. Check your Google Business Profile SEO score in 30 seconds. Get instant recommendations." />
-        <meta property="twitter:image" content="https://www.neerzy.com/og-images/gbp-audit-tool.jpg" />
-
-        {/* Additional SEO Meta Tags */}
-        <meta name="geo.region" content="US" />
-        <meta name="geo.placename" content="United States" />
-        <meta name="theme-color" content="#059669" />
-        
-        {/* Structured Data */}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqData) }} />
-      </Head>
-
       <div className="min-h-screen bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)] py-20 px-4 md:px-8 font-sans relative overflow-hidden">
         {/* Background Visual Enhancers */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">

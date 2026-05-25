@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { LayoutDashboard, Users, Activity, Link2, LogOut, Lock, MessageSquare, TrendingUp, Globe, ChevronRight, Copy, Check, Plus, Trash2, Smartphone, X, Menu } from "lucide-react";
+import { LayoutDashboard, Users, Activity, Link2, LogOut, Lock, MessageSquare, TrendingUp, Globe, ChevronRight, Copy, Check, Plus, Trash2, Smartphone, X, Menu, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface DemoLink {
@@ -78,20 +78,33 @@ export default function AdminDashboard() {
     setAuthChecked(true);
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loginEmail === "mobeen0381@gmail.com" && loginPassword === "mobeenadmin") {
-      setIsAdminAuthenticated(true);
-      sessionStorage.setItem("admin_auth", "true");
-      setLoginError("");
-    } else {
-      setLoginError("Invalid admin credentials");
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', email: loginEmail, password: loginPassword })
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setIsAdminAuthenticated(true);
+        sessionStorage.setItem("admin_auth", "true");
+        sessionStorage.setItem("admin_token", data.token);
+        setLoginError("");
+      } else {
+        setLoginError(data.error || "Invalid admin credentials");
+      }
+    } catch (err) {
+      setLoginError("Failed to login. Please try again.");
     }
   };
 
   const handleLogout = () => {
     setIsAdminAuthenticated(false);
     sessionStorage.removeItem("admin_auth");
+    sessionStorage.removeItem("admin_token");
   };
 
   // 2. Load Dashboard Data once authenticated
@@ -102,11 +115,18 @@ export default function AdminDashboard() {
       setIsLoading(true);
       
       try {
+        const token = sessionStorage.getItem("admin_token") || "";
         const res = await fetch('/api/admin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mobeenadmin' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ action: 'loadData' })
         });
+        if (res.status === 401) {
+          setIsAdminAuthenticated(false);
+          sessionStorage.removeItem("admin_auth");
+          sessionStorage.removeItem("admin_token");
+          return;
+        }
         if (!res.ok) throw new Error('Failed to fetch admin data');
         const data = await res.json();
 
@@ -214,9 +234,10 @@ export default function AdminDashboard() {
     setUserHistory([]);
 
     try {
+      const token = sessionStorage.getItem("admin_token") || "";
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mobeenadmin' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ action: 'loadHistory', userId: user.id, userPhone: user.phone })
       });
       if (!res.ok) throw new Error('Failed to fetch user history');
@@ -273,9 +294,10 @@ export default function AdminDashboard() {
   // Helpers for Demo Links
   const generateDemoLink = async () => {
     try {
+      const token = sessionStorage.getItem("admin_token") || "";
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mobeenadmin' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ action: 'generateDemoLink' })
       });
       if (!res.ok) throw new Error('Failed');
@@ -306,9 +328,10 @@ export default function AdminDashboard() {
 
   const deleteLink = async (id: string) => {
     try {
+      const token = sessionStorage.getItem("admin_token") || "";
       const res = await fetch('/api/admin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer mobeenadmin' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ action: 'deleteDemoLink', id })
       });
       if (!res.ok) throw new Error('Failed');
