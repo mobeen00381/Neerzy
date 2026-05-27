@@ -27,10 +27,6 @@ export default function CheckoutPage({ params }: { params: { plan_id: string } }
   }, []);
 
   const handleCheckout = async () => {
-    if (!paddle) {
-      setError('Paddle is still initializing. Please try again in a moment.');
-      return;
-    }
     
     setLoading(true);
     setError('');
@@ -53,9 +49,18 @@ export default function CheckoutPage({ params }: { params: { plan_id: string } }
       }
 
       // 2. Open the Paddle checkout overlay using the securely generated transaction ID
-      paddle.Checkout.open({
-        transactionId: data.transactionId
-      });
+      // If we don't have a valid client token, we fallback to Paddle's hosted checkout page!
+      const hasValidToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN && process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN !== 'your_client_token_here' && process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN !== 'test_token';
+      
+      if (hasValidToken && paddle) {
+        paddle.Checkout.open({
+          transactionId: data.transactionId
+        });
+      } else if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('Checkout URL is missing from transaction.');
+      }
       
     } catch (err: any) {
       console.error(err);
@@ -87,7 +92,7 @@ export default function CheckoutPage({ params }: { params: { plan_id: string } }
 
         <button 
           onClick={handleCheckout}
-          disabled={loading || !paddle}
+          disabled={loading}
           className="w-full bg-[#25D366] text-black font-bold py-4 rounded-xl text-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100"
         >
           {loading ? 'Processing...' : 'Pay Now'}

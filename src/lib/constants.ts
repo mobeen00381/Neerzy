@@ -40,6 +40,19 @@ export const PRICING_PLANS = {
       "Priority processing",
       "Advanced analytics"
     ]
+  },
+  agency: {
+    id: "agency",
+    name: "Agency",
+    priceMonthly: 199,
+    postsPerMonth: 200,
+    features: [
+      "200 posts per month",
+      "10 posts per day",
+      "White-label options",
+      "Dedicated account manager",
+      "API access"
+    ]
   }
 };
 
