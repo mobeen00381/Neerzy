@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
 
-export default function CheckoutPage({ params }: { params: { plan_id: string } }) {
+export default function CheckoutPage({ params }: { params: Promise<{ plan_id: string }> }) {
+  const { plan_id } = use(params);
   const [paddle, setPaddle] = useState<Paddle>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -16,7 +17,7 @@ export default function CheckoutPage({ params }: { params: { plan_id: string } }
       eventCallback: function(data) {
         console.log('Paddle Event:', data.name);
         if (data.name === 'checkout.completed') {
-          window.location.href = `/welcome?plan=${params.plan_id}`;
+          window.location.href = `/welcome?plan=${plan_id}`;
         }
       }
     }).then(
@@ -24,7 +25,7 @@ export default function CheckoutPage({ params }: { params: { plan_id: string } }
         if (paddleInstance) setPaddle(paddleInstance);
       }
     );
-  }, []);
+  }, [plan_id]);
 
   const handleCheckout = async () => {
     
@@ -37,7 +38,7 @@ export default function CheckoutPage({ params }: { params: { plan_id: string } }
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          planId: params.plan_id,
+          planId: plan_id,
           // You can pass other user details here like businessName, domainName if needed
         })
       });
@@ -73,7 +74,7 @@ export default function CheckoutPage({ params }: { params: { plan_id: string } }
   return (
     <div className="container mx-auto px-6 py-20 max-w-4xl text-center">
       <h1 className="text-4xl font-bold mb-4 text-[#0F5C4D]">Complete Your Subscription</h1>
-      <p className="text-xl text-slate-600 mb-12">Plan: <span className="font-bold text-[#25D366] uppercase">{params.plan_id}</span></p>
+      <p className="text-xl text-slate-600 mb-12">Plan: <span className="font-bold text-[#25D366] uppercase">{plan_id}</span></p>
       
       <div className="bg-white p-12 rounded-3xl shadow-xl border border-slate-100 max-w-md mx-auto">
         <div className="mb-8">
