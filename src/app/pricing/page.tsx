@@ -36,7 +36,7 @@ const PLANS = [
     price: '39',
     bestFor: 'Solo traders & small businesses',
     cta: 'Start Pro',
-    href: '/signup?plan=pro',
+    href: '/checkout/pro',
     highlight: true,
     badge: 'Most Popular',
     features: [
@@ -55,7 +55,7 @@ const PLANS = [
     price: '79',
     bestFor: 'Growing businesses posting regularly',
     cta: 'Start Growth',
-    href: '/signup?plan=growth',
+    href: '/checkout/growth',
     highlight: false,
     features: [
       { text: '60 posts per month', included: true },

@@ -10,16 +10,10 @@ export default function WelcomePage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [gbpConnected, setGbpConnected] = useState(false);
-  const [appDownloaded, setAppDownloaded] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [whatsappConnected, setWhatsappConnected] = useState(false);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    // Check if user already connected WhatsApp (you can implement logic here)
   }, []);
 
   useEffect(() => {
@@ -58,22 +52,9 @@ export default function WelcomePage() {
     window.location.href = authUrl;
   };
 
-  const handleDownloadApp = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setAppDownloaded(true);
-        setDeferredPrompt(null);
-      }
-    } else {
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        setAppDownloaded(true);
-      } else {
-        setAppDownloaded(true);
-        window.location.href = '/dashboard';
-      }
-    }
+  const handleConnectWhatsApp = () => {
+    window.open("https://wa.me/923056500917?text=Hi%20Neerzy!%20I%20want%20to%20connect%20my%20WhatsApp%20profile.", "_blank");
+    setWhatsappConnected(true);
   };
 
   if (loading) {
@@ -113,29 +94,29 @@ export default function WelcomePage() {
           </div>
         </button>
 
-        {/* Step 2: Download Neerzy Web App */}
+        {/* Step 2: Connect WhatsApp */}
         <button
-          onClick={handleDownloadApp}
-          disabled={appDownloaded}
+          onClick={handleConnectWhatsApp}
+          disabled={whatsappConnected}
           className={`w-full flex items-center gap-4 p-5 rounded-2xl border-2 transition-all text-left ${
-            appDownloaded 
+            whatsappConnected 
               ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300' 
               : 'bg-white border-slate-200 hover:border-[#25D366] hover:shadow-md dark:bg-slate-900 dark:border-slate-800'
           }`}
         >
-          <div className={`p-3 rounded-full ${appDownloaded ? 'bg-green-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
-            {appDownloaded ? '✓' : '📱'}
+          <div className={`p-3 rounded-full ${whatsappConnected ? 'bg-green-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>
+            {whatsappConnected ? '✓' : '💬'}
           </div>
           <div className="flex-1">
-            <div className="font-bold">Install Neerzy App</div>
-            <div className="text-sm opacity-80">Create posts & track reviews instantly from your home screen</div>
+            <div className="font-bold">Connect WhatsApp</div>
+            <div className="text-sm opacity-80">Link your WhatsApp to create posts and track reviews instantly</div>
           </div>
         </button>
       </div>
 
       {/* Progress & Navigation */}
       <div className="mt-12 text-center">
-        {gbpConnected && appDownloaded ? (
+        {gbpConnected && whatsappConnected ? (
           <Button 
             onClick={() => window.location.href = '/dashboard'}
             className="bg-[#25D366] hover:bg-[#1da851] text-black rounded-full px-8 py-6 text-lg font-bold shadow-lg transform transition hover:scale-105"
@@ -145,7 +126,7 @@ export default function WelcomePage() {
         ) : (
           <div className="flex flex-col items-center gap-4">
             <div className="text-slate-400 text-sm font-medium">
-              {[gbpConnected, appDownloaded].filter(Boolean).length}/2 steps completed
+              {[gbpConnected, whatsappConnected].filter(Boolean).length}/2 steps completed
             </div>
             <button 
               onClick={() => window.location.href = '/dashboard'}

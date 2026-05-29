@@ -16,7 +16,7 @@ export default function CheckoutPage({ params }: { params: { plan_id: string } }
       eventCallback: function(data) {
         console.log('Paddle Event:', data.name);
         if (data.name === 'checkout.completed') {
-          window.location.href = '/dashboard?success=true';
+          window.location.href = `/welcome?plan=${params.plan_id}`;
         }
       }
     }).then(
