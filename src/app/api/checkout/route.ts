@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       console.warn("Using mock checkout response due to Paddle API error or dev environment");
       return NextResponse.json({
         transactionId: "txn_mock_12345",
-        url: `/welcome?plan=${planId}`
+        url: `/checkout/mock?plan=${planId}`
       });
     }
 
