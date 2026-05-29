@@ -3,8 +3,11 @@ import { paddle } from "@/lib/paddle";
 import { PRICING_PLANS } from "@/lib/constants";
 
 export async function POST(req: Request) {
+  let planId = "pro"; // Default fallback
   try {
-    const { planId, domainName, domainPrice, businessName, serviceType } = await req.json();
+    const body = await req.json();
+    planId = body.planId;
+    const { domainName, domainPrice, businessName, serviceType } = body;
 
     const plan = PRICING_PLANS[planId as keyof typeof PRICING_PLANS];
     if (!plan) {
