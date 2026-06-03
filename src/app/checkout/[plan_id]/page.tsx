@@ -49,18 +49,15 @@ export default function CheckoutPage({ params }: { params: Promise<{ plan_id: st
         throw new Error(data.error || 'Failed to create transaction');
       }
 
-      // 2. Open the Paddle checkout overlay using the securely generated transaction ID
-      // If we don't have a valid client token, we fallback to Paddle's hosted checkout page!
-      const hasValidToken = process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN && process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN !== 'your_client_token_here' && process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN !== 'test_token';
-      
-      if (hasValidToken && paddle) {
+      // 2. Open the Paddle checkout overlay or redirect to hosted checkout
+      if (paddle) {
         paddle.Checkout.open({
           transactionId: data.transactionId
         });
       } else if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('Checkout URL is missing from transaction.');
+        throw new Error('Paddle checkout could not be opened. Please try again.');
       }
       
     } catch (err: any) {
