@@ -34,26 +34,45 @@ const nextConfig: NextConfig = {
               default-src 'self';
               script-src 'self' 'unsafe-inline' 'unsafe-eval' 
                 https://js.paddle.com 
-                https://cdn.paddle.com 
+                https://cdn.paddle.com
+                https://sandbox-cdn.paddle.com
+                https://checkout.paddle.com
                 https://www.googletagmanager.com 
                 https://apis.google.com 
                 https://accounts.google.com 
                 https://vercel.live 
                 https://*.vercel.app;
-              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-              font-src 'self' https://fonts.gstatic.com;
-              img-src 'self' https: data:;
+              style-src 'self' 'unsafe-inline' 
+                https://fonts.googleapis.com
+                https://checkout.paddle.com
+                https://cdn.paddle.com;
+              font-src 'self' 
+                https://fonts.gstatic.com
+                https://checkout.paddle.com
+                https://cdn.paddle.com;
+              img-src 'self' https: data: blob:;
               connect-src 'self' 
-                https://api.paddle.com 
+                https://api.paddle.com
+                https://sandbox-api.paddle.com
+                https://checkout.paddle.com
+                https://*.paddle.com
                 https://www.neerzy.com 
                 https://*.supabase.co 
                 https://*.googleapis.com 
                 https://vercel.live 
                 https://*.vercel.app 
                 https://analytics.vercel.com;
-              frame-src 'self' https://js.paddle.com https://vercel.live;
-              child-src 'self';
-              form-action 'self';
+              frame-src 'self' 
+                https://js.paddle.com
+                https://cdn.paddle.com
+                https://checkout.paddle.com
+                https://*.paddle.com
+                https://sandbox-checkout.paddle.com
+                https://vercel.live;
+              child-src 'self'
+                https://checkout.paddle.com
+                https://*.paddle.com;
+              form-action 'self' https://*.paddle.com;
               frame-ancestors 'none';
               base-uri 'self';
               upgrade-insecure-requests;
