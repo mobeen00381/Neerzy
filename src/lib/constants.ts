@@ -21,8 +21,8 @@ export const PRICING_PLANS = {
     priceMonthly: 39,
     postsPerMonth: 25,
     features: [
-      "25 posts per month",
-      "2 posts per day",
+      "25 posts per month + review requests",
+      "25 review requests-extra",
       "WhatsApp workflow",
       "Custom domain support",
       "Voice note support"
@@ -34,8 +34,8 @@ export const PRICING_PLANS = {
     priceMonthly: 79,
     postsPerMonth: 60,
     features: [
-      "60 posts per month",
-      "4 posts per day",
+      "60 posts per month + review requests",
+      "60 review requests-extra",
       "Social content generation",
       "Priority processing",
       "Advanced analytics"
@@ -45,10 +45,10 @@ export const PRICING_PLANS = {
     id: "agency",
     name: "Agency",
     priceMonthly: 199,
-    postsPerMonth: 200,
+    postsPerMonth: 250,
     features: [
-      "200 posts per month",
-      "10 posts per day",
+      "250 posts per month + review requests",
+      "250 review requests-extra",
       "White-label options",
       "Dedicated account manager",
       "API access"

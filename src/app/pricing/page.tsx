@@ -40,8 +40,8 @@ const PLANS = [
     highlight: true,
     badge: 'Most Popular',
     features: [
-      { text: '25 posts per month', included: true },
-      { text: '2 posts per day', included: true },
+      { text: '25 posts per month + review requests', included: true },
+      { text: '25 review requests-extra', included: true },
       { text: 'WhatsApp workflow', included: true },
       { text: 'Google post generation', included: true },
       { text: 'Custom domain support', included: true },
@@ -58,8 +58,8 @@ const PLANS = [
     href: '/checkout/growth',
     highlight: false,
     features: [
-      { text: '60 posts per month', included: true },
-      { text: '4 posts per day', included: true },
+      { text: '60 posts per month + review requests', included: true },
+      { text: '60 review requests-extra', included: true },
       { text: 'Social content generation', included: true },
       { text: 'Facebook + Instagram content', included: true },
       { text: 'Priority processing', included: true },
@@ -76,9 +76,9 @@ const PLANS = [
     href: 'mailto:sales@neerzy.com',
     highlight: false,
     features: [
-      { text: '250 posts per month', included: true },
+      { text: '250 posts per month + review requests', included: true },
+      { text: '250 review requests-extra', included: true },
       { text: 'Up to 10 clients', included: true },
-      { text: '2 posts/day per client', included: true },
       { text: 'Client management dashboard', included: true },
       { text: 'White-label workflow', included: true },
       { text: 'Bulk workflow tools', included: true },
