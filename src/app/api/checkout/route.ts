@@ -15,10 +15,10 @@ export async function POST(req: Request) {
     }
 
     const PADDLE_PRICE_IDS: Record<string, string> = {
-      pro: "pri_01kqw4dy15ptkzs43bm3pqr12w",
-      growth: "pri_01kqw4j2820525t8q9yhk21x7n",
-      agency: "pri_01kqw4mmbwxgjvt5pc0cf5b80h",
-      domain: "pri_01kpqrc7ths0fz8synqzhhasd9"
+      pro: process.env.PADDLE_PRO_PRICE_ID || "pri_01kqw4dy15ptkzs43bm3pqr12w",
+      growth: process.env.PADDLE_GROWTH_PRICE_ID || "pri_01kqw4j2820525t8q9yhk21x7n",
+      agency: process.env.PADDLE_AGENCY_PRICE_ID || "pri_01kqw4mmbwxgjvt5pc0cf5b80h",
+      domain: process.env.PADDLE_DOMAIN_PRICE_ID || "pri_01kpqrc7ths0fz8synqzhhasd9"
     };
 
     const priceId = PADDLE_PRICE_IDS[planId];
