@@ -577,29 +577,84 @@ function formatToE164(rawPhone: string, merchantPhone: string): string {
   // Clean all non-digit characters except leading +
   let cleaned = rawPhone.replace(/[^\d+]/g, '');
   
+  // If already has +, assume it's E.164 format
   if (cleaned.startsWith('+')) {
     return cleaned;
   }
   
-  // Extract merchant's country code if available
-  let merchantCountryCode = '92'; // default to Pakistan (since Neerzy is PK/Traders focused)
+  // Known country codes (ordered longest-first for correct matching)
+  const knownCountryCodes = [
+    '971', '966', '965', '964', '963', '962', '961', '960', // Middle East
+    '994', '993', '992',  // Central Asia
+    '977', '975', '974', '973',  // South Asia / Gulf
+    '880',  // Bangladesh
+    '94',   // Sri Lanka
+    '92',   // Pakistan
+    '91',   // India
+    '90',   // Turkey
+    '86',   // China
+    '82',   // South Korea
+    '81',   // Japan
+    '66',   // Thailand
+    '65',   // Singapore
+    '63',   // Philippines
+    '62',   // Indonesia
+    '61',   // Australia
+    '60',   // Malaysia
+    '55',   // Brazil
+    '49',   // Germany
+    '48',   // Poland
+    '47',   // Norway
+    '46',   // Sweden
+    '45',   // Denmark
+    '44',   // UK
+    '43',   // Austria
+    '41',   // Switzerland
+    '39',   // Italy
+    '34',   // Spain
+    '33',   // France
+    '31',   // Netherlands
+    '27',   // South Africa
+    '20',   // Egypt
+    '1',    // US/Canada
+  ];
+  
+  // Extract merchant's country code using known codes table
+  let merchantCountryCode = '92'; // default to Pakistan
   if (merchantPhone.startsWith('+')) {
-    const match = merchantPhone.match(/^\+(\d{1,4})/);
-    if (match) {
-      merchantCountryCode = match[1];
+    const merchantDigits = merchantPhone.replace(/\D/g, '');
+    for (const cc of knownCountryCodes) {
+      if (merchantDigits.startsWith(cc)) {
+        merchantCountryCode = cc;
+        break;
+      }
     }
   }
   
-  // Handle leading 0 (common in local dialing formats like 0300... in PK, 07... in UK, etc.)
+  // Handle leading 0 (common in local dialing: 0300... in PK, 07... in UK, etc.)
   if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
   }
   
-  // If the cleaned number already starts with the country code (without the +)
+  // If the cleaned number already starts with the country code, just add +
   if (cleaned.startsWith(merchantCountryCode)) {
+    // Validate: for Pakistan (92), full number should be 12 digits (92 + 10 digits)
+    if (merchantCountryCode === '92' && cleaned.length !== 12) {
+      // If too long, the number likely doesn't start with the country code — it's a local number
+      if (cleaned.length > 12) {
+        // Strip the apparent country code prefix and re-add it
+        return `+${merchantCountryCode}${cleaned}`;
+      }
+    }
     return `+${cleaned}`;
   }
   
   // Otherwise, prepend the merchant's country code
-  return `+${merchantCountryCode}${cleaned}`;
+  const result = `+${merchantCountryCode}${cleaned}`;
+  
+  // Log for debugging
+  console.log(`📱 formatToE164: "${rawPhone}" → "${result}" (country code: ${merchantCountryCode}, merchant: ${merchantPhone})`);
+  
+  return result;
 }
+
