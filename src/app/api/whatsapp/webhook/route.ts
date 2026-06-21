@@ -344,18 +344,19 @@ Type *DONE* when published.`;
 
 async function handleSendReview(phone: string, fromNumber?: string) {
   try {
-    // 1. Try to find the last generated post
-    const { data: generatedPost } = await supabase
+    // 1. Try to find the last generated post WITH customer_phone
+    const { data: generatedPostWithCustomer } = await supabase
       .from('pending_posts')
       .select('*')
       .eq('user_phone', phone)
       .eq('status', 'generated')
+      .not('customer_phone', 'is', null)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    // 2. Try to find the last draft post that has customer details (so they can send directly)
-    const { data: draftPost } = await supabase
+    // 2. Try to find the last draft post that has customer details
+    const { data: draftPostWithCustomer } = await supabase
       .from('pending_posts')
       .select('*')
       .eq('user_phone', phone)
@@ -365,17 +366,43 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       .limit(1)
       .maybeSingle();
 
+    // 3. Also check for generated posts WITHOUT customer_phone (lower priority)
+    const { data: generatedPostAny } = await supabase
+      .from('pending_posts')
+      .select('*')
+      .eq('user_phone', phone)
+      .eq('status', 'generated')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Prefer posts that have customer_phone — this is critical to avoid sending to the trader
     let post = null;
-    if (generatedPost && draftPost) {
-      const genTime = new Date(generatedPost.created_at).getTime();
-      const draftTime = new Date(draftPost.created_at).getTime();
-      post = genTime >= draftTime ? generatedPost : draftPost;
+    if (generatedPostWithCustomer && draftPostWithCustomer) {
+      const genTime = new Date(generatedPostWithCustomer.created_at).getTime();
+      const draftTime = new Date(draftPostWithCustomer.created_at).getTime();
+      post = genTime >= draftTime ? generatedPostWithCustomer : draftPostWithCustomer;
     } else {
-      post = generatedPost || draftPost;
+      post = generatedPostWithCustomer || draftPostWithCustomer;
+    }
+
+    // If no post with customer_phone, fall back to any generated post (but will require customer_phone below)
+    if (!post) {
+      post = generatedPostAny;
     }
 
     if (!post) {
       return await sendTwilioMessage(phone, "⚠️ *No pending generated post or review draft found.*", fromNumber);
+    }
+
+    // ⛔ CRITICAL: Ensure we have a customer phone — NEVER fall back to the trader's phone
+    if (!post.customer_phone) {
+      console.warn(`⚠️ Post ${post.id} has no customer_phone. Trader phone: ${phone}. NOT sending review to trader.`);
+      return await sendTwilioMessage(
+        phone,
+        "⚠️ *No customer phone number found.*\n\nPlease send the customer's name and phone number first.\n\nExample: _Amjad +923711291617_",
+        fromNumber
+      );
     }
 
     // 🔍 Find the review link — try sender phone first, then fallback to any business profile
@@ -420,12 +447,27 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     await supabase.from('pending_posts').update({ status: 'published' }).eq('id', post.id);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 3. Send Review Request
+    // 3. Send Review Request to the CUSTOMER (never the trader)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const businessName = business?.business_name || 'Your Connected Business';
-    const rawCustomerPhone = post.customer_phone || phone; // Fallback to self-send if missing
-    const targetCustomerPhone = formatToE164(rawCustomerPhone, phone);
+    const targetCustomerPhone = formatToE164(post.customer_phone, phone);
     const customerName = (post.customer_name || 'Customer').replace(/[\n\r]+/g, ' ').trim();
+
+    // Final safety check: never send review link to the trader's own number
+    const cleanCustomerPhone = targetCustomerPhone.replace(/\D/g, '');
+    const cleanMerchantPhone = phone.replace(/\D/g, '');
+    const isSelfSend = cleanCustomerPhone === cleanMerchantPhone || (cleanCustomerPhone.length >= 8 && cleanMerchantPhone.endsWith(cleanCustomerPhone.slice(-8)));
+
+    if (isSelfSend) {
+      console.warn(`⚠️ Customer phone ${targetCustomerPhone} matches trader phone ${phone}. Blocking self-send.`);
+      return await sendTwilioMessage(
+        phone,
+        "⚠️ *The customer phone number matches your own number.*\n\nPlease send the correct customer's name and phone number.\n\nExample: _Amjad +923711291617_",
+        fromNumber
+      );
+    }
+
+    console.log(`📤 Sending review link to CUSTOMER: ${customerName} at ${targetCustomerPhone} (trader: ${phone})`);
     
     // Send the approved Twilio WhatsApp Template to prevent Error 63016 (no session window)
     const templateSid = process.env.TWILIO_TEMPLATE_REVIEW_REQUEST || 'HX36dc564715671fad2b3617c795984ee2';
@@ -443,15 +485,9 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
     await sendTwilioTemplate(targetCustomerPhone, templateSid, templateVars, billingFrom);
 
-    // If it's a real customer (not sending to yourself), send a confirmation to the merchant
-    const cleanCustomerPhone = targetCustomerPhone.replace(/\D/g, '');
-    const cleanMerchantPhone = phone.replace(/\D/g, '');
-    const isSelfSend = cleanCustomerPhone === cleanMerchantPhone || (cleanCustomerPhone.length >= 8 && cleanMerchantPhone.endsWith(cleanCustomerPhone.slice(-8)));
-
-    if (!isSelfSend) {
-      const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n🔗 Review link: ${reviewLink}`;
-      await sendTwilioMessage(phone, confirmMessage, fromNumber);
-    }
+    // Always send confirmation to the trader since we verified it's a real customer
+    const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n📱 Sent to: ${targetCustomerPhone}\n🔗 Review link: ${reviewLink}`;
+    await sendTwilioMessage(phone, confirmMessage, fromNumber);
 
     return NextResponse.json({ success: true });
 
