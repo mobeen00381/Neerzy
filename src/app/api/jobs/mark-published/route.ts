@@ -99,7 +99,24 @@ export async function POST(req: Request) {
       console.log(`✅ Review request template sent to ${customerName} at ${customerPhone}`);
     } catch (twilioErr: any) {
       console.error('❌ Failed to send WhatsApp review request:', twilioErr.message);
-      return NextResponse.json({ error: `Failed to send review: ${twilioErr.message}` }, { status: 500 });
+      // We don't fail immediately, we will try sending backup SMS
+    }
+
+    // 📱 Parallel/Backup SMS Delivery to guarantee customer receives the link (since WhatsApp templates can fail with Error 63020)
+    try {
+      const smsFrom = defaultFrom.replace('whatsapp:', '');
+      const smsTo = customerPhone.replace('whatsapp:', '');
+      const smsBody = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${reviewLink}`;
+      
+      console.log(`📤 Sending parallel backup SMS from ${smsFrom} to ${smsTo}`);
+      await twilioClient.messages.create({
+        from: smsFrom,
+        to: smsTo,
+        body: smsBody
+      });
+      console.log(`✅ Backup SMS successfully sent to ${customerName}`);
+    } catch (smsError: any) {
+      console.error('⚠️ Failed to send parallel backup SMS:', smsError.message);
     }
 
     // Update post status
