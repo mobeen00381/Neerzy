@@ -1,0 +1,159 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
+import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
+import Link from 'next/link';
+import { ROUTES } from '@/lib/routes';
+
+export const metadata: Metadata = {
+  title: 'How to Improve Your Google Business Profile Visual Content Score | Neerzy',
+  description: 'Visual Content makes up 20% of your Google Business Profile audit score. Here\'s exactly what\'s checked — photo count, recency, diversity, video — and how to raise it.',
+  alternates: { canonical: `https://neerzy.com${ROUTES.GUIDES.VISUAL}` },
+  openGraph: {
+    title: 'Visual Content Score Guide | Neerzy',
+    description: 'Visual Content is 20% of your GBP audit score. Here\'s what\'s checked and how to raise it fast.',
+    url: `https://neerzy.com${ROUTES.GUIDES.VISUAL}`,
+    type: 'article',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Visual Content Score Guide | Neerzy',
+    description: 'Visual Content is 20% of your GBP audit score — and one of the fastest categories to fix.',
+  },
+};
+
+export default function VisualContentScoreGuidePage() {
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: 'Do stock photos count toward my photo score?', acceptedAnswer: { '@type': 'Answer', text: 'No — the audit is designed to reward real, business-specific photos, and stock or generic imagery doesn\'t build the same trust with actual customers browsing your profile either.' } },
+      { '@type': 'Question', name: 'How often do I need to upload new photos?', acceptedAnswer: { '@type': 'Answer', text: 'Weekly is the realistic target for busy plumbing businesses — one or two photos from each completed job maintains both the count and the recency sub-metrics without requiring a dedicated photography session.' } },
+      { '@type': 'Question', name: 'Is video really necessary, or just a bonus?', acceptedAnswer: { '@type': 'Answer', text: 'It\'s checked as its own sub-signal, so it does contribute — but it\'s a smaller factor than photo volume and recency, so prioritize consistent photo uploads first if you have to choose.' } },
+    ],
+  };
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <SeoGuideLayout
+        title="How to Improve Your Visual Content Score"
+        description="Visual Content makes up 20% of your Google Business Profile audit score. Here's exactly what's checked — photo count, recency, diversity, video — and how to raise it."
+        path={ROUTES.GUIDES.VISUAL}
+      >
+        <p>Visual Content is weighted at 20% in <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy&apos;s free GBP audit</Link> — the third-highest category after Completeness and Reviews &amp; Reputation. It&apos;s also one of the fastest to move, since it depends entirely on you uploading photos, not on customer behavior.</p>
+
+        <h2>1. What This Score Measures</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of the Neerzy audit Visual Content section showing photo count benchmarks at 10+, 50+, and 100+ thresholds, a recency indicator, a diversity rating, and a video presence check."
+          caption="The Visual Content category checks five distinct sub-signals, not just your total photo count."
+        />
+
+        <ul>
+          <li><strong>Total photo count</strong>, benchmarked against 10+, 50+, and 100+ thresholds</li>
+          <li><strong>Recency of uploads</strong> — whether photos have been added in the last 30 days</li>
+          <li><strong>Logo and cover photo quality</strong></li>
+          <li><strong>Photo diversity</strong> — interior, exterior, and team photos, not just one type repeated</li>
+          <li><strong>Video content presence</strong></li>
+        </ul>
+
+        <h2>2. Why Google Cares</h2>
+
+        <CalloutBox type="important" title="Why Photos Are Hard to Fake">
+          Photo volume and recency are among the hardest signals for an inactive or fake business to fake convincingly. A profile with fresh, varied, weekly photos is strong, low-cost evidence to Google that a real business is actively operating right now — which is exactly the kind of &quot;is this business alive&quot; signal the algorithm is trying to detect across all five categories, made unusually concrete here.
+        </CalloutBox>
+
+        <h2>3. Common Reasons for a Low Score</h2>
+
+        <ul>
+          <li><strong>Photos were uploaded once, when the profile was created, and never touched again</strong> — the single most common pattern among plumbing businesses.</li>
+          <li><strong>All photos are the same type</strong> — usually just a logo and a truck wrap, with no actual job-site or team photos.</li>
+          <li><strong>No video at all</strong>, even though video is checked as its own sub-signal and most competitors haven&apos;t added any either.</li>
+          <li><strong>Photo count sits in the 10–30 range</strong>, clearing the lowest threshold but falling well short of the 50+ and 100+ benchmarks that score higher.</li>
+        </ul>
+
+        <h2>4. Real Examples</h2>
+
+        <Screenshot
+          src=""
+          alt="Before and after showing a plumbing profile with 12 old photos (scoring 20-40) versus one with 80+ recent, diverse photos (scoring 80-100)."
+          caption="The difference a consistent upload habit makes over two to three months."
+        />
+
+        <p>A plumbing company with 12 photos, no video, and no uploads in the last six months will typically score in the 20–40 range on this category — clearing the &quot;has photos&quot; bar but falling short on every other sub-metric. A business adding 4–6 fresh job photos a week, with a mix of completed work, team shots, and at least one video, will typically reach the 80–100 range within two to three months of consistent uploading.</p>
+
+        <h2>5. Priority Checklist</h2>
+
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 my-6">
+          <ul className="space-y-3 text-gray-700">
+            {[
+              'Upload photos from every job going forward, not just a batch once in a while',
+              'Mix photo types: completed work, before-and-afters, your team, your trucks',
+              'Add at least one short video if you currently have none',
+              'Update your logo and cover photo if they\'re outdated, blurry, or missing entirely',
+              'Aim for the 50-photo threshold first, then 100+ over time',
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="mt-1 w-5 h-5 border-2 border-gray-400 rounded flex-shrink-0" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <h2>How This Fits Your Overall Audit Score</h2>
+
+        <p>At 20% weight, Visual Content moves your overall score less than Completeness or Reviews individually, but it&apos;s often the fastest category to fix in bulk — a single afternoon spent uploading a real photo backlog can shift this category more in one sitting than any other category allows.</p>
+
+        <h2>Common Questions</h2>
+
+        <p><strong>Do stock photos count toward my photo score?</strong><br/>No — the audit is designed to reward real, business-specific photos, and stock or generic imagery doesn&apos;t build the same trust with actual customers browsing your profile either.</p>
+        <p><strong>How often do I need to upload new photos to keep this score up?</strong><br/>Weekly is the realistic target for busy plumbing businesses — one or two photos from each completed job maintains both the count and the recency sub-metrics without requiring a dedicated photography session.</p>
+        <p><strong>Does photo quality matter, or just quantity?</strong><br/>Both are checked separately — a large volume of blurry, poorly lit photos won&apos;t score as well as a smaller set of clear, well-composed ones, though quantity still matters on its own.</p>
+        <p><strong>Is video really necessary, or just a bonus?</strong><br/>It&apos;s checked as its own sub-signal, so it does contribute — but it&apos;s a smaller factor than photo volume and recency, so prioritize consistent photo uploads first if you have to choose.</p>
+
+        <h2>6. Common Mistakes</h2>
+
+        <CalloutBox type="warning" title="Don't Upload in Batches, Then Stop">
+          Recency is scored separately from total count, so a stale backlog doesn&apos;t fully substitute for ongoing activity. Upload in batches if needed to hit a threshold, but maintain weekly uploads going forward.
+        </CalloutBox>
+        <ul>
+          <li><strong>Only uploading exterior or logo shots</strong> — diversity is a specific sub-check, and a profile heavy on one photo type scores lower than a varied one.</li>
+        </ul>
+
+        <h2>7. When to Re-Run the Audit</h2>
+
+        <p>Photo-based improvements are among the fastest to register — re-run the audit within a day or two of a significant upload batch to see the count and recency sub-scores move.</p>
+
+        <h2>8. Related Guides</h2>
+
+        <ul>
+          <li><Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link></li>
+          <li><Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link></li>
+          <li><Link href={`${ROUTES.PILLAR}#section-5`} className="text-blue-600 hover:underline">Section 5 of the full plumbing SEO guide</Link> — Photos and Videos subsections</li>
+        </ul>
+
+        <h2>9. What Improvement Should You Expect?</h2>
+
+        <div className="overflow-x-auto">
+          <table>
+            <thead><tr><th>Action</th><th>Likely Impact</th></tr></thead>
+            <tbody>
+              <tr><td>Upload a backlog of existing job photos now</td><td><strong>Quick</strong> — visible within a day or two</td></tr>
+              <tr><td>Add photos from every job going forward</td><td><strong>Medium</strong> — compounds week over week</td></tr>
+              <tr><td>Add your first video</td><td><strong>Small, immediate bump</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <CalloutBox type="tip" title="Run or Re-Run Your Free Audit">
+          <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit</Link> after your next upload batch.
+        </CalloutBox>
+
+      </SeoGuideLayout>
+    </>
+  );
+}

@@ -1,0 +1,218 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
+import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
+import Link from 'next/link';
+import { ROUTES } from '@/lib/routes';
+
+export const metadata: Metadata = {
+  title: 'Understanding Your Google Business Profile Audit Score | Neerzy',
+  description: 'A complete breakdown of Neerzy\'s free GBP audit score — what Completeness, Reviews, Visual Content, Engagement, and Local SEO Optimization actually measure, and how to improve each one.',
+  alternates: { canonical: `https://neerzy.com${ROUTES.UNDERSTANDING_SCORE}` },
+  openGraph: {
+    title: 'Understanding Your Google Business Profile Audit Score',
+    description: 'A complete breakdown of Neerzy\'s free GBP audit score — what each category measures and how to fix it.',
+    url: `https://neerzy.com${ROUTES.UNDERSTANDING_SCORE}`,
+    type: 'article',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Understanding Your Google Business Profile Audit Score | Neerzy',
+    description: 'A complete breakdown of Neerzy\'s free GBP audit score — what each category measures and how to fix it.',
+  },
+};
+
+export default function UnderstandingAuditScorePage() {
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: 'What does my GBP audit score mean?', acceptedAnswer: { '@type': 'Answer', text: 'Your score is built from five weighted categories: Completeness (25%), Reviews & Reputation (25%), Visual Content (20%), Engagement & Activity (15%), and Local SEO Optimization (15%). The number out of 100 reflects how strong your Google Business Profile is across all five areas.' } },
+      { '@type': 'Question', name: 'Which audit category should I fix first?', acceptedAnswer: { '@type': 'Answer', text: 'Fix your lowest-scoring category first — but within that, prioritize the two highest-weighted categories (Completeness and Reviews) since they move your overall score the most per fix.' } },
+      { '@type': 'Question', name: 'How long does it take to see score improvement?', acceptedAnswer: { '@type': 'Answer', text: 'Completeness and Visual Content fixes can show same-day improvement. Reviews & Reputation is the slowest — expect 4–8 weeks of consistent requesting before seeing meaningful movement.' } },
+    ],
+  };
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <SeoGuideLayout
+        title="Understanding Your Google Business Profile Audit Score"
+        description="A complete breakdown of Neerzy's free GBP audit score — what Completeness, Reviews, Visual Content, Engagement, and Local SEO Optimization actually measure, and how to improve each one."
+        path={ROUTES.UNDERSTANDING_SCORE}
+      >
+        <p>If you&apos;ve just run <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy&apos;s free Google Business Profile audit</Link> and landed on a number out of 100, this page exists to answer the question that number raises: <strong>what does this actually mean, and what do I do about it?</strong></p>
+        <p>Your score is built from five weighted categories. This page walks through each one — what it measures, why it&apos;s weighted the way it is, and the specific, concrete fixes that move it.</p>
+
+        <h2>How the Score Is Built</h2>
+
+        <Screenshot
+          src=""
+          alt="Chart showing the 5 Neerzy audit categories and their weightings: Completeness 25%, Reviews & Reputation 25%, Visual Content 20%, Engagement & Activity 15%, Local SEO Optimization 15%."
+          caption="The five categories that make up your overall Neerzy GBP audit score."
+        />
+
+        <div className="overflow-x-auto">
+          <table>
+            <thead>
+              <tr><th>Category</th><th>Weight</th><th>What It Measures</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><Link href={ROUTES.GUIDES.COMPLETENESS} className="text-blue-600 hover:underline">Completeness</Link></td><td><strong>25%</strong></td><td>NAP, hours, categories, description, attributes</td></tr>
+              <tr><td><Link href={ROUTES.GUIDES.REVIEWS} className="text-blue-600 hover:underline">Reviews &amp; Reputation</Link></td><td><strong>25%</strong></td><td>Review count, rating, velocity, response rate</td></tr>
+              <tr><td><Link href={ROUTES.GUIDES.VISUAL} className="text-blue-600 hover:underline">Visual Content</Link></td><td><strong>20%</strong></td><td>Photo count, recency, diversity, video presence</td></tr>
+              <tr><td><Link href={ROUTES.GUIDES.ENGAGEMENT} className="text-blue-600 hover:underline">Engagement &amp; Activity</Link></td><td><strong>15%</strong></td><td>Posting frequency, Q&amp;A activity, review responses</td></tr>
+              <tr><td><Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization</Link></td><td><strong>15%</strong></td><td>Keywords, category accuracy, service areas, NAP consistency</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Completeness and Reviews &amp; Reputation carry the most weight — together, half your score — which is why they&apos;re the first two places to look if your number is lower than you&apos;d like.</p>
+
+        <hr />
+
+        <h2>Completeness (25%)</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of the Neerzy audit showing the Completeness category with green checkmarks for filled fields and red indicators for missing ones like business description and attributes."
+          caption="The Completeness category checks every core field in your Google Business Profile."
+        />
+
+        <p>This category checks whether the basic structure of your profile is actually filled in: business name, address, phone number, website link, business hours, primary category, a written business description, and your listed attributes and services.</p>
+
+        <CalloutBox type="important" title="Why It's Weighted This Heavily">
+          An incomplete profile gives Google — and AI systems reading your profile — nothing solid to match against a search. A missing category or an empty description isn&apos;t a cosmetic gap; it&apos;s a direct relevance signal Google can&apos;t use.
+        </CalloutBox>
+
+        <p><strong>How to fix a low Completeness score:</strong></p>
+        <ul>
+          <li>Open Google Business Profile Manager and go field by field — most owners are surprised how many fields were left blank when the profile was first created years ago.</li>
+          <li>Write out the full ~750-character business description, naturally including your core services and city.</li>
+          <li>Add every applicable attribute (free estimates, licensed, veteran-owned, etc.) and every individual service you offer, not just a general category.</li>
+        </ul>
+        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.COMPLETENESS} className="text-blue-600 hover:underline">Completeness Score Guide</Link></p>
+
+        <hr />
+
+        <h2>Reviews &amp; Reputation (25%)</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of the Neerzy audit Reviews & Reputation section showing review count, average star rating, velocity indicator, and response rate metrics."
+          caption="The Reviews & Reputation category measures count, rating, recency, and how well you respond."
+        />
+
+        <p>This checks your total review count, average star rating, how recently you&apos;ve received new reviews (velocity), and how consistently you respond.</p>
+
+        <CalloutBox type="important" title="Why It's Weighted This Heavily">
+          Reviews are both a ranking factor and the single biggest trust signal a customer sees before calling — Google and your customers are, in this case, looking at the same evidence.
+        </CalloutBox>
+
+        <p><strong>How to fix a low Reviews &amp; Reputation score:</strong></p>
+        <ul>
+          <li>Prioritize velocity over volume if you&apos;re starting from a low base — a steady trickle of new reviews each month outperforms a single burst followed by silence.</li>
+          <li>Respond to every review, especially negative ones — response rate is scored directly, and it&apos;s often the easiest sub-metric to fix immediately.</li>
+          <li>See <Link href={`${ROUTES.PILLAR}#section-13`} className="text-blue-600 hover:underline">Section 13 of the full plumbing SEO guide</Link> for review request timing and templates.</li>
+        </ul>
+        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.REVIEWS} className="text-blue-600 hover:underline">Reviews Score Guide</Link></p>
+
+        <hr />
+
+        <h2>Visual Content (20%)</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of Neerzy audit Visual Content section showing photo count benchmarks at 10+, 50+, and 100+ thresholds with recency and diversity indicators."
+          caption="The Visual Content category benchmarks your photo count, recency, and variety."
+        />
+
+        <p>This checks total photo count against benchmarks (10+, 50+, and 100+ thresholds), how recently photos were uploaded, and whether you have video content.</p>
+
+        <CalloutBox type="important" title="Why It's Weighted This Heavily">
+          Photo volume and recency are among the clearest, hardest-to-fake signals that a business is actually operating and actively maintained — a profile with fresh weekly photos reads as alive in a way text alone can&apos;t replicate.
+        </CalloutBox>
+
+        <p><strong>How to fix a low Visual Content score:</strong></p>
+        <ul>
+          <li>Upload photos from every completed job, not just a curated batch once a year.</li>
+          <li>Mix photo types: completed work, before-and-afters, your team, your trucks — diversity is scored, not just quantity.</li>
+          <li>Add at least one video if you have none — it&apos;s a distinct sub-check most competitors skip entirely.</li>
+        </ul>
+        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.VISUAL} className="text-blue-600 hover:underline">Visual Content Score Guide</Link></p>
+
+        <hr />
+
+        <h2>Engagement &amp; Activity (15%)</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of Neerzy audit Engagement & Activity section showing posting frequency, Q&A status, and review response rate metrics."
+          caption="The Engagement & Activity category measures whether your profile looks alive and actively managed."
+        />
+
+        <p>This checks whether your profile is claimed, how often you&apos;re posting, whether your Q&amp;A section has activity, and whether you&apos;re responding to reviews.</p>
+
+        <CalloutBox type="important" title="Why It's Weighted This Way">
+          Activity is Google&apos;s clearest proxy for &quot;is this business currently operating,&quot; separate from how good the business&apos;s reputation already is.
+        </CalloutBox>
+
+        <p><strong>How to fix a low Engagement &amp; Activity score:</strong></p>
+        <ul>
+          <li>Publish at least one Google Post per week — see <Link href={`${ROUTES.PILLAR}#section-14`} className="text-blue-600 hover:underline">Section 14 of the full guide</Link> for simple post templates that require no marketing background.</li>
+          <li>Seed your own Q&amp;A section with the 3–5 questions customers ask most, rather than leaving it empty for a stranger to fill first.</li>
+        </ul>
+        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.ENGAGEMENT} className="text-blue-600 hover:underline">Engagement &amp; Activity Score Guide</Link></p>
+
+        <hr />
+
+        <h2>Local SEO Optimization (15%)</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of Neerzy audit Local SEO Optimization section showing category accuracy, service area coverage, and NAP consistency indicators."
+          caption="The Local SEO Optimization category checks consistency across your entire web presence."
+        />
+
+        <p>This checks keyword usage in your business name and description, category optimization, defined service areas, NAP consistency across the web, and backlinks from your website to your GBP.</p>
+
+        <CalloutBox type="important" title="Why It's Weighted This Way">
+          This category is less about any single field and more about <em>consistency</em> — the same business information stated identically everywhere is what allows Google to build confidence in your listing.
+        </CalloutBox>
+
+        <p><strong>How to fix a low Local SEO Optimization score:</strong></p>
+        <ul>
+          <li>Run a manual NAP check across your website, Yelp, Angi, and the BBB — inconsistencies here are common and easy to miss.</li>
+          <li>Make sure your service areas are explicitly defined, not just implied by your business address.</li>
+          <li>Link from your website&apos;s contact page directly to your Google Business Profile.</li>
+        </ul>
+        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link></p>
+
+        <hr />
+
+        <h2>What to Do With Your Score</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of the Neerzy audit recommendations panel showing a prioritized action list sorted by impact."
+          caption="Your audit results come with a prioritized action plan — not generic advice."
+        />
+
+        <ol>
+          <li><strong>Note your lowest-scoring category</strong> — that&apos;s where the fastest gains are available, not necessarily the category that sounds most important.</li>
+          <li><strong>Fix the highest-weighted issues first</strong> within that category, since Completeness and Reviews &amp; Reputation move your overall score the most per fix.</li>
+          <li><strong>Re-run the audit in 30 days.</strong> Most of these fixes (photos, posts, review responses) show measurable score movement within a month.</li>
+          <li><strong>Read the full guide</strong> for the complete strategy behind each category: <Link href={ROUTES.PILLAR} className="text-blue-600 hover:underline">SEO for Plumbers: The Complete 2026 Guide</Link>.</li>
+        </ol>
+
+        <p>Ready to act on your results? → <Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link></p>
+
+        <CalloutBox type="tip" title="Run or Re-Run Your Free Audit">
+          <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit at neerzy.com/gmb-audit-tool</Link>
+        </CalloutBox>
+
+      </SeoGuideLayout>
+    </>
+  );
+}

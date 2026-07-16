@@ -1,0 +1,159 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
+import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
+import Link from 'next/link';
+import { ROUTES } from '@/lib/routes';
+
+export const metadata: Metadata = {
+  title: 'How to Improve Your Google Business Profile Local SEO Optimization Score | Neerzy',
+  description: 'Local SEO Optimization makes up 15% of your Google Business Profile audit score. Here\'s what\'s checked — keywords, categories, service areas, NAP consistency — and how to fix it.',
+  alternates: { canonical: `https://neerzy.com${ROUTES.GUIDES.LOCAL_SEO}` },
+  openGraph: {
+    title: 'Local SEO Optimization Score Guide | Neerzy',
+    description: 'Local SEO Optimization is 15% of your GBP audit score. Here\'s what\'s checked and how to fix NAP consistency, service areas, and categories.',
+    url: `https://neerzy.com${ROUTES.GUIDES.LOCAL_SEO}`,
+    type: 'article',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Local SEO Optimization Score Guide | Neerzy',
+    description: 'Local SEO Optimization is 15% of your GBP audit score — built around consistency across the web.',
+  },
+};
+
+export default function LocalSeoOptimizationScoreGuidePage() {
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: 'What counts as a NAP mismatch?', acceptedAnswer: { '@type': 'Answer', text: 'Anything that isn\'t character-for-character identical — a different suite number, "St." instead of "Street," an old phone extension. These seem trivial but are exactly what this category is built to catch.' } },
+      { '@type': 'Question', name: 'Do I need a separate landing page for every city I serve?', acceptedAnswer: { '@type': 'Answer', text: 'Not necessarily to pass this category — service areas just need to be accurately defined in your profile. Dedicated location pages help with broader website SEO, but that\'s a separate strategy.' } },
+      { '@type': 'Question', name: 'Can I use my city name in my business name to help this score?', acceptedAnswer: { '@type': 'Answer', text: 'No — adding a location or service keyword to a business name that isn\'t your real, registered name violates Google\'s guidelines and risks suspension. Use your actual business name, and let your defined service areas and category do the geographic work instead.' } },
+    ],
+  };
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <SeoGuideLayout
+        title="How to Improve Your Local SEO Optimization Score"
+        description="Local SEO Optimization makes up 15% of your Google Business Profile audit score. Here's what's checked — keywords, categories, service areas, NAP consistency — and how to fix it."
+        path={ROUTES.GUIDES.LOCAL_SEO}
+      >
+        <p>Local SEO Optimization is weighted at 15% in <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy&apos;s free GBP audit</Link>. Unlike the other four categories, this one is less about any single field being filled in and more about <strong>consistency</strong> — the same accurate information about your business, stated identically everywhere it appears online.</p>
+
+        <h2>1. What This Score Measures</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of the Neerzy audit Local SEO Optimization section showing category accuracy indicator, service area coverage map, NAP consistency check across Yelp, Angi, and BBB, and GBP website backlink status."
+          caption="The Local SEO Optimization category looks beyond your GBP to how your business appears across the whole web."
+        />
+
+        <ul>
+          <li><strong>Keywords in your business name and description</strong></li>
+          <li><strong>Category optimization</strong></li>
+          <li><strong>Service area coverage</strong></li>
+          <li><strong>NAP consistency across the web</strong></li>
+          <li><strong>Backlinks from your website to your GBP</strong></li>
+        </ul>
+
+        <h2>2. Why Google Cares</h2>
+
+        <CalloutBox type="important" title="Consistency Builds Entity Confidence">
+          Google is trying to build a single, confident understanding of your business — what industry insiders call an &quot;entity.&quot; Every inconsistency (a different phone number on Yelp, an undefined service area, a mismatched business name) makes that entity blurrier and harder for Google to trust. This category exists to catch exactly that blurriness, which is why it looks beyond your Google Business Profile itself to how your business is represented across the rest of the web.
+        </CalloutBox>
+
+        <h2>3. Common Reasons for a Low Score</h2>
+
+        <ul>
+          <li><strong>Service areas were never defined</strong>, leaving Google to infer coverage purely from the business address.</li>
+          <li><strong>NAP information doesn&apos;t match</strong> across Yelp, Angi, the BBB, and the business&apos;s own website — often a leftover from an old address or phone number.</li>
+          <li><strong>The website doesn&apos;t link to the Google Business Profile anywhere</strong>, missing an easy, free backlink signal.</li>
+          <li><strong>The category is accurate but generic</strong> (&quot;Contractor&quot;) rather than specific (&quot;Plumber,&quot; with relevant secondary categories).</li>
+        </ul>
+
+        <h2>4. Real Examples</h2>
+
+        <Screenshot
+          src=""
+          alt="Comparison showing a plumbing profile with no service areas defined, outdated phone on two directories, and no GBP link scoring 30-50 versus a fully consistent profile scoring 85-100."
+          caption="NAP consistency and defined service areas are the two biggest levers in this category."
+        />
+
+        <p>A plumbing business with the correct primary category but no defined service areas, an outdated phone number on two major directories, and no link from its website to its GBP will typically score in the 30–50 range on this category. A business with accurate, specific categories, clearly defined service areas, identical NAP information on every directory, and a GBP link in its website footer will typically score in the 85–100 range — and almost none of this requires ongoing maintenance once it&apos;s set up correctly.</p>
+
+        <h2>5. Priority Checklist</h2>
+
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 my-6">
+          <ul className="space-y-3 text-gray-700">
+            {[
+              'Manually check your NAP (name, address, phone) on your website, Yelp, Angi, and the BBB',
+              'Correct any mismatches you find, however small ("St." vs. "Street" counts)',
+              'Define every city, town, or zip code you actually serve as a service area',
+              'Confirm your primary and secondary categories are accurate and specific',
+              'Add a link to your Google Business Profile from your website (footer or contact page)',
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="mt-1 w-5 h-5 border-2 border-gray-400 rounded flex-shrink-0" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <h2>How This Fits Your Overall Audit Score</h2>
+
+        <p>At 15% weight, this category moves your overall score the least of the five individually, but it&apos;s frequently the <em>root cause</em> behind a weaker Completeness or Reviews score too — an inconsistent NAP can quietly confuse both the algorithm and real customers trying to find your correct phone number, indirectly affecting how those other signals get interpreted.</p>
+
+        <h2>Common Questions</h2>
+
+        <p><strong>Do I need a separate landing page for every city I list as a service area?</strong><br/>Not necessarily to pass this category — service areas just need to be accurately defined in your profile. Dedicated location pages (covered in <Link href={`${ROUTES.PILLAR}#section-7`} className="text-blue-600 hover:underline">Section 7 of the full guide</Link>) help with broader website SEO, but that&apos;s a separate, additional strategy.</p>
+        <p><strong>What counts as a NAP &quot;mismatch&quot;?</strong><br/>Anything that isn&apos;t character-for-character identical — a different suite number, &quot;St.&quot; instead of &quot;Street,&quot; an old phone extension. These seem trivial but are exactly what this category is built to catch.</p>
+        <p><strong>Where should I add a backlink to my Google Business Profile from my website?</strong><br/>The footer or contact page are the most common, low-effort placements — a single link is enough to satisfy this sub-signal.</p>
+        <p><strong>Can I use my city name in my business name to help this score?</strong><br/>No — adding a location or service keyword to a business name that isn&apos;t your real, registered name violates Google&apos;s guidelines and risks suspension. Use your actual business name, and let your defined service areas and category do the geographic work instead.</p>
+
+        <h2>6. Common Mistakes</h2>
+
+        <CalloutBox type="warning" title="Fix Everywhere, Not Just on GBP">
+          Fixing NAP on the Google Business Profile but not on other directories means the inconsistency persists elsewhere on the web. Yelp, Angi, and the BBB listings need the same correction.
+        </CalloutBox>
+        <ul>
+          <li><strong>Listing an overly broad service area</strong> (&quot;all of [state]&quot;) when the business realistically only serves a smaller region — this can dilute relevance rather than expanding it.</li>
+        </ul>
+
+        <h2>7. When to Re-Run the Audit</h2>
+
+        <p>Most fixes here (categories, service areas, a website backlink) are one-time field updates and will show up on your very next audit run. NAP consistency across external directories may take a few days to update depending on how quickly each platform processes changes.</p>
+
+        <h2>8. Related Guides</h2>
+
+        <ul>
+          <li><Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link></li>
+          <li><Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link></li>
+          <li><Link href={`${ROUTES.PILLAR}#section-7`} className="text-blue-600 hover:underline">Section 6 and Section 7 of the full plumbing SEO guide</Link> — Maps SEO and Local SEO Strategy</li>
+        </ul>
+
+        <h2>9. What Improvement Should You Expect?</h2>
+
+        <div className="overflow-x-auto">
+          <table>
+            <thead><tr><th>Action</th><th>Likely Impact</th></tr></thead>
+            <tbody>
+              <tr><td>Fix an accurate category and define service areas</td><td><strong>Immediate</strong></td></tr>
+              <tr><td>Add a GBP link from your website</td><td><strong>Immediate</strong>, one-time</td></tr>
+              <tr><td>Correct NAP mismatches across directories</td><td><strong>Quick</strong>, within a few days as listings update</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <CalloutBox type="tip" title="Most Fixes Here Take Under an Hour">
+          <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit</Link> — most Local SEO Optimization fixes take under an hour combined.
+        </CalloutBox>
+
+      </SeoGuideLayout>
+    </>
+  );
+}

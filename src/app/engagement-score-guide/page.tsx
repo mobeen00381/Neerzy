@@ -1,0 +1,160 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
+import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
+import Link from 'next/link';
+import { ROUTES } from '@/lib/routes';
+
+export const metadata: Metadata = {
+  title: 'How to Improve Your Google Business Profile Engagement & Activity Score | Neerzy',
+  description: 'Engagement & Activity makes up 15% of your Google Business Profile audit score. Here\'s what\'s checked — posts, Q&A, review responses — and how to raise it.',
+  alternates: { canonical: `https://neerzy.com${ROUTES.GUIDES.ENGAGEMENT}` },
+  openGraph: {
+    title: 'Engagement & Activity Score Guide | Neerzy',
+    description: 'Engagement & Activity is 15% of your GBP audit score. Here\'s what\'s checked and how to build a consistent posting habit.',
+    url: `https://neerzy.com${ROUTES.GUIDES.ENGAGEMENT}`,
+    type: 'article',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Engagement & Activity Score Guide | Neerzy',
+    description: 'Engagement & Activity is 15% of your GBP audit score — the category that rewards ongoing activity.',
+  },
+};
+
+export default function EngagementScoreGuidePage() {
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: 'How many Google Posts do I need per week to score well?', acceptedAnswer: { '@type': 'Answer', text: 'One per week is the practical baseline for a strong score; businesses posting two to three times a week, tied to real completed jobs, tend to score highest.' } },
+      { '@type': 'Question', name: 'What should I put in my Q&A section if no customers have asked anything yet?', acceptedAnswer: { '@type': 'Answer', text: 'Post the questions yourself, as the business — "Do you offer emergency service?" or "Do you serve [neighboring town]?" are common, realistic starting points that also double as useful information for future visitors.' } },
+      { '@type': 'Question', name: 'Does responding to reviews count as engagement?', acceptedAnswer: { '@type': 'Answer', text: 'Yes — the review\'s existence and rating are scored under Reviews & Reputation, while your response behavior is tracked separately here as a distinct activity signal.' } },
+    ],
+  };
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <SeoGuideLayout
+        title="How to Improve Your Engagement & Activity Score"
+        description="Engagement & Activity makes up 15% of your Google Business Profile audit score. Here's what's checked — posts, Q&A, review responses — and how to raise it."
+        path={ROUTES.GUIDES.ENGAGEMENT}
+      >
+        <p>Engagement &amp; Activity is weighted at 15% in <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy&apos;s free GBP audit</Link>. It&apos;s the category most directly about <em>ongoing</em> behavior rather than a one-time setup — which makes it the clearest test of whether a profile is actively maintained or was set up once and abandoned.</p>
+
+        <h2>1. What This Score Measures</h2>
+
+        <Screenshot
+          src=""
+          alt="Screenshot of the Neerzy audit Engagement & Activity section showing posting frequency indicator, Q&A status, review response rate, booking link status, and product listing check."
+          caption="The Engagement & Activity category measures ongoing behavior — not one-time setup."
+        />
+
+        <ul>
+          <li><strong>Whether your profile is claimed</strong></li>
+          <li><strong>Google Posts frequency and recency</strong></li>
+          <li><strong>Post types</strong> — offers, events, updates</li>
+          <li><strong>Q&amp;A section activity</strong></li>
+          <li><strong>Product/service listings</strong></li>
+          <li><strong>Booking links and CTAs</strong></li>
+        </ul>
+
+        <h2>2. Why Google Cares</h2>
+
+        <CalloutBox type="important" title="Completeness vs. Engagement">
+          Completeness tells Google what your business <em>is</em>. Engagement &amp; Activity tells Google whether it&apos;s still <em>operating</em>. A profile can be fully filled out and still go quiet for a year — this category exists specifically to catch that gap, which is why it rewards frequency and recency over one-time setup.
+        </CalloutBox>
+
+        <h2>3. Common Reasons for a Low Score</h2>
+
+        <ul>
+          <li><strong>No Google Posts published in months</strong>, even on an otherwise complete profile.</li>
+          <li><strong>The Q&amp;A section sits empty</strong>, left for a stranger to post the first question rather than being seeded by the business.</li>
+          <li><strong>Reviews go unanswered</strong> — response rate is checked here as well as within Reviews &amp; Reputation, since it&apos;s a genuine activity signal in its own right.</li>
+          <li><strong>No booking link or clear CTA connected</strong>, even when the business uses scheduling software that supports it.</li>
+        </ul>
+
+        <h2>4. Real Examples</h2>
+
+        <Screenshot
+          src=""
+          alt="Side-by-side showing a plumbing profile with no posts, empty Q&A, and no review responses scoring 10-30 versus one with weekly posts, seeded Q&A, and 100% response rate scoring 85-100."
+          caption="The Engagement & Activity gap between an active and a dormant profile."
+        />
+
+        <p>A plumbing profile that&apos;s fully complete but hasn&apos;t posted in eight months, has an empty Q&amp;A section, and doesn&apos;t respond to reviews will typically score in the 10–30 range on this category — the lowest range of any of the five, since every sub-metric here depends on ongoing action. A profile posting weekly, with a seeded Q&amp;A section and a near-100% review response rate, will typically score in the 85–100 range.</p>
+
+        <h2>5. Priority Checklist</h2>
+
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 my-6">
+          <ul className="space-y-3 text-gray-700">
+            {[
+              'Publish at least one Google Post per week',
+              'Seed your Q&A section with the 3–5 questions customers ask most often',
+              'Respond to every review within 48 hours',
+              'Connect a booking link if you use scheduling software',
+              'List individual products or services if you haven\'t already',
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="mt-1 w-5 h-5 border-2 border-gray-400 rounded flex-shrink-0" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <h2>How This Fits Your Overall Audit Score</h2>
+
+        <p>At 15% weight, Engagement &amp; Activity moves your overall score less than Completeness or Reviews, but it&apos;s the category most likely to quietly decay if left unattended — a strong score here today can slip within a few months of inactivity even if nothing else on the profile changes.</p>
+
+        <h2>Common Questions</h2>
+
+        <p><strong>How many Google Posts do I need per week to score well?</strong><br/>One per week is the practical baseline for a strong score; businesses posting two to three times a week, tied to real completed jobs, tend to score highest.</p>
+        <p><strong>What should I put in my Q&amp;A section if no customers have asked anything yet?</strong><br/>Post the questions yourself, as the business — &quot;Do you offer emergency service?&quot; or &quot;Do you serve [neighboring town]?&quot; are common, realistic starting points that also double as useful information for future visitors.</p>
+        <p><strong>Does responding to reviews really count as &quot;engagement,&quot; separate from the review itself?</strong><br/>Yes — the review&apos;s existence and rating are scored under Reviews &amp; Reputation, while your response behavior is tracked separately here as a distinct activity signal.</p>
+        <p><strong>Do I need a booking link if I take all my bookings by phone?</strong><br/>It&apos;s not mandatory, but it&apos;s checked as a sub-signal — if you use any scheduling software, connecting it is a small, one-time task that adds to this score with no ongoing effort required.</p>
+
+        <h2>6. Common Mistakes</h2>
+
+        <CalloutBox type="warning" title="Don't Post in Bursts, Then Stop">
+          Recency is scored on an ongoing basis, so a single flurry of activity fades from the score within weeks. Consistency matters far more than volume.
+        </CalloutBox>
+        <ul>
+          <li><strong>Copy-pasting the same post repeatedly</strong> — post type diversity (offers, events, updates) is part of what&apos;s checked, not just raw frequency.</li>
+        </ul>
+
+        <h2>7. When to Re-Run the Audit</h2>
+
+        <p>Because this category depends on an established pattern, not a single action, give it at least two to three weeks of consistent posting and Q&amp;A activity before expecting a large jump — a single post published the day before an audit run will barely move this score on its own.</p>
+
+        <h2>8. Related Guides</h2>
+
+        <ul>
+          <li><Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link></li>
+          <li><Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link></li>
+          <li><Link href={`${ROUTES.PILLAR}#section-14`} className="text-blue-600 hover:underline">Section 14 of the full plumbing SEO guide</Link> — Google Posts and Q&amp;A subsections</li>
+        </ul>
+
+        <h2>9. What Improvement Should You Expect?</h2>
+
+        <div className="overflow-x-auto">
+          <table>
+            <thead><tr><th>Action</th><th>Likely Impact</th></tr></thead>
+            <tbody>
+              <tr><td>Seed your Q&amp;A section today</td><td><strong>Quick</strong> — small, immediate bump</td></tr>
+              <tr><td>Respond to all existing unanswered reviews</td><td><strong>Quick</strong></td></tr>
+              <tr><td>Publish weekly Google Posts for 2–3 weeks</td><td><strong>Medium</strong> — the pattern itself is what&apos;s scored</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <CalloutBox type="tip" title="Run or Re-Run Your Free Audit">
+          <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit</Link> after two to three weeks of consistent posting.
+        </CalloutBox>
+
+      </SeoGuideLayout>
+    </>
+  );
+}
