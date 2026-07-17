@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
+import { CheckIcon, CameraIcon, FileTextIcon, StarIcon, ZapIcon, MessageSquareIcon, SearchIcon, SendIcon, GlobeIcon, SmartphoneIcon, MapPinIcon, EyeIcon, ClipboardListIcon, TrendingUpIcon } from '@/components/ui/Icons';
 import WhatsAppMockup from '@/components/landing/WhatsAppMockup';
 
 export const metadata: Metadata = {
   title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
-  description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
+  description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
   alternates: {
     canonical: 'https://www.neerzy.com',
   },
   openGraph: {
-    title: "Neerzy | Local Business Marketing Automation",
-    description: "Turn every job into more calls. We create Google posts, update your website, and send review requests instantly via WhatsApp.",
+    title: "Neerzy | Local Business Marketing",
+    description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
     url: "https://www.neerzy.com",
     siteName: "Neerzy",
     locale: "en_US",
@@ -25,7 +26,7 @@ const jsonLd = {
   "name": "Neerzy",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
-  "description": "Send a job photo → we create your Google post, update your website, and send a review request instantly via WhatsApp.",
+  "description": "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
   "offers": {
     "@type": "Offer",
     "price": "0",
@@ -35,250 +36,741 @@ const jsonLd = {
 
 export default function Page() {
   return (
-    <div className="mockup-page">
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* Hero Section */}
+
+      {/* ============================================
+          Section 1: Hero
+          ============================================ */}
       <section className="hero">
         <div className="container hero-grid">
           <div className="hero-content">
-            <h1 className="font-black">Turn every job into more calls using <span className="text-[#25D366]"><WhatsAppIcon size={40} className="mr-2" />WhatsApp</span></h1>
-            <p>Send a job photo → we help you create Google posts, update your website, and send review requests faster.</p>
+            <h1>
+              You finish the job. Neerzy helps the next customer find you.
+            </h1>
+            <p>
+              Take a photo after every job. Send it via <WhatsAppIcon size={16} className="inline-block align-middle text-[#22C55E]" /> WhatsApp or the web app. Neerzy prepares a Google Business Profile post, website update, and review request — all in about a minute. You review and publish with a few taps.
+            </p>
             <div className="hero-ctas">
-              <Link href="/pricing" className="btn btn-primary">Start with 5 Free Posts</Link>
-              <Link href="#demo" className="btn btn-secondary">Watch Demo</Link>
-            </div>
-            
-            {/* Trust Bar */}
-            <div className="trust-bar">
-              <div className="trust-item">✔ Built for local businesses</div>
-              <div className="trust-item">✔ Google-compliant content</div>
-              <div className="trust-item">✔ Secure <WhatsAppIcon size={16} className="text-[#25D366] mr-1" /> WhatsApp integration</div>
+              <Link href="/pricing" className="btn btn-primary">
+                Start Free
+              </Link>
+              <Link href="/gmb-audit-tool" className="btn btn-secondary">
+                Check Your Visibility Check — free
+              </Link>
             </div>
 
-            <div className="trust-badges">
-              <div className="badge"><span className="badge-check">✔</span> No apps</div>
-              <div className="badge"><span className="badge-check">✔</span> No dashboards</div>
-              <div className="badge"><span className="badge-check">✔</span> No tech skills</div>
+            {/* Trust indicators */}
+            <div className="hero-trust">
+              <div className="hero-trust-item">
+                <CheckIcon size={16} />
+                Built for local businesses
+              </div>
+              <div className="hero-trust-item">
+                <CheckIcon size={16} />
+                Google-compliant content
+              </div>
+              <div className="hero-trust-item">
+                <CheckIcon size={16} />
+                <WhatsAppIcon size={14} className="text-[#22C55E]" /> WhatsApp + web app
+              </div>
             </div>
           </div>
 
           <div className="mockup-container">
             <WhatsAppMockup />
 
-            {/* Floating Notification Cards */}
-            <div className="floating-card" style={{ top: '10%', right: '-10%' }}>
-              <div style={{ background: '#FFF8E1', padding: '8px', borderRadius: '50%' }}>⭐</div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '12px' }}>Review request sent</div>
-                <div style={{ fontSize: '10px', color: '#666' }}>To John Smith</div>
-              </div>
-            </div>
-            <div className="floating-card" style={{ bottom: '20%', left: '-15%' }}>
-              <div style={{ background: '#E8F5E9', padding: '8px', borderRadius: '50%' }}>📈</div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '12px' }}>Visibility improved</div>
-                <div style={{ fontSize: '10px', color: '#666' }}>Google Profile optimized</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Workflow Section */}
-      <section className="section-padding bg-white">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black text-[#0F5C4D] leading-tight max-w-4xl mx-auto">
-              Your workflow stays the same. Improving your visibility is now easier.
-            </h2>
-          </div>
-          <div className="workflow-grid">
-            {[
-              { title: "Finish the job", desc: "Take a photo on-site", icon: "📸" },
-              { title: "Send on WhatsApp", desc: "Just send it like a normal message", icon: "📲" },
-              { title: "Neerzy prepares content", desc: "Ready-to-post drafts in under 60 seconds", icon: "✍️" },
-              { title: "Send review requests", desc: "Help customers leave feedback faster", icon: "⭐" }
-            ].map((step, i) => (
-              <div key={i} className="step-card">
-                <div className="step-number">{i + 1}</div>
-                <div className="text-4xl mb-4">{step.icon}</div>
-                <h3 className="text-lg font-black text-[#0F5C4D] mb-2">{step.title}</h3>
-                <p className="text-slate-500 font-semibold text-sm leading-relaxed">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Review Automation Section */}
-      <section className="section-padding bg-[#0F5C4D] text-white">
-        <div className="container hero-grid">
-          <div className="text-left space-y-6">
-            <h2 className="text-3xl md:text-5xl font-black mb-4 leading-tight">
-              Get reviews while the customer is still happy
-            </h2>
-            <p className="text-lg md:text-xl text-emerald-50/90 font-medium max-w-xl">
-              Neerzy sends review requests immediately after the job is finished.
-            </p>
-            <div className="space-y-4 pt-4">
-              {[
-                "Higher response rates",
-                "Professional feedback loop",
-                "Improved local visibility"
-              ].map((benefit, i) => (
-                <div key={i} className="flex items-center gap-3 text-base md:text-lg font-bold">
-                  <span className="text-[#25D366] text-xl">★</span>
-                  <span>{benefit}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex justify-center items-center">
-            <div className="sms-mockup shadow-2xl border border-emerald-800/10">
-              <div className="text-[10px] text-slate-400 text-center mb-2 font-bold uppercase tracking-wider">Today 4:32 PM</div>
-              <div className="sms-bubble text-slate-700 font-semibold leading-relaxed">
-                Hi John, Thanks for choosing ABC Plumbing. Would you mind leaving a quick review?
-              </div>
-              <div className="sms-btn bg-[#25D366] hover:bg-[#1da851] text-black shadow-md cursor-pointer transition-all">
-                Leave a Google Review
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Visibility Section */}
-      <section className="section-padding bg-white">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black text-[#0F5C4D] leading-tight">
-              Every job updates your Google profile and website
-            </h2>
-          </div>
-          <div className="vis-grid">
-            <div className="vis-card bg-[#F0F7F5] border border-emerald-100/30">
-              <div className="text-4xl mb-5">📍</div>
-              <h3 className="text-xl font-black text-[#0F5C4D] mb-3">Google visibility</h3>
-              <p className="text-slate-600 font-semibold text-sm leading-relaxed">Appear in local searches when customers need you most.</p>
-            </div>
-            <div className="vis-card bg-[#F0F7F5] border border-emerald-100/30">
-              <div className="text-4xl mb-5">🌐</div>
-              <h3 className="text-xl font-black text-[#0F5C4D] mb-3">Website SEO</h3>
-              <p className="text-slate-600 font-semibold text-sm leading-relaxed">Fresh content improves rankings and keeps your site alive.</p>
-            </div>
-            <div className="vis-card bg-[#F0F7F5] border border-emerald-100/30">
-              <div className="text-4xl mb-5">📈</div>
-              <h3 className="text-xl font-black text-[#0F5C4D] mb-3">More trust</h3>
-              <p className="text-slate-600 font-semibold text-sm leading-relaxed">More activity + more reviews = more customers choosing you.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Busy Traders Section */}
-      <section className="section-padding bg-[#F0F7F5]">
-        <div className="container">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-4xl font-black text-[#0F5C4D]">Built for busy traders</h2>
-          </div>
-          <div className="flex flex-wrap lg:flex-nowrap gap-3 md:gap-4 justify-center">
-            {[
-              "No marketing skills needed",
-              "No complicated dashboards",
-              "No wasting time after work",
-              "Just use WhatsApp like normal"
-            ].map((text, i) => (
-              <div key={i} className="btn bg-white text-[#0F5C4D] border border-emerald-100 font-bold px-4 py-2 md:px-6 md:py-3 text-sm lg:text-base rounded-full cursor-default shadow-sm whitespace-nowrap">
-                <span className="text-[#25D366] mr-2">✔</span> {text}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Website Preview Section */}
-      <section className="section-padding bg-white">
-        <div className="container hero-grid">
-          <div className="space-y-6 text-left">
-            <h2 className="text-3xl md:text-5xl font-black text-[#0F5C4D] leading-tight">
-              A professional website — owned by you
-            </h2>
-            <ul className="space-y-4">
-              {[
-                "We build your site",
-                "You own the domain",
-                "No lock-in"
-              ].map((item, idx) => (
-                <li key={idx} className="text-lg font-bold text-slate-700 flex items-center gap-3">
-                  <span className="bg-emerald-50 text-[#25D366] w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow-sm">✔</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex justify-center items-center">
-            <img src="/images/trader_website_preview.png" alt="Website Preview" className="w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 object-contain" />
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Icon Grid */}
-      <section className="section-padding bg-[#F0F7F5]">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black text-[#0F5C4D]">
-              One WhatsApp message creates everything
-            </h2>
-          </div>
-          <div className="vis-grid-4">
-            {[
-              { t: "Review requests", i: "⭐" },
-              { t: "Google posts", i: "📍" },
-              { t: "Website updates", i: "🌐" },
-              { t: "Social content", i: "📱" }
-            ].map((f, i) => (
-              <div key={i} className="vis-card bg-white p-8 rounded-3xl text-center shadow-sm border border-slate-100 hover:shadow-md transition-all">
-                <div className="text-5xl mb-4">{f.i}</div>
-                <h4 className="text-xl font-black text-[#0F5C4D]">{f.t}</h4>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Dark Strip */}
-      <div className="bg-[#0F5C4D] text-white py-12">
-        <div className="container flex flex-wrap justify-around items-center gap-6 text-center">
-          <div className="text-lg md:text-2xl font-extrabold">10 jobs = 10 posts + 10 review opportunities</div>
-          <div className="hidden md:block w-0.5 h-10 bg-white/20"></div>
-          <div className="text-lg md:text-2xl font-extrabold">More activity = improved local visibility</div>
-        </div>
-      </div>
-
-      {/* Final CTA */}
-      <section className="section-padding bg-gradient-to-br from-[#0F5C4D] to-[#073a30] text-white text-center">
-        <div className="container max-w-4xl space-y-8">
-          <h2 className="text-3xl md:text-6xl font-black leading-tight">
-            Your next job could bring your next customer
-          </h2>
-          <p className="text-lg md:text-2xl text-emerald-50/90 max-w-2xl mx-auto font-medium">
-            Send your next job on WhatsApp. Neerzy handles the marketing work.
-          </p>
-          <div>
-            <Link 
-              href="/signup" 
-              className="inline-block bg-[#25D366] hover:bg-[#1da851] text-black font-black py-5 px-12 rounded-full text-xl shadow-xl transition-all hover:scale-105 active:scale-95"
+            {/* Floating Badge: Content Prepared */}
+            <div
+              className="floating-badge"
+              style={{ top: '8%', right: '-8%' }}
             >
-              Start with 5 Free Posts
+              <div className="floating-badge-icon accent-bg">
+                <FileTextIcon size={16} />
+              </div>
+              <div>
+                <div className="floating-badge-text">Content prepared</div>
+                <div className="floating-badge-sub">Google post + website</div>
+              </div>
+            </div>
+
+            {/* Floating Badge: Review Sent */}
+            <div
+              className="floating-badge"
+              style={{ bottom: '22%', left: '-12%' }}
+            >
+              <div className="floating-badge-icon accent-bg">
+                <StarIcon size={16} />
+              </div>
+              <div>
+                <div className="floating-badge-text">Review request sent</div>
+                <div className="floating-badge-sub">To your customer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 2: Why We Exist
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="container why-section">
+          <div className="why-content">
+            <h2>
+              Busy businesses shouldn't have to become marketers.
+            </h2>
+            <p>
+              You do excellent work. You finish the job, clean up, and move on to the next customer. But at the end of the day, there's no Google update, no website update, no review request, and no online record of the work you just completed.
+            </p>
+            <p>
+              Meanwhile, larger competitors with marketing teams keep showing up in local searches — not because they do better work, but because they consistently post, collect reviews, and stay visible.
+            </p>
+            <p>
+              That's the gap Neerzy exists to close. Not by making you learn marketing — but by fitting into the workflow you already have.
+            </p>
+          </div>
+
+          <div className="why-list">
+            <div className="why-list-item">
+              <div className="why-list-icon">
+                <ZapIcon size={18} />
+              </div>
+              <div className="why-list-text">
+                <strong>You finish the job</strong>
+                <span>Take one photo on-site — that's all it takes to start.</span>
+              </div>
+            </div>
+            <div className="why-list-item">
+              <div className="why-list-icon">
+                <MessageSquareIcon size={18} />
+              </div>
+              <div className="why-list-text">
+                <strong>You send one message</strong>
+                <span>Via WhatsApp or the web app — just like you already message customers.</span>
+              </div>
+            </div>
+            <div className="why-list-item">
+              <div className="why-list-icon">
+                <SearchIcon size={18} />
+              </div>
+              <div className="why-list-text">
+                <strong>Your visibility grows</strong>
+                <span>Every job becomes a Google post, a website update, and a review opportunity.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 3: How It Works
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+        <div className="container">
+          <div className="steps-header">
+            <h2>How it works</h2>
+            <p>Five simple steps. About one minute total. No marketing skills required.</p>
+          </div>
+
+          <div className="steps-grid">
+            <div className="step-card">
+              <div className="step-icon">
+                <ZapIcon size={22} />
+              </div>
+              <h3>Finish the job</h3>
+              <p>Complete the work for your customer. Clean up, pack up — just like you always do.</p>
+            </div>
+
+            <div className="step-card">
+              <div className="step-icon">
+                <CameraIcon size={22} />
+              </div>
+              <h3>Take a photo</h3>
+              <p>Snap one photo of the finished work on your phone. That's the only input you need.</p>
+            </div>
+
+            <div className="step-card">
+              <div className="step-icon">
+                <SendIcon size={22} />
+              </div>
+              <h3>Send via WhatsApp or web app</h3>
+              <p>Message the photo to Neerzy on WhatsApp or upload it through the web app — whichever is faster for you.</p>
+            </div>
+
+            <div className="step-card">
+              <div className="step-icon">
+                <FileTextIcon size={22} />
+              </div>
+              <h3>Neerzy prepares everything</h3>
+              <p>A Google post, a website update, and a review request are drafted based on the job photo and details.</p>
+            </div>
+
+            <div className="step-card">
+              <div className="step-icon">
+                <GlobeIcon size={22} />
+              </div>
+              <h3>Publish in a few taps</h3>
+              <p>Review the draft, tap publish, and your visibility is updated. A review request goes to your customer automatically.</p>
+            </div>
+          </div>
+
+          <div className="steps-total">
+            Total time: <strong>about one minute</strong> from photo to published.
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 4: Free Visibility Check
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="container audit-section">
+          <h2>See how your business looks online today.</h2>
+          <p>Enter your business name for a quick visibility check. See what's working and what could bring you more customers.</p>
+
+          <div className="audit-search">
+            <input
+              type="text"
+              className="audit-input"
+              placeholder="Your business name..."
+              readOnly
+            />
+            <Link href="/gmb-audit-tool" className="btn btn-secondary">
+              Check Free
             </Link>
           </div>
+
+          {/* Preview result — brand colors only, no orange/red */}
+          <div className="audit-preview">
+            <div className="audit-preview-header">
+              <div className="audit-preview-business">
+                <h3>Smith Plumbing & Heating</h3>
+                <span>Austin, TX</span>
+              </div>
+              <div className="audit-preview-score">
+                <div className="audit-score-circle">72</div>
+                <div className="audit-score-label">
+                  Visibility<br />
+                  <strong>Score</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="audit-checks">
+              <div className="audit-check-item pass">
+                <div className="audit-check-icon pass">
+                  <CheckIcon size={14} />
+                </div>
+                <div className="audit-check-text">
+                  <strong>Google Business Profile</strong>
+                  <span>Verified and active — good foundation</span>
+                </div>
+              </div>
+              <div className="audit-check-item neutral">
+                <div className="audit-check-icon neutral">
+                  <EyeIcon size={14} />
+                </div>
+                <div className="audit-check-text">
+                  <strong>Recent posts</strong>
+                  <span>No posts in the last 30 days — posting regularly helps you show up more</span>
+                </div>
+              </div>
+              <div className="audit-check-item pass">
+                <div className="audit-check-icon pass">
+                  <CheckIcon size={14} />
+                </div>
+                <div className="audit-check-text">
+                  <strong>Customer reviews</strong>
+                  <span>4.7 stars from 23 reviews — strong social proof</span>
+                </div>
+              </div>
+              <div className="audit-check-item neutral">
+                <div className="audit-check-icon neutral">
+                  <ClipboardListIcon size={14} />
+                </div>
+                <div className="audit-check-text">
+                  <strong>Website updates</strong>
+                  <span>No recent updates — fresh content helps with local search rankings</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="audit-cta">
+              <p>Get the full breakdown with actionable steps to improve your score.</p>
+              <Link href="/gmb-audit-tool" className="btn btn-primary">
+                Start Free — Full Audit
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
+      {/* ============================================
+          Section 5: How Neerzy Fixes It
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+        <div className="container fix-section">
+          <h2>How Neerzy fixes it</h2>
+          <p>Every problem the audit finds has a fix built into Neerzy's workflow. No extra tools, no separate logins.</p>
 
-    </div>
+          <div className="fix-grid">
+            <div className="fix-card">
+              <div className="fix-card-header">
+                <div className="fix-problem-icon">
+                  <EyeIcon size={16} />
+                </div>
+                <div>
+                  <div className="fix-problem-label">Problem</div>
+                  <p className="fix-problem-text">Low activity on Google</p>
+                </div>
+              </div>
+              <div className="fix-card-body">
+                <div className="fix-arrow">
+                  <TrendingUpIcon size={14} />
+                </div>
+                <div className="fix-solution">
+                  <div className="fix-solution-label">Neerzy Fix</div>
+                  <p className="fix-solution-text">Google post prepared from every job photo</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="fix-card">
+              <div className="fix-card-header">
+                <div className="fix-problem-icon">
+                  <StarIcon size={16} />
+                </div>
+                <div>
+                  <div className="fix-problem-label">Problem</div>
+                  <p className="fix-problem-text">Weak review profile</p>
+                </div>
+              </div>
+              <div className="fix-card-body">
+                <div className="fix-arrow">
+                  <TrendingUpIcon size={14} />
+                </div>
+                <div className="fix-solution">
+                  <div className="fix-solution-label">Neerzy Fix</div>
+                  <p className="fix-solution-text">Review request sent to every customer after each job</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="fix-card">
+              <div className="fix-card-header">
+                <div className="fix-problem-icon">
+                  <GlobeIcon size={16} />
+                </div>
+                <div>
+                  <div className="fix-problem-label">Problem</div>
+                  <p className="fix-problem-text">Outdated website content</p>
+                </div>
+              </div>
+              <div className="fix-card-body">
+                <div className="fix-arrow">
+                  <TrendingUpIcon size={14} />
+                </div>
+                <div className="fix-solution">
+                  <div className="fix-solution-label">Neerzy Fix</div>
+                  <p className="fix-solution-text">Website update prepared from every completed job</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="fix-card">
+              <div className="fix-card-header">
+                <div className="fix-problem-icon">
+                  <CameraIcon size={16} />
+                </div>
+                <div>
+                  <div className="fix-problem-label">Problem</div>
+                  <p className="fix-problem-text">Missing portfolio photos</p>
+                </div>
+              </div>
+              <div className="fix-card-body">
+                <div className="fix-arrow">
+                  <TrendingUpIcon size={14} />
+                </div>
+                <div className="fix-solution">
+                  <div className="fix-solution-label">Neerzy Fix</div>
+                  <p className="fix-solution-text">Portfolio built from every job photo you send</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 6: One Photo, Multiple Results
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="container assets-section">
+          <h2>One completed job creates multiple marketing assets.</h2>
+          <p>From a single photo, Neerzy prepares everything your business needs to stay visible and attract the next customer.</p>
+
+          <div className="assets-grid">
+            <div className="asset-card">
+              <div className="asset-icon">
+                <MapPinIcon size={24} />
+              </div>
+              <h3>Google post</h3>
+              <p>A ready-to-publish update for your Business Profile showing your latest work.</p>
+            </div>
+
+            <div className="asset-card">
+              <div className="asset-icon">
+                <GlobeIcon size={24} />
+              </div>
+              <h3>Website update</h3>
+              <p>Fresh content for your site that search engines notice and customers appreciate.</p>
+            </div>
+
+            <div className="asset-card">
+              <div className="asset-icon">
+                <StarIcon size={24} />
+              </div>
+              <h3>Review request</h3>
+              <p>A polite ask sent to your customer — timed right after the job is done.</p>
+            </div>
+
+            <div className="asset-card">
+              <div className="asset-icon">
+                <CameraIcon size={24} />
+              </div>
+              <h3>Project portfolio</h3>
+              <p>Every job photo builds a growing gallery of your best work for future customers to see.</p>
+            </div>
+
+            <div className="asset-card">
+              <div className="asset-icon">
+                <MessageSquareIcon size={24} />
+              </div>
+              <h3>Social content</h3>
+              <p>Shareable posts ready for your social channels — no extra editing needed.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 7: Review Request Comparison
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+        <div className="container compare-section">
+          <h2>Ask for the review while the customer is still happy.</h2>
+          <p>The difference between a review collected and a review opportunity lost is just a few minutes — and one photo.</p>
+
+          <div className="compare-grid">
+            {/* Without Neerzy */}
+            <div className="compare-card">
+              <h3 className="compare-card-label without">Without Neerzy</h3>
+
+              <div className="compare-steps">
+                <div className="compare-step without">
+                  <div className="compare-step-icon without">
+                    <ZapIcon size={16} />
+                  </div>
+                  <span className="compare-step-text">Finish the job</span>
+                  <div className="compare-step-arrow">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="compare-step without">
+                  <div className="compare-step-icon without">
+                    <SendIcon size={16} />
+                  </div>
+                  <span className="compare-step-text">Leave the site</span>
+                  <div className="compare-step-arrow">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="compare-step without">
+                  <div className="compare-step-icon without">
+                    <SearchIcon size={16} />
+                  </div>
+                  <span className="compare-step-text">Forget to ask later</span>
+                  <div className="compare-step-arrow">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="compare-outcome without">
+                Review opportunity lost — customer moves on, no review left.
+              </div>
+            </div>
+
+            {/* With Neerzy */}
+            <div className="compare-card">
+              <h3 className="compare-card-label with">With Neerzy</h3>
+
+              <div className="compare-steps">
+                <div className="compare-step with">
+                  <div className="compare-step-icon with">
+                    <ZapIcon size={16} />
+                  </div>
+                  <span className="compare-step-text">Finish the job</span>
+                  <div className="compare-step-arrow with">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="compare-step with">
+                  <div className="compare-step-icon with">
+                    <CameraIcon size={16} />
+                  </div>
+                  <span className="compare-step-text">Take one photo</span>
+                  <div className="compare-step-arrow with">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="compare-step with">
+                  <div className="compare-step-icon with">
+                    <FileTextIcon size={16} />
+                  </div>
+                  <span className="compare-step-text">Review request prepared instantly</span>
+                  <div className="compare-step-arrow with">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="compare-step with">
+                  <div className="compare-step-icon with">
+                    <SendIcon size={16} />
+                  </div>
+                  <span className="compare-step-text">Sent before you leave</span>
+                </div>
+              </div>
+
+              <div className="compare-outcome with">
+                Review request sent while satisfaction is fresh — higher chance of a 5-star review.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 8: Why This Matters (Flow Diagram)
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="container flow-section">
+          <h2>Why this matters</h2>
+          <p>Every completed job feeds a chain that makes your business more visible and attracts the next customer.</p>
+
+          <div className="flow-chain">
+            <div className="flow-node">
+              <div className="flow-node-icon">
+                <ZapIcon size={18} />
+              </div>
+              <span className="flow-node-text">Completed job</span>
+            </div>
+
+            <div className="flow-connector">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+
+            <div className="flow-node">
+              <div className="flow-node-icon">
+                <FileTextIcon size={18} />
+              </div>
+              <span className="flow-node-text">Fresh content</span>
+            </div>
+
+            <div className="flow-connector">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+
+            <div className="flow-node">
+              <div className="flow-node-icon">
+                <StarIcon size={18} />
+              </div>
+              <span className="flow-node-text">Review request</span>
+            </div>
+
+            <div className="flow-connector">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+
+            <div className="flow-node">
+              <div className="flow-node-icon">
+                <CheckIcon size={18} />
+              </div>
+              <span className="flow-node-text">Customer review</span>
+            </div>
+
+            <div className="flow-connector">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+
+            <div className="flow-node">
+              <div className="flow-node-icon">
+                <TrendingUpIcon size={18} />
+              </div>
+              <span className="flow-node-text">Better credibility</span>
+            </div>
+
+            <div className="flow-connector">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+
+            <div className="flow-node">
+              <div className="flow-node-icon">
+                <MapPinIcon size={18} />
+              </div>
+              <span className="flow-node-text">Stronger GBP</span>
+            </div>
+
+            <div className="flow-connector">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+
+            <div className="flow-node">
+              <div className="flow-node-icon">
+                <EyeIcon size={18} />
+              </div>
+              <span className="flow-node-text">More visibility</span>
+            </div>
+
+            <div className="flow-connector">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+
+            <div className="flow-node">
+              <div className="flow-node-icon">
+                <MessageSquareIcon size={18} />
+              </div>
+              <span className="flow-node-text">More enquiries</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 9: Own Your Online Presence
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+        <div className="container own-section">
+          <h2>Build something that belongs to your business.</h2>
+          <p>Every job you complete with Neerzy adds to your own online presence — not someone else's platform.</p>
+
+          <div className="own-grid">
+            <div className="own-card">
+              <div className="own-check">
+                <CheckIcon size={16} />
+              </div>
+              <span className="own-card-text">Your website</span>
+            </div>
+            <div className="own-card">
+              <div className="own-check">
+                <CheckIcon size={16} />
+              </div>
+              <span className="own-card-text">Your domain</span>
+            </div>
+            <div className="own-card">
+              <div className="own-check">
+                <CheckIcon size={16} />
+              </div>
+              <span className="own-card-text">Your reviews</span>
+            </div>
+            <div className="own-card">
+              <div className="own-check">
+                <CheckIcon size={16} />
+              </div>
+              <span className="own-card-text">Your reputation</span>
+            </div>
+            <div className="own-card">
+              <div className="own-check">
+                <CheckIcon size={16} />
+              </div>
+              <span className="own-card-text">Your online history</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 10: Trust Row
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="container trust-section">
+          <h2>Built for real businesses, not marketing teams.</h2>
+          <p>Neerzy works the way you work — no dashboards to learn, no strategies to manage.</p>
+
+          <div className="trust-row">
+            <div className="trust-point">
+              <CheckIcon size={18} />
+              Google-compliant workflow
+            </div>
+            <div className="trust-point">
+              <CheckIcon size={18} />
+              No fake reviews
+            </div>
+            <div className="trust-point">
+              <CheckIcon size={18} />
+              You own your website
+            </div>
+            <div className="trust-point">
+              <CheckIcon size={18} />
+              Works with WhatsApp or the web app
+            </div>
+            <div className="trust-point">
+              <CheckIcon size={18} />
+              Simple enough for non-technical businesses
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 11: Final CTA (Dark Gradient Band)
+          ============================================ */}
+      <section className="cta-final">
+        <div className="container">
+          <h2>Every completed job deserves the chance to bring another one.</h2>
+          <p>Keep doing great work. Neerzy helps make sure people see it.</p>
+          <Link href="/pricing" className="btn btn-primary">
+            Start Free
+          </Link>
+          <Link href="/gmb-audit-tool" className="cta-final-link">
+            Not ready? Run your free visibility check
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }

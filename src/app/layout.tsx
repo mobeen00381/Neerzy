@@ -22,14 +22,14 @@ export const metadata: Metadata = {
     default: "Neerzy | Turn Every Job into More Calls via WhatsApp",
     template: "%s | Neerzy"
   },
-  description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
+  description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
   metadataBase: new URL('https://www.neerzy.com'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: "Neerzy | Built for Local Traders",
-    description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
+    title: "Neerzy | Local Business Marketing",
+    description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
     url: "https://www.neerzy.com",
     siteName: "Neerzy",
     images: [
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
-    description: "Send a job photo → we create your Google post, update your website, and send a review request instantly.",
+    description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
   },
 };
 

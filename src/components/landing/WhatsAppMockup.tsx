@@ -12,7 +12,6 @@ interface ChatMessage {
     headline: string;
     body: string;
     gbpLink: string;
-    dashboardLink: string;
   };
 }
 
@@ -32,7 +31,7 @@ export default function WhatsAppMockup() {
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const steps: AnimationStep[] = [
-    // 1. Trader typing photo/description
+    // 1. Trader sends job photo
     {
       type: 'typing',
       who: 'trader',
@@ -45,11 +44,11 @@ export default function WhatsAppMockup() {
         sender: 'trader',
         type: 'image',
         imageUrl: '/images/plumber_job_photo.png',
-        text: 'Kitchen sink fixed for Mrs Smith. Clean finish. 📸'
+        text: 'Kitchen sink fixed for Mrs Smith. Clean finish.'
       },
       delay: 1500
     },
-    // 2. Neerzy replying photo saved
+    // 2. Neerzy confirms photo received, content prepared
     {
       type: 'typing',
       who: 'neerzy',
@@ -61,11 +60,26 @@ export default function WhatsAppMockup() {
         id: 'm2',
         sender: 'neerzy',
         type: 'text',
-        text: '✅ *Photo saved.*\n\nSend more photos or type *POST* when ready.'
+        text: 'Photo received. I\'ve prepared a Google post and website update based on this job.\n\nReview the draft below — tap "Publish" when you\'re happy with it.'
       },
       delay: 1500
     },
-    // 3. Trader typing customer details
+    // 3. Neerzy shows the prepared content card
+    {
+      type: 'message',
+      message: {
+        id: 'm2b',
+        sender: 'neerzy',
+        type: 'card',
+        cardContent: {
+          headline: 'Kitchen Sink Replacement — Mrs Smith',
+          body: 'Just finished replacing the kitchen sink for Mrs Smith in Austin. New faucet installed, drainage checked, everything running smoothly. If you need plumbing work done right, give us a call.',
+          gbpLink: 'https://www.google.com/search?q=Your+Business'
+        }
+      },
+      delay: 2500
+    },
+    // 4. Trader reviews and types "Looks good, publish it"
     {
       type: 'typing',
       who: 'trader',
@@ -77,43 +91,11 @@ export default function WhatsAppMockup() {
         id: 'm3',
         sender: 'trader',
         type: 'text',
-        text: 'Alex 2015550199'
+        text: 'Looks good, publish it'
       },
       delay: 1500
     },
-    // 4. Neerzy replying customer details saved
-    {
-      type: 'typing',
-      who: 'neerzy',
-      delay: 2000
-    },
-    {
-      type: 'message',
-      message: {
-        id: 'm4',
-        sender: 'neerzy',
-        type: 'text',
-        text: '✅ *Customer detail saved.*\n\nType *DONE* to send the review link immediately, or send photos/voice notes to create a post.'
-      },
-      delay: 1500
-    },
-    // 5. Trader typing POST
-    {
-      type: 'typing',
-      who: 'trader',
-      delay: 1200
-    },
-    {
-      type: 'message',
-      message: {
-        id: 'm5',
-        sender: 'trader',
-        type: 'text',
-        text: 'POST'
-      },
-      delay: 1500
-    },
-    // 6. Neerzy replying with google post generated
+    // 5. Neerzy confirms published + review request sent
     {
       type: 'typing',
       who: 'neerzy',
@@ -122,59 +104,12 @@ export default function WhatsAppMockup() {
     {
       type: 'message',
       message: {
-        id: 'm6a',
+        id: 'm4',
         sender: 'neerzy',
         type: 'text',
-        text: '📸 *Photos are sent above. Tap and save them directly to your phone\'s gallery!*'
+        text: 'Published to your Google profile and website.\n\nReview request sent to Mrs Smith.\n\nAll done! Just a few taps from your side.'
       },
-      delay: 1000
-    },
-    {
-      type: 'message',
-      message: {
-        id: 'm6b',
-        sender: 'neerzy',
-        type: 'card',
-        cardContent: {
-          headline: 'Job Completed Successfully! 🎉',
-          body: 'We\'re excited to announce that Alex has successfully completed the recent project! Thanks to everyone for their hard work and dedication. Let\'s keep pushing forward together!',
-          gbpLink: 'https://www.google.com/search?q=BlackSmith+Door+Handles',
-          dashboardLink: 'https://www.neerzy.com/dashboard'
-        }
-      },
-      delay: 2000
-    },
-    // 7. Trader typing DONE
-    {
-      type: 'typing',
-      who: 'trader',
-      delay: 1200
-    },
-    {
-      type: 'message',
-      message: {
-        id: 'm7',
-        sender: 'trader',
-        type: 'text',
-        text: 'DONE'
-      },
-      delay: 1500
-    },
-    // 8. Neerzy replying review sent
-    {
-      type: 'typing',
-      who: 'neerzy',
-      delay: 2000
-    },
-    {
-      type: 'message',
-      message: {
-        id: 'm8',
-        sender: 'neerzy',
-        type: 'text',
-        text: '✅ *Review request sent to Alex!*\n\n🔗 Review link: https://search.google.com/local/writereview?placeid=ChIJ8...'
-      },
-      delay: 6000 // Let user read completed flow for 6 seconds
+      delay: 6000
     }
   ];
 
@@ -196,7 +131,6 @@ export default function WhatsAppMockup() {
         
         // If trader is typing, animate the text input
         if (step.who === 'trader') {
-          // Find next message text to type out
           const nextMsgStep = steps[currentStepIndex + 1];
           if (nextMsgStep && nextMsgStep.type === 'message' && nextMsgStep.message?.text) {
             const fullText = nextMsgStep.message.text;
@@ -228,7 +162,6 @@ export default function WhatsAppMockup() {
         setMessages((prev) => [...prev, step.message!]);
         
         typingTimerRef.current = setTimeout(() => {
-          // If we reached the end, reset messages and start from index 0
           if (currentStepIndex === steps.length - 1) {
             setMessages([]);
             setInputValue('');
@@ -252,15 +185,14 @@ export default function WhatsAppMockup() {
       {/* WA Header */}
       <div className="wa-header flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center gap-3">
-          {/* Green active dot avatar */}
           <div className="relative w-8 h-8 rounded-full bg-emerald-700/20 border border-emerald-500/20 flex items-center justify-center font-bold text-xs text-white">
             N
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#25D366] border-2 border-[#075E54] rounded-full"></span>
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#22C55E] border-2 border-[#075E54] rounded-full"></span>
           </div>
           <div>
-            <div className="text-[14px] font-bold leading-none text-white">Neerzy Chatbot</div>
+            <div className="text-[14px] font-bold leading-none text-white">Neerzy</div>
             <div className="text-[10px] text-emerald-300 font-semibold mt-0.5">
-              {typingFor === 'neerzy' ? 'typing...' : 'Online'}
+              {typingFor === 'neerzy' ? 'Preparing your content...' : 'Online'}
             </div>
           </div>
         </div>
@@ -284,20 +216,18 @@ export default function WhatsAppMockup() {
             )}
             
             {msg.type === 'card' && msg.cardContent ? (
-              <div className="ai-card border-none p-1 bg-white rounded-lg">
-                <div className="ai-status text-[10px] tracking-wider text-emerald-600 font-extrabold flex items-center gap-1">
-                  <span>✨</span> NEERZY MAGIC
+              <div className="bg-white rounded-lg p-3 border border-[#E1E8E4] shadow-sm" style={{ minWidth: '200px' }}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span className="text-[10px] font-bold text-[#0F5132] tracking-wider uppercase">Draft Ready</span>
                 </div>
-                <div className="text-[11px] text-slate-800 space-y-1.5 mt-1 leading-normal font-semibold">
-                  <div>📋 *Copy Post Text below:*</div>
-                  <div className="bg-slate-50 border border-slate-100 rounded p-1.5 font-sans whitespace-pre-wrap text-[10px] text-slate-600">
-                    <strong>{msg.cardContent.headline}</strong>{"\n\n"}{msg.cardContent.body}
-                  </div>
-                  <div className="text-emerald-800 underline break-all font-mono text-[9px]">
-                    🌐 GBP Link: {msg.cardContent.gbpLink}
-                  </div>
-                  <div className="text-[10px] text-slate-500">
-                    Type *DONE* when published.
+                <div className="text-[11px] text-[#0A2E22] space-y-1 leading-normal">
+                  <div className="font-bold">{msg.cardContent.headline}</div>
+                  <div className="text-[10px] text-[#5B6B64] leading-relaxed">{msg.cardContent.body}</div>
+                  <div className="mt-2 pt-2 border-t border-[#E1E8E4]">
+                    <div className="text-[9px] text-[#5B6B64]">Tap to publish or edit before posting.</div>
                   </div>
                 </div>
               </div>
@@ -330,11 +260,11 @@ export default function WhatsAppMockup() {
           )}
         </div>
         <div className="w-9 h-9 rounded-full bg-[#075E54] flex items-center justify-center text-white shrink-0 shadow">
-          {/* Send Icon */}
           <svg className="w-4 h-4 transform rotate-45 -translate-x-0.5 translate-y-0.5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
           </svg>
         </div>
-      </div>    </div>
+      </div>
+    </div>
   );
 }
