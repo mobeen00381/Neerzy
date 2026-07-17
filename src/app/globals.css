@@ -712,6 +712,10 @@
   gap: var(--space-2);
 }
 
+/* HOMEPAGE AUDIT PREVIEW — Score circle always uses brand green.
+   This is a marketing preview on the homepage, NOT the full GMB Audit Tool.
+   Do NOT add orange/red threshold logic here — that is reserved exclusively
+   for the full tool page per design.md section 1 (Status colors rule). */
 .audit-score-circle {
   width: 56px;
   height: 56px;

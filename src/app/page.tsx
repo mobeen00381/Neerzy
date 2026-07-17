@@ -59,7 +59,7 @@ export default function Page() {
                 Start Free
               </Link>
               <Link href="/gmb-audit-tool" className="btn btn-secondary">
-                Check Your Visibility Check — free
+                Check Your Visibility Score
               </Link>
             </div>
 
@@ -115,61 +115,72 @@ export default function Page() {
       </section>
 
       {/* ============================================
-          Section 2: Why We Exist
+          Section 2: Why We Exist (problem only — no solution preview)
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
-        <div className="container why-section">
-          <div className="why-content">
-            <h2>
-              Busy businesses shouldn't have to become marketers.
-            </h2>
-            <p>
-              You do excellent work. You finish the job, clean up, and move on to the next customer. But at the end of the day, there's no Google update, no website update, no review request, and no online record of the work you just completed.
-            </p>
-            <p>
-              Meanwhile, larger competitors with marketing teams keep showing up in local searches — not because they do better work, but because they consistently post, collect reviews, and stay visible.
-            </p>
-            <p>
-              That's the gap Neerzy exists to close. Not by making you learn marketing — but by fitting into the workflow you already have.
-            </p>
-          </div>
-
-          <div className="why-list">
-            <div className="why-list-item">
-              <div className="why-list-icon">
-                <ZapIcon size={18} />
-              </div>
-              <div className="why-list-text">
-                <strong>You finish the job</strong>
-                <span>Take one photo on-site — that's all it takes to start.</span>
-              </div>
-            </div>
-            <div className="why-list-item">
-              <div className="why-list-icon">
-                <MessageSquareIcon size={18} />
-              </div>
-              <div className="why-list-text">
-                <strong>You send one message</strong>
-                <span>Via WhatsApp or the web app — just like you already message customers.</span>
-              </div>
-            </div>
-            <div className="why-list-item">
-              <div className="why-list-icon">
-                <SearchIcon size={18} />
-              </div>
-              <div className="why-list-text">
-                <strong>Your visibility grows</strong>
-                <span>Every job becomes a Google post, a website update, and a review opportunity.</span>
-              </div>
-            </div>
-          </div>
+      <section style={{
+        backgroundColor: 'var(--color-bg)',
+        paddingTop: 'var(--space-8)',
+        paddingBottom: 'var(--space-5)'
+      }}>
+        <div className="container" style={{ maxWidth: '720px', margin: '0 auto' }}>
+          <h2 style={{
+            fontSize: 'var(--text-h2-size)',
+            lineHeight: 'var(--text-h2-line)',
+            fontWeight: 'var(--text-h2-weight)',
+            color: 'var(--color-primary)',
+            marginBottom: 'var(--space-4)',
+            letterSpacing: '-0.02em',
+            textAlign: 'center'
+          }}>
+            Busy businesses shouldn't have to become marketers.
+          </h2>
+          <p style={{
+            fontSize: 'var(--text-body-size)',
+            lineHeight: 'var(--text-body-line)',
+            color: 'var(--color-text-secondary)',
+            marginBottom: 'var(--space-4)',
+            textAlign: 'center',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            You do excellent work. You finish the job, clean up, and move on to the next customer. But at the end of the day, there's no Google update, no website update, no review request, and no online record of the work you just completed.
+          </p>
+          <p style={{
+            fontSize: 'var(--text-body-size)',
+            lineHeight: 'var(--text-body-line)',
+            color: 'var(--color-text-secondary)',
+            textAlign: 'center',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            Meanwhile, larger competitors with marketing teams keep showing up in local searches — not because they do better work, but because they consistently post, collect reviews, and stay visible.
+          </p>
+          <p style={{
+            fontSize: 'var(--text-body-size)',
+            lineHeight: 'var(--text-body-line)',
+            color: 'var(--color-text-secondary)',
+            textAlign: 'center',
+            maxWidth: '600px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginTop: 'var(--space-5)',
+            fontWeight: 600
+          }}>
+            Here's how Neerzy closes that gap:
+          </p>
         </div>
       </section>
 
       {/* ============================================
           Section 3: How It Works
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+      <section style={{
+        backgroundColor: 'var(--color-bg)',
+        paddingTop: 'var(--space-3)',
+        paddingBottom: 'var(--space-8)'
+      }}>
         <div className="container">
           <div className="steps-header">
             <h2>How it works</h2>
@@ -227,7 +238,7 @@ export default function Page() {
       {/* ============================================
           Section 4: Free Visibility Check
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
         <div className="container audit-section">
           <h2>See how your business looks online today.</h2>
           <p>Enter your business name for a quick visibility check. See what's working and what could bring you more customers.</p>
@@ -240,7 +251,7 @@ export default function Page() {
               readOnly
             />
             <Link href="/gmb-audit-tool" className="btn btn-secondary">
-              Check Free
+              Check Your Visibility Score
             </Link>
           </div>
 
@@ -252,6 +263,10 @@ export default function Page() {
                 <span>Austin, TX</span>
               </div>
               <div className="audit-preview-score">
+                {/* Score circle always uses brand green on the homepage preview.
+                    This is intentional — do NOT add orange/red threshold logic here.
+                    Status colors (warn/fail) are reserved for the full GMB Audit Tool
+                    page only, per design.md section 1. */}
                 <div className="audit-score-circle">72</div>
                 <div className="audit-score-label">
                   Visibility<br />
@@ -302,7 +317,7 @@ export default function Page() {
             <div className="audit-cta">
               <p>Get the full breakdown with actionable steps to improve your score.</p>
               <Link href="/gmb-audit-tool" className="btn btn-primary">
-                Start Free — Full Audit
+                Start Free
               </Link>
             </div>
           </div>
@@ -312,7 +327,7 @@ export default function Page() {
       {/* ============================================
           Section 5: How Neerzy Fixes It
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div className="container fix-section">
           <h2>How Neerzy fixes it</h2>
           <p>Every problem the audit finds has a fix built into Neerzy's workflow. No extra tools, no separate logins.</p>
@@ -408,7 +423,7 @@ export default function Page() {
       {/* ============================================
           Section 6: One Photo, Multiple Results
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
         <div className="container assets-section">
           <h2>One completed job creates multiple marketing assets.</h2>
           <p>From a single photo, Neerzy prepares everything your business needs to stay visible and attract the next customer.</p>
@@ -460,7 +475,7 @@ export default function Page() {
       {/* ============================================
           Section 7: Review Request Comparison
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div className="container compare-section">
           <h2>Ask for the review while the customer is still happy.</h2>
           <p>The difference between a review collected and a review opportunity lost is just a few minutes — and one photo.</p>
@@ -573,7 +588,7 @@ export default function Page() {
       {/* ============================================
           Section 8: Why This Matters (Flow Diagram)
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
         <div className="container flow-section">
           <h2>Why this matters</h2>
           <p>Every completed job feeds a chain that makes your business more visible and attracts the next customer.</p>
@@ -648,7 +663,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <MapPinIcon size={18} />
               </div>
-              <span className="flow-node-text">Stronger GBP</span>
+              <span className="flow-node-text">Stronger Google Profile</span>
             </div>
 
             <div className="flow-connector">
@@ -683,7 +698,7 @@ export default function Page() {
       {/* ============================================
           Section 9: Own Your Online Presence
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div className="container own-section">
           <h2>Build something that belongs to your business.</h2>
           <p>Every job you complete with Neerzy adds to your own online presence — not someone else's platform.</p>
@@ -719,6 +734,12 @@ export default function Page() {
               </div>
               <span className="own-card-text">Your online history</span>
             </div>
+            <div className="own-card">
+              <div className="own-check">
+                <CheckIcon size={16} />
+              </div>
+              <span className="own-card-text">Your customer relationships</span>
+            </div>
           </div>
         </div>
       </section>
@@ -726,7 +747,7 @@ export default function Page() {
       {/* ============================================
           Section 10: Trust Row
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
         <div className="container trust-section">
           <h2>Built for real businesses, not marketing teams.</h2>
           <p>Neerzy works the way you work — no dashboards to learn, no strategies to manage.</p>
@@ -767,7 +788,7 @@ export default function Page() {
             Start Free
           </Link>
           <Link href="/gmb-audit-tool" className="cta-final-link">
-            Not ready? Run your free visibility check
+            Not ready? Check your Visibility Score
           </Link>
         </div>
       </section>
