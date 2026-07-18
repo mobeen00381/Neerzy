@@ -132,7 +132,7 @@ export default function PricingPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {/* Hero Section */}
-      <section className="hero" style={{ minHeight: 'auto', padding: 'var(--space-7) 0' }}>
+      <section className="hero" style={{ minHeight: 'auto', padding: 'var(--space-7) 0', borderBottom: 'none' }}>
         <div className="container" style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: 'var(--text-hero-size)', lineHeight: 'var(--text-hero-line)', fontWeight: 'var(--text-hero-weight)', color: 'var(--color-primary-dark)', marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
             Simple marketing for <br />

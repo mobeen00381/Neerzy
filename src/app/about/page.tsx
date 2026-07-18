@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import React from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
 
 export const metadata: Metadata = {
   title: 'About Neerzy | Local Business Marketing Made Simple via WhatsApp',
@@ -60,14 +59,14 @@ export default function AboutPage() {
               </p>
               <div className="hero-ctas">
                 <Link href="/onboarding">
-                  <Button className="btn btn-primary" style={{ padding: '12px 28px', fontSize: 'var(--text-body-size)' }}>
+                  <span className="btn btn-primary" style={{ padding: '12px 28px', fontSize: 'var(--text-body-size)' }}>
                     Start Free
-                  </Button>
+                  </span>
                 </Link>
                 <Link href="/#how-it-works">
-                  <Button className="btn btn-secondary" style={{ padding: '12px 28px', fontSize: 'var(--text-body-size)' }}>
+                  <span className="btn btn-secondary" style={{ padding: '12px 28px', fontSize: 'var(--text-body-size)' }}>
                     See How It Works
-                  </Button>
+                  </span>
                 </Link>
               </div>
             </div>
@@ -246,7 +245,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* SECTION 5 — OUR MISSION */}
+      {/* SECTION 5 — OUR MISSION (rebuilt as standard step cards) */}
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
@@ -255,13 +254,28 @@ export default function AboutPage() {
           <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto var(--space-7)' }}>
             We believe small local businesses should not need expensive agencies or large marketing teams just to stay visible online.
           </p>
-          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxWidth: '700px', margin: '0 auto' }}>
-            {['Build Trust', 'Stay Active', 'Consistent Reviews', 'Improve Visibility', 'Save Time'].map((item, i) => (
-              <div key={i} className="card" style={{ textAlign: 'center', padding: 'var(--space-3)' }}>
-                <div className="step-icon" style={{ margin: '0 auto var(--space-2)', width: '40px', height: '40px' }}>
-                  <span style={{ color: 'var(--color-accent)', fontWeight: 700, fontSize: 'var(--text-body-size)' }}>{i + 1}</span>
+          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxWidth: '800px', margin: '0 auto' }}>
+            {[
+              { icon: 'check', label: 'Build Trust' },
+              { icon: 'check', label: 'Stay Active' },
+              { icon: 'check', label: 'Consistent Reviews' },
+              { icon: 'check', label: 'Improve Visibility' },
+              { icon: 'check', label: 'Save Time' }
+            ].map((item, i) => (
+              <div key={i} className="card" style={{ textAlign: 'center', padding: 'var(--space-4)' }}>
+                <div className="step-icon" style={{ margin: '0 auto var(--space-3)', width: '48px', height: '48px' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                 </div>
-                <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{item}</span>
+                <h3 style={{ fontSize: 'var(--text-h3-size)', lineHeight: 'var(--text-h3-line)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-text-primary)', margin: '0 0 var(--space-2)' }}>{item.label}</h3>
+                <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', margin: 0 }}>
+                  {i === 0 && 'Build lasting trust with every review.'}
+                  {i === 1 && 'Stay active without daily effort.'}
+                  {i === 2 && 'Collect reviews consistently.'}
+                  {i === 3 && 'Improve your local visibility.'}
+                  {i === 4 && 'Save time on marketing tasks.'}
+                </p>
               </div>
             ))}
           </div>
@@ -291,20 +305,20 @@ export default function AboutPage() {
                   { t: 'Own reputation' }
                 ].map((card, i) => (
                   <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)' }}>
-                    <div className="step-icon" style={{ width: '32px', height: '32px' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+                    <div className="step-icon" style={{ width: '36px', height: '36px' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </div>
-                    <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{card.t}</span>
+                    <span style={{ fontSize: 'var(--text-body-size)', fontWeight: 600, color: 'var(--color-text-primary)' }}>{card.t}</span>
                   </div>
                 ))}
               </div>
             </div>
             
-            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-7)' }}>
-              <div className="step-icon" style={{ width: '80px', height: '80px', margin: '0 auto var(--space-4)' }}>
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+              <div className="step-icon" style={{ width: '56px', height: '56px', margin: '0 auto var(--space-4)' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                   <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
@@ -326,13 +340,13 @@ export default function AboutPage() {
             {[
               'Google-compliant workflows', 'Full publishing control', 'No fake reviews or spam', 'You own your data'
             ].map((t, i) => (
-              <div key={i} className="card" style={{ textAlign: 'center', padding: 'var(--space-3)' }}>
-                <div className="step-icon" style={{ width: '32px', height: '32px', margin: '0 auto var(--space-2)' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+              <div key={i} className="card" style={{ textAlign: 'center', padding: 'var(--space-4)' }}>
+                <div className="step-icon" style={{ width: '40px', height: '40px', margin: '0 auto var(--space-3)' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t}</span>
+                <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t}</span>
               </div>
             ))}
           </div>
@@ -349,7 +363,7 @@ export default function AboutPage() {
           <h2>Your next completed job could bring your next customer</h2>
           <p>Send your next job on WhatsApp. Neerzy helps you stay visible online consistently.</p>
           <Link href="/onboarding" className="btn btn-primary" style={{ fontSize: '18px', padding: '14px 36px' }}>
-            Start with 5 Free Posts
+            Start Free
           </Link>
         </div>
       </section>
