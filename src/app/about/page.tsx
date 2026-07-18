@@ -35,9 +35,20 @@ const jsonLd = {
   "url": "https://www.neerzy.com/about"
 };
 
+const aboutMobileStyles = `
+  @media (max-width: 768px) {
+    .about-grid-4 { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
+    .about-grid-5 { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
+    .about-grid-2 { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
+    .about-grid-2-col { grid-template-columns: 1fr !important; }
+    .about-compare-grid { grid-template-columns: 1fr !important; max-width: 400px !important; }
+  }
+`;
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white font-sans">
+      <style>{aboutMobileStyles}</style>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -110,7 +121,7 @@ export default function AboutPage() {
             </p>
           </div>
           
-          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div className="card-grid about-grid-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {[
               { t: 'No time after work', d: 'The "second shift" of marketing never happens.' },
               { t: 'Complex software', d: 'Dashboards built for agencies, not for traders.' },
@@ -141,7 +152,7 @@ export default function AboutPage() {
       {/* SECTION 3 — WHY WHATSAPP: Dark Section */}
       <section className="section-padding" style={{ backgroundColor: 'var(--color-primary-dark)', color: '#FFFFFF' }}>
         <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-7)', alignItems: 'center' }}>
+          <div className="about-grid-2-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-7)', alignItems: 'center' }}>
             <div>
               <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: '#FFFFFF', marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
                 Why Neerzy works through WhatsApp
@@ -254,7 +265,7 @@ export default function AboutPage() {
           <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto var(--space-7)' }}>
             We believe small local businesses should not need expensive agencies or large marketing teams just to stay visible online.
           </p>
-          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxWidth: '800px', margin: '0 auto' }}>
+          <div className="card-grid about-grid-5" style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxWidth: '800px', margin: '0 auto' }}>
             {[
               { icon: 'check', label: 'Build Trust' },
               { icon: 'check', label: 'Stay Active' },
@@ -285,7 +296,7 @@ export default function AboutPage() {
       {/* SECTION 6 — FREEDOM & EMPOWERMENT */}
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-7)', alignItems: 'center' }}>
+          <div className="about-grid-2-col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-7)', alignItems: 'center' }}>
             <div>
               <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
                 Built to give businesses more independence
@@ -297,7 +308,7 @@ export default function AboutPage() {
               <p style={{ fontSize: 'var(--text-body-size)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)' }}>
                 Neerzy helps you build your own legacy:
               </p>
-              <div className="card-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              <div className="card-grid about-grid-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 {[
                   { t: 'Own website' },
                   { t: 'Own reviews' },
@@ -336,7 +347,7 @@ export default function AboutPage() {
           <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-6)', letterSpacing: '-0.02em' }}>
             Built with trust and compliance in mind
           </h2>
-          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', maxWidth: '700px', margin: '0 auto' }}>
+          <div className="card-grid about-grid-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)', maxWidth: '700px', margin: '0 auto' }}>
             {[
               'Google-compliant workflows', 'Full publishing control', 'No fake reviews or spam', 'You own your data'
             ].map((t, i) => (

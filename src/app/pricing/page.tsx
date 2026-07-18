@@ -122,11 +122,20 @@ const FAQS = [
   }
 ];
 
+const pricingMobileStyles = `
+  @media (max-width: 768px) {
+    .pricing-grid-4 { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
+    .pricing-grid-2 { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
+    .pricing-compare-grid { grid-template-columns: 1fr !important; max-width: 400px !important; }
+  }
+`;
+
 export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
     <div className="min-h-screen bg-white font-sans">
+      <style>{pricingMobileStyles}</style>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -161,7 +170,7 @@ export default function PricingPage() {
       {/* Plans Section */}
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container" style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div className="card-grid pricing-grid-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {PLANS.map((plan, i) => (
               <div 
                 key={i} 
@@ -312,7 +321,8 @@ export default function PricingPage() {
                     fontSize: 'var(--text-body-size)',
                     fontWeight: 600,
                     color: 'var(--color-text-primary)',
-                    lineHeight: 'var(--text-body-line)'
+                    lineHeight: 'var(--text-body-line)',
+                    minHeight: '44px'
                   }}
                 >
                   <span>{faq.q}</span>

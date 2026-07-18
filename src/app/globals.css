@@ -122,6 +122,7 @@
   cursor: pointer;
   border: none;
   line-height: 1;
+  min-height: 44px;
 }
 
 .btn-primary {
@@ -398,6 +399,29 @@
   }
   .container {
     padding: 0 var(--space-3);
+  }
+}
+
+@media (max-width: 414px) {
+  .hero-content h1 {
+    font-size: 32px;
+  }
+  .hero-ctas {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+  .hero-ctas .btn {
+    width: 100%;
+    text-align: center;
+  }
+  .hero-trust {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  .hero-trust-item {
+    font-size: var(--text-body-size);
   }
 }
 
@@ -1318,7 +1342,29 @@
 @media (max-width: 640px) {
   .flow-grid {
     grid-template-columns: repeat(2, 1fr);
+    max-width: 320px;
+  }
+}
+
+@media (max-width: 414px) {
+  .flow-grid {
+    grid-template-columns: 1fr;
     max-width: 280px;
+  }
+  .flow-node {
+    flex-direction: row;
+    padding: var(--space-3);
+    text-align: left;
+    gap: var(--space-3);
+  }
+  .flow-node-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+  .flow-node-text {
+    font-size: var(--text-body-size);
+    max-width: none;
   }
 }
 
