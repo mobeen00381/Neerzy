@@ -177,3 +177,23 @@ Color alternation alone is not visible enough on a long scrolling page. Every se
 - Simple over decorative. If a section needs an illustration or icon to explain itself, use one icon — not three competing visual elements.
 - Every visual should map to a step in the core story: **job finished → message sent → visibility updated → review collected → next customer**. If a graphic doesn't clearly belong to one of those five beats, cut it.
 - Whitespace is a feature, not empty space to fill — but every container must have a reason for its size (no oversized empty icon boxes).
+
+---
+
+## 8. Content Integrity Rule (new — required)
+
+Layout, spacing, and color fixes must never remove list items, cards, trust points, or copy. If a change request is about spacing, alignment, grid columns, or visual rhythm, the fix is a **reflow only** — every item that existed before the fix must still exist after it, just laid out differently. If a fix genuinely requires cutting an item for layout reasons, stop and ask before removing it rather than deleting silently. This has already happened twice (Section 9's ownership items, then the Trust section's compliance points) — treat any spacing/layout prompt as content-preserving by default unless content removal is explicitly requested.
+
+---
+
+## 9. Mobile Optimization (new — required across all pages)
+
+The majority of Neerzy's users are on phones. Mobile is the primary target, not a secondary breakpoint checked after desktop looks right. Every page (Home, About, GMB Audit Tool, Pricing, Features) must be verified at a 375–414px viewport before a fix is considered complete — not just visually similar to desktop, actually checked at that width.
+
+- **Touch targets:** every button and tappable link must have a minimum 44x44px tap area, with at least 8px spacing between adjacent tappable elements to prevent mis-taps.
+- **Font sizes:** body text minimum 16px on mobile (smaller sizes trigger unwanted zoom-on-focus in iOS Safari for form inputs). Headings scale down proportionally but never below 28px for H1, 22px for H2.
+- **Grids collapse to single column** below 640px unless a component is explicitly designed as a 2-up mobile grid (e.g. Section 9's ownership cards may stay 2-column if they still pass the touch-target and readability check at 375px — verify, don't assume).
+- **CTA buttons:** primary and secondary CTAs stack vertically (never side-by-side) when they don't comfortably fit the viewport width with padding; each button full-width or near-full-width on mobile.
+- **No horizontal scroll:** every section, card grid, and diagram (including the Section 8 flow diagram and Section 7 comparison) must fit within the viewport width on mobile without introducing horizontal scroll. Diagrams with connecting arrows between rows need a mobile-specific layout (e.g. stacked vertically) rather than shrinking a desktop row layout until it's unreadable.
+- **Hero mockup placement:** the phone mockup must not push the headline and CTA below the fold on mobile — stack the mockup below the hero copy, not beside it.
+- **Section padding on mobile** uses `--space-6` (48px) top/bottom per the spacing scale already defined — confirm this is applied consistently on every page, not just the homepage.
