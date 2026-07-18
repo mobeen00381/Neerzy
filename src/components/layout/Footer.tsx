@@ -32,24 +32,25 @@ export default function Footer() {
           <div>
             <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Product</h4>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
-              <li><Link href="/" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Features</Link></li>
-              <li><Link href="/pricing" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Pricing</Link></li>
-              <li><Link href="/gmb-audit-tool" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>GMB Audit Tool</Link></li>
+              <li><Link href="/" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Features</Link></li>
+              <li><Link href="/pricing" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Pricing</Link></li>
+              <li><Link href="/gmb-audit-tool" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>GMB Audit Tool</Link></li>
             </ul>
           </div>
           <div>
             <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Company</h4>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
-              <li><Link href="/about" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>About Us</Link></li>
-              <li><Link href="/contact" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Contact</Link></li>
+              <li><Link href="/about" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>About Us</Link></li>
+              <li><Link href="/seo-for-plumbers" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Blog</Link></li>
+              <li><Link href="/contact" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Contact</Link></li>
             </ul>
           </div>
           <div>
             <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Legal</h4>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
-              <li><Link href="/privacy-policy" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Privacy Policy</Link></li>
-              <li><Link href="/terms" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Terms of Service</Link></li>
-              <li><Link href="/cookies" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Cookie Policy</Link></li>
+              <li><Link href="/privacy-policy" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Privacy Policy</Link></li>
+              <li><Link href="/terms" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Terms of Service</Link></li>
+              <li><Link href="/cookies" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Cookie Policy</Link></li>
             </ul>
           </div>
         </div>
