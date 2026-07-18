@@ -147,155 +147,160 @@ export default function GBMAuditTool() {
 
   return (
     <>
-      <div className="min-h-screen bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)] py-20 px-4 md:px-8 font-sans relative overflow-hidden">
-        {/* Background Visual Enhancers */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full" />
-          <div className="absolute top-[60%] -right-[10%] w-[35%] h-[35%] bg-teal-500/5 blur-[100px] rounded-full" />
-        </div>
-
-        <div className="max-w-4xl mx-auto relative z-10 space-y-16">
+      <div className="min-h-screen" style={{ background: 'var(--color-bg-soft)', padding: 'var(--space-7) var(--space-4)', fontFamily: 'var(--font-family)' }}>
+        <div className="container" style={{ maxWidth: '800px', margin: '0 auto' }}>
           
-          {/* 🏷️ Header with Keywords */}
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full text-emerald-700 font-bold text-xs uppercase tracking-wider">
-              <Zap className="w-3.5 h-3.5 text-[#25D366]" />
+          {/* 🏷️ Header */}
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', padding: '6px 12px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-pill)', color: 'var(--color-primary)', fontWeight: 700, fontSize: 'var(--text-small-size)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 'var(--space-3)' }}>
+              <Zap size={14} style={{ color: 'var(--color-accent)' }} />
               <span>Free Local SEO Optimizer</span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-black text-[#0F5C4D] leading-tight tracking-tight max-w-3xl mx-auto">
+            <h1 style={{ fontSize: 'var(--text-hero-size)', lineHeight: 'var(--text-hero-line)', fontWeight: 'var(--text-hero-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-3)', letterSpacing: '-0.02em' }}>
               Free Google Business Profile Audit Tool
             </h1>
-            <p className="text-xl md:text-2xl font-extrabold text-slate-700">
+            <p style={{ fontSize: 'var(--text-h3-size)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-2)' }}>
               Check Your GBP/GMB Listing SEO Score in 30 Seconds
             </p>
-            <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
               Get a comprehensive analysis of your Google Business Profile with actionable recommendations to improve local search rankings — 100% free, no signup required.
             </p>
           </div>
 
-          {/* 🔍 Search Box with Autocomplete Dropdown */}
-          <div className="relative z-[100] max-w-3xl mx-auto w-full" ref={dropdownRef}>
-            <div className="bg-white rounded-[2.5rem] shadow-2xl p-3 border border-emerald-50/10">
-              <div className="flex items-center gap-3 px-4 py-3 bg-slate-50/50 rounded-2xl border-2 border-slate-100 focus-within:border-[#25D366] focus-within:bg-white transition-all">
-                <Search className="w-6 h-6 text-slate-400 shrink-0" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setSelectedBusiness(null);
-                    setShowDropdown(true);
-                  }}
-                  onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-                  className="flex-1 text-lg outline-none text-slate-800 placeholder-slate-400 bg-transparent font-semibold min-w-0"
-                  placeholder="Search your business name (e.g., Starbucks)..."
-                  autoComplete="off"
-                  aria-label="Search for your business"
-                />
-                {loading && (
-                  <Loader2 className="animate-spin h-6 w-6 text-[#25D366] shrink-0" />
-                )}
-              </div>
-
-              {/* Dropdown displaying real storefront image thumbnails */}
-              {showDropdown && (
-                <div className="absolute left-4 right-4 mt-3 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-[380px] overflow-y-auto z-[150] p-2 space-y-1">
-                  {searchResults.length > 0 ? (
-                    <>
-                      <div className="p-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-50 bg-slate-50/50 rounded-t-xl sticky top-0 z-10">
-                        Select your business:
-                      </div>
-                      {searchResults.map((place: any, idx: number) => (
-                        <button
-                          key={place.placeId || idx}
-                          onClick={() => handleSelectBusiness(place)}
-                          className={`w-full text-left p-3.5 rounded-xl border border-transparent hover:border-emerald-100 hover:bg-emerald-50/50 transition-all flex items-start gap-4 cursor-pointer ${
-                            selectedBusiness?.placeId === place.placeId ? 'bg-emerald-50 border-l-4 border-l-[#25D366]' : ''
-                          }`}
-                        >
-                          {/* Storefront thumbnail display */}
-                          {place.photoUrl ? (
-                            <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 mt-0.5 border border-slate-100 shadow-sm">
-                              <img 
-                                src={place.photoUrl} 
-                                alt={place.displayName?.text || place.name}
-                                className="w-full h-full object-cover"
-                                onError={(e: any) => {
-                                  e.target.parentElement.innerHTML = '<div class="w-full h-full bg-emerald-50 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0F5C4D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div>';
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 shrink-0 mt-0.5">
-                              <Building2 className="w-5 h-5" />
-                            </div>
-                          )}
-
-                          <div className="flex-1 min-w-0">
-                            <div className="font-extrabold text-slate-800 text-base leading-tight truncate">
-                              {place.displayName?.text || place.name}
-                            </div>
-                            <div className="text-xs font-semibold text-slate-400 mt-1 truncate">
-                              {place.formattedAddress || place.formatted_address}
-                            </div>
-                            {place.rating !== undefined && place.rating > 0 && (
-                              <div className="flex items-center gap-1.5 mt-2 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100/50 px-2 py-0.5 rounded-lg w-max">
-                                <span>⭐ {place.rating}</span>
-                                <span className="opacity-60">({place.user_ratings_total || 0} reviews)</span>
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </>
-                  ) : searchQuery.trim().length >= 3 && !loading ? (
-                    <div className="p-8 text-center text-slate-400 font-bold">
-                      <span className="text-4xl mb-2 block">🔍</span>
-                      No businesses found. Try a different search term.
-                    </div>
-                  ) : null}
-                </div>
+          {/* 🔍 Search Box */}
+          <div className="card" style={{ padding: 'var(--space-4)', position: 'relative', zIndex: 100 }} ref={dropdownRef}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)', backgroundColor: 'var(--color-bg)', border: '2px solid var(--color-border)', borderRadius: 'var(--radius-card)' }}>
+              <Search size={20} style={{ color: 'var(--color-text-secondary)', flexShrink: 0 }} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSelectedBusiness(null);
+                  setShowDropdown(true);
+                }}
+                onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+                style={{ flex: 1, fontSize: 'var(--text-body-size)', outline: 'none', border: 'none', background: 'transparent', color: 'var(--color-text-primary)', fontFamily: 'var(--font-family)', fontWeight: 600, minWidth: 0 }}
+                placeholder="Search your business name..."
+                autoComplete="off"
+                aria-label="Search for your business"
+              />
+              {loading && (
+                <Loader2 size={20} style={{ color: 'var(--color-accent)', flexShrink: 0, animation: 'spin 1s linear infinite' }} />
               )}
             </div>
+
+            {/* Dropdown */}
+            {showDropdown && (
+              <div style={{ position: 'absolute', left: 'var(--space-4)', right: 'var(--space-4)', marginTop: 'var(--space-2)', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-card)', boxShadow: '0 8px 24px rgba(11,61,46,0.1)', maxHeight: '380px', overflowY: 'auto', zIndex: 150, padding: 'var(--space-2)' }}>
+                {searchResults.length > 0 ? (
+                  <>
+                    <div style={{ padding: 'var(--space-2) var(--space-3)', fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px solid var(--color-border)' }}>
+                      Select your business:
+                    </div>
+                    {searchResults.map((place: any, idx: number) => (
+                      <button
+                        key={place.placeId || idx}
+                        onClick={() => handleSelectBusiness(place)}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: 'var(--space-3)',
+                          borderRadius: '12px',
+                          border: 'none',
+                          background: selectedBusiness?.placeId === place.placeId ? 'var(--color-bg-soft)' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 'var(--space-3)',
+                          fontFamily: 'var(--font-family)',
+                          transition: 'background 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => { if (selectedBusiness?.placeId !== place.placeId) e.currentTarget.style.background = 'var(--color-bg-muted)'; }}
+                        onMouseLeave={(e) => { if (selectedBusiness?.placeId !== place.placeId) e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        {place.photoUrl ? (
+                          <div style={{ width: '48px', height: '48px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0, border: '1px solid var(--color-border)' }}>
+                            <img 
+                              src={place.photoUrl} 
+                              alt={place.displayName?.text || place.name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={(e: any) => {
+                                e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;background:var(--color-bg-soft);display:flex;align-items:center;justify-content:center"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div>';
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ padding: '10px', backgroundColor: 'var(--color-bg-soft)', borderRadius: '12px', color: 'var(--color-primary)', flexShrink: 0 }}>
+                            <Building2 size={20} />
+                          </div>
+                        )}
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-body-size)', lineHeight: '1.3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {place.displayName?.text || place.name}
+                          </div>
+                          <div style={{ fontSize: 'var(--text-small-size)', fontWeight: 600, color: 'var(--color-text-secondary)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {place.formattedAddress || place.formatted_address}
+                          </div>
+                          {place.rating !== undefined && place.rating > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-status-warn)' }}>
+                              <Star size={14} style={{ color: 'var(--color-status-warn)' }} />
+                              <span>{place.rating}</span>
+                              <span style={{ opacity: 0.6, color: 'var(--color-text-secondary)' }}>({place.user_ratings_total || 0} reviews)</span>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                ) : searchQuery.trim().length >= 3 && !loading ? (
+                  <div style={{ padding: 'var(--space-5)', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 700 }}>
+                    No businesses found. Try a different search term.
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
 
           {/* 🏆 Selected Business Card & Audit Trigger */}
           {selectedBusiness && (
-            <div className="mt-8 max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-3xl p-6 shadow-lg">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-emerald-500 text-white rounded-xl shadow-md">
-                    <CheckCircle2 className="w-6 h-6" />
+            <div style={{ marginTop: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div className="card" style={{ border: '2px solid var(--color-accent)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+                  <div style={{ padding: '8px', backgroundColor: 'var(--color-accent)', color: '#FFFFFF', borderRadius: '12px' }}>
+                    <CheckCircle2 size={20} />
                   </div>
-                  <h3 className="text-xl font-black text-[#0F5C4D]">Business Selected</h3>
+                  <h3 style={{ fontSize: 'var(--text-h3-size)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-primary)', margin: 0 }}>Business Selected</h3>
                 </div>
                 
-                <div className="flex items-start gap-4">
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
                   {selectedBusiness.photoUrl ? (
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-emerald-100 shadow-sm shrink-0">
+                    <div style={{ width: '72px', height: '72px', borderRadius: '16px', overflow: 'hidden', border: '2px solid var(--color-border)', flexShrink: 0 }}>
                       <img 
                         src={selectedBusiness.photoUrl} 
                         alt={selectedBusiness.displayName?.text || selectedBusiness.name}
-                        className="w-full h-full object-cover"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     </div>
                   ) : (
-                    <div className="w-20 h-20 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
-                      <Building2 className="w-8 h-8 text-[#0F5C4D]" />
+                    <div style={{ width: '72px', height: '72px', borderRadius: '16px', backgroundColor: 'var(--color-bg-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Building2 size={28} style={{ color: 'var(--color-primary)' }} />
                     </div>
                   )}
 
-                  <div className="space-y-1.5 text-slate-700 min-w-0">
-                    <div className="font-extrabold text-slate-900 text-lg truncate">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: 'var(--text-body-size)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {selectedBusiness.displayName?.text || selectedBusiness.name}
                     </div>
-                    <div className="text-sm font-semibold text-slate-500 leading-relaxed truncate">
+                    <div style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {selectedBusiness.formattedAddress || selectedBusiness.formatted_address}
                     </div>
                     {selectedBusiness.rating && (
-                      <div className="flex items-center gap-1 text-sm font-bold text-amber-600">
-                        <span>⭐ {selectedBusiness.rating}</span>
-                        <span className="text-slate-400">({selectedBusiness.user_ratings_total} reviews)</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-status-warn)' }}>
+                        <Star size={14} style={{ color: 'var(--color-status-warn)' }} />
+                        <span>{selectedBusiness.rating}</span>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>({selectedBusiness.user_ratings_total} reviews)</span>
                       </div>
                     )}
                   </div>
@@ -304,51 +309,46 @@ export default function GBMAuditTool() {
 
               <button
                 onClick={handleRunAudit}
-                className="w-full bg-[#0F5C4D] hover:bg-[#073a30] text-white py-5 rounded-2xl font-black text-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-2 group"
+                className="btn btn-primary"
+                style={{ width: '100%', fontSize: 'var(--text-body-size)', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-2)' }}
               >
-                <span>🚀 Run Free GBP Audit Now</span>
-                <ArrowRight className="w-6 h-6 group-hover:translate-x-1.5 transition-transform" />
+                <span>Run Free GBP Audit Now</span>
+                <ArrowRight size={20} />
               </button>
 
-              <p className="text-center text-slate-400 font-bold text-xs uppercase tracking-wider">
-                ⚡ Takes less than 30 seconds • No signup required • 100% free
+              <p style={{ textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 700, fontSize: 'var(--text-small-size)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Takes less than 30 seconds • No signup required • 100% free
               </p>
             </div>
           )}
 
-          {/* ⚡ Features Grid - SEO Optimized */}
-          <div className="pt-8">
-            <h2 className="text-3xl md:text-4xl font-black text-center text-slate-800 mb-12">
+          {/* ⚡ Features Grid */}
+          <div style={{ marginTop: 'var(--space-8)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', textAlign: 'center', marginBottom: 'var(--space-7)', letterSpacing: '-0.02em' }}>
               Why Use Our Free Google Business Profile Audit Tool?
             </h2>
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="card-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <FeatureCard 
-                icon="⚡"
                 title="Instant GBP Analysis"
                 description="Get your Google Business Profile SEO score in under 30 seconds. No waiting, no signup required."
               />
               <FeatureCard 
-                icon="📊"
                 title="Comprehensive GMB Audit"
                 description="We check 5 critical areas: completeness, photos, reviews, engagement, and local SEO optimization."
               />
               <FeatureCard 
-                icon="💡"
                 title="Actionable Recommendations"
                 description="Get specific, prioritized action items to improve your local search rankings and attract more customers."
               />
               <FeatureCard 
-                icon="🔍"
                 title="Local SEO Checker"
                 description="Identify what's holding your business back from ranking #1 in Google Maps and local search results."
               />
               <FeatureCard 
-                icon="📱"
                 title="Mobile-Friendly Audit"
                 description="Access your GBP audit report on any device. Perfect for busy business owners on the go."
               />
               <FeatureCard 
-                icon="🎯"
                 title="Free Forever"
                 description="Audit unlimited businesses at no cost. We believe every local business deserves great SEO."
               />
@@ -356,11 +356,11 @@ export default function GBMAuditTool() {
           </div>
 
           {/* 📋 How It Works Section */}
-          <div className="bg-white rounded-[2.5rem] shadow-xl p-8 md:p-12 border border-slate-100">
-            <h2 className="text-3xl md:text-4xl font-black text-center text-slate-800 mb-12">
+          <div className="card" style={{ marginTop: 'var(--space-8)', padding: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', textAlign: 'center', marginBottom: 'var(--space-7)', letterSpacing: '-0.02em' }}>
               How to Audit Your Google Business Profile
             </h2>
-            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="card-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <StepCard 
                 number="1"
                 title="Search Your Business"
@@ -385,15 +385,15 @@ export default function GBMAuditTool() {
           </div>
 
           {/* 🔍 What We Check Section */}
-          <div className="space-y-8">
-            <h2 className="text-3xl md:text-4xl font-black text-center text-slate-800">
+          <div style={{ marginTop: 'var(--space-8)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', textAlign: 'center', marginBottom: 'var(--space-7)', letterSpacing: '-0.02em' }}>
               What Our GBP Audit Tool Checks
             </h2>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="card-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <AuditCheckCard 
                 category="Profile Completeness"
                 weight="25%"
-                icon={<Building2 className="w-5 h-5 text-indigo-500" />}
+                icon={<Building2 size={20} />}
                 checks={[
                   "Business name, address, phone (NAP)",
                   "Website link and business hours",
@@ -405,7 +405,7 @@ export default function GBMAuditTool() {
               <AuditCheckCard 
                 category="Visual Content & Photos"
                 weight="20%"
-                icon={<Camera className="w-5 h-5 text-emerald-500" />}
+                icon={<Camera size={20} />}
                 checks={[
                   "Total photo count (target: 100+)",
                   "Recent uploads (last 30 days)",
@@ -417,7 +417,7 @@ export default function GBMAuditTool() {
               <AuditCheckCard 
                 category="Reviews & Reputation"
                 weight="25%"
-                icon={<MessageSquare className="w-5 h-5 text-amber-500" />}
+                icon={<MessageSquare size={20} />}
                 checks={[
                   "Total review count and average rating",
                   "Review velocity (new reviews/month)",
@@ -429,7 +429,7 @@ export default function GBMAuditTool() {
               <AuditCheckCard 
                 category="Engagement & Activity"
                 weight="15%"
-                icon={<Sparkles className="w-5 h-5 text-purple-500" />}
+                icon={<Sparkles size={20} />}
                 checks={[
                   "Google Posts frequency and recency",
                   "Post types (offers, events, updates)",
@@ -441,7 +441,7 @@ export default function GBMAuditTool() {
               <AuditCheckCard 
                 category="Local SEO Optimization"
                 weight="15%"
-                icon={<TrendingUp className="w-5 h-5 text-teal-500" />}
+                icon={<TrendingUp size={20} />}
                 checks={[
                   "Keywords in business name & description",
                   "Category optimization",
@@ -449,17 +449,17 @@ export default function GBMAuditTool() {
                   "NAP consistency across web",
                   "Backlinks from website to GBP"
                 ]}
-                className="md:col-span-2"
+                style={{ gridColumn: '1 / -1', maxWidth: '500px', margin: '0 auto' }}
               />
             </div>
           </div>
 
-          {/* ❓ FAQ Section - Great for SEO */}
-          <div className="bg-white rounded-[2.5rem] shadow-xl p-8 md:p-12 border border-slate-100">
-            <h2 className="text-3xl md:text-4xl font-black text-center text-slate-800 mb-12">
+          {/* ❓ FAQ Section */}
+          <div className="card" style={{ marginTop: 'var(--space-8)', padding: 'var(--space-6)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', textAlign: 'center', marginBottom: 'var(--space-7)', letterSpacing: '-0.02em' }}>
               Frequently Asked Questions About GBP Audits
             </h2>
-            <div className="space-y-6">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
               <FAQItem 
                 question="What is a Google Business Profile audit?"
                 answer="A Google Business Profile (GBP) audit is a comprehensive analysis of your GMB listing that identifies optimization opportunities and issues. It checks your profile completeness, photos, reviews, engagement, and SEO factors to help you rank higher in Google Maps and local search results. Our free audit tool evaluates 5 key areas and provides actionable recommendations."
@@ -488,29 +488,35 @@ export default function GBMAuditTool() {
           </div>
 
           {/* 🚀 Dynamic Premium CTA Section */}
-          <div className="bg-gradient-to-r from-[#0F5C4D] to-[#12705e] rounded-[2.5rem] p-8 md:p-12 text-center text-white shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-white/5 blur-[50px] rounded-full pointer-events-none" />
-            <div className="absolute -bottom-10 -left-10 w-[250px] h-[250px] bg-[#25D366]/10 blur-[60px] rounded-full pointer-events-none" />
-
-            <h2 className="text-3xl md:text-4xl font-black mb-4 leading-tight">
+          <div style={{ 
+            marginTop: 'var(--space-8)', 
+            background: 'var(--gradient-cta-dark)', 
+            borderRadius: 'var(--radius-card)', 
+            padding: 'var(--space-6)', 
+            textAlign: 'center', 
+            color: '#FFFFFF'
+          }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: '#FFFFFF', marginBottom: 'var(--space-3)', letterSpacing: '-0.02em' }}>
               Ready to Improve Your Local SEO?
             </h2>
-            <p className="mb-8 text-white/80 max-w-xl mx-auto font-medium text-base md:text-lg">
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'rgba(255,255,255,0.85)', maxWidth: '500px', margin: '0 auto var(--space-5)' }}>
               Get your free Google Business Profile audit now and discover what's holding you back from ranking #1. Let Neerzy help you automate the fix.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', alignItems: 'center' }}>
               <button 
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="bg-white hover:bg-slate-50 text-[#0F5C4D] px-8 py-4 rounded-xl font-black text-lg shadow-lg hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
+                className="btn btn-primary"
+                style={{ fontSize: 'var(--text-body-size)', padding: '14px 28px' }}
               >
                 Start Free Audit Now
               </button>
               <a 
                 href="/pricing"
-                className="border-2 border-white/80 text-white hover:bg-white/10 px-8 py-4 rounded-xl font-black text-lg transition-all w-full sm:w-auto inline-flex items-center justify-center gap-1.5"
+                className="btn btn-secondary"
+                style={{ borderColor: 'rgba(255,255,255,0.5)', color: '#FFFFFF' }}
               >
                 <span>View Neerzy Plans</span>
-                <ArrowUpRight className="w-5 h-5" />
+                <ArrowUpRight size={16} style={{ marginLeft: '4px' }} />
               </a>
             </div>
           </div>
@@ -521,12 +527,11 @@ export default function GBMAuditTool() {
 }
 
 // Component: Feature Card
-function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
+function FeatureCard({ title, description }: { title: string; description: string }) {
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-md border border-slate-50 hover:shadow-lg hover:border-emerald-100 transition-all">
-      <div className="text-4xl mb-4 bg-emerald-50 w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm">{icon}</div>
-      <h3 className="text-xl font-extrabold text-slate-800 mb-2 leading-tight">{title}</h3>
-      <p className="text-slate-500 font-semibold text-sm leading-relaxed">{description}</p>
+    <div className="card" style={{ textAlign: 'center' }}>
+      <h3 style={{ fontSize: 'var(--text-h3-size)', lineHeight: 'var(--text-h3-line)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-2)' }}>{title}</h3>
+      <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', lineHeight: 'var(--text-small-line)', margin: 0 }}>{description}</p>
     </div>
   );
 }
@@ -534,34 +539,38 @@ function FeatureCard({ icon, title, description }: { icon: string; title: string
 // Component: Step Card
 function StepCard({ number, title, description }: { number: string; title: string; description: string }) {
   return (
-    <div className="text-center space-y-3">
-      <div className="w-16 h-16 bg-[#0F5C4D] text-white rounded-2xl flex items-center justify-center text-2xl font-black mx-auto shadow-md">
-        {number}
+    <div className="card" style={{ textAlign: 'center' }}>
+      <div className="step-icon" style={{ margin: '0 auto var(--space-3)', width: '48px', height: '48px' }}>
+        <span style={{ color: 'var(--color-accent)', fontWeight: 700, fontSize: 'var(--text-h3-size)' }}>{number}</span>
       </div>
-      <h3 className="text-lg font-extrabold text-slate-800">{title}</h3>
-      <p className="text-slate-400 font-semibold text-xs leading-relaxed">{description}</p>
+      <h3 style={{ fontSize: 'var(--text-h3-size)', lineHeight: 'var(--text-h3-line)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-2)' }}>{title}</h3>
+      <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', lineHeight: 'var(--text-small-line)', margin: 0 }}>{description}</p>
     </div>
   );
 }
 
 // Component: Audit Check Card
-function AuditCheckCard({ category, weight, icon, checks, className = '' }: { category: string; weight: string; icon: React.ReactNode; checks: string[]; className?: string }) {
+function AuditCheckCard({ category, weight, icon, checks, style: customStyle = {} }: { category: string; weight: string; icon: React.ReactNode; checks: string[]; style?: React.CSSProperties }) {
   return (
-    <div className={`bg-white rounded-3xl p-6 border border-slate-100 shadow-sm ${className}`}>
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl">
+    <div className="card" style={customStyle as React.CSSProperties}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+          <div className="step-icon" style={{ width: '36px', height: '36px' }}>
             {icon}
           </div>
-          <h3 className="text-lg font-extrabold text-slate-800 leading-tight">{category}</h3>
+          <h3 style={{ fontSize: 'var(--text-h3-size)', lineHeight: 'var(--text-h3-line)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-text-primary)', margin: 0 }}>{category}</h3>
         </div>
-        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100/50 px-3 py-1 rounded-full">{weight} Weight</span>
+        <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-accent)', backgroundColor: 'var(--color-bg-soft)', padding: '4px 10px', borderRadius: 'var(--radius-pill)' }}>{weight} Weight</span>
       </div>
-      <ul className="space-y-3 pt-2">
+      <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', listStyle: 'none', padding: 0, margin: 0 }}>
         {checks.map((check, idx) => (
-          <li key={idx} className="flex items-start gap-2.5 text-sm font-semibold text-slate-500">
-            <span className="text-[#25D366] text-base leading-none">✓</span>
-            <span className="leading-snug">{check}</span>
+          <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+            <span style={{ color: 'var(--color-accent)', flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </span>
+            <span style={{ lineHeight: '1.4' }}>{check}</span>
           </li>
         ))}
       </ul>
@@ -574,18 +583,49 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
   
   return (
-    <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+    <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full text-left p-6 bg-slate-50/50 hover:bg-slate-50 transition-all flex justify-between items-center"
+        style={{ 
+          width: '100%', 
+          textAlign: 'left', 
+          padding: 'var(--space-4)', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          border: 'none',
+          background: 'none',
+          cursor: 'pointer',
+          fontFamily: 'var(--font-family)',
+          fontSize: 'var(--text-body-size)',
+          fontWeight: 600,
+          color: 'var(--color-text-primary)',
+          lineHeight: 'var(--text-body-line)'
+        }}
       >
-        <span className="font-extrabold text-slate-800 text-base leading-tight">{question}</span>
-        <span className="shrink-0 p-1 bg-white border border-slate-100 rounded-lg text-slate-400">
-          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        <span>{question}</span>
+        <span style={{ 
+          flexShrink: 0, 
+          padding: '4px', 
+          backgroundColor: 'var(--color-bg)', 
+          border: '1px solid var(--color-border)', 
+          borderRadius: '8px',
+          color: 'var(--color-text-secondary)',
+          display: 'flex',
+          marginLeft: 'var(--space-3)'
+        }}>
+          {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </span>
       </button>
       {isOpen && (
-        <div className="p-6 text-slate-500 font-semibold text-sm bg-white leading-relaxed border-t border-slate-50 animate-in slide-in-from-top-2 duration-200">
+        <div style={{ 
+          padding: '0 var(--space-4) var(--space-4)', 
+          color: 'var(--color-text-secondary)', 
+          fontSize: 'var(--text-body-size)',
+          lineHeight: 'var(--text-body-line)',
+          borderTop: '1px solid var(--color-border)',
+          paddingTop: 'var(--space-3)'
+        }}>
           {answer}
         </div>
       )}

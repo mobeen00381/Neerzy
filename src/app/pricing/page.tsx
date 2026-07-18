@@ -89,14 +89,14 @@ const PLANS = [
 ];
 
 const COMPARISON = [
-  { feature: 'WhatsApp workflow', free: '✅', pro: '✅', growth: '✅', agency: '✅' },
-  { feature: 'Google posts', free: '✅', pro: '✅', growth: '✅', agency: '✅' },
-  { feature: 'Website updates', free: '✅', pro: '✅', growth: '✅', agency: '✅' },
-  { feature: 'Review requests', free: '✅', pro: '✅', growth: '✅', agency: '✅' },
-  { feature: 'Voice notes', free: '❌', pro: '✅', growth: '✅', agency: '✅' },
-  { feature: 'Social content', free: '❌', pro: '❌', growth: '✅', agency: '✅' },
+  { feature: 'WhatsApp workflow', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Google posts', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Website updates', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Review requests', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Voice notes', free: '—', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Social content', free: '—', pro: '—', growth: '✓', agency: '✓' },
   { feature: 'Analytics', free: 'Basic', pro: 'Basic', growth: 'Advanced', agency: 'Advanced' },
-  { feature: 'Multi-client', free: '❌', pro: '❌', free2: '❌', agency: '✅' },
+  { feature: 'Multi-client', free: '—', pro: '—', growth: '—', agency: '✓' },
 ];
 
 const FAQS = [
@@ -126,28 +126,30 @@ export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-white font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {/* Hero Section */}
-      <section className="pt-24 pb-20 px-6 bg-white border-b border-slate-100">
-        <div className="container mx-auto max-w-5xl text-center">
-          <h1 className="text-5xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight">
-            Simple marketing for <br className="hidden md:block" />
-            <span className="text-[#0F5C4D]">busy local businesses</span>
+      <section className="hero" style={{ minHeight: 'auto', padding: 'var(--space-7) 0' }}>
+        <div className="container" style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: 'var(--text-hero-size)', lineHeight: 'var(--text-hero-line)', fontWeight: 'var(--text-hero-weight)', color: 'var(--color-primary-dark)', marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
+            Simple marketing for <br />
+            <span style={{ color: 'var(--color-primary)' }}>busy local businesses</span>
           </h1>
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-12 leading-relaxed">
+          <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto var(--space-5)' }}>
             Send a job photo on <WhatsAppIcon size={24} className="text-[#25D366] mx-1" /> <strong>WhatsApp</strong> → Neerzy helps create your Google posts, 
             website updates, and review requests in minutes.
           </p>
           
           {/* Value Bar */}
-          <div className="flex flex-wrap justify-center gap-6 md:gap-12">
+          <div className="hero-trust" style={{ justifyContent: 'center' }}>
             {['WhatsApp-first workflow', 'Built for traders', 'No dashboards needed', 'Publish in < 60s'].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm font-bold text-[#0F5C4D] uppercase tracking-widest">
-                <span className="bg-[#25D366] text-black w-5 h-5 rounded-full flex items-center justify-center text-[10px]">✔</span>
+              <div key={i} className="hero-trust-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
                 {item.includes('WhatsApp') && <WhatsAppIcon size={14} className="mr-1" />}
                 {item}
               </div>
@@ -157,51 +159,86 @@ export default function PricingPage() {
       </section>
 
       {/* Plans Section */}
-      <section id="plans" className="py-20 px-4 md:px-6">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {PLANS.map((plan, i) => (
               <div 
                 key={i} 
-                className={`relative bg-white p-6 rounded-[20px] shadow-sm border-2 transition-all hover:shadow-xl hover:-translate-y-1 ${
-                  plan.highlight ? 'border-[#0F5C4D] ring-4 ring-[#0F5C4D]/5' : 'border-slate-100'
-                }`}
+                className="card"
+                style={{ 
+                  position: 'relative', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  border: plan.highlight ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  boxShadow: plan.highlight ? '0 4px 16px rgba(15,81,50,0.12)' : 'var(--shadow-card)'
+                }}
               >
                 {plan.badge && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0F5C4D] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg whitespace-nowrap">
+                  <div style={{ 
+                    position: 'absolute', 
+                    top: '-14px', 
+                    left: '50%', 
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'var(--color-primary)',
+                    color: '#FFFFFF',
+                    fontSize: 'var(--text-small-size)',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    padding: '4px 12px',
+                    borderRadius: 'var(--radius-pill)',
+                    whiteSpace: 'nowrap'
+                  }}>
                     {plan.badge}
                   </div>
                 )}
                 
-                <div className="mb-6">
-                  <h3 className="text-base font-black text-slate-400 uppercase tracking-widest mb-1">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black text-slate-900">${plan.price}</span>
-                    {plan.price !== '0' && <span className="text-slate-400 font-bold text-sm">/mo</span>}
+                <div style={{ marginBottom: 'var(--space-4)' }}>
+                  <h3 style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 'var(--space-1)' }}>{plan.name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontSize: 'var(--text-h2-size)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-text-primary)' }}>${plan.price}</span>
+                    {plan.price !== '0' && <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600, fontSize: 'var(--text-small-size)' }}>/mo</span>}
                   </div>
-                  <p className="mt-3 text-[13px] text-slate-500 font-medium leading-relaxed min-h-[40px]">{plan.bestFor}</p>
+                  <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', lineHeight: 'var(--text-small-line)' }}>{plan.bestFor}</p>
                 </div>
 
                 <Link 
                   href={plan.href}
-                  className={`block w-full py-3 rounded-lg text-center text-sm font-black transition-all active:scale-95 mb-8 ${
-                    plan.highlight 
-                      ? 'bg-[#0F5C4D] text-white shadow-lg shadow-[#0F5C4D]/20 hover:bg-[#073a30]' 
-                      : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
-                  }`}
+                  className={plan.highlight ? 'btn btn-primary' : 'btn btn-secondary'}
+                  style={{ width: '100%', textAlign: 'center', marginBottom: 'var(--space-4)' }}
                 >
                   {plan.cta}
                 </Link>
 
-                <ul className="space-y-3">
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', listStyle: 'none', padding: 0, margin: 0 }}>
                   {plan.features.map((feature, j) => (
-                    <li key={j} className={`flex gap-2.5 text-[13px] ${feature.included ? 'text-slate-700' : 'text-slate-400 line-through opacity-50'}`}>
-                      <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[8px] mt-0.5 ${
-                        feature.included ? 'bg-[#F0F7F5] text-[#25D366]' : 'bg-slate-100 text-slate-300'
-                      }`}>
-                        {feature.included ? '✔' : '✕'}
+                    <li key={j} style={{ display: 'flex', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: feature.included ? 'var(--color-text-primary)' : 'var(--color-text-secondary)', opacity: feature.included ? 1 : 0.5 }}>
+                      <span style={{ 
+                        flexShrink: 0, 
+                        width: '18px', 
+                        height: '18px', 
+                        borderRadius: '50%', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        fontSize: '10px',
+                        marginTop: '2px',
+                        backgroundColor: feature.included ? 'var(--color-bg-soft)' : 'var(--color-border)',
+                        color: feature.included ? 'var(--color-accent)' : 'var(--color-text-secondary)'
+                      }}>
+                        {feature.included ? (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                        )}
                       </span>
-                      <span className="flex items-start gap-1.5 leading-snug">
+                      <span style={{ lineHeight: '1.4' }}>
                         {feature.text.includes('WhatsApp') && <WhatsAppIcon size={12} className="text-[#25D366] mt-0.5 shrink-0" />}
                         {feature.text}
                       </span>
@@ -214,55 +251,89 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Comparison Table Section (Desktop Only) */}
-      <section className="py-24 px-6 bg-white hidden lg:block">
-        <div className="container mx-auto max-w-4xl">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-black text-slate-900 mb-4">Everything you need to stay active online</h2>
-            <div className="w-20 h-1.5 bg-[#25D366] mx-auto rounded-full"></div>
+      {/* Comparison Table Section */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container" style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+              Everything you need to stay active online
+            </h2>
           </div>
           
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b-2 border-slate-100">
-                <th className="py-6 text-sm font-black uppercase tracking-widest text-slate-400">Feature</th>
-                <th className="py-6 text-center text-sm font-black uppercase tracking-widest text-slate-900">Free</th>
-                <th className="py-6 text-center text-sm font-black uppercase tracking-widest text-[#0F5C4D]">Pro</th>
-                <th className="py-6 text-center text-sm font-black uppercase tracking-widest text-slate-900">Growth</th>
-                <th className="py-6 text-center text-sm font-black uppercase tracking-widest text-slate-900">Agency</th>
-              </tr>
-            </thead>
-            <tbody>
-              {COMPARISON.map((row, i) => (
-                <tr key={i} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                  <td className="py-6 font-bold text-slate-700">{row.feature}</td>
-                  <td className="py-6 text-center text-slate-500 font-medium">{row.free}</td>
-                  <td className="py-6 text-center text-slate-900 font-bold">{row.pro}</td>
-                  <td className="py-6 text-center text-slate-500 font-medium">{row.growth}</td>
-                  <td className="py-6 text-center text-slate-500 font-medium">{row.agency}</td>
+          <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                  <th style={{ padding: 'var(--space-4)', textAlign: 'left', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-secondary)' }}>Feature</th>
+                  <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>Free</th>
+                  <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-primary)' }}>Pro</th>
+                  <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>Growth</th>
+                  <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>Agency</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {COMPARISON.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: 'var(--space-3) var(--space-4)', fontWeight: 600, color: 'var(--color-text-primary)', fontSize: 'var(--text-body-size)' }}>{row.feature}</td>
+                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 500 }}>{row.free}</td>
+                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center', color: 'var(--color-text-primary)', fontWeight: 700 }}>{row.pro}</td>
+                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 500 }}>{row.growth}</td>
+                    <td style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'center', color: 'var(--color-text-secondary)', fontWeight: 500 }}>{row.agency}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-24 px-6">
-        <div className="container mx-auto max-w-3xl">
-          <h2 className="text-4xl font-black text-slate-900 text-center mb-16">Frequently Asked Questions</h2>
-          <div className="space-y-4">
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container" style={{ maxWidth: '700px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', textAlign: 'center', marginBottom: 'var(--space-7)', letterSpacing: '-0.02em' }}>
+            Frequently Asked Questions
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
             {FAQS.map((faq, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+              <div key={i} className="card" style={{ overflow: 'hidden', padding: 0 }}>
                 <button 
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full p-6 text-left flex justify-between items-center transition-colors hover:bg-slate-50"
+                  style={{ 
+                    width: '100%', 
+                    padding: 'var(--space-4)', 
+                    textAlign: 'left', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-family)',
+                    fontSize: 'var(--text-body-size)',
+                    fontWeight: 600,
+                    color: 'var(--color-text-primary)',
+                    lineHeight: 'var(--text-body-line)'
+                  }}
                 >
-                  <span className="font-bold text-slate-900">{faq.q}</span>
-                  <span className={`text-2xl transition-transform ${openFaq === i ? 'rotate-45' : ''}`}>+</span>
+                  <span>{faq.q}</span>
+                  <span style={{ 
+                    fontSize: '20px', 
+                    transition: 'transform 0.2s ease',
+                    transform: openFaq === i ? 'rotate(45deg)' : 'rotate(0)',
+                    color: 'var(--color-accent)',
+                    flexShrink: 0,
+                    marginLeft: 'var(--space-3)'
+                  }}>+</span>
                 </button>
                 {openFaq === i && (
-                  <div className="p-6 pt-0 text-slate-600 leading-relaxed border-t border-slate-50">
+                  <div style={{ 
+                    padding: '0 var(--space-4) var(--space-4)', 
+                    color: 'var(--color-text-secondary)', 
+                    fontSize: 'var(--text-body-size)',
+                    lineHeight: 'var(--text-body-line)',
+                    borderTop: '1px solid var(--color-border)',
+                    paddingTop: 'var(--space-3)'
+                  }}>
                     {faq.a}
                   </div>
                 )}
@@ -273,30 +344,15 @@ export default function PricingPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 px-6">
-        <div className="container mx-auto max-w-5xl">
-          <div className="bg-[#0F5C4D] rounded-[40px] p-12 md:p-20 text-center text-white relative overflow-hidden shadow-2xl">
-            {/* Background Accent */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#25D366] opacity-10 rounded-full blur-3xl -mr-32 -mt-32"></div>
-            
-            <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight relative z-10">
-              Your next completed job could <br className="hidden md:block" />
-              bring your next customer
-            </h2>
-            <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto relative z-10">
-              Send your next job photo on WhatsApp. Neerzy handles the heavy lifting of your marketing work.
-            </p>
-            <div className="relative z-10">
-              <Link 
-                href="#plans" 
-                className="inline-block bg-[#25D366] text-black px-12 py-5 rounded-full font-black text-xl shadow-xl shadow-black/20 hover:scale-105 active:scale-95 transition-all"
-              >
-                Choose Your Plan
-              </Link>
-              <div className="mt-6 text-slate-400 text-sm font-bold uppercase tracking-widest">
-                No credit card required
-              </div>
-            </div>
+      <section className="cta-final">
+        <div className="container">
+          <h2>Your next completed job could bring your next customer</h2>
+          <p>Send your next job photo on WhatsApp. Neerzy handles the heavy lifting of your marketing work.</p>
+          <Link href="#plans" className="btn btn-primary" style={{ fontSize: '18px', padding: '14px 36px' }}>
+            Choose Your Plan
+          </Link>
+          <div style={{ marginTop: 'var(--space-3)', color: 'rgba(255,255,255,0.7)', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            No credit card required
           </div>
         </div>
       </section>

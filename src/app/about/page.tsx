@@ -38,38 +38,34 @@ const jsonLd = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-[#25D366]/30">
+    <div className="min-h-screen bg-white font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       
-      {/* SECTION 1 — HERO: Emotional & Human */}
-      <section className="relative pt-24 pb-16 overflow-hidden border-b border-slate-50">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#25D366] opacity-[0.03] rounded-full blur-3xl -mr-32 -mt-32 animate-pulse"></div>
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#F0F7F5] text-[#0F5C4D] text-[11px] font-black uppercase tracking-[0.2em] rounded-full mb-8">
-                Mission-Driven Marketing
-              </div>
-              <h1 className="text-5xl md:text-6xl font-black text-slate-900 leading-[0.95] mb-6 tracking-tighter">
-                Built to help hardworking <span className="text-[#0F5C4D]">traders grow</span> online
+      {/* SECTION 1 — HERO */}
+      <section className="hero">
+        <div className="container">
+          <div className="hero-grid">
+            <div className="hero-content">
+              <h1>
+                Built to help hardworking <span style={{ color: 'var(--color-primary)' }}>traders grow</span> online
               </h1>
-              <p className="text-xl text-slate-500 mb-8 leading-relaxed font-medium">
-                Most local traders are great at their work — but get left behind online because marketing tools are too complicated. 
+              <p>
+                Most local traders are great at their work — but get left behind online because marketing tools are too complicated.
               </p>
-              <p className="text-lg text-slate-600 mb-12 leading-relaxed">
+              <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-5)' }}>
                 Neerzy makes it simple: finish a job, send a WhatsApp message, and stay active online consistently.
               </p>
-              <div className="flex flex-wrap gap-4">
+              <div className="hero-ctas">
                 <Link href="/onboarding">
-                  <Button className="bg-[#0F5C4D] hover:bg-[#073a30] text-white px-8 py-5 rounded-full font-black text-lg shadow-xl shadow-[#0F5C4D]/20 border-none h-auto">
+                  <Button className="btn btn-primary" style={{ padding: '12px 28px', fontSize: 'var(--text-body-size)' }}>
                     Start Free
                   </Button>
                 </Link>
                 <Link href="/#how-it-works">
-                  <Button variant="ghost" className="px-8 py-5 rounded-full font-black text-lg text-slate-900 hover:bg-slate-50 border-2 border-slate-100 h-auto">
+                  <Button className="btn btn-secondary" style={{ padding: '12px 28px', fontSize: 'var(--text-body-size)' }}>
                     See How It Works
                   </Button>
                 </Link>
@@ -77,26 +73,24 @@ export default function AboutPage() {
             </div>
             
             {/* Visual Workflow Mockup */}
-            <div className="relative">
-              <div className="bg-slate-50 p-8 rounded-[40px] border border-slate-100 shadow-sm relative z-10">
-                <div className="space-y-6">
+            <div className="mockup-container">
+              <div className="card" style={{ padding: 'var(--space-5)', maxWidth: '400px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                   {[
-                    { icon: '📸', text: 'Job photo from the site', color: 'bg-white' },
-                    { icon: '📍', text: 'Google Business update', color: 'bg-white' },
-                    { icon: '🌐', text: 'Website content updated', color: 'bg-white' },
-                    { icon: '⭐', text: 'Automatic review request', color: 'bg-white' }
+                    { text: 'Job photo from the site' },
+                    { text: 'Google Business update' },
+                    { text: 'Website content updated' },
+                    { text: 'Automatic review request' }
                   ].map((item, i) => (
-                    <div key={i} className={`${item.color} p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-5 transform hover:scale-105 transition-all cursor-default`}>
-                      <span className="text-3xl">{item.icon}</span>
-                      <span className="font-bold text-slate-800">{item.text}</span>
-                      <span className="ml-auto text-[#25D366] font-black text-[10px] tracking-widest">LIVE</span>
+                    <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)' }}>
+                      <div className="step-icon" style={{ width: '36px', height: '36px' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                      <span style={{ fontWeight: 600, color: 'var(--color-text-primary)', fontSize: 'var(--text-body-size)' }}>{item.text}</span>
                     </div>
                   ))}
-                </div>
-                {/* Floating WhatsApp Bubble */}
-                <div className="absolute -bottom-10 -right-10 bg-[#25D366] text-white p-8 rounded-[40px] shadow-2xl rotate-3 flex items-center gap-4 animate-float">
-                  <span className="text-4xl">📲</span>
-                  <div className="h-2 w-16 bg-white/20 rounded-full"></div>
                 </div>
               </div>
             </div>
@@ -104,205 +98,245 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* SECTION 2 — THE PROBLEM: Underserved Traders */}
-      <section className="py-32 px-6 bg-slate-50">
-        <div className="container mx-auto max-w-5xl">
-          <div className="text-center mb-24">
-            <h2 className="text-5xl font-black text-slate-900 mb-8 tracking-tight">Local traders are underserved online</h2>
-            <p className="text-xl text-slate-500 font-medium max-w-3xl mx-auto leading-relaxed">
+      {/* SECTION 2 — THE PROBLEM */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="container" style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-3)', letterSpacing: '-0.02em' }}>
+              Local traders are underserved online
+            </h2>
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
               Many plumbers, electricians, roofers, and HVAC teams work long hours every day. 
               After work, they are expected to be marketing experts. Most never have the time or energy.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {[
-              { icon: '❌', t: 'No time after work', d: 'The "second shift" of marketing never happens.' },
-              { icon: '❌', t: 'Complex software', d: 'Dashboards built for agencies, not for traders.' },
-              { icon: '❌', t: 'Missed reviews', d: 'Happy customers forgotten once the job is done.' },
-              { icon: '❌', t: 'Inconsistent presence', d: 'Looking "closed" because profiles stay quiet.' }
+              { t: 'No time after work', d: 'The "second shift" of marketing never happens.' },
+              { t: 'Complex software', d: 'Dashboards built for agencies, not for traders.' },
+              { t: 'Missed reviews', d: 'Happy customers forgotten once the job is done.' },
+              { t: 'Inconsistent presence', d: 'Looking "closed" because profiles stay quiet.' }
             ].map((card, i) => (
-              <div key={i} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm text-center group hover:shadow-xl transition-all">
-                <div className="text-4xl mb-6 grayscale group-hover:grayscale-0 transition-all">{card.icon}</div>
-                <h4 className="text-lg font-black mb-3 text-slate-900">{card.t}</h4>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed">{card.d}</p>
+              <div key={i} className="card" style={{ textAlign: 'center' }}>
+                <div className="step-icon" style={{ margin: '0 auto var(--space-3)' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-text-secondary)' }}>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: 'var(--text-h3-size)', lineHeight: 'var(--text-h3-line)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-text-primary)', margin: '0 0 var(--space-2)' }}>{card.t}</h3>
+                <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', margin: 0 }}>{card.d}</p>
               </div>
             ))}
           </div>
           
-          <div className="mt-20 text-center">
-            <p className="text-2xl font-bold text-slate-400">
-              So great businesses stay invisible online <br className="hidden md:block" />
-              while larger companies dominate search results.
+          <div style={{ textAlign: 'center', marginTop: 'var(--space-7)' }}>
+            <p style={{ fontSize: 'var(--text-h3-size)', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+              So great businesses stay invisible online while larger companies dominate search results.
             </p>
           </div>
         </div>
       </section>
 
-      {/* SECTION 3 — WHY WHATSAPP: Premium Dark Section */}
-      <section className="py-32 px-6 bg-[#0F5C4D] text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
-        <div className="container mx-auto max-w-6xl relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+      {/* SECTION 3 — WHY WHATSAPP: Dark Section */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-primary-dark)', color: '#FFFFFF' }}>
+        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-7)', alignItems: 'center' }}>
             <div>
-              <h2 className="text-5xl font-black mb-8 tracking-tight">Why Neerzy works through WhatsApp</h2>
-              <p className="text-2xl text-green-200 mb-10 font-medium italic">Because traders already use it every day.</p>
-              <p className="text-lg text-slate-300 mb-12 leading-relaxed">
+              <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: '#FFFFFF', marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
+                Why Neerzy works through WhatsApp
+              </h2>
+              <p style={{ fontSize: 'var(--text-h3-size)', color: 'rgba(255,255,255,0.85)', marginBottom: 'var(--space-4)', fontStyle: 'italic' }}>
+                Because traders already use it every day.
+              </p>
+              <p style={{ fontSize: 'var(--text-body-size)', color: 'rgba(255,255,255,0.85)', marginBottom: 'var(--space-5)' }}>
                 We did not want traders learning another complicated app or dashboard. 
                 WhatsApp is already familiar, fast, and always open. Neerzy fits into 
                 the workflow traders already use.
               </p>
-              <div className="space-y-6">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
                 {['Familiar', 'Fast', 'Easy', 'Always Open'].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 text-xl font-bold">
-                    <span className="w-8 h-8 rounded-full bg-[#25D366] text-black flex items-center justify-center text-xs">✔</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', fontSize: 'var(--text-body-size)', fontWeight: 600 }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
                     {item}
                   </div>
                 ))}
               </div>
             </div>
             
-            <div className="bg-white/5 p-12 rounded-[48px] border border-white/10 text-center">
-               <div className="grid grid-cols-2 gap-8">
-                 {[
-                   { i: '📸', t: 'Finish job' },
-                   { i: '📲', t: 'Send message' },
-                   { i: '✍️', t: 'Post prepared' },
-                   { i: '⭐', t: 'Review request' }
-                 ].map((step, i) => (
-                   <div key={i} className="space-y-4">
-                      <div className="text-5xl">{step.i}</div>
-                      <div className="text-sm font-black uppercase tracking-widest text-slate-400">{step.t}</div>
-                   </div>
-                 ))}
-               </div>
-               <div className="mt-12 pt-12 border-t border-white/5">
-                 <p className="text-green-400 font-black tracking-[0.2em] text-[10px] uppercase">
-                    No complicated systems. No marketing experience needed.
-                 </p>
-               </div>
+            <div className="card" style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', textAlign: 'center', padding: 'var(--space-6)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)' }}>
+                {[
+                  { t: 'Finish job' },
+                  { t: 'Send message' },
+                  { t: 'Post prepared' },
+                  { t: 'Review request' }
+                ].map((step, i) => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', alignItems: 'center' }}>
+                    <div className="step-icon" style={{ width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.15)' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+                    <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{step.t}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 'var(--space-5)', paddingTop: 'var(--space-5)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <p style={{ color: 'var(--color-accent)', fontWeight: 700, fontSize: 'var(--text-small-size)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  No complicated systems. No marketing experience needed.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SECTION 4 — ON THE SPOT REVIEW: Human Logic */}
-      <section className="py-32 px-6 bg-white">
-        <div className="container mx-auto max-w-5xl">
-          <div className="text-center mb-24">
-            <h2 className="text-5xl font-black text-slate-900 mb-8 tracking-tight">The best time to ask for a review <br /> is right after the job</h2>
-            <p className="text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed">
+      {/* SECTION 4 — ON THE SPOT REVIEW */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container" style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-3)', letterSpacing: '-0.02em' }}>
+              The best time to ask for a review is right after the job
+            </h2>
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
               When customers are happiest, review response rates are much higher. 
               Local trust grows naturally when it's built on the spot.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="bg-slate-50 p-12 rounded-[40px] border border-slate-100 relative opacity-60">
-               <div className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-8">Without Neerzy</div>
-               <div className="flex items-center gap-6 text-2xl font-black text-slate-400">
-                 <span className="text-red-500 text-3xl">✕</span> Review forgotten later
-               </div>
+          <div className="compare-grid" style={{ maxWidth: '700px' }}>
+            <div className="compare-card" style={{ opacity: 0.6 }}>
+              <h3 className="compare-card-label without">Without Neerzy</h3>
+              <div className="compare-step without">
+                <div className="compare-step-icon without">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </div>
+                <span className="compare-step-text">Review forgotten later</span>
+              </div>
+              <div className="compare-outcome without">Reviews slip through the cracks</div>
             </div>
-            <div className="bg-[#F0F7F5] p-12 rounded-[40px] border border-[#25D366]/20 relative">
-               <div className="text-[10px] font-black uppercase tracking-[0.3em] text-[#0F5C4D] mb-8">With Neerzy</div>
-               <div className="flex items-center gap-6 text-2xl font-black text-slate-900">
-                 <span className="text-[#25D366] text-3xl">✓</span> Request sent immediately
-               </div>
-               {/* Visual Indicator */}
-               <div className="absolute -bottom-6 -right-6 bg-white p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-100">
-                  <span className="text-2xl animate-bounce">⭐</span>
-                  <div className="space-y-1">
-                    <div className="h-1 w-12 bg-slate-100 rounded-full"></div>
-                    <div className="h-1 w-8 bg-slate-100 rounded-full"></div>
-                  </div>
-               </div>
+            <div className="compare-card" style={{ borderColor: 'var(--color-accent)' }}>
+              <h3 className="compare-card-label with">With Neerzy</h3>
+              <div className="compare-step with">
+                <div className="compare-step-icon with">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <span className="compare-step-text">Request sent immediately</span>
+              </div>
+              <div className="compare-outcome with">Reviews arrive consistently</div>
             </div>
           </div>
           
-          <div className="mt-20 text-center">
-            <p className="text-[11px] text-slate-400 italic max-w-md mx-auto">
+          <div style={{ textAlign: 'center', marginTop: 'var(--space-5)' }}>
+            <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', fontStyle: 'italic', maxWidth: '400px', margin: '0 auto' }}>
               Neerzy helps businesses request reviews responsibly and does not support fake or incentivized reviews.
             </p>
           </div>
         </div>
       </section>
 
-      {/* SECTION 5 — OUR MISSION: Emotional Commitment */}
-      <section className="py-32 px-6 bg-slate-50">
-        <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-5xl font-black text-slate-900 mb-12 tracking-tight">Helping local businesses compete fairly</h2>
-          <p className="text-2xl text-slate-500 font-medium leading-relaxed mb-16">
+      {/* SECTION 5 — OUR MISSION */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
+            Helping local businesses compete fairly
+          </h2>
+          <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto var(--space-7)' }}>
             We believe small local businesses should not need expensive agencies or large marketing teams just to stay visible online.
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)', maxWidth: '700px', margin: '0 auto' }}>
             {['Build Trust', 'Stay Active', 'Consistent Reviews', 'Improve Visibility', 'Save Time'].map((item, i) => (
-              <div key={i} className="flex flex-col items-center gap-4">
-                 <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-[#25D366] font-black text-xl italic">
-                   {i + 1}
-                 </div>
-                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item}</span>
+              <div key={i} className="card" style={{ textAlign: 'center', padding: 'var(--space-3)' }}>
+                <div className="step-icon" style={{ margin: '0 auto var(--space-2)', width: '40px', height: '40px' }}>
+                  <span style={{ color: 'var(--color-accent)', fontWeight: 700, fontSize: 'var(--text-body-size)' }}>{i + 1}</span>
+                </div>
+                <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{item}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* SECTION 6 — FREEDOM & EMPOWERMENT: Personal Growth */}
-      <section className="py-32 px-6 bg-white">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+      {/* SECTION 6 — FREEDOM & EMPOWERMENT */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-7)', alignItems: 'center' }}>
             <div>
-              <h2 className="text-5xl font-black text-slate-900 mb-8 tracking-tight">Built to give businesses more independence</h2>
-              <p className="text-xl text-slate-500 font-medium mb-10 leading-relaxed">
+              <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-4)', letterSpacing: '-0.02em' }}>
+                Built to give businesses more independence
+              </h2>
+              <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-5)' }}>
                 Many traders spend years working under larger companies before starting their own. 
                 But online marketing often becomes another barrier to that freedom.
               </p>
-              <div className="space-y-4">
-                <p className="text-lg font-bold text-slate-700">Neerzy helps you build your own legacy:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { t: 'Own website', i: '🌐' },
-                    { t: 'Own reviews', i: '⭐' },
-                    { t: 'Own GMB visibility', i: '📍' },
-                    { t: 'Own reputation', i: '📈' }
-                  ].map((card, i) => (
-                    <div key={i} className="flex items-center gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-[#F0F7F5] hover:border-[#25D366]/20 transition-all cursor-default">
-                       <span className="text-2xl">{card.i}</span>
-                       <span className="font-black text-slate-900 text-sm uppercase tracking-tighter">{card.t}</span>
+              <p style={{ fontSize: 'var(--text-body-size)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)' }}>
+                Neerzy helps you build your own legacy:
+              </p>
+              <div className="card-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                {[
+                  { t: 'Own website' },
+                  { t: 'Own reviews' },
+                  { t: 'Own GMB visibility' },
+                  { t: 'Own reputation' }
+                ].map((card, i) => (
+                  <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3)' }}>
+                    <div className="step-icon" style={{ width: '32px', height: '32px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
                     </div>
-                  ))}
-                </div>
+                    <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{card.t}</span>
+                  </div>
+                ))}
               </div>
             </div>
             
-            <div className="relative">
-              <div className="aspect-square bg-slate-50 rounded-[64px] flex items-center justify-center relative overflow-hidden group">
-                 <div className="text-[120px] filter grayscale group-hover:grayscale-0 transition-all duration-700">🏗️</div>
-                 <div className="absolute inset-x-0 bottom-12 text-center">
-                    <h5 className="text-2xl font-black text-slate-900 mb-2">Your business.</h5>
-                    <p className="text-[#25D366] font-black uppercase tracking-[0.3em] text-xs">Your name. Your growth.</p>
-                 </div>
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-7)' }}>
+              <div className="step-icon" style={{ width: '80px', height: '80px', margin: '0 auto var(--space-4)' }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
               </div>
+              <h3 style={{ fontSize: 'var(--text-h3-size)', lineHeight: 'var(--text-h3-line)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-text-primary)', margin: '0 0 var(--space-2)' }}>Your business.</h3>
+              <p style={{ color: 'var(--color-accent)', fontWeight: 700, fontSize: 'var(--text-small-size)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Your name. Your growth.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* SECTION 7 — TRUST & COMPLIANCE */}
-      <section className="py-24 px-6 bg-white border-t border-slate-100">
-        <div className="container mx-auto max-w-6xl text-center">
-          <h2 className="text-3xl font-black text-slate-900 mb-12 tracking-tight">Built with trust and compliance in mind</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-6)', letterSpacing: '-0.02em' }}>
+            Built with trust and compliance in mind
+          </h2>
+          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', maxWidth: '700px', margin: '0 auto' }}>
             {[
               'Google-compliant workflows', 'Full publishing control', 'No fake reviews or spam', 'You own your data'
             ].map((t, i) => (
-              <div key={i} className="flex items-center gap-3 justify-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                <span className="text-[#25D366]">✔</span> {t}
+              <div key={i} className="card" style={{ textAlign: 'center', padding: 'var(--space-3)' }}>
+                <div className="step-icon" style={{ width: '32px', height: '32px', margin: '0 auto var(--space-2)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t}</span>
               </div>
             ))}
           </div>
-          <p className="mt-16 text-[10px] text-slate-400 italic max-w-lg mx-auto leading-relaxed">
+          <p style={{ marginTop: 'var(--space-6)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', fontStyle: 'italic', maxWidth: '500px', margin: 'var(--space-6) auto 0' }}>
             Neerzy is an independent platform and is not affiliated with Google or WhatsApp. 
             Google Business Profile and WhatsApp are trademarks of their respective owners.
           </p>
@@ -310,27 +344,13 @@ export default function AboutPage() {
       </section>
 
       {/* SECTION 8 — FINAL CTA */}
-      <section className="py-32 px-6">
-        <div className="container mx-auto max-w-5xl">
-          <div className="bg-gradient-to-br from-[#0F5C4D] via-[#073a30] to-black rounded-[64px] p-20 md:p-32 text-center text-white shadow-2xl relative overflow-hidden group">
-             <div className="absolute top-0 right-0 w-full h-full bg-[#25D366]/5 opacity-0 group-hover:opacity-100 transition-opacity blur-3xl -mr-64 -mt-64 animate-pulse"></div>
-             
-             <h2 className="text-5xl md:text-7xl font-black mb-8 leading-[0.9] relative z-10 tracking-tighter">
-               Your next completed job <br className="hidden md:block" /> could bring your next customer
-             </h2>
-             
-             <p className="text-2xl text-slate-400 mb-16 max-w-2xl mx-auto relative z-10 font-medium">
-               Send your next job on WhatsApp. Neerzy helps you stay visible online consistently.
-             </p>
-             
-             <div className="relative z-10 space-y-8">
-               <Link href="/onboarding">
-                 <Button className="bg-[#25D366] hover:bg-[#1da851] text-black px-16 py-8 rounded-full font-black text-3xl shadow-2xl transition-all hover:scale-105 active:scale-95 border-none h-auto">
-                    Start with 5 Free Posts
-                 </Button>
-               </Link>
-             </div>
-          </div>
+      <section className="cta-final">
+        <div className="container">
+          <h2>Your next completed job could bring your next customer</h2>
+          <p>Send your next job on WhatsApp. Neerzy helps you stay visible online consistently.</p>
+          <Link href="/onboarding" className="btn btn-primary" style={{ fontSize: '18px', padding: '14px 36px' }}>
+            Start with 5 Free Posts
+          </Link>
         </div>
       </section>
     </div>
