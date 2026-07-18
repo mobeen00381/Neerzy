@@ -117,10 +117,8 @@ export default function Page() {
       {/* ============================================
           Section 2: Why We Exist (problem only — no solution preview)
           ============================================ */}
-      <section style={{
-        backgroundColor: 'var(--color-bg)',
-        paddingTop: 'var(--space-8)',
-        paddingBottom: 'var(--space-5)'
+      <section className="section-padding" style={{
+        backgroundColor: 'var(--color-bg)'
       }}>
         <div className="container" style={{ maxWidth: '720px', margin: '0 auto' }}>
           <h2 style={{
@@ -176,10 +174,9 @@ export default function Page() {
       {/* ============================================
           Section 3: How It Works
           ============================================ */}
-      <section style={{
-        backgroundColor: 'var(--color-bg)',
-        paddingTop: 'var(--space-3)',
-        paddingBottom: 'var(--space-8)'
+      <section className="section-padding" style={{
+        backgroundColor: 'var(--color-bg-soft)',
+        borderTop: '1px solid var(--color-divider)'
       }}>
         <div className="container">
           <div className="steps-header">
@@ -238,7 +235,7 @@ export default function Page() {
       {/* ============================================
           Section 4: Free Visibility Check
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container audit-section">
           <h2>See how your business looks online today.</h2>
           <p>Enter your business name for a quick visibility check. See what's working and what could bring you more customers.</p>
@@ -327,7 +324,7 @@ export default function Page() {
       {/* ============================================
           Section 5: How Neerzy Fixes It
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container fix-section">
           <h2>How Neerzy fixes it</h2>
           <p>Every problem the audit finds has a fix built into Neerzy's workflow. No extra tools, no separate logins.</p>
@@ -423,7 +420,7 @@ export default function Page() {
       {/* ============================================
           Section 6: One Photo, Multiple Results
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container assets-section">
           <h2>One completed job creates multiple marketing assets.</h2>
           <p>From a single photo, Neerzy prepares everything your business needs to stay visible and attract the next customer.</p>
@@ -475,7 +472,7 @@ export default function Page() {
       {/* ============================================
           Section 7: Review Request Comparison
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container compare-section">
           <h2>Ask for the review while the customer is still happy.</h2>
           <p>The difference between a review collected and a review opportunity lost is just a few minutes — and one photo.</p>
@@ -588,12 +585,13 @@ export default function Page() {
       {/* ============================================
           Section 8: Why This Matters (Flow Diagram)
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container flow-section">
           <h2>Why this matters</h2>
           <p>Every completed job feeds a chain that makes your business more visible and attracts the next customer.</p>
 
-          <div className="flow-chain">
+          <div className="flow-grid">
+            {/* Row 1 */}
             <div className="flow-node">
               <div className="flow-node-icon">
                 <ZapIcon size={18} />
@@ -601,7 +599,7 @@ export default function Page() {
               <span className="flow-node-text">Completed job</span>
             </div>
 
-            <div className="flow-connector">
+            <div className="flow-arrow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -614,7 +612,7 @@ export default function Page() {
               <span className="flow-node-text">Fresh content</span>
             </div>
 
-            <div className="flow-connector">
+            <div className="flow-arrow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -627,7 +625,7 @@ export default function Page() {
               <span className="flow-node-text">Review request</span>
             </div>
 
-            <div className="flow-connector">
+            <div className="flow-arrow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -640,12 +638,14 @@ export default function Page() {
               <span className="flow-node-text">Customer review</span>
             </div>
 
-            <div className="flow-connector">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
+            {/* Downward connector between rows */}
+            <div className="flow-down">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9" />
               </svg>
             </div>
 
+            {/* Row 2 */}
             <div className="flow-node">
               <div className="flow-node-icon">
                 <TrendingUpIcon size={18} />
@@ -653,7 +653,7 @@ export default function Page() {
               <span className="flow-node-text">Better credibility</span>
             </div>
 
-            <div className="flow-connector">
+            <div className="flow-arrow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -666,7 +666,7 @@ export default function Page() {
               <span className="flow-node-text">Stronger Google Profile</span>
             </div>
 
-            <div className="flow-connector">
+            <div className="flow-arrow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -679,7 +679,7 @@ export default function Page() {
               <span className="flow-node-text">More visibility</span>
             </div>
 
-            <div className="flow-connector">
+            <div className="flow-arrow">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -698,7 +698,7 @@ export default function Page() {
       {/* ============================================
           Section 9: Own Your Online Presence
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container own-section">
           <h2>Build something that belongs to your business.</h2>
           <p>Every job you complete with Neerzy adds to your own online presence — not someone else's platform.</p>
@@ -747,7 +747,7 @@ export default function Page() {
       {/* ============================================
           Section 10: Trust Row
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container trust-section">
           <h2>Built for real businesses, not marketing teams.</h2>
           <p>Neerzy works the way you work — no dashboards to learn, no strategies to manage.</p>

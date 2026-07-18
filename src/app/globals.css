@@ -21,11 +21,12 @@
 
   /* Neutrals */
   --color-bg: #FFFFFF;
-  --color-bg-soft: #F0F7F2;
+  --color-bg-soft: #E6F2EA;
   --color-bg-muted: #F7F9F8;
   --color-text-primary: #0A2E22;
   --color-text-secondary: #5B6B64;
   --color-border: #E1E8E4;
+  --color-divider: #D3E6DA;
 
   /* Gradient (final CTA only) */
   --gradient-cta-dark: linear-gradient(135deg, #0B3D2E 0%, #06251B 100%);
@@ -1234,14 +1235,14 @@
   margin: 0 auto var(--space-7);
 }
 
-.flow-chain {
-  display: flex;
+.flow-grid {
+  display: grid;
+  grid-template-columns: repeat(7, auto);
+  gap: var(--space-2);
+  max-width: 900px;
+  margin: 0 auto;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 0;
-  max-width: 1000px;
-  margin: 0 auto;
 }
 
 .flow-node {
@@ -1254,8 +1255,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  min-width: 100px;
-  flex-shrink: 0;
 }
 
 .flow-node-icon {
@@ -1281,27 +1280,45 @@
   max-width: 100px;
 }
 
-.flow-connector {
+.flow-arrow {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--space-2);
-  flex-shrink: 0;
 }
 
-.flow-connector svg {
+.flow-arrow svg {
+  color: var(--color-accent);
+}
+
+.flow-down {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1) 0;
+}
+
+.flow-down svg {
   color: var(--color-accent);
 }
 
 @media (max-width: 1024px) {
-  .flow-chain {
-    flex-direction: column;
-    gap: var(--space-2);
-    max-width: 280px;
+  .flow-grid {
+    grid-template-columns: repeat(4, 1fr);
+    max-width: 600px;
   }
-  .flow-connector {
-    transform: rotate(90deg);
-    padding: var(--space-1) 0;
+  .flow-arrow {
+    display: none;
+  }
+  .flow-down {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .flow-grid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 280px;
   }
 }
 
@@ -1331,9 +1348,9 @@
 
 .own-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-4);
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
