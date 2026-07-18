@@ -1433,9 +1433,10 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-body-size);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-primary);
   line-height: 1.4;
+  white-space: nowrap;
 }
 
 .trust-point svg {
