@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ROUTES, SITE_URL } from '@/lib/routes';
 import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
 import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { SeoDiagram, FivePillarDiagram, FlowDiagram, HubAndSpokeDiagram, ComparisonCard, GridDiagram, ThreePillarDiagram, WeightChart, LocalPackDiagram, GeoGridDiagram, SiteArchitectureDiagram, TimelineDiagram, WireframeDiagram, GaugeDiagram, SchemaDiagram, AuditResultDiagram, CategoryScoreDiagram, AuditOverviewDiagram, RecommendationsDiagram, BeforeAfterDiagram, ProgressGraphDiagram } from '@/components/seo-visuals/SeoDiagram';
 
 const PAGE_URL = `${SITE_URL}${ROUTES.PILLAR}`;
 
@@ -90,7 +91,9 @@ export default function SeoForPlumbersPage() {
           {/* ── SECTION 1 ── */}
           <h2 id="section-1">Section 1: SEO for Plumbers — Quick Summary (TL;DR)</h2>
 
-          <Screenshot src="" alt="Infographic showing the 5 key takeaways for plumbing SEO: local SEO priority, GBP importance, reviews, consistency, and AI search." caption="The 5 pillars of plumbing SEO in 2026." />
+          <SeoDiagram caption="The 5 pillars of plumbing SEO in 2026.">
+            <FivePillarDiagram />
+          </SeoDiagram>
 
           <p>If you only have five minutes, here&apos;s what you need to know about plumbing SEO in 2026.</p>
 
@@ -115,13 +118,32 @@ export default function SeoForPlumbersPage() {
           <h3>What You&apos;ll Learn</h3>
 
           {/* Visual 2: Audit Journey Diagram */}
-          <Screenshot src="" alt="Diagram showing the user journey from running the Neerzy audit through fixing issues to improved visibility." caption="How to use this guide alongside your free Neerzy audit." />
+          <SeoDiagram caption="How to use this guide alongside your free Neerzy audit.">
+            <FlowDiagram steps={[
+              { label: 'Run Audit', desc: 'Get your baseline score' },
+              { label: 'Review Results', desc: 'See what needs fixing' },
+              { label: 'Fix Issues', desc: 'Follow the checklist' },
+              { label: 'Improve Score', desc: 'Track your progress' },
+            ]} />
+          </SeoDiagram>
 
           <p>By the end of this guide, you&apos;ll understand exactly how Google ranks plumbing businesses, how to optimize every part of your Google Business Profile, how to build a website that generates leads instead of just existing, how to get more reviews without feeling pushy, and how to show up in AI-generated answers — not just traditional blue links.</p>
           <p>This guide is organized to be used two ways. Read straight through for a complete education in plumbing SEO from first principles. Or, if you already have a specific problem — low review count, no Google Posts, an outdated website — jump directly to the relevant section using the headings above. Either way, the guide ends with a practical checklist (Section 17) and a free tool (Section 18) that turns everything you&apos;ve read into a single, scored action plan specific to your actual business.</p>
 
           {/* Visual 3: Content Hub Diagram */}
-          <Screenshot src="" alt="Diagram showing how the SEO for Plumbers guide connects to the Neerzy audit and all supporting category guides." caption="How the Neerzy SEO content ecosystem works together." />
+          <SeoDiagram caption="How the Neerzy SEO content ecosystem works together.">
+            <HubAndSpokeDiagram
+              centerLabel="SEO for Plumbers Guide"
+              nodes={[
+                { label: 'Free GBP Audit', desc: 'Your baseline score' },
+                { label: 'Completeness Guide', desc: '25% of score' },
+                { label: 'Reviews Guide', desc: '25% of score' },
+                { label: 'Visual Content Guide', desc: '20% of score' },
+                { label: 'Engagement Guide', desc: '15% of score' },
+                { label: 'Local SEO Guide', desc: '15% of score' },
+              ]}
+            />
+          </SeoDiagram>
 
           <CalloutBox type="tip" title="How this guide connects to your free audit">
             The <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy GBP Audit</Link> scores five things — Completeness, Reviews &amp; Reputation, Visual Content, Engagement &amp; Activity, and Local SEO Optimization — all covered in Sections 2, 5, 6, 7, and 13 below. Think of the audit as your GBP diagnostic, and the rest of this guide as the fuller picture around it. Already have your score back? Start with <Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> or jump straight to <Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link>.
@@ -135,7 +157,19 @@ export default function SeoForPlumbersPage() {
           <p>Unlike SEO for an e-commerce store or a national brand, plumbing SEO is almost entirely <strong>local</strong>. A plumber in Austin doesn&apos;t care about ranking in Seattle. What matters is ranking for searches made by people within driving distance, at the exact moment they have a leak, a clog, or a broken water heater.</p>
 
           <h3>How Plumbing SEO Works</h3>
-          <Screenshot src="" alt="Hub-and-spoke diagram showing 6 systems of plumbing SEO feeding into the central goal of generating phone calls." caption="The 6 interconnected systems of plumbing SEO." />
+          <SeoDiagram caption="The 6 interconnected systems of plumbing SEO.">
+            <HubAndSpokeDiagram
+              centerLabel="Phone Calls"
+              nodes={[
+                { label: 'Organic Search', desc: 'Website rankings' },
+                { label: 'Google Maps', desc: 'Local Pack visibility' },
+                { label: 'Google Business Profile', desc: 'Your free listing' },
+                { label: 'Website SEO', desc: 'Technical + content' },
+                { label: 'Reviews', desc: 'Reputation signals' },
+                { label: 'Authority', desc: 'Citations + backlinks' },
+              ]}
+            />
+          </SeoDiagram>
           <p>Plumbing SEO isn&apos;t one tactic — it&apos;s six systems working together.</p>
           <h4>Organic Search</h4>
           <p>Traditional website rankings for terms like &quot;water heater installation cost&quot; or &quot;how to fix a running toilet.&quot; This builds authority and captures research-stage customers, but it&apos;s the slowest-moving lever.</p>
@@ -151,7 +185,14 @@ export default function SeoForPlumbersPage() {
           <p>Citations, backlinks, and mentions of your business across the web (Yelp, Angi, BBB, local news, other local business partnerships) that confirm to Google your business is real, established, and trustworthy.</p>
 
           <h3>How Customers Find a Plumber Today</h3>
-          <Screenshot src="" alt="Flowchart showing customer journey from emergency search to Google Maps to review scan to phone call." caption="The modern customer journey for finding a plumber." />
+          <SeoDiagram caption="The modern customer journey for finding a plumber.">
+            <FlowDiagram steps={[
+              { label: 'Emergency Search', desc: '"Plumber near me open now"' },
+              { label: 'Google Maps', desc: 'Local Pack results' },
+              { label: 'Review Scan', desc: 'Star rating + recency' },
+              { label: 'Phone Call', desc: 'First result that answers' },
+            ]} />
+          </SeoDiagram>
           <p>Understanding plumbing SEO starts with understanding how people actually search for a plumber.</p>
           <h4>Emergency Search</h4>
           <p>&quot;Plumber near me open now,&quot; &quot;emergency plumber [city],&quot; &quot;24 hour plumber.&quot; High intent, high urgency, and the customer will call within minutes of searching — often the first result that answers, wins the job.</p>
@@ -165,7 +206,6 @@ export default function SeoForPlumbersPage() {
           <p>The entire plumbing SEO funnel exists to produce one outcome: the phone ringing. Every tactic in this guide ladders up to that single goal.</p>
 
           <h3>Traditional Marketing vs. Plumbing SEO</h3>
-          <Screenshot src="" alt="Comparison table showing how plumbing SEO beats traditional marketing on cost model, targeting, timing, measurability, and trust." caption="How plumbing SEO compares to traditional marketing methods." />
           <div className="overflow-x-auto">
             <table>
               <thead><tr><th></th><th>Traditional Marketing (Flyers, Truck Wraps, Yellow Pages)</th><th>Plumbing SEO</th></tr></thead>
@@ -181,7 +221,29 @@ export default function SeoForPlumbersPage() {
           <p>Plumbing SEO isn&apos;t a replacement for word-of-mouth — it&apos;s word-of-mouth at scale, captured and organized in the place 90%+ of customers now start their search: Google.</p>
 
           <h3>A Realistic Example</h3>
-          <Screenshot src="" alt="Side-by-side comparison of Business A (40 old photos, 22 reviews, no posts) vs Business B (130 fresh photos, 210 reviews, weekly posts) with Business B labeled as the local pack winner." caption="Why Business B wins the local pack even if Business A does better plumbing work." />
+          <SeoDiagram caption="Why Business B wins the local pack even if Business A does better plumbing work.">
+            <ComparisonCard
+              left={{
+                label: 'Business A',
+                items: [
+                  { label: 'Photos', value: '40 (old)' },
+                  { label: 'Reviews', value: '22 (avg 4.2★)' },
+                  { label: 'Posts', value: 'None in 1 year' },
+                  { label: 'Website', value: 'Single static page' },
+                ],
+              }}
+              right={{
+                label: 'Business B',
+                items: [
+                  { label: 'Photos', value: '130 (fresh)' },
+                  { label: 'Reviews', value: '210 (avg 4.7★)' },
+                  { label: 'Posts', value: 'Weekly' },
+                  { label: 'Website', value: 'Dedicated pages' },
+                ],
+                winner: true,
+              }}
+            />
+          </SeoDiagram>
           <p>Picture two plumbing businesses in the same mid-sized city, both licensed, both doing solid work, both roughly the same size.</p>
           <p>Business A has a Google Business Profile with 40 photos (most uploaded when the profile was created three years ago), 22 reviews averaging 4.2 stars (the most recent from eight months ago), and no Google Posts published in over a year. Their website is a single static page built by a nephew in 2021.</p>
           <p>Business B has a Google Business Profile with 130 photos added consistently over the past year, 210 reviews averaging 4.7 stars with new ones arriving every few days, and a Google Post published roughly weekly showing real completed jobs. Their website has dedicated pages for each service and each city they cover.</p>
@@ -196,7 +258,17 @@ export default function SeoForPlumbersPage() {
           <h2 id="section-3">Section 3: Why Most Plumbing Companies Fail at SEO</h2>
           <p>Walk into almost any local plumbing company and you&apos;ll find the same story: a Google Business Profile that hasn&apos;t been touched in eight months, a handful of reviews from 2023, and a website that was built once and never updated. This isn&apos;t a knowledge problem. It&apos;s a bandwidth problem.</p>
 
-          <Screenshot src="" alt="Grid diagram showing the 7 most common SEO failure points for plumbers: no time, no marketing knowledge, inconsistent activity, no review system, outdated website, inactive profile, missing local signals." caption="The 7 most common reasons plumbing companies lose visibility." />
+          <SeoDiagram caption="The 7 most common reasons plumbing companies lose visibility.">
+            <GridDiagram columns={3} items={[
+              { label: 'No Time', desc: '9–12 hour work days' },
+              { label: 'No Marketing Knowledge', desc: 'SEO jargon is a barrier' },
+              { label: 'Inconsistent Activity', desc: 'Sporadic Google presence' },
+              { label: 'No Review System', desc: 'Reviews asked inconsistently' },
+              { label: 'Outdated Website', desc: 'Built once, never updated' },
+              { label: 'Inactive GBP', desc: 'Unclaimed or dormant profile' },
+              { label: 'Missing Local Signals', desc: 'Inconsistent NAP + no local content' },
+            ]} />
+          </SeoDiagram>
 
           <h3>No Time</h3>
           <p>The average plumber works 9–12 hour days, often solo or with a small crew. After the last job, the last thing anyone wants to do is log into a dashboard and write a Google Post.</p>
@@ -218,12 +290,13 @@ export default function SeoForPlumbersPage() {
           <CalloutBox type="warning" title="The Cost of Doing Nothing">
             No alarm goes off when a competitor&apos;s Google Post outranks your dormant profile for &quot;emergency plumber near me&quot; at 11pm on a Saturday. No notification tells you that a homeowner scrolled past your 4.1-star profile in favor of a competitor&apos;s 4.7-star profile with reviews from last week. The lost job simply never becomes a phone call in the first place. Multiply that across every search happening in your service area every day, and the gap compounds — usually in a competitor&apos;s favor.
           </CalloutBox>
-          <Screenshot src="" alt="Screenshot of a Neerzy audit result showing a low score of 34 out of 100 with missed opportunities highlighted." caption="What a neglected Google Business Profile looks like in the Neerzy Audit." />
+          <SeoDiagram caption="What a neglected Google Business Profile looks like in the Neerzy Audit.">
+            <AuditResultDiagram />
+          </SeoDiagram>
           <p><strong>→ <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Check exactly which of these problems your business has — run your free audit</Link></strong></p>
 
           <h3>How Much Does Plumbing SEO Really Cost?</h3>
           <p>The honest answer depends entirely on which path you choose — and the paths differ far more in <em>time</em> than most plumbers expect.</p>
-          <Screenshot src="" alt="Comparison table showing cost and time required for DIY, agency, freelancer, and Neerzy automated approaches to plumbing SEO." caption="Time vs. cost comparison of plumbing SEO approaches — Neerzy highlighted as best fit for small businesses." />
           <div className="overflow-x-auto">
             <table>
               <thead><tr><th>Approach</th><th>Typical Monthly Cost</th><th>Time Required From You</th><th>Best For</th></tr></thead>
@@ -243,7 +316,9 @@ export default function SeoForPlumbersPage() {
           <p>Google has publicly confirmed that local rankings — including for plumbing businesses — are determined by three core factors.</p>
 
           <h3>Google Ranking Factors</h3>
-          <Screenshot src="" alt="3-pillar diagram showing Google's local ranking factors: Relevance, Distance, and Prominence — with Prominence highlighted as the most controllable." caption="Google's three core local ranking factors." />
+          <SeoDiagram caption="Google's three core local ranking factors.">
+            <ThreePillarDiagram />
+          </SeoDiagram>
           <h4>Relevance</h4>
           <p>How well your Google Business Profile and website match what the searcher is looking for. A profile categorized correctly as &quot;Plumber&quot; with complete service listings ranks better for plumbing searches than a generically categorized &quot;Contractor&quot; listing. Relevance is also query-specific — a profile with &quot;drain cleaning&quot; explicitly listed as a service will outperform a generically described plumbing profile for that exact search, even if both businesses genuinely offer the same work.</p>
           <h4>Distance</h4>
@@ -252,7 +327,9 @@ export default function SeoForPlumbersPage() {
           <p>How well-known and well-reviewed your business is — both online and offline. This is the factor plumbers have the most influence over, and it&apos;s built through reviews, Google Posts, photos, citations, and website authority. Because prominence is earned through ongoing activity rather than a one-time setup, it&apos;s also the factor most directly affected by consistency — or the lack of it — over time.</p>
 
           <h3>Google Business Profile Signals</h3>
-          <Screenshot src="" alt="Screenshot of the Neerzy audit category score breakdown showing individual gauges for Completeness, Reviews, Visual Content, Engagement, and Local SEO." caption="See exactly which Google signals are helping or hurting your ranking." />
+          <SeoDiagram caption="See exactly which Google signals are helping or hurting your ranking.">
+            <CategoryScoreDiagram />
+          </SeoDiagram>
           <p>Category accuracy, completeness, review count and rating, photo volume and recency, posting frequency, and Q&amp;A activity all feed directly into your GBP&apos;s ranking strength.</p>
 
           <h3>Website Signals</h3>
@@ -266,8 +343,16 @@ export default function SeoForPlumbersPage() {
           <p>Understanding these five signal groups matters because it tells you exactly where to focus. A plumber with a beautiful website but zero recent reviews and an inactive Google Business Profile will still lose to a plumber with a mediocre website and an active, review-rich profile. <strong>Prominence, driven by activity and reviews, is where most plumbers have the most room to improve — and the least time to do it manually.</strong></p>
 
           <h3>Which Factor Should You Focus On First?</h3>
-          <Screenshot src="" alt="Chart showing the 5 Neerzy audit categories and their score weightings: Completeness 25%, Reviews 25%, Visual 20%, Engagement 15%, Local SEO 15%." caption="How Google's ranking signals map to your Neerzy Audit score." />
-          <Screenshot src="" alt="Flowchart showing the plumbing SEO prioritization order: Prominence first, then Relevance, then Distance." caption="The plumbing SEO prioritization workflow." />
+          <SeoDiagram caption="How Google's ranking signals map to your Neerzy Audit score.">
+            <WeightChart />
+          </SeoDiagram>
+          <SeoDiagram caption="The plumbing SEO prioritization workflow.">
+            <FlowDiagram steps={[
+              { label: 'Prominence', desc: 'Reviews, Posts, Photos' },
+              { label: 'Relevance', desc: 'Categories, Services, Content' },
+              { label: 'Distance', desc: 'Service area (largely fixed)' },
+            ]} />
+          </SeoDiagram>
           <p>Given limited time, prioritize in this order:</p>
           <ol>
             <li><strong>Prominence signals first</strong> — reviews, Google Posts, and photos, because they&apos;re within your direct control and can move relatively quickly (weeks, not months).</li>
@@ -282,7 +367,9 @@ export default function SeoForPlumbersPage() {
           <h2 id="section-5">Section 5: Google Business Profile Optimization for Plumbers</h2>
           <p>Your Google Business Profile (GBP, sometimes still called GMB) is the single most important asset in plumbing SEO. Here&apos;s how to optimize every section of it.</p>
 
-          <Screenshot src="" alt="Screenshot of the Neerzy audit overview showing a high score of 92 out of 100 with green indicators across all categories." caption="An optimized Google Business Profile scores highly across all categories." />
+          <SeoDiagram caption="An optimized Google Business Profile scores highly across all categories.">
+            <AuditOverviewDiagram />
+          </SeoDiagram>
 
           <h3>Business Categories</h3>
           <p>Set &quot;Plumber&quot; as your primary category. Add accurate secondary categories like &quot;Drainage service,&quot; &quot;Water heater repair service,&quot; or &quot;Emergency plumber&quot; if applicable. Incorrect or overly broad categories (like just &quot;Contractor&quot;) dilute your relevance for plumbing-specific searches.</p>
@@ -324,7 +411,9 @@ export default function SeoForPlumbersPage() {
           <p>None of these fourteen elements is individually complicated. The reason most plumbing profiles are incomplete isn&apos;t difficulty — it&apos;s that filling out a profile completely takes a sustained sitting of focused time, and then <em>maintaining</em> it (fresh photos, weekly posts, current hours) takes ongoing time indefinitely. This is precisely why Google&apos;s own ranking algorithm treats a complete, actively maintained profile as such a strong signal: it&apos;s a genuine, hard-to-fake indicator that a real, currently-operating business is behind the listing.</p>
 
           {/* GBP Checklist */}
-          <Screenshot src="" alt="Screenshot of the Neerzy audit recommendations panel showing a prioritized to-do list with items like add 3 new photos and respond to 2 reviews." caption="The Neerzy Audit turns your score into a prioritized to-do list." />
+          <SeoDiagram caption="The Neerzy Audit turns your score into a prioritized to-do list.">
+            <RecommendationsDiagram />
+          </SeoDiagram>
 
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 my-8">
             <h4 className="font-bold text-slate-900 text-lg mb-4">GBP Optimization Checklist</h4>
@@ -345,7 +434,9 @@ export default function SeoForPlumbersPage() {
           {/* ── SECTION 6 ── */}
           <h2 id="section-6">Section 6: Google Maps SEO for Plumbers</h2>
           <h3>How the Local Pack Works</h3>
-          <Screenshot src="" alt="Branded wireframe diagram illustrating a search bar, a map block, and three highlighted local business results below it representing the Google Local Pack." caption="The Local Pack captures up to 60% of local plumbing clicks." />
+          <SeoDiagram caption="The Local Pack captures up to 60% of local plumbing clicks.">
+            <LocalPackDiagram />
+          </SeoDiagram>
           <p>When someone searches &quot;plumber near me,&quot; Google shows a map with three highlighted businesses above the normal organic results — this is the Local Pack. For most plumbing searches, especially on mobile, over 60% of clicks go to those three listings before a user ever scrolls further.</p>
           <h3>Google Maps Ranking Factors</h3>
           <p>The same relevance, distance, and prominence factors from Section 4 apply here, but Maps rankings are even more heavily weighted toward Google Business Profile completeness and review signals than toward website quality.</p>
@@ -377,7 +468,9 @@ export default function SeoForPlumbersPage() {
             </table>
           </div>
           <h3>Tracking Your Actual Rank: Geo-Grid Tools</h3>
-          <Screenshot src="" alt="Diagram of a geo-grid map showing green rank-1 dots near business location, yellow dots further out, and red rank-10+ dots at the edges of the service area." caption="How a geo-grid reveals your true local ranking across your entire service area." />
+          <SeoDiagram caption="How a geo-grid reveals your true local ranking across your entire service area.">
+            <GeoGridDiagram />
+          </SeoDiagram>
           <p>A single Google search only shows you your ranking from one point on the map — but a plumber&apos;s actual visibility varies significantly across their service area. <strong>Geo-grid tracking tools</strong> (such as Local Falcon) simulate searches from a grid of points across a city, showing exactly where a business ranks in the Local Pack from each location — revealing, for example, that a plumber ranks #1 downtown but falls off the map entirely ten miles out.</p>
 
           <hr />
@@ -395,10 +488,19 @@ export default function SeoForPlumbersPage() {
           <h3>Multi-Location Businesses</h3>
           <p>Plumbing companies with multiple physical branches need a separate, fully optimized Google Business Profile for each location — never one shared profile trying to represent multiple addresses. Each profile needs its own reviews, its own photos, and its own posting activity; a single well-maintained &quot;flagship&quot; profile propping up several neglected satellite profiles won&apos;t help those satellite locations rank.</p>
           <h3>Internal Linking</h3>
-          <Screenshot src="" alt="Site architecture diagram showing homepage linking to Services and Locations sections, with cross-links between specific service pages and location pages." caption="The optimal internal linking structure for a multi-city plumbing website." />
+          <SeoDiagram caption="The optimal internal linking structure for a multi-city plumbing website.">
+            <SiteArchitectureDiagram />
+          </SeoDiagram>
           <p>Link location and service pages to each other naturally (&quot;Serving [City A] and [City B] with 24-hour emergency plumbing&quot;) to help Google understand the relationship between your service area and your offerings.</p>
           <h3>A Practical Rollout Order</h3>
-          <Screenshot src="" alt="Timeline diagram showing a 4-step rollout plan: top city and service first, next 2-3 cities second, core services third, small towns last." caption="Your roadmap for rolling out local SEO pages." />
+          <SeoDiagram caption="Your roadmap for rolling out local SEO pages.">
+            <TimelineDiagram steps={[
+              { label: 'Top City + Service', desc: 'Get one page genuinely strong first' },
+              { label: 'Next 2–3 Cities', desc: 'Each with a real, differentiated page' },
+              { label: 'Core Services', desc: 'Drain cleaning, water heater, leak detection' },
+              { label: 'Smaller Towns', desc: 'Only after the above are performing' },
+            ]} />
+          </SeoDiagram>
           <p>If you&apos;re building this out from scratch, don&apos;t try to launch every location and service page at once. A sensible sequence:</p>
           <ol>
             <li><strong>Your single highest-volume city and highest-demand service first</strong> — get this page genuinely strong before moving on.</li>
@@ -434,7 +536,15 @@ export default function SeoForPlumbersPage() {
 
           {/* ── SECTION 9 ── */}
           <h2 id="section-9">Section 9: On-Page SEO for Plumbing Websites</h2>
-          <Screenshot src="" alt="Wireframe diagram of a plumbing service page with callouts pointing to the title tag, H1, meta description, image alt text, and internal links." caption="The anatomy of a perfectly optimized plumbing service page." />
+          <SeoDiagram caption="The anatomy of a perfectly optimized plumbing service page.">
+            <WireframeDiagram elements={[
+              { label: 'Title Tag', x: 5, y: 2 },
+              { label: 'H1 Heading', x: 5, y: 10 },
+              { label: 'Meta Description', x: 5, y: 18 },
+              { label: 'Image Alt Text', x: 60, y: 40 },
+              { label: 'Internal Links', x: 60, y: 65 },
+            ]} />
+          </SeoDiagram>
           <h3>Titles</h3>
           <p>Each page needs a unique title tag that includes your core service and city — &quot;Emergency Plumber in [City] | 24/7 Service&quot; outperforms a generic &quot;Home&quot; or &quot;Welcome to [Company Name].&quot;</p>
           <h3>Meta Descriptions</h3>
@@ -471,7 +581,9 @@ export default function SeoForPlumbersPage() {
           {/* ── SECTION 10 ── */}
           <h2 id="section-10">Section 10: Technical SEO</h2>
           <h3>Core Web Vitals</h3>
-          <Screenshot src="" alt="Three dials showing fast loading speed, smooth interactivity, and stable visual layout — all in the green zone for Core Web Vitals." caption="Google's Core Web Vitals simplified." />
+          <SeoDiagram caption="Google's Core Web Vitals simplified.">
+            <GaugeDiagram />
+          </SeoDiagram>
           <p>Google measures loading speed, interactivity, and visual stability as ranking factors. A slow-loading plumbing website — especially on mobile, where most emergency searches happen — actively costs you rankings and calls.</p>
           <h3>Speed</h3>
           <p>Compress images, minimize unnecessary scripts, and use modern hosting. A plumbing site should load in under 2–3 seconds on mobile.</p>
@@ -510,7 +622,9 @@ export default function SeoForPlumbersPage() {
           {/* ── SECTION 11 ── */}
           <h2 id="section-11">Section 11: Schema Markup for Plumbers</h2>
           <p>Schema markup is structured code added to your website that explicitly tells search engines (and increasingly, AI search tools) what your business is and does — rather than making them infer it from plain text.</p>
-          <Screenshot src="" alt="Diagram showing unstructured website text being converted by schema markup into structured data fed to Google and AI models." caption="How Schema markup translates your website for search engines." />
+          <SeoDiagram caption="How Schema markup translates your website for search engines.">
+            <SchemaDiagram />
+          </SeoDiagram>
           <h3>LocalBusiness</h3>
           <p>The foundational schema type that defines your business name, address, phone number, hours, and service area in a machine-readable format.</p>
           <h3>Plumber</h3>
@@ -728,7 +842,9 @@ export default function SeoForPlumbersPage() {
 
           {/* ── SECTION 18 ── */}
           <h2 id="free-gbp-audit">Section 18: Free Google Business Profile Audit</h2>
-          <Screenshot src="" alt="Split screen before and after comparison showing a Neerzy audit result going from 34 out of 100 (red indicators) to 89 out of 100 (green indicators)." caption="The tangible difference an active SEO strategy makes on your Neerzy Audit score." />
+          <SeoDiagram caption="The tangible difference an active SEO strategy makes on your Neerzy Audit score.">
+            <BeforeAfterDiagram />
+          </SeoDiagram>
           <p>This is where most plumbing SEO guides stop — with a checklist and a &quot;good luck.&quot; We built something more useful: a <strong>free tool that actually scores your Google Business Profile against these exact factors in under 30 seconds.</strong></p>
           <p>The <strong>Neerzy GBP Audit Tool</strong> analyzes your live Google Business Profile and returns a score out of 100, broken into five weighted categories.</p>
           <h3>What the Audit Checks</h3>
@@ -812,7 +928,9 @@ export default function SeoForPlumbersPage() {
           <p>Here&apos;s the honest summary of everything above: plumbing SEO in 2026 rewards businesses that are complete, active, and reviewed — consistently, not occasionally. A perfect one-time setup that goes stale in six months will eventually lose to a modest profile that&apos;s updated every single week.</p>
           <p>The fastest next step isn&apos;t reading further. It&apos;s seeing exactly where your business stands right now.</p>
 
-          <Screenshot src="" alt="Screenshot of the Neerzy progress tracking graph showing a score climbing consistently from Month 1 to Month 3." caption="Watch your visibility and score improve over time as you execute your plan." />
+          <SeoDiagram caption="Watch your visibility and score improve over time as you execute your plan.">
+            <ProgressGraphDiagram />
+          </SeoDiagram>
 
         </article>
 

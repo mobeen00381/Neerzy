@@ -197,3 +197,14 @@ The majority of Neerzy's users are on phones. Mobile is the primary target, not 
 - **No horizontal scroll:** every section, card grid, and diagram (including the Section 8 flow diagram and Section 7 comparison) must fit within the viewport width on mobile without introducing horizontal scroll. Diagrams with connecting arrows between rows need a mobile-specific layout (e.g. stacked vertically) rather than shrinking a desktop row layout until it's unreadable.
 - **Hero mockup placement:** the phone mockup must not push the headline and CTA below the fold on mobile — stack the mockup below the hero copy, not beside it.
 - **Section padding on mobile** uses `--space-6` (48px) top/bottom per the spacing scale already defined — confirm this is applied consistently on every page, not just the homepage.
+
+---
+
+## 10. Demo / Illustrative Data Standard (new — required)
+
+Marketing pages (homepage, blog, category guides) frequently need to show what the product looks like — an audit score, a dashboard, a progress chart — without a real customer's data attached. This is standard and honest as long as it's clearly an illustrative example, not presented as a specific real customer's verified result.
+
+- Use **one consistent fictional example business** across every illustrative screenshot sitewide, rather than inventing a new fake business per page. Default: reuse "Smith Plumbing & Heating" (already established on the homepage's Visibility Check preview) wherever a plumbing-specific example is needed; use one comparable fictional business per additional trade vertical if the blog expands (electricians, HVAC, etc.) — never multiple different fake businesses for the same vertical across different pages.
+- These are built as real product UI components rendering demo data — not stock images, not illustrations pretending to be screenshots.
+- Never caption or present illustrative data as a verified real customer outcome (no "this plumber achieved X," no specific unverified before/after numbers attributed to a named real business). Generic framing ("here's what a low-scoring profile looks like," "an optimized profile scores highly across categories") is fine; a specific real-sounding customer claim is not.
+- Genuine product UI with no invented data (an input field, a settings screen, a responsive layout check) should be captured as an actual real screenshot — the demo-data standard applies only where a specific score, result, or data point would otherwise need to be fabricated.

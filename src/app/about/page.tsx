@@ -69,7 +69,7 @@ export default function AboutPage() {
                 Neerzy makes it simple: finish a job, send a WhatsApp message, and stay active online consistently.
               </p>
               <div className="hero-ctas">
-                <Link href="/onboarding">
+                <Link href="/pricing">
                   <span className="btn btn-primary" style={{ padding: '12px 28px', fontSize: 'var(--text-body-size)' }}>
                     Start Free
                   </span>
@@ -327,8 +327,8 @@ export default function AboutPage() {
               </div>
             </div>
             
-            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
-              <div className="step-icon" style={{ width: '56px', height: '56px', margin: '0 auto var(--space-4)' }}>
+            <div className="card" style={{ textAlign: 'center', padding: 'var(--space-4)' }}>
+              <div className="step-icon" style={{ width: '48px', height: '48px', margin: '0 auto var(--space-3)' }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-accent)' }}>
                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                   <polyline points="9 22 9 12 15 12 15 22" />
@@ -373,7 +373,7 @@ export default function AboutPage() {
         <div className="container">
           <h2>Your next completed job could bring your next customer</h2>
           <p>Send your next job on WhatsApp. Neerzy helps you stay visible online consistently.</p>
-          <Link href="/onboarding" className="btn btn-primary" style={{ fontSize: '18px', padding: '14px 36px' }}>
+          <Link href="/pricing" className="btn btn-primary" style={{ fontSize: '18px', padding: '14px 36px' }}>
             Start Free
           </Link>
         </div>
