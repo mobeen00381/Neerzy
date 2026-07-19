@@ -18,13 +18,22 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
   const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    // Simulate secure token validation
-    setTimeout(() => {
-      if (token === "user_auth_token_778899") {
-        setIsValidToken(true);
+    // Validate token by checking with the server — no hardcoded bypass
+    const validateToken = async () => {
+      try {
+        const res = await fetch("/api/posts/validate-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+        setIsValidToken(data.valid === true);
+      } catch {
+        setIsValidToken(false);
       }
       setIsAuthenticating(false);
-    }, 400); // reduced wait time
+    };
+    validateToken();
   }, [token]);
 
   const startVoiceRecording = async () => {

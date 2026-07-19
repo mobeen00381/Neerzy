@@ -56,7 +56,8 @@ export async function POST(req: Request) {
             business_name: data.businessName,
             gbp_connected: true,
             gbp_connected_at: new Date().toISOString(),
-            onboarded_at: new Date().toISOString()
+            onboarded_at: new Date().toISOString(),
+            trial_started_at: new Date().toISOString()
           }
         });
         console.log(`✅ Successfully updated auth user_metadata for user: ${data.userId}`);
@@ -65,25 +66,42 @@ export async function POST(req: Request) {
       }
     }
 
-    // Try to sync with profiles table, but catch errors to prevent blocking setups
+    // Sync with profiles table — this is CRITICAL for trial_started_at and plan tracking
     if (data.userId) {
-      try {
-        const { error: profileUpdateError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: data.userId,
-            business_name: data.businessName,
-            phone: targetPhone,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'id' });
+      // First, check if a profile row already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, trial_started_at, created_at')
+        .eq('id', data.userId)
+        .maybeSingle();
 
-        if (profileUpdateError) {
-          console.warn('⚠️ profiles table sync warning (can ignore if columns are missing):', profileUpdateError.message);
-        } else {
-          console.log(`✅ Successfully upserted profile ID: ${data.userId} in profiles table`);
-        }
-      } catch (profileErr) {
-        console.warn('⚠️ Skip public profiles table update:', profileErr);
+      const profilePayload: Record<string, any> = {
+        id: data.userId,
+        business_name: data.businessName,
+        phone: targetPhone,
+        selected_plan: data.plan || 'free',
+        gbp_connected: true,
+        gbp_connected_at: new Date().toISOString(),
+        onboarded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Only set trial_started_at on FIRST creation (never overwrite existing)
+      if (!existingProfile) {
+        profilePayload.trial_started_at = new Date().toISOString();
+        profilePayload.created_at = new Date().toISOString();
+      }
+
+      const { error: profileUpdateError } = await supabase
+        .from('profiles')
+        .upsert(profilePayload, { onConflict: 'id' });
+
+      if (profileUpdateError) {
+        // This IS a real error — log it visibly so we know profiles table has issues
+        console.error('❌ CRITICAL: Failed to upsert profiles table for user', data.userId, ':', profileUpdateError.message);
+        // Don't block the response — the auth metadata fallback still works
+      } else {
+        console.log(`✅ Successfully upserted profile ID: ${data.userId} in profiles table (trial_started_at: ${existingProfile ? 'preserved' : 'set to now'})`);
       }
     } else {
       // Fallback: Attempt to sync via logged-in user session if userId was not provided in the payload
@@ -97,22 +115,46 @@ export async function POST(req: Request) {
               business_name: data.businessName,
               gbp_connected: true,
               gbp_connected_at: new Date().toISOString(),
-              onboarded_at: new Date().toISOString()
+              onboarded_at: new Date().toISOString(),
+              trial_started_at: new Date().toISOString()
             }
           });
-          
-          await supabase
+
+          // Same profile upsert logic for fallback path
+          const { data: existingProfile } = await supabase
             .from('profiles')
-            .upsert({
-              id: user.id,
-              business_name: data.businessName,
-              phone: targetPhone,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'id' });
-          console.log('✅ Synchronized public profile via fallback auth session upsert.');
+            .select('id, trial_started_at, created_at')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          const profilePayload: Record<string, any> = {
+            id: user.id,
+            business_name: data.businessName,
+            phone: targetPhone,
+            selected_plan: data.plan || 'free',
+            gbp_connected: true,
+            gbp_connected_at: new Date().toISOString(),
+            onboarded_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+
+          if (!existingProfile) {
+            profilePayload.trial_started_at = new Date().toISOString();
+            profilePayload.created_at = new Date().toISOString();
+          }
+
+          const { error: fallbackProfileError } = await supabase
+            .from('profiles')
+            .upsert(profilePayload, { onConflict: 'id' });
+
+          if (fallbackProfileError) {
+            console.error('❌ CRITICAL: Failed to upsert profiles table in fallback path for user', user.id, ':', fallbackProfileError.message);
+          } else {
+            console.log('✅ Synchronized public profile via fallback auth session upsert.');
+          }
         }
       } catch (profileErr) {
-        console.warn('⚠️ Fallback public profile sync skipped.', profileErr);
+        console.error('❌ CRITICAL: Fallback public profile sync failed:', profileErr);
       }
     }
 

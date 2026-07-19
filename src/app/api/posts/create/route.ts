@@ -11,29 +11,100 @@ function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
 }
 
+// DB-backed rate limiter (safe for serverless — state persists across invocations)
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 5; // 5 requests per minute per IP
+const ENDPOINT = 'posts/create';
+
+async function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS);
+
+  try {
+    // Cleanup stale entries (older than 1 hour) — fire-and-forget, don't block on it
+    void supabase.from('rate_limits').delete().lt('created_at', new Date(now.getTime() - 3600_000).toISOString());
+
+    // Find an active window for this IP + endpoint
+    const { data: existing } = await supabase
+      .from('rate_limits')
+      .select('id, request_count, window_start')
+      .eq('ip_address', ip)
+      .eq('endpoint', ENDPOINT)
+      .gt('window_start', windowStart.toISOString())
+      .order('window_start', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!existing) {
+      // No active window — create one
+      await supabase.from('rate_limits').insert({
+        ip_address: ip,
+        endpoint: ENDPOINT,
+        request_count: 1,
+        window_start: now.toISOString()
+      });
+      return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt: now.getTime() + RATE_LIMIT_WINDOW_MS };
+    }
+
+    if (existing.request_count >= RATE_LIMIT_MAX) {
+      // Rate limited
+      const resetAt = new Date(existing.window_start).getTime() + RATE_LIMIT_WINDOW_MS;
+      return { allowed: false, remaining: 0, resetAt };
+    }
+
+    // Increment counter
+    await supabase
+      .from('rate_limits')
+      .update({ request_count: existing.request_count + 1 })
+      .eq('id', existing.id);
+
+    return { allowed: true, remaining: RATE_LIMIT_MAX - (existing.request_count + 1), resetAt: new Date(existing.window_start).getTime() + RATE_LIMIT_WINDOW_MS };
+  } catch (err) {
+    // Fail-closed: if the rate limiter DB is unreachable, deny the request.
+    // This endpoint is public + unauthenticated, so security takes priority
+    // over availability. A legitimate user hitting a rare DB blip can retry;
+    // an abuser hitting an intentional DB stress cannot.
+    console.error('Rate limiter DB error (failing closed):', err);
+    return { allowed: false, remaining: 0, resetAt: now.getTime() + RATE_LIMIT_WINDOW_MS };
+  }
+}
+
 export async function POST(req: Request) {
   try {
+    // Rate limiting check
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
+               req.headers.get("x-real-ip") || 
+               "unknown";
+    const rateCheck = await checkRateLimit(ip);
+    
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { 
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rateCheck.resetAt - Date.now()) / 1000)),
+            "X-RateLimit-Remaining": "0"
+          }
+        }
+      );
+    }
+
     const { token, type, content, isDemoMessage } = await req.json();
 
-    // 1. Verify user logic
-    // Currently, our MVP uses a hardcoded token for the demo: "user_auth_token_778899"
-    // In production, we lookup the user where quickpost_token = token
-    let userId = null;
-    if (token === "user_auth_token_778899") {
-      // Mock bypass for demo purposes
-      console.log("Using MVP demo bypass token");
-    } else {
-      // Real lookup
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .select("id")
-        .eq("quickpost_token", token)
-        .single();
-        
-      if (!userError && userData) {
-        userId = userData.id;
-      }
+    // 1. Verify user — require a valid DB token, no hardcoded bypass
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("quickpost_token", token)
+      .single();
+      
+    if (userError || !userData) {
+      console.warn(`⚠️ Invalid quickpost token attempt from IP: ${ip}`);
+      return NextResponse.json({ error: "Invalid or expired token" }, { status: 401 });
     }
+    
+    const userId = userData.id;
 
     // 2. Map input to OpenAI
     console.log(`Processing media type: ${type}`);

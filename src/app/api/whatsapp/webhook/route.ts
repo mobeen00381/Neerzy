@@ -124,7 +124,46 @@ export async function POST(req: Request) {
   }
 }
 
+// Cache user_id lookups by phone to avoid repeated DB queries
+const userIdCache = new Map<string, string | null>();
+
+async function getUserIdByPhone(phone: string): Promise<string | null> {
+  // Check cache first
+  const cached = userIdCache.get(phone);
+  if (cached !== undefined) return cached;
+
+  // Look up user by phone in auth.users (via raw_user_meta_data or phone column)
+  const { data: userData } = await supabase
+    .from('users')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle();
+
+  if (userData?.id) {
+    userIdCache.set(phone, userData.id);
+    return userData.id;
+  }
+
+  // Fallback: try auth.users table directly
+  const { data: authUser } = await supabase
+    .from('users')
+    .select('id')
+    .or(`phone.eq.${phone},raw_user_meta_data->>phone.eq.${phone}`)
+    .maybeSingle();
+
+  if (authUser?.id) {
+    userIdCache.set(phone, authUser.id);
+    return authUser.id;
+  }
+
+  userIdCache.set(phone, null);
+  return null;
+}
+
 async function saveDraft(phone: string, data: any): Promise<string> {
+  // Resolve user_id for quota tracking
+  const userId = await getUserIdByPhone(phone);
+
   // 1. Look for active draft first
   let { data: existing } = await supabase
     .from('pending_posts')
@@ -158,6 +197,7 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     if (!existing) {
       await supabase.from('pending_posts').insert({
         user_phone: phone,
+        user_id: userId, // link to auth user for quota tracking
         customer_name: data.customerName,
         customer_phone: data.customerPhone,
         images: [],
@@ -166,7 +206,8 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     } else {
       await supabase.from('pending_posts').update({
         customer_name: data.customerName,
-        customer_phone: data.customerPhone
+        customer_phone: data.customerPhone,
+        user_id: userId // also update in case it was null
       }).eq('id', existing.id);
     }
   }
@@ -176,12 +217,14 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     if (!existing) {
       await supabase.from('pending_posts').insert({
         user_phone: phone,
+        user_id: userId, // link to auth user for quota tracking
         voice_note: data.voice_note,
         status: 'draft'
       });
     } else {
       await supabase.from('pending_posts').update({
-        voice_note: data.voice_note
+        voice_note: data.voice_note,
+        user_id: userId // also update in case it was null
       }).eq('id', existing.id);
     }
   }
@@ -191,11 +234,15 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     if (!existing) {
       await supabase.from('pending_posts').insert({
         user_phone: phone,
+        user_id: userId, // link to auth user for quota tracking
         images: newImages,
         status: 'draft'
       });
     } else {
-      await supabase.from('pending_posts').update({ images: newImages }).eq('id', existing.id);
+      await supabase.from('pending_posts').update({ 
+        images: newImages,
+        user_id: userId // also update in case it was null
+      }).eq('id', existing.id);
     }
   }
 
@@ -443,8 +490,12 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       return await sendTwilioMessage(phone, "⚠️ *No Google Business Profile connected.* Please connect your GBP first at https://www.neerzy.com/onboarding", fromNumber);
     }
 
-    // Mark post as published
-    await supabase.from('pending_posts').update({ status: 'published' }).eq('id', post.id);
+    // Mark post as published — also set user_id for quota tracking
+    const userIdForPublish = await getUserIdByPhone(phone);
+    await supabase.from('pending_posts').update({ 
+      status: 'published',
+      user_id: userIdForPublish 
+    }).eq('id', post.id);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 3. Send Review Request to the CUSTOMER (never the trader)

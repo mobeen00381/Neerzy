@@ -119,11 +119,25 @@ export async function POST(req: Request) {
       console.error('⚠️ Failed to send parallel backup SMS:', smsError.message);
     }
 
-    // Update post status
+    // Update post status — also set user_id if it's a pending_posts record
     const table = post.source === 'pending_posts' ? 'pending_posts' : 'jobs';
+    const updateData: any = { status: 'published' };
+    
+    // For pending_posts, try to link user_id if not already set
+    if (post.source === 'pending_posts' && !post.user_id && post.user_phone) {
+      const { data: userByPhone } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('phone', post.user_phone)
+        .maybeSingle();
+      if (userByPhone?.id) {
+        updateData.user_id = userByPhone.id;
+      }
+    }
+    
     await supabaseAdmin
       .from(table)
-      .update({ status: 'published' })
+      .update(updateData)
       .eq('id', jobId);
 
     return NextResponse.json({ success: true, reviewLink });

@@ -551,7 +551,9 @@ export default function Dashboard() {
   const plan = profile?.selected_plan || user?.user_metadata?.selected_plan || 'free';
   const planLimits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
   
-  const trialStart = profile?.trial_started_at || profile?.created_at || new Date().toISOString();
+  // trial_started_at: prefer DB profile, fall back to user_metadata (set during onboarding),
+  // then auth user creation date, then now() as last resort
+  const trialStart = profile?.trial_started_at || profile?.created_at || user?.user_metadata?.trial_started_at || user?.created_at || new Date().toISOString();
   const daysLeft = planLimits.trialDays > 0 ? getRemainingDays(trialStart, planLimits.trialDays) : 30;
   const daysCountdown = planLimits.trialDays > 0 ? `${daysLeft} days left` : 'Unlimited';
 
