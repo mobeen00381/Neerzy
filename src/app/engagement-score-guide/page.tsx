@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { SeoDiagram, CategoryScoreDiagram, BeforeAfterDiagram } from '@/components/seo-visuals/SeoDiagram';
 import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
@@ -46,11 +46,17 @@ export default function EngagementScoreGuidePage() {
 
         <h2>1. What This Score Measures</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of the Neerzy audit Engagement & Activity section showing posting frequency indicator, Q&A status, review response rate, booking link status, and product listing check."
-          caption="The Engagement & Activity category measures ongoing behavior — not one-time setup."
-        />
+        <SeoDiagram caption="The Engagement & Activity category measures ongoing behavior — not one-time setup.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <ul>
           <li><strong>Whether your profile is claimed</strong></li>
@@ -78,11 +84,17 @@ export default function EngagementScoreGuidePage() {
 
         <h2>4. Real Examples</h2>
 
-        <Screenshot
-          src=""
-          alt="Side-by-side showing a plumbing profile with no posts, empty Q&A, and no review responses scoring 10-30 versus one with weekly posts, seeded Q&A, and 100% response rate scoring 85-100."
-          caption="The Engagement & Activity gap between an active and a dormant profile."
-        />
+        <SeoDiagram caption="The Engagement & Activity gap between an active and a dormant profile.">
+          <BeforeAfterDiagram
+            beforeScore={20}
+            afterScore={90}
+            items={[
+              { label: 'Posts', before: 'No posts in 8 months', after: 'Weekly posts' },
+              { label: 'Q&A', before: 'Empty section', after: 'Seeded with 5 questions' },
+              { label: 'Responses', before: '0% response rate', after: '100% response rate' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>A plumbing profile that&apos;s fully complete but hasn&apos;t posted in eight months, has an empty Q&amp;A section, and doesn&apos;t respond to reviews will typically score in the 10–30 range on this category — the lowest range of any of the five, since every sub-metric here depends on ongoing action. A profile posting weekly, with a seeded Q&amp;A section and a near-100% review response rate, will typically score in the 85–100 range.</p>
 

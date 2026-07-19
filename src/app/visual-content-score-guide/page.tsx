@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { SeoDiagram, CategoryScoreDiagram, BeforeAfterDiagram } from '@/components/seo-visuals/SeoDiagram';
 import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
@@ -46,11 +46,17 @@ export default function VisualContentScoreGuidePage() {
 
         <h2>1. What This Score Measures</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of the Neerzy audit Visual Content section showing photo count benchmarks at 10+, 50+, and 100+ thresholds, a recency indicator, a diversity rating, and a video presence check."
-          caption="The Visual Content category checks five distinct sub-signals, not just your total photo count."
-        />
+        <SeoDiagram caption="The Visual Content category checks five distinct sub-signals, not just your total photo count.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <ul>
           <li><strong>Total photo count</strong>, benchmarked against 10+, 50+, and 100+ thresholds</li>
@@ -77,11 +83,17 @@ export default function VisualContentScoreGuidePage() {
 
         <h2>4. Real Examples</h2>
 
-        <Screenshot
-          src=""
-          alt="Before and after showing a plumbing profile with 12 old photos (scoring 20-40) versus one with 80+ recent, diverse photos (scoring 80-100)."
-          caption="The difference a consistent upload habit makes over two to three months."
-        />
+        <SeoDiagram caption="The difference a consistent upload habit makes over two to three months.">
+          <BeforeAfterDiagram
+            beforeScore={30}
+            afterScore={90}
+            items={[
+              { label: 'Photos', before: '12 old photos', after: '80+ recent photos' },
+              { label: 'Video', before: 'No video', after: '1+ video added' },
+              { label: 'Uploads', before: 'None in 6 months', after: 'Weekly uploads' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>A plumbing company with 12 photos, no video, and no uploads in the last six months will typically score in the 20–40 range on this category — clearing the &quot;has photos&quot; bar but falling short on every other sub-metric. A business adding 4–6 fresh job photos a week, with a mix of completed work, team shots, and at least one video, will typically reach the 80–100 range within two to three months of consistent uploading.</p>
 

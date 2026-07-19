@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { SeoDiagram, CategoryScoreDiagram, BeforeAfterDiagram } from '@/components/seo-visuals/SeoDiagram';
 import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
@@ -46,11 +46,17 @@ export default function CompletenessScoreGuidePage() {
 
         <h2>1. What This Score Measures</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of the Neerzy audit Completeness section showing checked and unchecked fields: business name, address, phone, website, hours, primary category, description, and attributes."
-          caption="The Completeness category checks each of these core profile fields as present or missing."
-        />
+        <SeoDiagram caption="The Completeness category checks each of these core profile fields as present or missing.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>The audit checks whether these fields are actually filled in on your Google Business Profile:</p>
         <ul>
@@ -83,11 +89,17 @@ export default function CompletenessScoreGuidePage() {
 
         <h2>4. Real Examples</h2>
 
-        <Screenshot
-          src=""
-          alt="Side-by-side comparison of two Google Business Profiles: one with minimal fields filled scoring in the 40-60 range, another with full description, categories, and attributes scoring 85-100."
-          caption="The difference between a profile filled in years ago and one maintained today."
-        />
+        <SeoDiagram caption="The difference between a profile filled in years ago and one maintained today.">
+          <BeforeAfterDiagram
+            beforeScore={50}
+            afterScore={92}
+            items={[
+              { label: 'Description', before: 'Blank', after: 'Full ~750 chars' },
+              { label: 'Categories', before: 'Primary only', after: 'Primary + 4 secondary' },
+              { label: 'Attributes', before: 'None checked', after: 'All applicable set' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>A plumbing company with a name, address, and phone number filled in, but no business description, no secondary categories, and no listed attributes, will typically score in the 40–60 range on this category alone — a large gap for something that takes under 20 minutes to fix.</p>
         <p>A business that has gone further — full description, multiple accurate categories, every applicable attribute checked, and current hours including holiday schedules — will typically score in the 85–100 range, with the only remaining gaps being genuinely minor.</p>

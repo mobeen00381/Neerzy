@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { SeoDiagram, WeightChart, CategoryScoreDiagram, RecommendationsDiagram } from '@/components/seo-visuals/SeoDiagram';
 import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
@@ -47,11 +47,9 @@ export default function UnderstandingAuditScorePage() {
 
         <h2>How the Score Is Built</h2>
 
-        <Screenshot
-          src=""
-          alt="Chart showing the 5 Neerzy audit categories and their weightings: Completeness 25%, Reviews & Reputation 25%, Visual Content 20%, Engagement & Activity 15%, Local SEO Optimization 15%."
-          caption="The five categories that make up your overall Neerzy GBP audit score."
-        />
+        <SeoDiagram caption="The five categories that make up your overall Neerzy GBP audit score.">
+          <WeightChart />
+        </SeoDiagram>
 
         <div className="overflow-x-auto">
           <table>
@@ -74,11 +72,17 @@ export default function UnderstandingAuditScorePage() {
 
         <h2>Completeness (25%)</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of the Neerzy audit showing the Completeness category with green checkmarks for filled fields and red indicators for missing ones like business description and attributes."
-          caption="The Completeness category checks every core field in your Google Business Profile."
-        />
+        <SeoDiagram caption="The Completeness category checks every core field in your Google Business Profile.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>This category checks whether the basic structure of your profile is actually filled in: business name, address, phone number, website link, business hours, primary category, a written business description, and your listed attributes and services.</p>
 
@@ -98,11 +102,17 @@ export default function UnderstandingAuditScorePage() {
 
         <h2>Reviews &amp; Reputation (25%)</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of the Neerzy audit Reviews & Reputation section showing review count, average star rating, velocity indicator, and response rate metrics."
-          caption="The Reviews & Reputation category measures count, rating, recency, and how well you respond."
-        />
+        <SeoDiagram caption="The Reviews & Reputation category measures count, rating, recency, and how well you respond.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>This checks your total review count, average star rating, how recently you&apos;ve received new reviews (velocity), and how consistently you respond.</p>
 
@@ -122,11 +132,17 @@ export default function UnderstandingAuditScorePage() {
 
         <h2>Visual Content (20%)</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of Neerzy audit Visual Content section showing photo count benchmarks at 10+, 50+, and 100+ thresholds with recency and diversity indicators."
-          caption="The Visual Content category benchmarks your photo count, recency, and variety."
-        />
+        <SeoDiagram caption="The Visual Content category benchmarks your photo count, recency, and variety.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>This checks total photo count against benchmarks (10+, 50+, and 100+ thresholds), how recently photos were uploaded, and whether you have video content.</p>
 
@@ -146,11 +162,17 @@ export default function UnderstandingAuditScorePage() {
 
         <h2>Engagement &amp; Activity (15%)</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of Neerzy audit Engagement & Activity section showing posting frequency, Q&A status, and review response rate metrics."
-          caption="The Engagement & Activity category measures whether your profile looks alive and actively managed."
-        />
+        <SeoDiagram caption="The Engagement & Activity category measures whether your profile looks alive and actively managed.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>This checks whether your profile is claimed, how often you&apos;re posting, whether your Q&amp;A section has activity, and whether you&apos;re responding to reviews.</p>
 
@@ -169,11 +191,17 @@ export default function UnderstandingAuditScorePage() {
 
         <h2>Local SEO Optimization (15%)</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of Neerzy audit Local SEO Optimization section showing category accuracy, service area coverage, and NAP consistency indicators."
-          caption="The Local SEO Optimization category checks consistency across your entire web presence."
-        />
+        <SeoDiagram caption="The Local SEO Optimization category checks consistency across your entire web presence.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>This checks keyword usage in your business name and description, category optimization, defined service areas, NAP consistency across the web, and backlinks from your website to your GBP.</p>
 
@@ -193,11 +221,9 @@ export default function UnderstandingAuditScorePage() {
 
         <h2>What to Do With Your Score</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of the Neerzy audit recommendations panel showing a prioritized action list sorted by impact."
-          caption="Your audit results come with a prioritized action plan — not generic advice."
-        />
+        <SeoDiagram caption="Your audit results come with a prioritized action plan — not generic advice.">
+          <RecommendationsDiagram />
+        </SeoDiagram>
 
         <ol>
           <li><strong>Note your lowest-scoring category</strong> — that&apos;s where the fastest gains are available, not necessarily the category that sounds most important.</li>

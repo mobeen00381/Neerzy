@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { SeoDiagram, AuditResultDiagram, PriorityFlowDiagram, ImprovementTimelineDiagram } from '@/components/seo-visuals/SeoDiagram';
 import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
@@ -46,11 +46,9 @@ export default function ImproveAuditScorePage() {
 
         <h2>Step 1: Find Your Lowest-Scoring Category</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of Neerzy audit results showing five category scores with one category highlighted as the lowest — the starting point for improvement."
-          caption="Your audit results break down into five categories. Start with the lowest-scoring one that carries the most weight."
-        />
+        <SeoDiagram caption="Your audit results break down into five categories. Start with the lowest-scoring one that carries the most weight.">
+          <AuditResultDiagram />
+        </SeoDiagram>
 
         <p>Your audit results break down into five categories, each with its own score out of 100 and its own weight in your overall total:</p>
 
@@ -73,11 +71,9 @@ export default function ImproveAuditScorePage() {
 
         <h2>Step 2: Fix in the Right Order</h2>
 
-        <Screenshot
-          src=""
-          alt="Flowchart showing the recommended fix order: Completeness first, then Visual Content, then Engagement, then Local SEO, then Reviews started on day one."
-          caption="Not all fixes take the same time. Here's the order that produces the fastest visible improvement."
-        />
+        <SeoDiagram caption="Not all fixes take the same time. Here's the order that produces the fastest visible improvement.">
+          <PriorityFlowDiagram />
+        </SeoDiagram>
 
         <p>Not all fixes take the same amount of time or effort. Here&apos;s the realistic order, based on how quickly each category can move:</p>
 
@@ -110,11 +106,9 @@ export default function ImproveAuditScorePage() {
 
         <h2>Step 3: A Realistic Timeline</h2>
 
-        <Screenshot
-          src=""
-          alt="Timeline showing what moves in the audit score at each stage: same-day fixes (completeness, Q&A), within a week (photos, first post), 2-4 weeks (NAP, engagement pattern), 4-8 weeks (reviews)."
-          caption="A realistic timeline for audit score improvement across all five categories."
-        />
+        <SeoDiagram caption="A realistic timeline for audit score improvement across all five categories.">
+          <ImprovementTimelineDiagram />
+        </SeoDiagram>
 
         <div className="overflow-x-auto">
           <table>

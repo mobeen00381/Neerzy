@@ -94,10 +94,18 @@ export function AuditResultDiagram() {
 
 /**
  * CategoryScoreDiagram — For #13 (category score breakdown with gauges)
- * Shows 5 audit categories with individual scores.
+ * Shows audit categories with individual scores. Accepts props for custom data.
+ * Defaults to the pillar page's 5-category breakdown if no props provided.
  */
-export function CategoryScoreDiagram() {
-  const categories = [
+interface CategoryScoreItem {
+  label: string;
+  score: number;
+  maxScore: number;
+  color: string;
+}
+
+export function CategoryScoreDiagram({ categories, businessName, overallScore }: { categories?: CategoryScoreItem[]; businessName?: string; overallScore?: number }) {
+  const defaultCategories: CategoryScoreItem[] = [
     { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
     { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
     { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
@@ -105,12 +113,16 @@ export function CategoryScoreDiagram() {
     { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
   ];
 
+  const cats = categories || defaultCategories;
+  const bizName = businessName || 'Smith Plumbing & Heating';
+  const totalScore = overallScore !== undefined ? overallScore : Math.round(cats.reduce((sum, c) => sum + c.score, 0));
+
   return (
     <div className="p-4 max-w-sm mx-auto">
       <div className="bg-white rounded-xl border border-[#E1E8E4] shadow-sm p-4">
-        <div className="text-sm font-bold text-[#0A2E22] mb-4 text-center">Smith Plumbing & Heating — Score Breakdown</div>
+        <div className="text-sm font-bold text-[#0A2E22] mb-4 text-center">{bizName} — Score Breakdown</div>
         <div className="space-y-4">
-          {categories.map((cat, i) => {
+          {cats.map((cat, i) => {
             const pct = Math.round((cat.score / cat.maxScore) * 100);
             return (
               <div key={i} className="flex items-center gap-3">
@@ -128,7 +140,7 @@ export function CategoryScoreDiagram() {
           })}
         </div>
         <div className="mt-4 pt-3 border-t border-[#E1E8E4] text-center">
-          <div className="text-xs text-[#5B6B64]">Overall Score: <span className="font-bold text-[#0A2E22]">57/100</span></div>
+          <div className="text-xs text-[#5B6B64]">Overall Score: <span className="font-bold text-[#0A2E22]">{totalScore}/100</span></div>
         </div>
       </div>
     </div>
@@ -208,38 +220,57 @@ export function RecommendationsDiagram() {
 }
 
 /**
- * BeforeAfterDiagram — For #26 (split-screen before/after 34→89)
+ * BeforeAfterDiagram — For #26 (split-screen before/after comparison)
+ * Accepts props for custom before/after data. Defaults to pillar page values.
  */
-export function BeforeAfterDiagram() {
+interface BeforeAfterItem {
+  label: string;
+  before: string;
+  after: string;
+}
+
+export function BeforeAfterDiagram({ beforeScore, afterScore, items, beforeColor, afterColor }: { beforeScore?: number; afterScore?: number; items?: BeforeAfterItem[]; beforeColor?: string; afterColor?: string }) {
+  const defaultItems: BeforeAfterItem[] = [
+    { label: 'Photos', before: '12 photos', after: '130+ photos' },
+    { label: 'Reviews', before: '22 reviews', after: '210 reviews' },
+    { label: 'Posts', before: 'No posts', after: 'Weekly posts' },
+  ];
+
+  const befScore = beforeScore ?? 34;
+  const aftScore = afterScore ?? 89;
+  const befColor = beforeColor ?? '#EF4444';
+  const aftColor = afterColor ?? '#22C55E';
+  const data = items || defaultItems;
+
   return (
     <div className="p-4 max-w-sm mx-auto">
       <div className="grid grid-cols-2 gap-3">
         {/* Before */}
         <div className="bg-white rounded-xl border border-[#E1E8E4] shadow-sm overflow-hidden">
-          <div className="bg-[#EF4444] text-white p-3 text-center">
+          <div className="text-white p-3 text-center" style={{ backgroundColor: befColor }}>
             <div className="text-xs opacity-80">Before</div>
-            <div className="text-xl font-bold">34</div>
+            <div className="text-xl font-bold">{befScore}</div>
           </div>
           <div className="p-3 space-y-1.5">
-            {['12 photos', '22 reviews', 'No posts'].map((item, i) => (
+            {data.map((item, i) => (
               <div key={i} className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
-                <span className="text-xs text-[#5B6B64]">{item}</span>
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: befColor }} />
+                <span className="text-xs text-[#5B6B64]">{item.before}</span>
               </div>
             ))}
           </div>
         </div>
         {/* After */}
-        <div className="bg-white rounded-xl border border-[#22C55E] shadow-sm overflow-hidden">
-          <div className="bg-[#22C55E] text-white p-3 text-center">
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden" style={{ borderColor: aftColor }}>
+          <div className="text-white p-3 text-center" style={{ backgroundColor: aftColor }}>
             <div className="text-xs opacity-80">After</div>
-            <div className="text-xl font-bold">89</div>
+            <div className="text-xl font-bold">{aftScore}</div>
           </div>
           <div className="p-3 space-y-1.5">
-            {['130+ photos', '210 reviews', 'Weekly posts'].map((item, i) => (
+            {data.map((item, i) => (
               <div key={i} className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-                <span className="text-xs text-[#5B6B64]">{item}</span>
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: aftColor }} />
+                <span className="text-xs text-[#5B6B64]">{item.after}</span>
               </div>
             ))}
           </div>
@@ -250,22 +281,35 @@ export function BeforeAfterDiagram() {
 }
 
 /**
- * ProgressGraphDiagram — For #27 (score climbing over 3 months)
+ * ProgressGraphDiagram — For #27 (score climbing over time)
+ * Accepts props for custom data points. Defaults to pillar page values.
  */
-export function ProgressGraphDiagram() {
-  const months = [
+interface ProgressDataPoint {
+  label: string;
+  score: number;
+}
+
+export function ProgressGraphDiagram({ data, businessName, trendLabel }: { data?: ProgressDataPoint[]; businessName?: string; trendLabel?: string }) {
+  const defaultData: ProgressDataPoint[] = [
     { label: 'Month 1', score: 34 },
     { label: 'Month 2', score: 62 },
     { label: 'Month 3', score: 89 },
   ];
 
+  const points = data || defaultData;
+  const bizName = businessName || 'Smith Plumbing & Heating';
+  const firstScore = points[0]?.score ?? 0;
+  const lastScore = points[points.length - 1]?.score ?? 0;
+  const diff = lastScore - firstScore;
+  const trend = trendLabel || `↑ +${diff} points in ${points.length} ${points.length === 1 ? 'period' : 'periods'}`;
+
   return (
     <div className="p-4 max-w-sm mx-auto">
       <div className="bg-white rounded-xl border border-[#E1E8E4] shadow-sm p-4">
-        <div className="text-sm font-bold text-[#0A2E22] mb-4 text-center">Smith Plumbing & Heating — Score Progress</div>
+        <div className="text-sm font-bold text-[#0A2E22] mb-4 text-center">{bizName} — Score Progress</div>
         {/* Bar chart */}
         <div className="flex items-end justify-center gap-6 h-32">
-          {months.map((m, i) => (
+          {points.map((m, i) => (
             <div key={i} className="flex flex-col items-center gap-2">
               <div className="text-xs font-bold text-[#0F5132]">{m.score}</div>
               <div
@@ -281,7 +325,7 @@ export function ProgressGraphDiagram() {
         </div>
         {/* Trend line */}
         <div className="mt-4 pt-3 border-t border-[#E1E8E4] text-center">
-          <div className="text-xs text-[#22C55E] font-semibold">↑ +55 points in 3 months</div>
+          <div className="text-xs text-[#22C55E] font-semibold">{trend}</div>
         </div>
       </div>
     </div>
@@ -692,6 +736,129 @@ export function LocalPackDiagram() {
           <div className="text-[#F59E0B] text-xs">★★★★</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * PriorityFlowDiagram — For page 2 (Improve Your Audit Score)
+ * Shows recommended fix order: Completeness → Visual Content → Engagement → Local SEO → Reviews
+ */
+export function PriorityFlowDiagram() {
+  const steps = [
+    { label: 'Completeness', desc: 'Fill in every field', time: 'Same day' },
+    { label: 'Visual Content', desc: 'Upload photos & video', time: 'Within a week' },
+    { label: 'Engagement', desc: 'Post & respond', time: '2-3 weeks' },
+    { label: 'Local SEO', desc: 'Fix NAP & categories', time: '2-4 weeks' },
+    { label: 'Reviews', desc: 'Build review velocity', time: '4-8 weeks' },
+  ];
+
+  return (
+    <div className="p-4 max-w-lg mx-auto">
+      <div className="flex flex-col gap-3">
+        {steps.map((step, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#0F5132] text-white flex items-center justify-center font-bold text-sm shrink-0">
+              {i + 1}
+            </div>
+            <div className="flex-1 bg-white rounded-lg border border-[#E1E8E4] shadow-sm p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-semibold text-sm text-[#0F5132]">{step.label}</span>
+                  <span className="text-xs text-[#5B6B64] ml-2">— {step.desc}</span>
+                </div>
+                <div className="text-xs font-semibold text-[#22C55E] bg-[#E6F2EA] px-2 py-0.5 rounded">
+                  {step.time}
+                </div>
+              </div>
+            </div>
+            {i < steps.length - 1 && (
+              <div className="text-[#22C55E] font-bold text-lg shrink-0">↓</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * UrgencyTimelineDiagram — For page 4 (Reviews Score Guide)
+ * Shows review request response rates peaking immediately and dropping after 24-48 hours.
+ */
+export function UrgencyTimelineDiagram() {
+  const points = [
+    { label: 'Immediate', score: 85, desc: 'Peak satisfaction — ask now' },
+    { label: '24 hours', score: 55, desc: 'Memory starts fading' },
+    { label: '48 hours', score: 30, desc: 'Sharp drop-off' },
+    { label: '1 week', score: 10, desc: 'Too late — unlikely' },
+  ];
+
+  return (
+    <div className="p-4 max-w-sm mx-auto">
+      <div className="bg-white rounded-xl border border-[#E1E8E4] shadow-sm p-4">
+        <div className="text-sm font-bold text-[#0A2E22] mb-4 text-center">Review Request Response Rate</div>
+        {/* Bar chart */}
+        <div className="flex items-end justify-center gap-4 h-40">
+          {points.map((p, i) => (
+            <div key={i} className="flex flex-col items-center gap-2">
+              <div className="text-xs font-bold text-[#0F5132]">{p.score}%</div>
+              <div
+                className="w-10 rounded-t-lg"
+                style={{
+                  height: `${p.score}%`,
+                  backgroundColor: p.score >= 70 ? '#22C55E' : p.score >= 40 ? '#F59E0B' : '#EF4444',
+                }}
+              />
+              <div className="text-xs text-[#5B6B64] text-center">{p.label}</div>
+              <div className="text-[10px] text-[#5B6B64] text-center leading-tight max-w-[80px]">{p.desc}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 pt-3 border-t border-[#E1E8E4] text-center">
+          <div className="text-xs text-[#EF4444] font-semibold">Ask immediately — response rate drops sharply after 24-48 hours</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ImprovementTimelineDiagram — For page 2 (Improve Your Audit Score)
+ * Shows what moves at each timeframe: same-day, within a week, 2-4 weeks, 4-8 weeks.
+ */
+export function ImprovementTimelineDiagram() {
+  const stages = [
+    { label: 'Same Day', items: ['Fill in missing fields', 'Seed Q&A section', 'Add GBP website link'], color: '#22C55E' },
+    { label: 'Within a Week', items: ['Upload photo backlog', 'Publish first Google Post', 'Respond to all reviews'], color: '#F59E0B' },
+    { label: '2-4 Weeks', items: ['Fix NAP across directories', 'Establish posting pattern', 'Define service areas'], color: '#F59E0B' },
+    { label: '4-8 Weeks', items: ['Build review velocity', 'Re-run audit to track progress'], color: '#EF4444' },
+  ];
+
+  return (
+    <div className="p-4 max-w-lg mx-auto">
+      <div className="relative">
+        {/* Vertical line */}
+        <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-[#D3E6DA]" />
+        {stages.map((stage, i) => (
+          <div key={i} className="flex items-start gap-4 mb-6 last:mb-0 relative">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 z-10 text-white" style={{ backgroundColor: stage.color }}>
+              {i + 1}
+            </div>
+            <div className="flex-1 bg-white rounded-lg border border-[#E1E8E4] shadow-sm p-3">
+              <div className="font-semibold text-sm text-[#0F5132] mb-2">{stage.label}</div>
+              <ul className="space-y-1">
+                {stage.items.map((item, j) => (
+                  <li key={j} className="flex items-center gap-2 text-xs text-[#5B6B64]">
+                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

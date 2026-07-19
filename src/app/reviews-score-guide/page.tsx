@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { SeoDiagram, CategoryScoreDiagram, UrgencyTimelineDiagram, ProgressGraphDiagram } from '@/components/seo-visuals/SeoDiagram';
 import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
@@ -46,11 +46,17 @@ export default function ReviewsScoreGuidePage() {
 
         <h2>What This Score Actually Measures</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of the Neerzy audit Reviews & Reputation section showing total review count, average star rating, review velocity indicator, and response rate percentage."
-          caption="The Reviews & Reputation category measures four distinct signals — not just your star rating."
-        />
+        <SeoDiagram caption="The Reviews & Reputation category measures four distinct signals — not just your star rating.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>The audit checks four things under this category:</p>
         <ul>
@@ -75,11 +81,9 @@ export default function ReviewsScoreGuidePage() {
 
         <h2>The Request: Timing, Wording, and Common Mistakes</h2>
 
-        <Screenshot
-          src=""
-          alt="Timeline showing review request response rates peaking at immediate post-job and dropping sharply after 24-48 hours."
-          caption="Ask immediately after the job — satisfaction peaks the moment the problem is solved."
-        />
+        <SeoDiagram caption="Ask immediately after the job — satisfaction peaks the moment the problem is solved.">
+          <UrgencyTimelineDiagram />
+        </SeoDiagram>
 
         <p><strong>Timing.</strong> Ask immediately after the job is completed — not the next day, not &quot;when things settle down.&quot; Satisfaction peaks the moment the problem is solved and fades measurably within 24–48 hours.</p>
         <p><strong>Wording.</strong> Short and specific beats long and polished:</p>
@@ -108,11 +112,17 @@ export default function ReviewsScoreGuidePage() {
 
         <h2>Fix This, Then Re-Check</h2>
 
-        <Screenshot
-          src=""
-          alt="Progress graph showing the Reviews & Reputation score climbing over a 4-week period after implementing consistent review requests."
-          caption="A realistic 4-week improvement arc for Reviews & Reputation — gradual but compounding."
-        />
+        <SeoDiagram caption="A realistic 4-week improvement arc for Reviews & Reputation — gradual but compounding.">
+          <ProgressGraphDiagram
+            data={[
+              { label: 'Week 1', score: 45 },
+              { label: 'Week 2', score: 55 },
+              { label: 'Week 3', score: 62 },
+              { label: 'Week 4', score: 72 },
+            ]}
+            trendLabel="↑ +27 points in 4 weeks"
+          />
+        </SeoDiagram>
 
         <p>Review-based improvements move more slowly than photo or post-based ones, since they depend on real customers actually leaving reviews over time — expect to see measurable score movement over 4–8 weeks of consistent requesting, not overnight.</p>
 

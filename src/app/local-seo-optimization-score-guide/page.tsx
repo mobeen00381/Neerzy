@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { Screenshot } from '@/components/seo-visuals/Screenshot';
+import { SeoDiagram, CategoryScoreDiagram, BeforeAfterDiagram } from '@/components/seo-visuals/SeoDiagram';
 import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
@@ -46,11 +46,17 @@ export default function LocalSeoOptimizationScoreGuidePage() {
 
         <h2>1. What This Score Measures</h2>
 
-        <Screenshot
-          src=""
-          alt="Screenshot of the Neerzy audit Local SEO Optimization section showing category accuracy indicator, service area coverage map, NAP consistency check across Yelp, Angi, and BBB, and GBP website backlink status."
-          caption="The Local SEO Optimization category looks beyond your GBP to how your business appears across the whole web."
-        />
+        <SeoDiagram caption="The Local SEO Optimization category looks beyond your GBP to how your business appears across the whole web.">
+          <CategoryScoreDiagram
+            categories={[
+              { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
+              { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
+              { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
+              { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
+              { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+            ]}
+          />
+        </SeoDiagram>
 
         <ul>
           <li><strong>Keywords in your business name and description</strong></li>
@@ -77,11 +83,17 @@ export default function LocalSeoOptimizationScoreGuidePage() {
 
         <h2>4. Real Examples</h2>
 
-        <Screenshot
-          src=""
-          alt="Comparison showing a plumbing profile with no service areas defined, outdated phone on two directories, and no GBP link scoring 30-50 versus a fully consistent profile scoring 85-100."
-          caption="NAP consistency and defined service areas are the two biggest levers in this category."
-        />
+        <SeoDiagram caption="NAP consistency and defined service areas are the two biggest levers in this category.">
+          <BeforeAfterDiagram
+            beforeScore={40}
+            afterScore={92}
+            items={[
+              { label: 'Service Areas', before: 'Not defined', after: '5 cities defined' },
+              { label: 'NAP', before: 'Mismatch on 2 directories', after: 'Identical everywhere' },
+              { label: 'GBP Link', before: 'No website link', after: 'Footer link added' },
+            ]}
+          />
+        </SeoDiagram>
 
         <p>A plumbing business with the correct primary category but no defined service areas, an outdated phone number on two major directories, and no link from its website to its GBP will typically score in the 30–50 range on this category. A business with accurate, specific categories, clearly defined service areas, identical NAP information on every directory, and a GBP link in its website footer will typically score in the 85–100 range — and almost none of this requires ongoing maintenance once it&apos;s set up correctly.</p>
 

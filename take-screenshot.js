@@ -21,7 +21,6 @@ async function main() {
   }
 
   if (!executablePath) {
-    // Try to find via where command
     try {
       const result = execSync('where msedge', { encoding: 'utf8', shell: 'cmd.exe' });
       executablePath = result.trim().split('\n')[0].trim();
@@ -47,30 +46,35 @@ async function main() {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900 });
 
-  console.log('Navigating to about page...');
-  await page.goto('http://localhost:3000/about', {
+  // Screenshot 1: Understanding Your Audit Score
+  console.log('Navigating to understanding-your-gbp-audit-score...');
+  await page.goto('http://localhost:3000/understanding-your-gbp-audit-score', {
     waitUntil: 'networkidle0',
     timeout: 30000,
   });
+  await new Promise(r => setTimeout(r, 2000));
 
-  // Wait a bit for any animations
-  await new Promise(r => setTimeout(r, 1000));
-
-  // Take full page screenshot
-  const outputPath = path.join(__dirname, 'public', 'about-page-full.png');
+  const outputPath1 = path.join(__dirname, 'public', 'understanding-score-full.png');
   await page.screenshot({
-    path: outputPath,
+    path: outputPath1,
     fullPage: true,
   });
-  console.log('Full page screenshot saved to:', outputPath);
+  console.log('Saved:', outputPath1);
 
-  // Take viewport screenshot
-  const outputPath2 = path.join(__dirname, 'public', 'about-page-viewport.png');
+  // Screenshot 2: Visual Content Score Guide
+  console.log('Navigating to visual-content-score-guide...');
+  await page.goto('http://localhost:3000/visual-content-score-guide', {
+    waitUntil: 'networkidle0',
+    timeout: 30000,
+  });
+  await new Promise(r => setTimeout(r, 2000));
+
+  const outputPath2 = path.join(__dirname, 'public', 'visual-content-score-full.png');
   await page.screenshot({
     path: outputPath2,
-    fullPage: false,
+    fullPage: true,
   });
-  console.log('Viewport screenshot saved to:', outputPath2);
+  console.log('Saved:', outputPath2);
 
   await browser.close();
   console.log('Done!');
