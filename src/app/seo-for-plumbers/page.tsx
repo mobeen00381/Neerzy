@@ -250,7 +250,7 @@ export default function SeoForPlumbersPage() {
           <p>Both businesses might do equally good plumbing work. But Business B will appear in the Local Pack far more often, get more clicks, and convert more of those clicks into calls — not because Google &quot;likes them more&quot; in some abstract sense, but because every signal Google uses to judge relevance, distance, and prominence points in Business B&apos;s favor. This is the entire premise of plumbing SEO: <strong>make the invisible work you&apos;re already doing visible to the algorithm that decides who gets found.</strong></p>
 
           {/* Audit Landing Screenshot */}
-          <Screenshot src="" alt="Screenshot of the Neerzy audit landing page showing a Google Maps URL input field." caption="Getting your baseline score takes less than 30 seconds." />
+          <Screenshot src="/images/audit-landing-input.png" alt="Screenshot of the Neerzy audit landing page showing a Google Maps URL input field." caption="Getting your baseline score takes less than 30 seconds." />
 
           <hr />
 
@@ -588,7 +588,7 @@ export default function SeoForPlumbersPage() {
           <h3>Speed</h3>
           <p>Compress images, minimize unnecessary scripts, and use modern hosting. A plumbing site should load in under 2–3 seconds on mobile.</p>
           <h3>Mobile</h3>
-          <Screenshot src="" alt="Screenshot of the Neerzy audit dashboard displayed on a mobile phone screen showing responsive design." caption="Track your SEO progress from the truck with Neerzy's mobile view." />
+          <Screenshot src="/images/audit-dashboard-mobile.png" alt="Screenshot of the Neerzy audit dashboard displayed on a mobile phone screen showing responsive design." caption="Track your SEO progress from the truck with Neerzy's mobile view." />
           <p>The majority of &quot;plumber near me&quot; searches happen on a phone. A site that isn&apos;t fully responsive on mobile is fighting SEO with one hand tied behind its back.</p>
           <h3>HTTPS</h3>
           <p>Every plumbing website should run on HTTPS (the padlock icon). It&apos;s both a baseline trust signal for customers and a confirmed Google ranking factor.</p>

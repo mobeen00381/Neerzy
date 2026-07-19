@@ -43,34 +43,35 @@ async function main() {
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1440, height: 900 });
-
-  // Screenshot 1: Understanding Your Audit Score
-  console.log('Navigating to understanding-your-gbp-audit-score...');
-  await page.goto('http://localhost:3000/understanding-your-gbp-audit-score', {
+  // ── Screenshot 1: Audit Landing Page (desktop, showing Google Maps URL input) ──
+  console.log('Navigating to /gmb-audit-tool...');
+  const page1 = await browser.newPage();
+  await page1.setViewport({ width: 1440, height: 900 });
+  await page1.goto('http://localhost:3000/gmb-audit-tool', {
     waitUntil: 'networkidle0',
     timeout: 30000,
   });
   await new Promise(r => setTimeout(r, 2000));
 
-  const outputPath1 = path.join(__dirname, 'public', 'understanding-score-full.png');
-  await page.screenshot({
+  const outputPath1 = path.join(__dirname, 'public', 'images', 'audit-landing-input.png');
+  await page1.screenshot({
     path: outputPath1,
-    fullPage: true,
+    fullPage: false, // viewport only — captures the input field area
   });
   console.log('Saved:', outputPath1);
 
-  // Screenshot 2: Visual Content Score Guide
-  console.log('Navigating to visual-content-score-guide...');
-  await page.goto('http://localhost:3000/visual-content-score-guide', {
+  // ── Screenshot 2: Audit Dashboard (mobile viewport, 375px) ──
+  console.log('Navigating to /dashboard/audit-report...');
+  const page2 = await browser.newPage();
+  await page2.setViewport({ width: 375, height: 812 }); // iPhone X dimensions
+  await page2.goto('http://localhost:3000/dashboard/audit-report', {
     waitUntil: 'networkidle0',
     timeout: 30000,
   });
   await new Promise(r => setTimeout(r, 2000));
 
-  const outputPath2 = path.join(__dirname, 'public', 'visual-content-score-full.png');
-  await page.screenshot({
+  const outputPath2 = path.join(__dirname, 'public', 'images', 'audit-dashboard-mobile.png');
+  await page2.screenshot({
     path: outputPath2,
     fullPage: true,
   });
