@@ -7,6 +7,8 @@ export interface PlanLimits {
   trialDays: number;        // Trial period in days
   totalPosts: number;       // Lifetime/billing cycle post limit
   dailyPosts: number;       // Max posts per day
+  totalReviewRequests: number; // Lifetime/billing cycle review request limit
+  dailyReviewRequests: number; // Max review requests per day
   features: string[];       // Feature list
   color: string;            // Card accent color
 }
@@ -18,6 +20,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     trialDays: 30,
     totalPosts: 5,
     dailyPosts: 1,
+    totalReviewRequests: 5,
+    dailyReviewRequests: 1,
     features: [
       '5 WhatsApp posts total',
       '1 post per day limit',
@@ -33,6 +37,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     trialDays: 0,
     totalPosts: 25,
     dailyPosts: 2,
+    totalReviewRequests: 25,
+    dailyReviewRequests: 2,
     features: [
       '25 posts per month',
       '2 posts per day',
@@ -51,6 +57,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     trialDays: 0,
     totalPosts: 60,
     dailyPosts: 4,
+    totalReviewRequests: 60,
+    dailyReviewRequests: 4,
     features: [
       '60 posts per month',
       '4 posts per day',
@@ -69,6 +77,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     trialDays: 0,
     totalPosts: 250,
     dailyPosts: 2,
+    totalReviewRequests: 250,
+    dailyReviewRequests: 5,
     features: [
       '250 posts per month',
       'Up to 10 clients',

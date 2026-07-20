@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabase";
 import { PLAN_LIMITS, getRemainingDays } from '@/lib/plans';
+import { ReviewsManager } from '@/components/dashboard/ReviewsManager';
 import { 
   Sparkles, 
   Smartphone, 
@@ -25,7 +26,8 @@ import {
   Square,
   Activity,
   ChevronRight,
-  Copy
+  Copy,
+  Star
 } from 'lucide-react';
 
 interface Message {
@@ -43,7 +45,7 @@ interface Message {
 export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'post' | 'analytics' | 'account'>('post');
+  const [activeTab, setActiveTab] = useState<'post' | 'analytics' | 'account' | 'reviews'>('post');
   
   // User & Business Profiles
   const [user, setUser] = useState<any>(null);
@@ -52,6 +54,17 @@ export default function Dashboard() {
   
   // Stats
   const [stats, setStats] = useState({ total: 0, daily: 0 });
+  
+  // Review stats
+  const [reviewStats, setReviewStats] = useState<{
+    total_sent: number;
+    total_received: number;
+    sent_today: number;
+    sent_this_month: number;
+    received_this_month: number;
+    conversion_rate: number;
+  } | null>(null);
+  const [reviewStatsLoading, setReviewStatsLoading] = useState(false);
   
   // WhatsApp Chat states
   const [messages, setMessages] = useState<Message[]>([]);
@@ -298,6 +311,34 @@ export default function Dashboard() {
   useEffect(() => {
     loadDashboardData();
   }, [router]);
+
+  // Fetch review stats when analytics tab is active
+  useEffect(() => {
+    if (activeTab === 'analytics' && user?.id) {
+      const fetchReviewStats = async () => {
+        setReviewStatsLoading(true);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const response = await fetch(`/api/reviews/stats?user_id=${user.id}`, {
+            headers: {
+              'Authorization': `Bearer ${session?.access_token || ''}`,
+            },
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              setReviewStats(result.data);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch review stats:', err);
+        } finally {
+          setReviewStatsLoading(false);
+        }
+      };
+      fetchReviewStats();
+    }
+  }, [activeTab, user?.id]);
 
   // Log Out
   const handleLogout = async () => {
@@ -601,6 +642,16 @@ export default function Dashboard() {
                 Post
               </button>
               <button
+                onClick={() => setActiveTab('reviews')}
+                className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
+                  activeTab === 'reviews' 
+                    ? 'bg-white text-emerald-700 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Reviews
+              </button>
+              <button
                 onClick={() => setActiveTab('analytics')}
                 className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
                   activeTab === 'analytics' 
@@ -670,6 +721,10 @@ export default function Dashboard() {
               <span className="flex items-center gap-0.5" title="Daily Posts Count">
                 ⚡ Daily: {dailyCountdown}
               </span>
+              <span className="hidden sm:inline border-r border-slate-200 h-3" />
+              <span className="flex items-center gap-0.5 text-amber-600" title="Review Requests">
+                ⭐ {planLimits.totalReviewRequests === -1 ? 'Unlimited' : `${planLimits.totalReviewRequests} reviews`}
+              </span>
             </div>
           </div>
 
@@ -731,6 +786,25 @@ export default function Dashboard() {
                   <span className="font-extrabold text-sm text-slate-900">Performance Analytics</span>
                 </div>
                 <p className="text-xs text-slate-500 font-medium truncate mt-0.5">Views, Clicks, and SEO ratings</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('reviews')}
+              className={`w-full flex items-center gap-4 px-4 py-3.5 border-b border-slate-100/50 transition-all ${
+                activeTab === 'reviews' 
+                  ? 'bg-emerald-50/55 border-l-4 border-emerald-600' 
+                  : 'hover:bg-slate-50'
+              }`}
+            >
+              <div className="w-11 h-11 bg-amber-600 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm">
+                <Star className="w-5 h-5" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-sm text-slate-900">Review Requests</span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">Send & track Google review requests</p>
               </div>
             </button>
 
@@ -947,7 +1021,61 @@ export default function Dashboard() {
                   <p className="text-sm text-slate-500 font-semibold mt-1">Accurate usage statistics tracked directly from your WhatsApp and Dashboard activity</p>
                 </div>
 
-                {/* Analytics summary grid */}
+                {/* Review Stats Summary */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Review Requests Sent</span>
+                      <span className="text-3xl font-black text-slate-900 block mt-1">
+                        {reviewStatsLoading ? (
+                          <Loader2 className="w-6 h-6 animate-spin text-slate-400 inline" />
+                        ) : (
+                          reviewStats?.total_sent ?? '--'
+                        )}
+                      </span>
+                      <span className="text-[10px] text-amber-600 font-bold mt-1 block">Self-reported via dashboard</span>
+                    </div>
+                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl font-bold">
+                      ⭐
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Reviews Received</span>
+                      <span className="text-3xl font-black text-slate-900 block mt-1">
+                        {reviewStatsLoading ? (
+                          <Loader2 className="w-6 h-6 animate-spin text-slate-400 inline" />
+                        ) : (
+                          reviewStats?.total_received ?? '--'
+                        )}
+                      </span>
+                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">Self-reported (manual)</span>
+                    </div>
+                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl font-bold">
+                      ✅
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Conversion Rate</span>
+                      <span className="text-3xl font-black text-slate-900 block mt-1">
+                        {reviewStatsLoading ? (
+                          <Loader2 className="w-6 h-6 animate-spin text-slate-400 inline" />
+                        ) : (
+                          reviewStats ? `${reviewStats.conversion_rate}%` : '--'
+                        )}
+                      </span>
+                      <span className="text-[10px] text-blue-600 font-bold mt-1 block">Self-reported conversion</span>
+                    </div>
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-bold">
+                      📊
+                    </div>
+                  </div>
+                </div>
+
+                {/* Post Analytics summary grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
                     <div>
@@ -1021,7 +1149,20 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* TAB 3: ACCOUNT & LISTING */}
+          {/* TAB 3: REVIEWS */}
+          {activeTab === 'reviews' && (
+            <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto space-y-8 max-h-[calc(100vh-80px)]">
+              <div className="max-w-3xl mx-auto">
+                <div className="mb-8">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Review Requests</h2>
+                  <p className="text-sm text-slate-500 font-semibold mt-1">Send Google review requests via WhatsApp and track responses</p>
+                </div>
+                <ReviewsManager userId={user?.id || ''} />
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: ACCOUNT & LISTING */}
           {activeTab === 'account' && (
             <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto space-y-8 max-h-[calc(100vh-80px)]">
               <div className="max-w-3xl mx-auto space-y-8">
@@ -1166,7 +1307,7 @@ export default function Dashboard() {
 
                   <div className="space-y-4">
                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest block">Quota Details</span>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-bold text-slate-600">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-bold text-slate-600">
                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="block text-slate-400 text-[10px] uppercase">Subscription Left</span>
                         <span className="block text-slate-900 text-base font-black mt-1">{daysCountdown}</span>
@@ -1176,8 +1317,13 @@ export default function Dashboard() {
                         <span className="block text-slate-900 text-base font-black mt-1">{totalCountdown}</span>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="block text-slate-400 text-[10px] uppercase">Daily Limit</span>
+                        <span className="block text-slate-400 text-[10px] uppercase">Daily Post Limit</span>
                         <span className="block text-slate-900 text-base font-black mt-1">{dailyCountdown}</span>
+                      </div>
+                      <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                        <span className="block text-amber-500 text-[10px] uppercase">Review Requests</span>
+                        <span className="block text-slate-900 text-base font-black mt-1">{planLimits.totalReviewRequests === -1 ? 'Unlimited' : `${planLimits.totalReviewRequests} total`}</span>
+                        <span className="block text-amber-600 text-[10px] font-bold mt-0.5">{planLimits.dailyReviewRequests === -1 ? 'Unlimited' : `${planLimits.dailyReviewRequests}/day`}</span>
                       </div>
                     </div>
                   </div>
