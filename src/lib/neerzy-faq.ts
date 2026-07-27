@@ -231,7 +231,20 @@ Connect your GBP during onboarding at /onboarding`
 The more you post, the higher you rank. Businesses using Neerzy typically see improved local visibility within weeks! 📈`
   },
 
-  // ── Website ──
+  // ── Website (specific questions first, then general) ──
+  {
+    patterns: ['without website', 'no website', "don't have website", 'do not have website', 'need a website', 'do i need website', 'start without', 'without a website'],
+    answer: `Yes! You can absolutely start without a website! 
+
+Neerzy is designed for businesses that may not have a website yet. Here's how it works:
+
+• 📸 Just send a photo via WhatsApp after each job
+•  Neerzy's AI generates SEO-optimized content
+• 🌐 We auto-generate a website for you (one-time $19 domain fee)
+• 📈 Content gets published to your Google Business Profile
+
+You don't need any existing website or technical skills. Neerzy builds everything for you! 👉 /onboarding`
+  },
   {
     patterns: ['website', 'my website', 'neerzy website', 'auto website', 'landing page'],
     answer: `Every Neerzy user gets a beautiful, auto-generated website! 🌐
@@ -242,7 +255,7 @@ The more you post, the higher you rank. Businesses using Neerzy typically see im
 • Mobile-responsive design
 • No coding or website builder needed
 
-Your website builds itself as you work! 💪`
+Your website builds itself as you work! `
   },
 
   // ── Support / Contact ──
@@ -321,11 +334,16 @@ const NEERZY_KEYWORDS = [
 /**
  * Helper: Check if a pattern matches as a whole word/phrase in the message.
  * Uses word boundary matching to avoid false positives (e.g., "hi" matching inside "this").
+ * For multi-word patterns, checks if the entire phrase exists in the text.
  */
 function wordBoundaryMatch(text: string, pattern: string): boolean {
-  // Escape special regex characters in the pattern
+  // For multi-word patterns, check if the entire phrase exists
+  if (pattern.includes(' ')) {
+    return text.includes(pattern.toLowerCase());
+  }
+  
+  // For single words, use word boundary regex
   const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  // Use word boundary regex for matching
   const regex = new RegExp(`\\b${escaped}\\b`, 'i');
   return regex.test(text);
 }
