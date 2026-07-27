@@ -46,6 +46,95 @@ interface Message {
   source?: 'webapp' | 'whatsapp';
 }
 
+// Helper function to render message content with clickable links
+function renderMessageContent(text: string) {
+  // URL regex pattern
+  const urlPattern = /(https?:\/\/[^\s]+)/g;
+  // Internal path pattern (e.g., /onboarding, /copy/...)
+  const internalPathPattern = /(\/[a-zA-Z0-9\-\/]+)/g;
+  
+  const parts: (string | JSX.Element)[] = [];
+  let lastIndex = 0;
+  let keyIndex = 0;
+  
+  // First, handle URLs
+  const urlMatches = [...text.matchAll(urlPattern)];
+  
+  if (urlMatches.length === 0) {
+    // No URLs, check for internal paths
+    const pathMatches = [...text.matchAll(internalPathPattern)];
+    if (pathMatches.length === 0) {
+      return text;
+    }
+    
+    // Process internal paths
+    pathMatches.forEach((match) => {
+      const path = match[1];
+      const startIndex = match.index!;
+      
+      // Add text before the path
+      if (startIndex > lastIndex) {
+        parts.push(text.slice(lastIndex, startIndex));
+      }
+      
+      // Add the clickable path
+      parts.push(
+        <a 
+          key={keyIndex++} 
+          href={path} 
+          className="text-emerald-600 hover:text-emerald-700 underline font-bold"
+          target={path.startsWith('/copy/') || path.startsWith('/images/') ? '_blank' : undefined}
+          rel="noopener noreferrer"
+        >
+          {path}
+        </a>
+      );
+      
+      lastIndex = startIndex + path.length;
+    });
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+    
+    return <>{parts}</>;
+  }
+  
+  // Process URLs
+  urlMatches.forEach((match) => {
+    const url = match[1];
+    const startIndex = match.index!;
+    
+    // Add text before the URL
+    if (startIndex > lastIndex) {
+      parts.push(text.slice(lastIndex, startIndex));
+    }
+    
+    // Add the clickable URL
+    parts.push(
+      <a 
+        key={keyIndex++} 
+        href={url} 
+        className="text-emerald-600 hover:text-emerald-700 underline font-bold break-all"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {url}
+      </a>
+    );
+    
+    lastIndex = startIndex + url.length;
+  });
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  
+  return <>{parts}</>;
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -931,7 +1020,9 @@ Type *DONE* when published.`,
                           <img src={msg.image} alt="Uploaded attachment" className="w-full max-h-60 object-cover" />
                         </div>
                       )}
-                      <p className="text-sm font-semibold whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                      <p className="text-sm font-semibold whitespace-pre-wrap leading-relaxed break-words">
+                        {renderMessageContent(msg.text)}
+                      </p>
                       
                       <div className="flex items-center justify-between mt-2">
                         {/* Copy Button */}
