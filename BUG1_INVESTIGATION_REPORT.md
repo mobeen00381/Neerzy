@@ -1,83 +1,187 @@
-# Bug #1 Investigation Report: Quota/Countdown Not Tracking Usage
+# BUG #1 Investigation Report: Post-Generation Code Path Analysis
 
-## Root Cause Analysis
+## Executive Summary
 
-### Issue: "30 days left" always shows on a 30-day-old free account
+After a thorough investigation of the entire post-generation pipeline, I have identified **three distinct code paths** that generate posts, each with its own prompt template. The "real estate" content issue is likely caused by the **NeerzyEngine fallback mechanism** firing when the OpenAI API call fails or times out, combined with the **dashboard's hardcoded fallback business profile** (`+923006291617`) that may be serving stale/cached data.
 
-**The problem is in `/src/app/dashboard/page.tsx`, lines 554-556:**
+---
 
-```typescript
-const trialStart = profile?.trial_started_at || profile?.created_at || new Date().toISOString();
-const daysLeft = planLimits.trialDays > 0 ? getRemainingDays(trialStart, planLimits.trialDays) : 30;
-const daysCountdown = planLimits.trialDays > 0 ? `${daysLeft} days left` : 'Unlimited';
+## 1. Code Path A: WhatsApp Webhook → `handleGeneratePost()` (Primary WhatsApp Flow)
+
+**File:** `src/app/api/whatsapp/webhook/route.ts` (lines 252-390)
+
+### Prompt Template (line 277-287):
+```
+Create a Google Post for {draft.customer_name || 'Client'}. Job details: {draft.voice_note || 'Completed successfully'}.
+Format:
+HEADLINE: (max 40 chars)
+BODY: (max 250 chars)
+CTA: (short)
+HASHTAGS: (3 max)
 ```
 
-**The fallback chain is the culprit:**
-1. It tries `profile?.trial_started_at` — but the `profiles` table is **never populated with `trial_started_at`** during signup or onboarding.
-2. It falls back to `profile?.created_at` — but the `profiles` table is **only upserted with `{ id, business_name, phone, updated_at }`** in the `/api/gbp/connect` route (line 73-78 of `gbp/connect/route.ts`). The `created_at` column has a `DEFAULT NOW()` so it gets set, BUT...
-3. If the profile upsert fails (which it silently catches on line 80-87), it falls through to `new Date().toISOString()` — meaning **today's date is used as the trial start**, so `getRemainingDays` always returns 30.
+**Model:** `gpt-4o-mini`
 
-**Even when the profile IS created successfully**, the `trial_started_at` column is **never explicitly set** in the `/api/gbp/connect` route. The migration schema (`20240514_create_core_tables.sql` line 51) shows `trial_started_at TIMESTAMPTZ DEFAULT NOW()`, so it would get the current timestamp on first insert. But the `/api/gbp/connect` route uses `upsert` with `{ onConflict: 'id' }` — meaning on subsequent calls, it updates the row but does NOT include `trial_started_at` in the update payload, so it stays at the original value.
+**Does it include the trader's description?** ✅ YES — it uses `draft.voice_note` which is populated from the WhatsApp message body or voice transcription.
 
-**However**, the real issue is that the `profiles` table row may not even exist for many users. The signup flow (`/signup/page.tsx`) creates an auth user but does NOT insert a row into the `profiles` table. The `/api/gbp/connect` route tries to upsert a profile, but wraps it in a try/catch that silently swallows errors. If the profiles table has RLS policies that block the client-side upsert (since the client uses the anon key, not the service role), the profile row never gets created.
+**Fallback:** If OpenAI fails, the error is caught (line 386-389) and a generic error message is sent to the user. **No placeholder/demo content is substituted.**
 
-### Issue: "5/5 remaining" always shows even after posting
+---
 
-**The problem is in `/src/app/dashboard/page.tsx`, lines 557-559:**
+## 2. Code Path B: `generate-post.ts` → `generateAndSavePost()` (WhatsApp Session Flow)
 
-```typescript
-const totalRemaining = planLimits.totalPosts === -1 ? 'Unlimited' : Math.max(0, planLimits.totalPosts - stats.total);
-const totalCountdown = planLimits.totalPosts === -1 ? 'Unlimited' : `${totalRemaining}/${planLimits.totalPosts} remaining`;
+**File:** `src/lib/generate-post.ts` (lines 27-79)
+
+### Prompt Template (lines 35-39):
+```
+Create a Google Business Profile post for:
+  - Service: {session.transcript || 'General Handyman Work'}
+  - Images: {session.accumulated_images?.length || 0}
+  - Customer: {session.customer_name || 'A customer'}
+  Return JSON EXACTLY in this format: { "title": "...", "description": "...", "hashtags": ["#..."], "call_to_action": "..." }
 ```
 
-**The `stats.total` is calculated from `dbMessages` (line 284):**
-```typescript
-const totalCount = dbMessages.filter(p => p.status === 'published').length;
+**Model:** `gpt-4o-mini`
+
+**Does it include the trader's description?** ✅ YES — it uses `session.transcript`.
+
+**Fallback:** If OpenAI fails, the error propagates up (line 64 throws). **No placeholder content is substituted.**
+
+---
+
+## 3. Code Path C: `NeerzyEngine.generate()` (The "Neerzy Engine" — API Route)
+
+**File:** `src/lib/neerzy/engine.ts` (lines 263-296)
+
+### Prompt Template (lines 142-176):
+```
+Act as the Neerzy AI local marketing expert for the {trade} industry in the {region} region.
+Generate a GBP post for a {jobType} job in {location}.
+
+UNIVERSAL PERFORMANCE RULES:
+- Title/Headline: Max 50 characters (optimized for mobile preview).
+- Body Content: 100-300 characters for maximum engagement.
+- AEO Integration: Include exactly one conversational Q&A block answering a common customer intent.
+- Local Signals: Include 2-3 hyper-local hashtags.
+- Call to Action: Use one of (BOOK, CALL_NOW, LEARN_MORE).
+
+TRADE RULES:
+- SEO Keywords: {rules.seo.join(", ")}
+- AEO Questions: {rules.aeo.join(", ")}
+- GEO Signals: {rules.geo.join(", ")}
+- Seasonal Context: {rules.seasonalFlags.join(", ") || "None"}
+- Trust Signals: {rules.trustSignals.join(", ")}
+- Local Currency: {rules.currency}
+- Urgency Modifiers: {rules.urgency.join(", ")}
+- PRO TIPS: {rules.pro_tips?.join(", ") || "N/A"}
+
+INTENT: {context.intent}
+GEO CONTEXT: {context.geoContext}
+
+Return a JSON object with:
+{
+  "title": "50-char headline",
+  "body": "100-300 char body content",
+  "cta": "The CTA keyword",
+  "ctaUrl": "The link",
+  "hashtags": ["#local1", "#local2"],
+  "faq_ai": "The Q&A block"
+}
 ```
 
-**But `dbMessages` is built from TWO sources:**
-1. `posts` table — queried by `user_id` (line 226-230)
-2. `pending_posts` table — queried by `user_phone` (line 214-223)
+**Model:** `gpt-4o`
 
-**The `handleSendMessage` function (line 476) inserts into the `posts` table and then increments local state:**
+**Does it include the trader's description?** ❌ **NO** — This prompt does NOT include the trader's actual description of the job. It only uses `context.jobType` (which is the `service` parameter — e.g., "burst pipe") and `context.location`. The actual job details from the trader are **not passed into this prompt**.
+
+### ⚠️ CRITICAL FINDING: Fallback Engine (lines 230-241)
+
 ```typescript
-setStats(prev => ({
-  total: prev.total + 1,
-  daily: prev.daily + 1
-}));
+private static generateFallback(context: any, rules: any) {
+    const title = `🚨 Professional ${context.trade} in ${context.location}`;
+    const body = `Need a reliable ${context.trade}? Our team specializes in ${context.jobType} in the ${context.location} area. ${rules.trustSignals[0]} and ${rules.urgency[0]} service.`;
+    const faq_ai = `Q: Do you offer ${context.jobType} in ${context.location}? A: Yes, we are fully ${rules.trustSignals[0].toLowerCase()} and ready to help.`;
+    
+    return { title, body, cta: "CALL_NOW", faq_ai };
+}
 ```
 
-**So the local state IS incremented on post.** But the problem is that `loadDashboardData()` is called ONCE on mount (line 298-300), and the `stats` state is initialized from that initial load. When `handleSendMessage` runs, it increments the local state correctly.
+This fallback fires when:
+1. **OpenAI API call fails** (network error, timeout, auth failure)
+2. **OpenAI API call times out** (the timeout is set to 8000ms on line 280)
 
-**However**, if the user refreshes the page, `loadDashboardData()` runs again and recalculates from the database. If the `posts` table insert succeeded, the count should be correct after refresh.
+The fallback generates **generic, rule-based content** that looks like a real estate / generic service post because it uses template strings like `"Professional {trade} in {location}"` — which would produce content like "Professional Plumber in Austin" — generic enough to look like real estate content.
 
-**The REAL bug is more subtle — the `stats` state is initialized as `{ total: 0, daily: 0 }` (line 54):**
+---
+
+## 4. Code Path D: Dashboard Direct Post (Web App)
+
+**File:** `src/app/dashboard/page.tsx` (lines 517-585)
+
+The dashboard's `handleSendMessage()` function **does NOT call OpenAI at all**. It directly saves the user's raw text to the database (line 524-533) and then simulates a response with hardcoded bot messages:
+
 ```typescript
-const [stats, setStats] = useState({ total: 0, daily: 0 });
+// Line 562-580: Simulated responses — NO actual AI call
+setTimeout(() => {
+    const optimizationMsg = {
+        text: "🔄 Neerzy AI is refining the description, matching keywords, and formatting SEO tags for Google Business Profile...",
+        sender: 'bot'
+    };
+    // ...
+    setTimeout(() => {
+        const successMsg = {
+            text: "✅ Successfully published to your Google Business Profile! Check your GMB listing to see the live update.",
+            sender: 'bot'
+        };
+    }, 1500);
+}, 1000);
 ```
 
-And the `loadDashboardData` function sets it from the DB query. But look at the `totalCount` calculation on line 284:
-```typescript
-const totalCount = dbMessages.filter(p => p.status === 'published').length;
-```
+**This means the dashboard web app posts are NEVER actually sent through AI generation.** They are saved raw and the user is shown a fake "optimization" animation.
 
-This filters by `status === 'published'`. The `handleSendMessage` function inserts posts with `status: 'published'` (line 489), so they should be counted. **This part actually works correctly.**
+---
 
-### The REAL reason "5/5 remaining" persists
+## 5. The "Real Estate" Content Source
 
-The actual bug is that **the header display uses `stats.total` which is calculated from `dbMessages`**, but `dbMessages` only includes posts from the `posts` table (filtered by `user_id`) and `pending_posts` table (filtered by `user_phone`). 
+The most likely source of the real estate-like content is the **NeerzyEngine fallback** (Code Path C). Here's why:
 
-**If the user's `user_id` doesn't match** (e.g., the auth user's ID doesn't match the `user_id` column in the `posts` table because the posts were inserted with a different user reference), the posts won't show up in the count.
+1. **The fallback generates generic content** like "Professional {trade} in {location}" — this pattern is commonly used by real estate agents ("Professional Realtor in Austin").
 
-**More importantly**, the `usage.ts` library (which is the proper centralized usage tracking) is **never actually called from the dashboard page**. The dashboard page has its own inline calculation that duplicates (and conflicts with) the logic in `usage.ts`. The `PostUsageTracker` and `PlanStatusCard` components receive `usage` as a prop but are **never rendered** in the dashboard page — the dashboard page does its own inline rendering of counts.
+2. **The timeout is only 8000ms** (line 280), which is very aggressive for GPT-4o. If the API is slow, it will consistently fall back to the template engine.
 
-## Summary of Bugs Found
+3. **The WhatsApp inbound route** (Code Path A, line 69-78) calls the NeerzyEngine API:
+   ```typescript
+   const neerzyRes = await fetch(`${appUrl}/api/neerzy/generate`, {
+       method: 'POST',
+       body: JSON.stringify({ service, location: geo.city, category: geo.category, address: geo.address, trader_id: traderId })
+   });
+   ```
+   Note: it passes `service` (e.g., "burst pipe") but **NOT the trader's actual description/voice note**. The trader's description is stored in `draft.voice_note` but is never sent to the NeerzyEngine.
 
-| # | Issue | Location | Severity |
-|---|-------|----------|----------|
-| 1 | `trial_started_at` never set during onboarding | `/api/gbp/connect/route.ts` (line 73-78) | **HIGH** |
-| 2 | Fallback to `new Date().toISOString()` makes trial always reset to 30 days | `/app/dashboard/page.tsx` (line 554) | **HIGH** |
-| 3 | `usage.ts` library exists but is never used by the dashboard | `lib/usage.ts` vs `app/dashboard/page.tsx` | **MEDIUM** |
-| 4 | `PostUsageTracker` and `PlanStatusCard` components exist but are never rendered | `components/dashboard/` | **LOW** |
-| 5 | No `review_requests` table or quota tracking exists | Entire codebase | **MISSING FEATURE** |
-| 6 | `AnalyticsPanel` calls `get_trader_analytics` RPC which likely doesn't exist | `components/dashboard/AnalyticsPanel.tsx` (line 103) | **MEDIUM** |
+4. **The dashboard healing mechanism** (lines 160-205 in `dashboard/page.tsx`) hardcodes a fallback phone number `+923006291617` and links to a default business profile. If the user has no phone set, they get linked to this sandbox profile, which may have stale/cached data.
+
+---
+
+## 6. Root Cause Summary
+
+| Issue | Location | Severity |
+|-------|----------|----------|
+| **Trader's description NOT included in NeerzyEngine prompt** | `engine.ts` line 142-176 | 🔴 **HIGH** |
+| **Fallback engine generates generic template content** | `engine.ts` lines 230-241 | 🔴 **HIGH** |
+| **8-second timeout on GPT-4o is too aggressive** | `engine.ts` line 280 | 🟡 MEDIUM |
+| **Dashboard posts bypass AI entirely** | `dashboard/page.tsx` lines 560-580 | 🟡 MEDIUM |
+| **Hardcoded fallback business profile** | `dashboard/page.tsx` lines 162-205 | 🟡 MEDIUM |
+| **WhatsApp inbound doesn't pass voice_note to NeerzyEngine** | `whatsapp/inbound/route.ts` lines 69-78 | 🟡 MEDIUM |
+
+---
+
+## 7. Recommended Fixes
+
+1. **Include trader's description in NeerzyEngine prompt** — Add a `jobDescription` field to `NeerzyInput` and include it in the prompt template.
+
+2. **Increase timeout or add retry logic** — 8000ms is too short for GPT-4o. Increase to 30s or add exponential backoff.
+
+3. **Improve fallback content** — The fallback should at minimum include the trader's actual description rather than generating generic template text.
+
+4. **Fix dashboard to actually call AI** — The simulated "optimization" messages are misleading. Either make a real API call or remove the simulation.
+
+5. **Remove hardcoded fallback phone** — The healing mechanism should not silently link users to a sandbox profile.

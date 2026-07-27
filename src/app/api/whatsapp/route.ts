@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
 import { postToGMB } from "@/lib/gmb";
 import { createClient } from "@supabase/supabase-js";
+import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -10,7 +10,7 @@ const supabase = createClient(
 
 // Lazy OpenAI init — safe for Vercel builds without env vars
 function getOpenAI() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+  return getOpenAIClient();
 }
 
 export async function POST(req: Request) {
@@ -86,10 +86,10 @@ export async function POST(req: Request) {
         }
         
       } else if (mediaType.includes("image")) {
-        // --- IMAGE RECOGNITION LOGIC (GPT-4o Vision) ---
+        // --- IMAGE RECOGNITION LOGIC (Vision) ---
         try {
           const response = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: DEFAULT_OPENAI_MODEL,
             messages: [
               { role: "user", content: [
                   { type: "text", text: "Describe this image in detail. What local service job is being performed? Focus on technical details of the work done." },
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
     console.log("🤖 Generating SEO & GMB content...");
     
     const seoContent = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: DEFAULT_OPENAI_MODEL,
       response_format: { type: "json_object" },
       messages: [
         { 

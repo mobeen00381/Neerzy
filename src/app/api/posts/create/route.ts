@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import OpenAI from "openai";
+import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co",
@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 function getOpenAI() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+  return getOpenAIClient();
 }
 
 // DB-backed rate limiter (safe for serverless — state persists across invocations)
@@ -133,7 +133,7 @@ export async function POST(req: Request) {
     try {
       console.log("Asking OpenAI to generate content...");
       const seoContent = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: DEFAULT_OPENAI_MODEL,
         response_format: { type: "json_object" },
         messages: [
           { 

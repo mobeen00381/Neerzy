@@ -1,9 +1,7 @@
-import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-});
+const openai = getOpenAIClient();
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -39,7 +37,7 @@ export async function generateAndSavePost(session: any) {
   Return JSON EXACTLY in this format: { "title": "...", "description": "...", "hashtags": ["#..."], "call_to_action": "..." }`;
 
   const aiResponse = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: DEFAULT_OPENAI_MODEL,
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
   });

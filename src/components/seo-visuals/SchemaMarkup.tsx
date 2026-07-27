@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface SchemaMarkupProps {
-  type: 'Article' | 'FAQPage' | 'BreadcrumbList' | 'LocalBusiness' | 'Plumber';
+  type: 'Article' | 'FAQPage' | 'BreadcrumbList' | 'LocalBusiness' | 'Plumber' | 'Organization' | 'WebPage';
   data: Record<string, any>;
 }
 

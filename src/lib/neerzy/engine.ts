@@ -1,5 +1,5 @@
-import OpenAI from "openai";
 import { supabase } from "@/lib/supabase";
+import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
 
 export interface NeerzyInput {
   trader_id: string;
@@ -269,9 +269,9 @@ export class NeerzyEngine {
     let source: 'ai' | 'fallback' = 'ai';
 
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+      const openai = getOpenAIClient();
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: DEFAULT_OPENAI_MODEL,
         messages: [
           { role: "system", content: "You are the Neerzy Engine v2. Output only JSON." },
           { role: "user", content: prompt }

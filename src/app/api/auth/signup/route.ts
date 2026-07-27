@@ -104,7 +104,7 @@ export async function POST(request: Request) {
 
     if (authError) {
       if (authError.message?.includes('already registered') || authError.code === 'user_already_exists') {
-        const { data: { user } } = await supabaseAdmin.auth.admin.getUserByPhone(phoneNumber);
+        const { data: { user } } = await (supabaseAdmin.auth.admin as any).getUserByPhone(phoneNumber);
         const userData = { id: user?.id, phone: phoneNumber };
         return Response.json({
           success: true,

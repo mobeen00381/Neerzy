@@ -1,220 +1,116 @@
-# Answers to Follow-Up Questions
+# BUG #1 — WhatsApp Template Compliance Investigation
 
-## Q1: Why does the profile upsert in /api/gbp/connect fail silently?
+## 1. Where Outbound WhatsApp Messages Are Sent
 
-### The catch block (lines 85-87 of `/api/gbp/connect/route.ts`):
+There are **5 distinct locations** where Twilio `messages.create()` is called:
 
-```typescript
-} catch (profileErr) {
-  console.warn('⚠️ Skip public profiles table update:', profileErr);
-}
-```
-
-**Why it fails:** The `/api/gbp/connect` route creates a Supabase admin client using `SUPABASE_SERVICE_ROLE_KEY` (line 5-6), so the upsert itself should succeed from a permissions standpoint. However, the `profiles` table has RLS policies that restrict access:
-
-```sql
-CREATE POLICY "Users can view their own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
-```
-
-The admin client bypasses RLS, so the upsert should work. **The real failure point is more likely that the `profiles` table doesn't exist yet** (if migrations haven't been fully applied), or the `id` column reference fails because the auth user doesn't exist in the admin client's context.
-
-**But the more critical issue** is that even when the upsert succeeds, it only sets `{ id, business_name, phone, updated_at }` — it does NOT set `trial_started_at`. The column has `DEFAULT NOW()` in the schema, so on first INSERT it gets set. But on subsequent upserts (which use `onConflict: 'id'`), the `updated_at` changes but `trial_started_at` stays at the original value. This is actually correct behavior — the problem is that for users who never got a profile row created, there's no `trial_started_at` at all.
-
-### Similar "silent catch, fallback default" patterns elsewhere:
-
-**1. `/app/dashboard/page.tsx` lines 133-142** — Profile fetch silently fails:
-```typescript
-try {
-  const { data: fetchedProfile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
-  profileData = fetchedProfile;
-} catch (dbErr) {
-  console.warn('⚠️ Could not load profiles table:', dbErr);
-}
-```
-If this fails, `profileData` stays `null`, which cascades to line 554:
-```typescript
-const trialStart = profile?.trial_started_at || profile?.created_at || new Date().toISOString();
-```
-Since `profile` is `null`, it falls through to `new Date().toISOString()`.
-
-**2. `/app/dashboard/page.tsx` lines 174-190** — Profile update in healing silently fails:
-```typescript
-try {
-  const { data: updatedProfile } = await supabase
-    .from('profiles')
-    .update({...})
-    .eq('id', user.id)
-    .select()
-    .single();
-  if (updatedProfile) { profileData = updatedProfile; }
-} catch (dbErr) {
-  console.warn('⚠️ profiles table update skipped in healing:', dbErr);
-}
-```
-
-**3. `/app/dashboard/page.tsx` lines 214-223** — pending_posts fetch silently fails:
-```typescript
-try {
-  const { data: wpData } = await supabase
-    .from('pending_posts')
-    .select('*')
-    .eq('user_phone', phone)
-    .order('created_at', { ascending: true });
-  if (wpData) whatsappPosts = wpData;
-} catch (wpErr) {
-  console.warn('⚠️ Could not load pending_posts:', wpErr);
-}
-```
-
-**4. `/app/api/gbp/connect/route.ts` lines 63-65** — Auth metadata update silently fails:
-```typescript
-} catch (authMetaErr) {
-  console.error('❌ Failed to update auth user_metadata:', authMetaErr);
-}
-```
-
-**5. `/app/api/gbp/connect/route.ts` lines 85-87** — Profile upsert silently fails (the one in question).
-
-**6. `/app/api/gbp/connect/route.ts` lines 112-116** — Fallback profile sync silently fails:
-```typescript
-} catch (profileErr) {
-  console.warn('⚠️ Fallback public profile sync skipped.', profileErr);
-}
-```
-
-**Pattern:** The codebase uses a "never crash the dashboard" pattern where DB operations are wrapped in try/catch with `console.warn`. This is defensive but means failures cascade silently — a failed profile fetch → null profile → fallback to `new Date().toISOString()` → trial always shows 30 days.
+| # | File | Function | Line(s) | Purpose |
+|---|------|----------|---------|---------|
+| 1 | `src/app/api/whatsapp/webhook/route.ts` | `sendTwilioMessage()` | 567-586 | Generic free-form reply to trader (confirmations, instructions, errors) |
+| 2 | `src/app/api/whatsapp/webhook/route.ts` | `sendTwilioTemplate()` | 588-606 | **Template-based** review request to customer |
+| 3 | `src/app/api/whatsapp/webhook/route.ts` | `sendTwilioMedia()` | 608-626 | Free-form media message (photos with caption) to trader |
+| 4 | `src/app/api/jobs/mark-published/route.ts` | inline | 93-98 | **Template-based** review request to customer |
+| 5 | `src/app/api/jobs/mark-published/route.ts` | inline | 112-116 | Free-form **SMS** (not WhatsApp) backup to customer |
+| 6 | `src/app/api/whatsapp/send-gmb-action/route.ts` | inline | 78-82 | Free-form WhatsApp message to customer |
+| 7 | `src/app/api/whatsapp/inbound/route.ts` | `sendTwilioMessage()` | 44, 57, 92, 112 | Free-form replies to trader (via `@/lib/twilio.ts`) |
+| 8 | `src/lib/twilio.ts` | `sendTwilioMessage()` | 21-25 | Generic sandbox-only sender (uses hardcoded `+14155238886`) |
 
 ---
 
-## Q2: Backfill strategy for existing users with no trial_started_at
+## 2. Template vs Free-Form Analysis
 
-### Proposed approach (fair to all users):
+### ✅ CORRECTLY USING TEMPLATES (Approved)
 
-**Use `auth.users.created_at` as the authoritative source.** Supabase Auth stores the exact timestamp when the user signed up. This is immutable and cannot be tampered with client-side.
+**Review Request to Customer** (2 locations):
+- `webhook/route.ts` line 524-536 — `sendTwilioTemplate()` with `contentSid: HX36dc564715671fad2b3617c795984ee2`
+- `mark-published/route.ts` line 86-98 — Same template SID `HX36dc564715671fad2b3617c795984ee2`
 
-**Backfill SQL (run once via Supabase SQL editor):**
+Both use `contentSid` + `contentVariables` — this is the **correct** way to send WhatsApp Business API messages outside the 24-hour session window.
 
-```sql
--- Backfill trial_started_at for profiles that have no value
-UPDATE public.profiles p
-SET trial_started_at = u.created_at
-FROM auth.users u
-WHERE p.id = u.id
-  AND p.trial_started_at IS NULL;
+### ❌ FREE-FORM MESSAGES (Potentially Non-Compliant)
 
--- For users who have NO profile row at all, create one
-INSERT INTO public.profiles (id, trial_started_at, selected_plan, created_at)
-SELECT 
-  au.id,
-  au.created_at,
-  'free',
-  NOW()
-FROM auth.users au
-LEFT JOIN public.profiles p ON p.id = au.id
-WHERE p.id IS NULL;
-```
+**All other outbound messages use `body` directly without `contentSid`:**
 
-**Why this is fair:**
-- `auth.users.created_at` is the actual signup timestamp — it's the ground truth
-- A user who signed up 45 days ago will see `max(0, 30 - 45) = 0 days left` (trial expired)
-- A user who signed up 10 days ago will see `30 - 10 = 20 days left`
-- No one gets extra free days beyond what they've already used
-- No one gets cut off unfairly — if they signed up yesterday, they still have 29 days
-
-**Alternative if auth.users.created_at is not accessible** (some setups restrict access to `auth` schema):
-Use the earliest post timestamp from the `posts` table:
-```sql
-UPDATE public.profiles p
-SET trial_started_at = sub.first_post_date
-FROM (
-  SELECT user_id, MIN(created_at) as first_post_date
-  FROM public.posts
-  GROUP BY user_id
-) sub
-WHERE p.id = sub.user_id
-  AND p.trial_started_at IS NULL;
-```
-
-**For users with no posts and no profile:** Set `trial_started_at` to `NOW()` — they get the full 30 days from today, which is the most generous interpretation and avoids support complaints.
+| Message Type | Sent To | File | Risk |
+|-------------|---------|------|------|
+| "✅ *{type} saved.*\n\n{instructions}" | **Trader** (inbound sender) | `webhook/route.ts` line 119 | ✅ **LOW** — Trader initiated the conversation, so within 24h window |
+| "⚠️ *No active draft found.*" | **Trader** | `webhook/route.ts` line 267 | ✅ LOW — Reply to trader's POST command |
+| "⚠️ *No images found.*" | **Trader** | `webhook/route.ts` line 271 | ✅ LOW — Reply to trader's POST command |
+| "📸 *Photos sent above...*" | **Trader** | `webhook/route.ts` line 314 | ✅ LOW — Part of POST flow initiated by trader |
+| "📋 *Copy Post Text below:*" | **Trader** | `webhook/route.ts` line 340 | ✅ LOW — Part of POST flow |
+| "🌐 *Open GBP directly...*" | **Trader** | `webhook/route.ts` line 364 | ✅ LOW — Part of POST flow |
+| "👉 *Or manage via Dashboard:*" | **Trader** | `webhook/route.ts` line 379 | ✅ LOW — Part of POST flow |
+| "❌ Error: {msg}" | **Trader** | `webhook/route.ts` line 388 | ✅ LOW — Error response to trader's action |
+| "⚠️ *No pending post found.*" | **Trader** | `webhook/route.ts` line 442 | ✅ LOW — Reply to trader's DONE command |
+| "⚠️ *No customer phone...*" | **Trader** | `webhook/route.ts` line 448 | ✅ LOW — Reply to trader's DONE command |
+| "⚠️ *Customer phone matches your own*" | **Trader** | `webhook/route.ts` line 514 | ✅ LOW — Reply to trader's DONE command |
+| "✅ *Review request sent to {name}!*" | **Trader** | `webhook/route.ts` line 556 | ✅ LOW — Confirmation to trader |
+| "🌟 Thanks! Share your experience..." | **Trader** | `inbound/route.ts` line 44 | ✅ LOW — Reply to trader's PUBLISHED command |
+| "❌ Invalid format..." | **Trader** | `inbound/route.ts` line 57 | ✅ LOW — Reply to trader's JOB command |
+| "✅ Draft Ready!\n📝 {title}..." | **Trader** | `inbound/route.ts` line 92 | ✅ LOW — Reply to trader's JOB command |
+| "⚠️ System error..." | **Trader** | `inbound/route.ts` line 112 | ✅ LOW — Error response |
+| "🚀 {businessName} Update:\n\n{aiMsg}" | **Customer** | `send-gmb-action/route.ts` line 78-82 | 🔴 **HIGH** — Sent to **customer**, not trader. No template used. |
+| "Hi {name}! 👋\n\nThank you for choosing..." | **Customer** (SMS) | `mark-published/route.ts` line 109 | ✅ N/A — This is SMS, not WhatsApp. SMS has no template requirement. |
 
 ---
 
-## Q3: PostUsageTracker and PlanStatusCard — prop shape compatibility
+## 3. 24-Hour Customer Service Window Analysis
 
-### PostUsageTracker expects (via `usage: any`):
-| Property | Type | Used in component | Provided by usage.ts? |
-|----------|------|-------------------|----------------------|
-| `dailyPostsUsed` | number | Line 30: `{usage.dailyPostsUsed} / {planConfig.dailyPosts}` | ✅ Yes |
-| `totalPostsUsed` | number | Line 54: `{usage.totalPostsUsed} / {planConfig.totalPosts}` | ✅ Yes |
-| `remainingToday` | number | Line 36: `usage.remainingToday <= 0` | ✅ Yes |
-| `remainingTotal` | number | Line 60: `usage.remainingTotal <= 0` | ✅ Yes |
-| `isLimited` | boolean | Line 71: `usage.isLimited` | ✅ Yes |
+### The Critical Distinction
 
-**Verdict: Safe to render.** `PostUsageTracker` uses `usage: any` and accesses properties that exactly match `UsageStats` from `usage.ts`.
+WhatsApp Business API rules:
+- **Free-form messages** can only be sent to a user **within 24 hours** of the last message they sent to the business (the "customer service window").
+- **Outside the 24h window**, you MUST use an **approved template** (`contentSid`).
 
-### PlanStatusCard expects (via `usage: any`):
-| Property | Type | Used in component | Provided by usage.ts? |
-|----------|------|-------------------|----------------------|
-| `daysLeft` | number | Line 13: `usage?.daysLeft \|\| ...` | ✅ Yes |
+### Current Flow Assessment
 
-**Verdict: Safe to render.** `PlanStatusCard` also accepts `trialStart` as a separate prop as fallback. The `usage?.daysLeft` access is optional (uses `||` fallback), so it won't crash even if `usage` is null.
+**Messages to the TRADER (the business owner):**
+- ✅ **All safe.** Every free-form message to the trader is a direct reply to a message the trader just sent (POST, DONE, PUBLISHED, JOB commands, or sending photos/text). These are all within the 24-hour window because the trader initiated the conversation.
 
-**Both components are ready to use — they just need to be wired up.** The dashboard currently does its own inline rendering of counts instead of using these components.
+**Messages to the CUSTOMER (the end client):**
+- ✅ **Review request via template** — Correctly uses `contentSid` (template `HX36dc564715671fad2b3617c795984ee2`). This is the right approach since the customer may not have messaged the business recently.
+- 🔴 **`send-gmb-action/route.ts` line 78-82** — Sends a **free-form** message to the customer (not the trader). This is **high risk** because:
+  - The customer may not have an active 24-hour session
+  - The message uses `body` directly, not `contentSid`
+  - If the customer hasn't messaged the business recently, this will fail with **Error 63016** (no session window) or **Error 63020** (template required)
 
 ---
 
-## Q4: Proposed review_requests table schema
+## 4. Template Compliance Gap Summary
 
-```sql
--- Review requests tracking table
-CREATE TABLE IF NOT EXISTS public.review_requests (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  business_id UUID REFERENCES public.business_profiles(id) ON DELETE SET NULL,
-  customer_name TEXT,
-  customer_phone TEXT,
-  message_text TEXT NOT NULL,           -- The WhatsApp message that was generated
-  review_link TEXT NOT NULL,            -- The Google review link used
-  status TEXT DEFAULT 'sent',           -- 'sent', 'opened', 'conversion_pending', 'review_received'
-  sent_via TEXT DEFAULT 'whatsapp',     -- 'whatsapp', 'copy_link', 'sms'
-  sent_at TIMESTAMPTZ DEFAULT NOW(),
-  converted_at TIMESTAMPTZ,             -- When a matching review was detected
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+### Messages That NEED Template Conversion
 
--- Indexes for analytics queries
-CREATE INDEX IF NOT EXISTS idx_review_requests_user_id ON public.review_requests(user_id);
-CREATE INDEX IF NOT EXISTS idx_review_requests_status ON public.review_requests(status);
-CREATE INDEX IF NOT EXISTS idx_review_requests_sent_at ON public.review_requests(sent_at);
+| Message | Sent To | Current Method | Risk | Recommended Action |
+|---------|---------|---------------|------|-------------------|
+| "🚀 {businessName} Update:\n\n{aiMsg}" | **Customer** | Free-form `body` | 🔴 **HIGH** — Will fail outside 24h window | Convert to approved template OR only send within 24h of customer's last message |
+| "Hi {name}! 👋\n\nThank you for choosing..." | **Customer** (SMS) | SMS `body` | ✅ **NONE** — SMS has no template requirement | No action needed |
 
--- RLS
-ALTER TABLE public.review_requests ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view their own review requests" 
-  ON public.review_requests FOR SELECT 
-  USING (auth.uid() = user_id);
-CREATE POLICY "Users can create their own review requests" 
-  ON public.review_requests FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
+### Templates Currently Registered
 
--- Trigger for updated_at
-CREATE TRIGGER update_review_requests_modtime 
-  BEFORE UPDATE ON public.review_requests 
-  FOR EACH ROW EXECUTE FUNCTION update_modified_column();
-```
+Based on the code, only **one template** is in use:
 
-**Design rationale:**
-- `user_id` links to auth.users for quota counting
-- `business_id` links to business_profiles for the review_link
-- `customer_name` and `customer_phone` are optional (user may just copy the link)
-- `status` tracks the lifecycle: sent → (if customer clicks) → review_received
-- `converted_at` enables conversion rate calculation
-- Separate from `posts` table so review request quota is distinct from post quota
+| Template SID | Purpose | Status |
+|-------------|---------|--------|
+| `HX36dc564715671fad2b3617c795984ee2` | Review request (3 variables: customer name, business name, review link) | ✅ In use, appears approved |
 
-**For detecting "review_received" without a Google API:** The simplest viable approach is a manual flag — when the business owner sees a new Google review, they can mark the request as converted in the dashboard. A future enhancement could poll the Google Business Profile API periodically.
+### Templates That Need to Be Created/Submitted to Meta
+
+If the business wants to send proactive messages to customers (outside the 24h window), the following templates would be needed:
+
+| Template Purpose | Variables Needed | Priority |
+|-----------------|-----------------|----------|
+| **Post/Update notification** | Business name, update text, link | 🔴 HIGH (for `send-gmb-action/route.ts`) |
+| **Photo saved confirmation** | Business name | 🟡 LOW (only sent to trader, always within window) |
+| **Post generated confirmation** | Business name, headline | 🟡 LOW (only sent to trader, always within window) |
+
+---
+
+## 5. Summary
+
+| Aspect | Status |
+|--------|--------|
+| **Review request to customer** | ✅ **Compliant** — Uses approved template `HX36dc564715671fad2b3617c795984ee2` |
+| **All messages to trader** | ✅ **Compliant** — All are replies within active 24h session window |
+| **Backup SMS to customer** | ✅ **N/A** — SMS has no template requirement |
+| **`send-gmb-action` to customer** | 🔴 **NON-COMPLIANT** — Free-form message to customer without template. Will fail with Error 63016/63020 if customer has no active session. |
+| **Template count** | **1 template** registered (`HX36dc564715671fad2b3617c795984ee2`). Need at least 1 more for proactive customer outreach. |

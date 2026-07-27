@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import OpenAI from 'openai';
 import twilio from 'twilio';
+import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 
 // ✅ Use correct server-side env vars from your .env
 const supabase = createClient(
@@ -9,9 +9,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY 
-});
+const openai = getOpenAIClient();
 
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,
@@ -275,7 +273,7 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
 
     // AI Generation via OpenAI
     const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: DEFAULT_OPENAI_MODEL,
       messages: [{
         role: "user",
         content: `Create a Google Post for ${draft.customer_name || 'Client'}. Job details: ${draft.voice_note || 'Completed successfully'}.

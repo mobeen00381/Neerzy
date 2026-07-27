@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabase";
-import { PLAN_LIMITS, getRemainingDays } from '@/lib/plans';
+import { PLAN_LIMITS, getPlan, getRemainingDays } from '@/lib/plans';
 import { ReviewsManager } from '@/components/dashboard/ReviewsManager';
+import { SocialContentStudio } from '@/components/dashboard/SocialContentStudio';
+import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
 import { 
   Sparkles, 
   Smartphone, 
@@ -27,7 +29,9 @@ import {
   Activity,
   ChevronRight,
   Copy,
-  Star
+  Star,
+  Share2,
+  Cpu
 } from 'lucide-react';
 
 interface Message {
@@ -45,7 +49,7 @@ interface Message {
 export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'post' | 'analytics' | 'account' | 'reviews'>('post');
+  const [activeTab, setActiveTab] = useState<'post' | 'analytics' | 'account' | 'reviews' | 'social'>('post');
   
   // User & Business Profiles
   const [user, setUser] = useState<any>(null);
@@ -590,7 +594,7 @@ export default function Dashboard() {
   const ownerName = user?.user_metadata?.owner_name || user?.user_metadata?.full_name || 'Business Owner';
   
   const plan = profile?.selected_plan || user?.user_metadata?.selected_plan || 'free';
-  const planLimits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
+  const planLimits = getPlan(plan);
   
   // trial_started_at: prefer DB profile, fall back to user_metadata (set during onboarding),
   // then auth user creation date, then now() as last resort
@@ -650,6 +654,17 @@ export default function Dashboard() {
                 }`}
               >
                 Reviews
+              </button>
+              <button
+                onClick={() => setActiveTab('social')}
+                className={`px-4 py-2 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 ${
+                  activeTab === 'social' 
+                    ? 'bg-white text-purple-700 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <span>Social</span>
+                <span className="text-[9px] font-black bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full uppercase">Growth</span>
               </button>
               <button
                 onClick={() => setActiveTab('analytics')}
@@ -790,6 +805,26 @@ export default function Dashboard() {
             </button>
 
             <button
+              onClick={() => setActiveTab('social')}
+              className={`w-full flex items-center gap-4 px-4 py-3.5 border-b border-slate-100/50 transition-all ${
+                activeTab === 'social' 
+                  ? 'bg-purple-50/55 border-l-4 border-purple-600' 
+                  : 'hover:bg-slate-50'
+              }`}
+            >
+              <div className="w-11 h-11 bg-purple-600 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-sm text-slate-900">Social Content</span>
+                  <span className="text-[9px] font-black bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full uppercase">Growth</span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">Facebook & Instagram posts</p>
+              </div>
+            </button>
+
+            <button
               onClick={() => setActiveTab('reviews')}
               className={`w-full flex items-center gap-4 px-4 py-3.5 border-b border-slate-100/50 transition-all ${
                 activeTab === 'reviews' 
@@ -834,6 +869,26 @@ export default function Dashboard() {
           {/* TAB 1: POST (WHATSAPP CHAT DESIGN) */}
           {activeTab === 'post' && (
             <div className="flex-1 flex flex-col h-full relative">
+              
+              {/* Active Workflow Status Banner */}
+              <div className="bg-slate-900 text-white px-4 py-2.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1.5 text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Twilio WhatsApp Hub Active
+                  </span>
+                  <span className="text-slate-600">•</span>
+                  <span className="flex items-center gap-1 text-purple-300">
+                    <Cpu className="w-3.5 h-3.5 text-purple-400" />
+                    Model: <span className="font-mono text-purple-200 font-extrabold">OpenAI GPT-OSS 120B</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-400">
+                  <span>📍 Google Business Profile Linked</span>
+                  <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-mono font-extrabold">Live</span>
+                </div>
+              </div>
+
               {/* WhatsApp chat top bar (mobile) */}
               <div className="md:hidden flex items-center gap-3 bg-white p-3 border-b border-slate-200">
                 <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm">
@@ -1014,137 +1069,26 @@ export default function Dashboard() {
 
           {/* TAB 2: ANALYTICS */}
           {activeTab === 'analytics' && (
-            <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto space-y-8 max-h-[calc(100vh-80px)]">
-              <div className="max-w-4xl mx-auto space-y-8">
-                <div>
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Real-Time Usage</h2>
-                  <p className="text-sm text-slate-500 font-semibold mt-1">Accurate usage statistics tracked directly from your WhatsApp and Dashboard activity</p>
-                </div>
+            <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto max-h-[calc(100vh-80px)]">
+              <div className="max-w-5xl mx-auto">
+                <AnalyticsPanel 
+                  userId={user?.id || ''} 
+                  userPlan={plan} 
+                  reviewStats={reviewStats} 
+                />
+              </div>
+            </div>
+          )}
 
-                {/* Review Stats Summary */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Review Requests Sent</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1">
-                        {reviewStatsLoading ? (
-                          <Loader2 className="w-6 h-6 animate-spin text-slate-400 inline" />
-                        ) : (
-                          reviewStats?.total_sent ?? '--'
-                        )}
-                      </span>
-                      <span className="text-[10px] text-amber-600 font-bold mt-1 block">Self-reported via dashboard</span>
-                    </div>
-                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl font-bold">
-                      ⭐
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Reviews Received</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1">
-                        {reviewStatsLoading ? (
-                          <Loader2 className="w-6 h-6 animate-spin text-slate-400 inline" />
-                        ) : (
-                          reviewStats?.total_received ?? '--'
-                        )}
-                      </span>
-                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">Self-reported (manual)</span>
-                    </div>
-                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl font-bold">
-                      ✅
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Conversion Rate</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1">
-                        {reviewStatsLoading ? (
-                          <Loader2 className="w-6 h-6 animate-spin text-slate-400 inline" />
-                        ) : (
-                          reviewStats ? `${reviewStats.conversion_rate}%` : '--'
-                        )}
-                      </span>
-                      <span className="text-[10px] text-blue-600 font-bold mt-1 block">Self-reported conversion</span>
-                    </div>
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-bold">
-                      📊
-                    </div>
-                  </div>
-                </div>
-
-                {/* Post Analytics summary grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Posts</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1">{stats.total}</span>
-                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">Lifetime generated posts</span>
-                    </div>
-                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-bold">
-                      📝
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Posts Today</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1">{stats.daily}</span>
-                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">Daily quota utilized</span>
-                    </div>
-                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl font-bold">
-                      ⚡
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Active Plan</span>
-                      <span className="text-3xl font-black text-slate-900 block mt-1 capitalize">{plan}</span>
-                      <span className="text-[10px] text-emerald-600 font-bold mt-1 block">⏳ {daysCountdown}</span>
-                    </div>
-                    <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-xl font-bold">
-                      ⭐
-                    </div>
-                  </div>
-                </div>
-
-                {/* Activity List */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm space-y-4">
-                  <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase">Recent Activity</h3>
-                  
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                    {messages.filter(m => m.sender === 'user').reverse().map((act, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${act.source === 'whatsapp' ? 'bg-[#25D366]/10 text-[#25D366]' : 'bg-emerald-50 text-emerald-700'}`}>
-                          {act.source === 'whatsapp' ? <MessageSquare className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold text-slate-900 text-xs truncate mr-2">{act.text.slice(0, 50) || 'Image/Voice Post'}...</span>
-                            <div className="text-right shrink-0">
-                              <span className="text-[10px] text-slate-400 font-bold block">{act.date || 'Today'}</span>
-                              <span className="text-[10px] text-slate-400 font-bold block mt-0.5">{act.timestamp}</span>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center mt-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                              Via: {act.source === 'whatsapp' ? 'WhatsApp' : 'Web App'}
-                            </span>
-                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${act.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                              {act.status}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {messages.filter(m => m.sender === 'user').length === 0 && (
-                      <div className="p-4 text-center text-slate-500 text-sm font-medium">No posts generated yet. Start chatting to create a post!</div>
-                    )}
-                  </div>
-                </div>
+          {/* TAB 3: SOCIAL CONTENT STUDIO */}
+          {activeTab === 'social' && (
+            <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto max-h-[calc(100vh-80px)]">
+              <div className="max-w-5xl mx-auto">
+                <SocialContentStudio
+                  userPlan={plan}
+                  businessName={bName}
+                  businessCategory={businessProfile?.category || 'Local Service'}
+                />
               </div>
             </div>
           )}

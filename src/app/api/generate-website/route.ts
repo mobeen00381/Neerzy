@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
 
 // Lazy init — only runs when an API call is made, not during build
 function getOpenAI() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
+  return getOpenAIClient();
 }
 
 export async function POST(req: Request) {
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     const openai = getOpenAI();
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Fast, cheap, and smart
+      model: DEFAULT_OPENAI_MODEL,
       response_format: { type: "json_object" }, // Forces OpenAI to return valid JSON
       messages: [
         {

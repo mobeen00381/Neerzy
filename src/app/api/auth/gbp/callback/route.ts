@@ -45,7 +45,7 @@ export async function GET(req: Request) {
       const userInfo = await oauth2.userinfo.get();
       
       // Fetch GBP Account
-      const myBusiness = google.mybusinessbusinessinformation({ version: "v1", auth: oauth2Client });
+      const myBusiness: any = google.mybusinessbusinessinformation({ version: "v1", auth: oauth2Client });
       const accountsRes = await myBusiness.accounts.list();
       const accounts = accountsRes.data.accounts;
 
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
       });
       
       const locations = locationsRes.data.locations;
-      const location = locations?.[0];
+      const location: any = locations?.[0];
 
       if (!location) {
         console.warn("⚠️ No locations found for GBP account. Falling back to mock connection.");
