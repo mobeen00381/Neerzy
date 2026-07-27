@@ -319,6 +319,18 @@ const NEERZY_KEYWORDS = [
 // ─────────────────────────────────────────────────────
 
 /**
+ * Helper: Check if a pattern matches as a whole word/phrase in the message.
+ * Uses word boundary matching to avoid false positives (e.g., "hi" matching inside "this").
+ */
+function wordBoundaryMatch(text: string, pattern: string): boolean {
+  // Escape special regex characters in the pattern
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Use word boundary regex for matching
+  const regex = new RegExp(`\\b${escaped}\\b`, 'i');
+  return regex.test(text);
+}
+
+/**
  * Tier 1: Match the user's message against the static FAQ database.
  * Returns the pre-written answer if matched, or null if no match.
  * This costs ZERO tokens.
@@ -331,7 +343,7 @@ export function matchFAQ(message: string): string | null {
 
   for (const entry of FAQ_DATABASE) {
     for (const pattern of entry.patterns) {
-      if (normalized.includes(pattern)) {
+      if (wordBoundaryMatch(normalized, pattern)) {
         return entry.answer;
       }
     }
@@ -351,8 +363,8 @@ export function isNeerzyRelated(message: string): boolean {
   // Always allow short messages (greetings, "ok", "yes", etc.)
   if (normalized.length <= 10) return true;
 
-  // Check if any Neerzy keyword is present
-  return NEERZY_KEYWORDS.some(keyword => normalized.includes(keyword));
+  // Check if any Neerzy keyword is present (using word boundary matching)
+  return NEERZY_KEYWORDS.some(keyword => wordBoundaryMatch(normalized, keyword));
 }
 
 /**
