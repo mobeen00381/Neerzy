@@ -371,15 +371,20 @@ ${gbpLink}
     // Always use production URL for user-facing links
     const appUrl = 'https://www.neerzy.com';
 
+    // WhatsApp requires URLs to be completely on their own line with blank lines around them
+    // to be detected as clickable links
     const actionMessage = `✅ *Post Ready!*
 
-📋 *Copy Post:*
+*Copy Post:*
+
 ${appUrl}/copy/${draft.id}
 
-🖼️ *Download Images:*
+*Download Images:*
+
 ${appUrl}/images/${draft.id}
 
-🌐 *Open GBP:*
+*Open GBP:*
+
 ${gbpLink}
 
 Copy the text, open GBP, paste and publish!
