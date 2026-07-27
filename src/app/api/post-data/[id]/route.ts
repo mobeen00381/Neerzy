@@ -62,6 +62,47 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       });
     }
 
+    // Fallback to posts table (webapp flow)
+    const { data: webPost } = await supabase
+      .from('posts')
+      .select('*, users(*)')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (webPost) {
+      // Strip HTML tags from content
+      const cleanContent = (webPost.content || '').replace(/<[^>]*>/g, '');
+      const fullText = cleanContent || 'Post content';
+
+      // Fetch business profile to build direct GBP link
+      let gbpLink = 'https://business.google.com/';
+      const userPhone = webPost.users?.phone || webPost.users?.user_metadata?.phone;
+      if (userPhone) {
+        const { data: business } = await supabase
+          .from('business_profiles')
+          .select('business_name, google_place_id')
+          .eq('user_phone', userPhone)
+          .maybeSingle();
+
+        if (business) {
+          if (business.business_name) {
+            gbpLink = `https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`;
+          } else if (business.google_place_id) {
+            gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
+          }
+        }
+      }
+
+      return NextResponse.json({
+        id: webPost.id,
+        google_post: fullText,
+        images: webPost.image_url ? [webPost.image_url] : [],
+        customer_name: '',
+        gbpLink,
+        text: fullText
+      });
+    }
+
     // Fallback to jobs table
     const { data: job } = await supabase
       .from('jobs')
