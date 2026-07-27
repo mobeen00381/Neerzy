@@ -870,24 +870,7 @@ export default function Dashboard() {
           {activeTab === 'post' && (
             <div className="flex-1 flex flex-col h-full relative">
               
-              {/* Active Workflow Status Banner */}
-              <div className="bg-slate-900 text-white px-4 py-2.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1.5 text-emerald-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    Twilio WhatsApp Hub Active
-                  </span>
-                  <span className="text-slate-600">•</span>
-                  <span className="flex items-center gap-1 text-purple-300">
-                    <Cpu className="w-3.5 h-3.5 text-purple-400" />
-                    Model: <span className="font-mono text-purple-200 font-extrabold">OpenAI GPT-OSS 120B</span>
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-400">
-                  <span>📍 Google Business Profile Linked</span>
-                  <span className="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-mono font-extrabold">Live</span>
-                </div>
-              </div>
+              {/* Removed: Backend status banner (Twilio/Model info) — not user-facing */}
 
               {/* WhatsApp chat top bar (mobile) */}
               <div className="md:hidden flex items-center gap-3 bg-white p-3 border-b border-slate-200">
