@@ -290,7 +290,15 @@ export default function Dashboard() {
 
       const welcomeMessage: Message = {
         id: 'welcome',
-        text: `Welcome to Neerzy! 🤖 I am your Google Business Profile assistant. Every update you send in this chat will be optimized and published to your listing: "${bData?.business_name || 'Your Connected Business'}" automatically. Try typing a message or uploading a picture below!`,
+        text: `Welcome to Neerzy! 🤖 I am your Google Business Profile assistant.
+
+Here's how it works:
+1. 📸 Send a photo or type a description
+2. 🤖 I'll generate SEO-optimized content
+3. 📋 You copy the text & download images
+4. 🌐 Paste to your Google Business Profile
+
+Try typing a message or uploading a picture below!`,
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -561,7 +569,7 @@ export default function Dashboard() {
         daily: prev.daily + 1
       }));
 
-      // Simulate WhatsApp response (Optimization feedback)
+      // Simulate WhatsApp response (Content preparation feedback)
       setTimeout(() => {
         const optimizationMsg: Message = {
           id: `opt-${Date.now()}`,
@@ -572,13 +580,33 @@ export default function Dashboard() {
         setMessages(prev => [...prev, optimizationMsg]);
 
         setTimeout(() => {
-          const successMsg: Message = {
-            id: `success-${Date.now()}`,
-            text: "✅ Successfully published to your Google Business Profile! Check your GMB listing to see the live update.",
+          const postId = newPost.id;
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
+          const copyLink = `${appUrl}/copy/${postId}`;
+          const imagesLink = `${appUrl}/images/${postId}`;
+          const gbpLink = businessProfile?.google_place_id 
+            ? `https://www.google.com/maps/place/?q=place_id:${businessProfile.google_place_id}`
+            : 'https://business.google.com/';
+          
+          const readyMsg: Message = {
+            id: `ready-${Date.now()}`,
+            text: `✅ *Post Ready!*
+
+📋 *Copy Post:*
+${copyLink}
+
+🖼️ *Download Images:*
+${imagesLink}
+
+🌐 *Open GBP:*
+${gbpLink}
+
+Copy the text, open GBP, paste and publish! 
+Type *DONE* when published.`,
             sender: 'bot',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           };
-          setMessages(prev => [...prev, successMsg]);
+          setMessages(prev => [...prev, readyMsg]);
         }, 1500);
 
       }, 1000);
