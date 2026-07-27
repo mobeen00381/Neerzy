@@ -9,6 +9,39 @@ type Message = {
   content: string;
 };
 
+/**
+ * Renders message content with clickable links.
+ * Converts URLs and internal paths (like /onboarding) to anchor tags.
+ * Also handles basic markdown bold (**text**).
+ */
+function renderMessageContent(content: string) {
+  // Escape HTML to prevent XSS
+  const escaped = content
+    .replace(/&/g, "&")
+    .replace(/</g, "<")
+    .replace(/>/g, ">");
+
+  // Convert markdown bold **text** to <strong>
+  let html = escaped.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  // Convert markdown links [text](url) to <a>
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-medium hover:text-blue-800">$1</a>');
+
+  // Convert bare URLs to links
+  html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-medium hover:text-blue-800">$1</a>');
+
+  // Convert internal paths like /onboarding to links
+  html = html.replace(/(\/[a-zA-Z0-9\-_/]+)/g, '<a href="$1" class="text-blue-600 underline font-medium hover:text-blue-800">$1</a>');
+
+  // Convert newlines to <br>
+  html = html.replace(/\n/g, "<br/>");
+
+  // Convert bullet points (•) with proper spacing
+  html = html.replace(/• /g, "&bull; ");
+
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 export function SupportChat({
   isOpen,
   setIsOpen,
@@ -75,7 +108,7 @@ export function SupportChat({
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-[380px] bg-white/90 backdrop-blur-xl border border-slate-200/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] rounded-2xl flex flex-col overflow-hidden z-50 animate-in slide-in-from-bottom-10 fade-in zoom-in-95 duration-400">
+    <div className="fixed bottom-6 right-6 w-[380px] max-h-[520px] bg-white/90 backdrop-blur-xl border border-slate-200/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] rounded-2xl flex flex-col overflow-hidden z-50 animate-in slide-in-from-bottom-10 fade-in zoom-in-95 duration-400">
       
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between text-white border-b border-blue-700/50">
@@ -102,18 +135,18 @@ export function SupportChat({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 p-4 h-[350px] overflow-y-auto bg-slate-50/50 flex flex-col gap-4">
+      <div className="flex-1 min-h-0 p-4 overflow-y-auto bg-slate-50/50 flex flex-col gap-4" style={{ maxHeight: "380px" }}>
         {messages.map((msg, idx) => (
           <div 
             key={idx} 
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-300`}
           >
-            <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm ${
+            <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed break-words ${
               msg.role === 'user' 
                 ? 'bg-blue-600 text-white rounded-br-sm shadow-sm' 
                 : 'bg-white border border-slate-200 text-slate-700 rounded-bl-sm shadow-sm'
             }`}>
-              {msg.content}
+              {renderMessageContent(msg.content)}
             </div>
           </div>
         ))}
