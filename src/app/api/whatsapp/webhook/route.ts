@@ -368,15 +368,21 @@ ${gbpLink}
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Send fallback link to Dashboard directly
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
-    if (appUrl.includes('vercel.app')) {
-      appUrl = 'https://www.neerzy.com';
-    }
-    appUrl = appUrl.replace(/\/$/, '');
+    // Always use production URL for user-facing links
+    const appUrl = 'https://www.neerzy.com';
 
-    const actionMessage = `👉 *Or manage via Dashboard:*
-${appUrl}/dashboard
+    const actionMessage = `✅ *Post Ready!*
 
+📋 *Copy Post:*
+${appUrl}/copy/${draft.id}
+
+🖼️ *Download Images:*
+${appUrl}/images/${draft.id}
+
+🌐 *Open GBP:*
+${gbpLink}
+
+Copy the text, open GBP, paste and publish!
 Type *DONE* when published.`;
 
     return await sendTwilioMessage(phone, actionMessage, fromNumber);

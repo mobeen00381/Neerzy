@@ -581,7 +581,8 @@ Try typing a message or uploading a picture below!`,
 
         setTimeout(() => {
           const postId = newPost.id;
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
+          // Always use the production URL for user-facing links
+          const appUrl = 'https://www.neerzy.com';
           const copyLink = `${appUrl}/copy/${postId}`;
           const imagesLink = `${appUrl}/images/${postId}`;
           const gbpLink = businessProfile?.google_place_id 
