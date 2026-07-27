@@ -99,14 +99,26 @@ export async function POST(req: Request) {
       }
     ];
 
-    let completion = await openai.chat.completions.create({
-      model: DEFAULT_OPENAI_MODEL,
-      messages: conversation,
-      tools: tools,
-      tool_choice: "auto",
-    });
-
-    let replyMessage = completion.choices[0].message;
+    // Attempt AI completion — gracefully handle models that don't support tool calling
+    let replyMessage;
+    try {
+      const completion = await openai.chat.completions.create({
+        model: DEFAULT_OPENAI_MODEL,
+        messages: conversation,
+        tools: tools,
+        tool_choice: "auto",
+      });
+      replyMessage = completion.choices[0].message;
+    } catch (toolError: any) {
+      // If tool calling fails (e.g., model doesn't support it), retry without tools
+      console.warn(`⚠️ Tool calling failed for model ${DEFAULT_OPENAI_MODEL}, retrying without tools:`, toolError.message);
+      const fallbackCompletion = await openai.chat.completions.create({
+        model: DEFAULT_OPENAI_MODEL,
+        messages: conversation,
+      });
+      const fallbackReply = fallbackCompletion.choices[0].message.content || "I didn't quite catch that.";
+      return NextResponse.json({ reply: fallbackReply });
+    }
 
     // Check if the AI wants to call a tool
     if (replyMessage.tool_calls && replyMessage.tool_calls.length > 0) {

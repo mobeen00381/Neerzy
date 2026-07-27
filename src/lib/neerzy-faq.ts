@@ -42,7 +42,7 @@ You can also send your customer's name and phone number, and Neerzy will automat
 
   // ── Pricing ──
   {
-    patterns: ['pricing', 'how much', 'cost', 'price', 'plans', 'subscription', 'what plans'],
+    patterns: ['pricing', 'how much', 'cost', 'price', 'plan', 'plans', 'subscription', 'what plans'],
     answer: `Here are our plans:
 
 🆓 **Free Plan** — $0/mo
