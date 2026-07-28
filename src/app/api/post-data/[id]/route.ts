@@ -9,15 +9,22 @@ const supabase = createClient(
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    
+    console.log(`🔍 Looking up post data for ID: ${id}`);
 
     // Try pending_posts first (WhatsApp flow)
-    const { data: post } = await supabase
+    const { data: post, error: pendingError } = await supabase
       .from('pending_posts')
       .select('*')
       .eq('id', id)
       .maybeSingle();
 
+    if (pendingError) {
+      console.warn('⚠️ pending_posts error:', pendingError.message);
+    }
+
     if (post) {
+      console.log(`✅ Found in pending_posts: ${post.id}`);
       // Parse AI-generated content
       const googlePost = post.google_post || '';
       const lines = googlePost.split('\n');
@@ -63,54 +70,46 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     // Fallback to posts table (webapp flow)
-    const { data: webPost } = await supabase
+    const { data: webPost, error: postsError } = await supabase
       .from('posts')
-      .select('*, users(*)')
+      .select('*')
       .eq('id', id)
       .maybeSingle();
 
+    if (postsError) {
+      console.warn('⚠️ posts table error:', postsError.message);
+    }
+
     if (webPost) {
+      console.log(`✅ Found in posts table: ${webPost.id}, content: ${webPost.content?.substring(0, 50)}...`);
       // Strip HTML tags from content
       const cleanContent = (webPost.content || '').replace(/<[^>]*>/g, '');
       const fullText = cleanContent || 'Post content';
 
-      // Fetch business profile to build direct GBP link
-      let gbpLink = 'https://business.google.com/';
-      const userPhone = webPost.users?.phone || webPost.users?.user_metadata?.phone;
-      if (userPhone) {
-        const { data: business } = await supabase
-          .from('business_profiles')
-          .select('business_name, google_place_id')
-          .eq('user_phone', userPhone)
-          .maybeSingle();
-
-        if (business) {
-          if (business.business_name) {
-            gbpLink = `https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`;
-          } else if (business.google_place_id) {
-            gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
-          }
-        }
-      }
-
+      // For webapp posts, just return the content - GBP link can be generic
       return NextResponse.json({
         id: webPost.id,
         google_post: fullText,
         images: webPost.image_url ? [webPost.image_url] : [],
         customer_name: '',
-        gbpLink,
+        gbpLink: 'https://business.google.com/',
         text: fullText
       });
     }
 
     // Fallback to jobs table
-    const { data: job } = await supabase
+    const { data: job, error: jobsError } = await supabase
       .from('jobs')
       .select('*, users(*)')
       .eq('id', id)
       .maybeSingle();
 
+    if (jobsError) {
+      console.warn('⚠️ jobs table error:', jobsError.message);
+    }
+
     if (job) {
+      console.log(`✅ Found in jobs table: ${job.id}`);
       const fullText = [job.title, '', job.content, '', Array.isArray(job.hashtags) ? job.hashtags.join(' ') : ''].filter(Boolean).join('\n');
 
       // Fetch business profile to build direct GBP link
@@ -142,9 +141,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       });
     }
 
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  } catch (error) {
+    console.error(`❌ Post not found in any table for ID: ${id}`);
+    return NextResponse.json({ error: 'Not found', id }, { status: 404 });
+  } catch (error: any) {
     console.error('Error fetching post data:', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Server error', message: error.message }, { status: 500 });
   }
 }
