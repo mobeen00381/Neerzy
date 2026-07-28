@@ -12,11 +12,20 @@ export default function CopyPostPage({ params }: { params: Promise<{ id: string 
   useEffect(() => {
     async function loadPost() {
       try {
+        console.log(`🔍 Fetching post data for ID: ${id}`);
+        console.log(`📡 API URL: /api/post-data/${id}`);
         const res = await fetch(`/api/post-data/${id}`);
-        if (!res.ok) throw new Error('Post not found');
+        console.log(`📥 Response status: ${res.status}`);
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`❌ Error response: ${errorText}`);
+          throw new Error('Post not found');
+        }
         const data = await res.json();
-        setPostText(data.text);
+        console.log(`✅ Post data received:`, data);
+        setPostText(data.text || data.google_post || 'No content');
       } catch (err) {
+        console.error('❌ Error loading post:', err);
         setError('Post not found');
       } finally {
         setLoading(false);
