@@ -409,12 +409,12 @@ export default function Dashboard() {
         text: `Welcome to Neerzy! 🤖 I am your Google Business Profile assistant.
 
 Here's how it works:
-1. 📸 Send a photo or type a description
-2. 🤖 I'll generate SEO-optimized content
-3. 📋 You copy the text & download images
-4. 🌐 Paste to your Google Business Profile
+1. 📸 Send photos of your completed job
+2. ✍️ Send a short description or voice note
+3. 💚 Type *POST* to generate your GMB post
+4. 📋 Copy the text & publish to Google
 
-Try typing a message or uploading a picture below!`,
+Try sending a photo or typing a description of a job you completed!`,
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -642,114 +642,238 @@ Try typing a message or uploading a picture below!`,
     setRecordDuration(0);
   };
 
-  // Send message
+  // Draft state for POST workflow
+  const [draftImages, setDraftImages] = useState<string[]>([]);
+  const [draftDescription, setDraftDescription] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Check if text is a recognized command (POST, DONE, RESET)
+  const isPostCommand = (text: string) => text.trim().toUpperCase() === 'POST';
+  const isDoneCommand = (text: string) => text.trim().toUpperCase() === 'DONE';
+  const isResetCommand = (text: string) => text.trim().toUpperCase() === 'RESET';
+
+  // Check if text looks like irrelevant chatter (phone numbers, single words, etc.)
+  const isIrrelevantChat = (text: string) => {
+    const t = text.trim().toLowerCase();
+    if (/^[\+\d\s\-\(\)]{5,}$/.test(t)) return true; // just a phone number
+    if (t.length < 3) return true;
+    return false;
+  };
+
+  // Generate the post (called after POST command)
+  const doGeneratePost = async () => {
+    if (!user) return;
+    if (isGenerating) return;
+
+    // Must have at least an image to generate
+    if (draftImages.length === 0) {
+      const warnMsg: Message = {
+        id: `warn-${Date.now()}`,
+        text: '⚠️ *No photos found.*\n\nSend a photo first, then type *POST*.',
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, warnMsg]);
+      return;
+    }
+
+    setIsGenerating(true);
+
+    const bizName = businessProfile?.business_name || profile?.business_name || user?.user_metadata?.business_name || 'My Business Listing';
+    const gbpLink = businessProfile?.google_place_id
+      ? `https://www.google.com/maps/place/?q=place_id:${businessProfile.google_place_id}`
+      : 'https://business.google.com/';
+
+    // Save draft description + images as a post entry
+    const { data: newPost, error } = await supabase
+      .from('posts')
+      .insert({
+        user_id: user.id,
+        content: draftDescription || 'Photo update',
+        image_url: draftImages[0] || null,
+        status: 'published'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to save post:', error);
+      setIsGenerating(false);
+      return;
+    }
+
+    // Show thinking
+    const thinkingMsg: Message = {
+      id: `thinking-${Date.now()}`,
+      text: '🔄 Neerzy AI is generating your post...',
+      sender: 'bot',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages(prev => [...prev, thinkingMsg]);
+
+    try {
+      const aiRes = await fetch('/api/generate-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: draftDescription || 'Photo update',
+          businessName: bizName,
+          imageUrl: draftImages[0] || null,
+        }),
+      });
+
+      if (!aiRes.ok) {
+        const errData = await aiRes.json().catch(() => ({}));
+        throw new Error(errData.message || 'AI generation failed');
+      }
+
+      const aiData = await aiRes.json();
+
+      await supabase.from('posts').update({ ai_reply: aiData.fullText }).eq('id', newPost.id);
+
+      // Clear draft state
+      setDraftImages([]);
+      setDraftDescription('');
+
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.id !== thinkingMsg.id);
+        const readyMsg: Message = {
+          id: `ready-${Date.now()}`,
+          text: `✅ *Post Ready!*\n\n${aiData.fullText}`,
+          sender: 'bot',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          postReady: true,
+          gbpLink,
+          generatedText: aiData.fullText,
+        };
+        return [...filtered, readyMsg];
+      });
+
+      setStats(prev => ({ total: prev.total + 1, daily: prev.daily + 1 }));
+    } catch (aiErr: any) {
+      console.error('AI generation error:', aiErr);
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.id !== thinkingMsg.id);
+        const errMsg: Message = {
+          id: `err-${Date.now()}`,
+          text: aiErr.message?.includes('description') 
+            ? `⚠️ ${aiErr.message}`
+            : '❌ Could not generate post. Please check your connection and try again.',
+          sender: 'bot',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        return [...filtered, errMsg];
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Send message — follows strict POST workflow
   const handleSendMessage = async (text: string, imageBase64?: string, isVoice = false) => {
     const textContent = text.trim();
     if (!textContent && !imageBase64) return;
     if (!user) return;
 
-    try {
-      // Save post to database
-      const { data: newPost, error } = await supabase
-        .from('posts')
-        .insert({
-          user_id: user.id,
-          content: textContent || (isVoice ? 'Voice message note' : 'Image update'),
-          image_url: imageBase64 || pendingImage || null,
-          status: 'published'
-        })
-        .select()
-        .single();
+    setInputValue('');
+    setPendingImage(null);
 
-      if (error) throw error;
-
-      // Update message list
-      const newMessage: Message = {
-        id: newPost.id,
-        text: newPost.content,
-        image: newPost.image_url,
-        sender: 'user',
-        timestamp: new Date(newPost.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: new Date(newPost.created_at).toLocaleDateString(),
-        status: 'published',
-        isVoice,
-        source: 'webapp'
-      };
-
-      setMessages(prev => [...prev, newMessage]);
-      setInputValue('');
-      setPendingImage(null);
-
-      // Increment stats count
-      setStats(prev => ({
-        total: prev.total + 1,
-        daily: prev.daily + 1
-      }));
-
-      // Call AI generation endpoint to create the post
-      const gbpLink = businessProfile?.google_place_id 
-        ? `https://www.google.com/maps/place/?q=place_id:${businessProfile.google_place_id}`
-        : 'https://business.google.com/';
-
-      // Show thinking indicator
-      const thinkingMsg: Message = {
-        id: `thinking-${Date.now()}`,
-        text: "🔄 Neerzy AI is generating your post...",
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Command: RESET — clear all drafts
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (isResetCommand(textContent)) {
+      setDraftImages([]);
+      setDraftDescription('');
+      const resetMsg: Message = {
+        id: `reset-${Date.now()}`,
+        text: '🗑️ *Draft cleared.*\n\nAll images and description have been reset. Start fresh by sending a photo.',
         sender: 'bot',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      setMessages(prev => [...prev, thinkingMsg]);
+      setMessages(prev => [...prev, resetMsg]);
+      return;
+    }
 
-      try {
-        const aiRes = await fetch('/api/generate-post', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            description: textContent || 'Photo update',
-            businessName: businessProfile?.business_name || profile?.business_name || user?.user_metadata?.business_name || 'My Business Listing',
-            imageUrl: imageBase64 || pendingImage || null,
-          }),
-        });
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Command: POST — generate post from accumulated drafts
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (isPostCommand(textContent)) {
+      const postMsg: Message = {
+        id: `user-${Date.now()}`,
+        text: 'POST',
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, postMsg]);
 
-        if (!aiRes.ok) throw new Error('AI generation failed');
+      await doGeneratePost();
+      return;
+    }
 
-        const aiData = await aiRes.json();
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Image: add to draft and confirm
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (imageBase64) {
+      const newImages = [...draftImages, imageBase64];
+      setDraftImages(newImages);
 
-        // Save AI-generated reply to ai_reply column (persists across refreshes)
-        // Keep original content as the user's description
-        await supabase.from('posts').update({ ai_reply: aiData.fullText }).eq('id', newPost.id);
+      const imgMsg: Message = {
+        id: `user-${Date.now()}`,
+        text: textContent || '📸 Photo',
+        image: imageBase64,
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, imgMsg]);
 
-        // Remove thinking indicator and add ready message
-        setMessages(prev => {
-          const filtered = prev.filter(m => m.id !== thinkingMsg.id);
-          const readyMsg: Message = {
-            id: `ready-${Date.now()}`,
-            text: `✅ *Post Ready!*\n\n${aiData.fullText}`,
-            sender: 'bot',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            postReady: true,
-            gbpLink,
-            generatedText: aiData.fullText,
-          };
-          return [...filtered, readyMsg];
-        });
-      } catch (aiErr) {
-        console.error('AI generation error:', aiErr);
-        // Show simple error — no redirect links
-        setMessages(prev => {
-          const filtered = prev.filter(m => m.id !== thinkingMsg.id);
-          const errMsg: Message = {
-            id: `err-${Date.now()}`,
-            text: '❌ Could not generate post. Please check your connection and try again.',
-            sender: 'bot',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          };
-          return [...filtered, errMsg];
-        });
-      }
+      const confirmMsg: Message = {
+        id: `bot-${Date.now()}`,
+        text: `✅ *Image received & saved!* 📸 (${newImages.length} photo${newImages.length !== 1 ? 's' : ''})\n\n_Send a short description of the job, then type *POST* to generate._`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, confirmMsg]);
+      return;
+    }
 
-    } catch (err) {
-      console.error("Error creating post:", err);
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Irrelevant chat: ignore (don't save, don't reply)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (isIrrelevantChat(textContent)) {
+      // Silently ignore — no message posted, no draft saved
+      return;
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Text: save as draft description
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    setDraftDescription(textContent);
+
+    const descMsg: Message = {
+      id: `user-${Date.now()}`,
+      text: textContent,
+      sender: 'user',
+      isVoice,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setMessages(prev => [...prev, descMsg]);
+
+    if (draftImages.length > 0) {
+      const confirmMsg: Message = {
+        id: `bot-${Date.now()}`,
+        text: `✅ *Description saved!* ✍️\n\nNow type *POST* to generate your GMB post with ${draftImages.length} photo${draftImages.length !== 1 ? 's' : ''} & description.\n\n_Type RESET to clear the draft._`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, confirmMsg]);
+    } else {
+      const confirmMsg: Message = {
+        id: `bot-${Date.now()}`,
+        text: `✅ *Description saved!* ✍️\n\n_Send photos, then type *POST* to generate._\n\n_Type RESET to clear._`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, confirmMsg]);
     }
   };
 

@@ -104,6 +104,13 @@ export async function POST(req: Request) {
         return await handleGeneratePost(from, to);
       }
 
+      if (text === 'RESET') {
+        // Clear all active drafts for this phone
+        await supabase.from('pending_posts').update({ status: 'cleared' }).eq('user_phone', from).eq('status', 'draft');
+        userIdCache.delete(from); // clear user ID cache
+        return await sendTwilioMessage(from, '🗑️ *All drafts cleared.*\n\nStart fresh by sending a new photo.', to);
+      }
+
       if (text === 'DONE') {
         return await handleSendReview(from, to);
       }
