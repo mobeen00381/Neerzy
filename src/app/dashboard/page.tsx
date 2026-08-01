@@ -512,13 +512,34 @@ Try sending a photo or typing a description of a job you completed!`,
     }
   };
 
-  // Image upload handler
+  // Image upload handler — adds directly to draftImages with confirmation
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPendingImage(reader.result as string);
+        const imgData = reader.result as string;
+        const newImages = [...draftImages, imgData];
+        setDraftImages(newImages);
+
+        // Show the image in chat immediately
+        const imgMsg: Message = {
+          id: `user-${Date.now()}`,
+          text: '📸 Photo',
+          image: imgData,
+          sender: 'user',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev, imgMsg]);
+
+        // Show confirmation
+        const confirmMsg: Message = {
+          id: `bot-${Date.now()}`,
+          text: `✅ *Image received & saved!* 📸 (${newImages.length} photo${newImages.length !== 1 ? 's' : ''})\n\n_Send a short description of the job, then type *POST* to generate._`,
+          sender: 'bot',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev, confirmMsg]);
       };
       reader.readAsDataURL(file);
     }
@@ -1307,7 +1328,7 @@ Try sending a photo or typing a description of a job you completed!`,
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !isRecording) {
-                          handleSendMessage(inputValue);
+                          handleSendMessage(inputValue, pendingImage || undefined);
                         }
                       }}
                       disabled={isRecording || isTranscribing}
@@ -1354,8 +1375,8 @@ Try sending a photo or typing a description of a job you completed!`,
                   {/* Standard Send button */}
                   {!isRecording && !isTranscribing && (
                     <button
-                      onClick={() => handleSendMessage(inputValue)}
-                      disabled={!inputValue.trim() && !pendingImage}
+                      onClick={() => handleSendMessage(inputValue, pendingImage || undefined)}
+                      disabled={!inputValue.trim() && !pendingImage && draftImages.length === 0}
                       className="p-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-all shadow-md hover:shadow-emerald-600/10 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none shrink-0"
                     >
                       <Send className="w-4 h-4 fill-current" />
