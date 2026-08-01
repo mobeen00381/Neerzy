@@ -338,17 +338,41 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
-      const mappedWebMessages = (postsData || []).map((p: any) => ({
-        id: p.id,
-        text: p.content ? p.content.replace(/<[^>]*>/g, '') : '', // strip HTML
-        image: p.image_url,
-        sender: 'user' as const,
-        timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: new Date(p.created_at).toLocaleDateString(),
-        created_at: new Date(p.created_at),
-        status: p.status || 'published',
-        source: 'webapp' as const
-      }));
+      // Build GBP link for restoring bot replies
+      const gbpLinkForReplies = bData?.google_place_id 
+        ? `https://www.google.com/maps/place/?q=place_id:${bData.google_place_id}`
+        : 'https://business.google.com/';
+
+      const mappedWebMessages: any[] = [];
+      (postsData || []).forEach((p: any) => {
+        // User message (original description)
+        mappedWebMessages.push({
+          id: p.id,
+          text: p.content ? p.content.replace(/<[^>]*>/g, '') : '', // strip HTML
+          image: p.image_url,
+          sender: 'user' as const,
+          timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: new Date(p.created_at).toLocaleDateString(),
+          created_at: new Date(p.created_at),
+          status: p.status || 'published',
+          source: 'webapp' as const
+        });
+
+        // Bot reply — restored from ai_reply column (persists across refreshes)
+        if (p.ai_reply) {
+          mappedWebMessages.push({
+            id: `bot-${p.id}`,
+            text: `✅ *Post Ready!*\n\n${p.ai_reply}`,
+            sender: 'bot' as const,
+            timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            date: new Date(p.created_at).toLocaleDateString(),
+            created_at: new Date(new Date(p.created_at).getTime() + 1000), // 1s after user msg for correct sort order
+            postReady: true,
+            gbpLink: gbpLinkForReplies,
+            generatedText: p.ai_reply,
+          });
+        }
+      });
 
       const mappedWAMessages = whatsappPosts.map((p: any) => {
         const googlePost = p.google_post || '';
@@ -690,8 +714,9 @@ Try typing a message or uploading a picture below!`,
 
         const aiData = await aiRes.json();
 
-        // Update the saved post with generated content
-        await supabase.from('posts').update({ content: aiData.fullText }).eq('id', newPost.id);
+        // Save AI-generated reply to ai_reply column (persists across refreshes)
+        // Keep original content as the user's description
+        await supabase.from('posts').update({ ai_reply: aiData.fullText }).eq('id', newPost.id);
 
         // Remove thinking indicator and add ready message
         setMessages(prev => {
@@ -708,20 +733,17 @@ Try typing a message or uploading a picture below!`,
           return [...filtered, readyMsg];
         });
       } catch (aiErr) {
-        console.error('AI generation error, falling back to links:', aiErr);
-        // Fallback: show links if AI fails
-        const postId = newPost.id;
-        const appUrl = 'https://www.neerzy.com';
+        console.error('AI generation error:', aiErr);
+        // Show simple error — no redirect links
         setMessages(prev => {
           const filtered = prev.filter(m => m.id !== thinkingMsg.id);
-          const readyMsg: Message = {
-            id: `ready-${Date.now()}`,
-            text: `✅ *Post Ready!*\n\n📋 Copy Post: ${appUrl}/copy/${postId}\n\n🌐 Open GBP: ${gbpLink}`,
+          const errMsg: Message = {
+            id: `err-${Date.now()}`,
+            text: '❌ Could not generate post. Please check your connection and try again.',
             sender: 'bot',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            gbpLink,
           };
-          return [...filtered, readyMsg];
+          return [...filtered, errMsg];
         });
       }
 
