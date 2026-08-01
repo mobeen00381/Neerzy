@@ -21,6 +21,54 @@ export async function GET(req: Request) {
   return new NextResponse('OK', { status: 200 });
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Rate Limiter: DB-backed, 5 generations per phone per 60 min
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const GEN_RATE_WINDOW_MS = 60 * 60 * 1000; // 60 minutes
+const GEN_RATE_MAX = 5; // 5 generation calls per window
+
+async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; remaining: number; retryMinutes: number }> {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - GEN_RATE_WINDOW_MS);
+
+  try {
+    // Cleanup stale entries
+    void supabase.from('rate_limits').delete().lt('created_at', new Date(now.getTime() - 86400_000).toISOString());
+
+    const { data: existing } = await supabase
+      .from('rate_limits')
+      .select('id, request_count, window_start')
+      .eq('ip_address', phone)
+      .eq('endpoint', 'whatsapp_gen')
+      .gt('window_start', windowStart.toISOString())
+      .order('window_start', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!existing) {
+      await supabase.from('rate_limits').insert({
+        ip_address: phone,
+        endpoint: 'whatsapp_gen',
+        request_count: 1,
+        window_start: now.toISOString(),
+      });
+      return { allowed: true, remaining: GEN_RATE_MAX - 1, retryMinutes: 0 };
+    }
+
+    if (existing.request_count >= GEN_RATE_MAX) {
+      const resetAt = new Date(existing.window_start).getTime() + GEN_RATE_WINDOW_MS;
+      const retryMinutes = Math.ceil((resetAt - now.getTime()) / 60000);
+      return { allowed: false, remaining: 0, retryMinutes };
+    }
+
+    await supabase.from('rate_limits').update({ request_count: existing.request_count + 1 }).eq('id', existing.id);
+    return { allowed: true, remaining: GEN_RATE_MAX - (existing.request_count + 1), retryMinutes: 0 };
+  } catch (err) {
+    console.error('Rate limiter DB error:', err);
+    return { allowed: false, remaining: 0, retryMinutes: 60 }; // fail-closed
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -37,13 +85,22 @@ export async function POST(req: Request) {
 
     console.log(`📥 Message from ${from} to ${to}: "${body}" (Media: ${numMedia})`);
 
-    let savedType = 'Message';
-    let customInstructions = 'Send more photos or type *POST* when ready.';
-
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Commands first (POST / DONE)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (body) {
       const text = body.toUpperCase().trim();
 
       if (text === 'POST') {
+        // Rate-limit check before allowing generation
+        const rateCheck = await checkGenRateLimit(from);
+        if (!rateCheck.allowed) {
+          return await sendTwilioMessage(
+            from,
+            `⚠️ *Generation limit reached.*\n\nYou can generate ${GEN_RATE_MAX} posts every 60 minutes. Try again in about ${rateCheck.retryMinutes} minute${rateCheck.retryMinutes !== 1 ? 's' : ''}.`,
+            to
+          );
+        }
         return await handleGeneratePost(from, to);
       }
 
@@ -58,18 +115,16 @@ export async function POST(req: Request) {
         const name = body.replace(phoneMatch[1], '').trim() || 'Customer';
         const formattedCustPhone = formatToE164(phoneMatch[1], from);
         const postState = await saveDraft(from, { customerName: name, customerPhone: formattedCustPhone });
-        savedType = 'Customer detail for review link';
         if (postState === 'generated') {
-          customInstructions = `Type *DONE* to send the review link to ${name} now.`;
-        } else {
-          customInstructions = `Type *DONE* to send the review link immediately, or send photos/voice notes to create a post.`;
+          return await sendTwilioMessage(from, `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${formattedCustPhone}\n\nType *DONE* to send the review link to ${name} now.`, to);
         }
-      } else {
-        await saveDraft(from, { voice_note: body });
-        savedType = 'Description';
+        return await sendTwilioMessage(from, `✅ *Customer details saved.*\n\n👤 ${name}\n\nType *DONE* to send the review link, or send photos & a description then type *POST* to create a post.`, to);
       }
     }
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Media handling with clear workflow confirmations
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (mediaUrl0 && numMedia > 0) {
       if (mediaContentType0 && mediaContentType0.includes('audio')) {
         console.log('🎙️ Received Voice Note:', mediaUrl0);
@@ -85,10 +140,10 @@ export async function POST(req: Request) {
           }
           const buffer = await audioResponse.arrayBuffer();
           
-          if (!process.env.OPENAI_API_KEY) {
-            console.warn("No OPENAI_API_KEY, mocking voice note transcription");
-            await saveDraft(from, { voice_note: "[Voice Note] Update recorded via WhatsApp" });
-            savedType = 'Voice Note';
+          let voiceText = '';
+          if (!process.env.OPENAI_API_KEY && !process.env.DEEPSEEK_API_KEY) {
+            console.warn("No AI API key, mocking voice note transcription");
+            voiceText = "[Voice Note] Update recorded via WhatsApp";
           } else {
             const transcription = await openai.audio.transcriptions.create({
               file: await (async () => {
@@ -97,24 +152,81 @@ export async function POST(req: Request) {
               })(),
               model: "whisper-1",
             });
-            
             console.log('✅ Transcribed:', transcription.text);
-            await saveDraft(from, { voice_note: transcription.text });
-            savedType = 'Voice Note';
+            voiceText = transcription.text;
           }
+          
+          await saveDraft(from, { voice_note: voiceText });
+          return await sendTwilioMessage(
+            from,
+            `✅ *Voice note received & saved!* 🎙️\n\n_Transcribed: ${voiceText.length > 80 ? voiceText.substring(0, 80) + '...' : voiceText}_\n\nNow type *POST* to generate your GMB post.`,
+            to
+          );
         } catch (err) {
           console.error("❌ Whisper Transcription Failed:", err);
           await saveDraft(from, { voice_note: "[Voice note transcription failed]" });
-          savedType = 'Voice Note';
+          return await sendTwilioMessage(from, `⚠️ *Voice note saved but couldn't transcribe.*\n\nPlease send a short text description instead, then type *POST*.`, to);
         }
       } else {
+        // Image received
         console.log('💾 Saving image draft:', mediaUrl0);
         await saveDraft(from, { imageUrl: mediaUrl0 });
-        savedType = 'Photo';
+        
+        // Get current image count
+        const { data: draft } = await supabase
+          .from('pending_posts')
+          .select('images')
+          .eq('user_phone', from)
+          .eq('status', 'draft')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const imageCount = draft?.images?.length || 1;
+        
+        return await sendTwilioMessage(
+          from,
+          `✅ *Image received & saved!* 📸 (${imageCount} photo${imageCount !== 1 ? 's' : ''} saved in gallery)\n\n_Send a short description or voice note, then type *POST* to generate your post._`,
+          to
+        );
       }
     }
 
-    return await sendTwilioMessage(from, `✅ *${savedType} saved.*\n\n${customInstructions}`, to);
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Text that's not a command: save as description
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (body && !body.match(/(\+?\d{10,15})/)) {
+      await saveDraft(from, { voice_note: body });
+      
+      // Check if there are already images waiting
+      const { data: existingDraft } = await supabase
+        .from('pending_posts')
+        .select('images')
+        .eq('user_phone', from)
+        .eq('status', 'draft')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      const hasImages = existingDraft?.images?.length > 0;
+      if (hasImages) {
+        return await sendTwilioMessage(
+          from,
+          `✅ *Description saved!* ✍️\n\nNow type *POST* to generate your GMB post with your photos & description.`,
+          to
+        );
+      }
+      return await sendTwilioMessage(
+        from,
+        `✅ *Description saved!* ✍️\n\n_Send photos or a voice note, then type *POST* to generate._`,
+        to
+      );
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Fallback: nothing meaningful received — silent (don't encourage
+    // irrelevant chat)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    return NextResponse.json({ success: true });
 
   } catch (error) {
     console.error('❌ Webhook Error:', error);
@@ -271,17 +383,17 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
 
     console.log('📊 Found draft with', draft.images.length, 'images. Generating post...');
 
-    // AI Generation via OpenAI
+    // AI Generation — strict prompt to prevent hallucination
+    const jobDescription = draft.voice_note || 'Completed successfully';
     const aiResponse = await openai.chat.completions.create({
       model: DEFAULT_OPENAI_MODEL,
       messages: [{
+        role: "system",
+        content: "You are a Google Business Profile post writer. Write a short, factual post based ONLY on the job details provided. NEVER invent products, services, locations, or business names that are not mentioned in the input. If you don't know a detail, leave it out. Do not make up prices, materials, or product descriptions. Only describe what was actually done."
+      },
+      {
         role: "user",
-        content: `Create a Google Post for ${draft.customer_name || 'Client'}. Job details: ${draft.voice_note || 'Completed successfully'}.
-        Format:
-        HEADLINE: (max 40 chars)
-        BODY: (max 250 chars)
-        CTA: (short)
-        HASHTAGS: (3 max)`
+        content: `Business: ${draft.customer_name || 'Local Business'}\nJob completed: ${jobDescription}\n\nCreate a Google Business Profile post about this specific job. Format:\nHEADLINE: (max 40 chars, based on the actual job)\nBODY: (max 250 chars, describe only what was done)\nCTA: (short call to action)\nHASHTAGS: (3 max, relevant to the trade)`
       }]
     });
 

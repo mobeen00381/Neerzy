@@ -395,7 +395,7 @@ export default function Dashboard() {
           timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           date: new Date(p.created_at).toLocaleDateString(),
           created_at: new Date(p.created_at),
-          status: p.status === 'published' ? 'published' : 'draft',
+          status: p.status || 'draft', // Preserve generated/published/draft
           source: 'whatsapp' as const
         };
       });
@@ -421,11 +421,12 @@ Try typing a message or uploading a picture below!`,
 
       setMessages([welcomeMessage, ...dbMessages]);
 
-      // Calculate counts of published posts towards plan quotas
-      const totalCount = dbMessages.filter(p => p.status === 'published').length;
+      // Calculate counts of generated + published posts towards plan quotas
+      // (generated = WhatsApp POST flow, published = DONE flow)
+      const totalCount = dbMessages.filter(p => p.status === 'published' || p.status === 'generated').length;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const dailyCount = dbMessages.filter(p => p.status === 'published' && p.created_at >= today).length;
+      const dailyCount = dbMessages.filter(p => (p.status === 'published' || p.status === 'generated') && p.created_at >= today).length;
 
       setStats({ total: totalCount, daily: dailyCount });
 
