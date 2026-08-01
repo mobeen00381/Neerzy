@@ -44,6 +44,9 @@ interface Message {
   status?: string;
   isVoice?: boolean;
   source?: 'webapp' | 'whatsapp';
+  postReady?: boolean;
+  gbpLink?: string;
+  generatedText?: string;
 }
 
 // Helper function to render message content with clickable links
@@ -658,48 +661,69 @@ Try typing a message or uploading a picture below!`,
         daily: prev.daily + 1
       }));
 
-      // Simulate WhatsApp response (Content preparation feedback)
-      setTimeout(() => {
-        const optimizationMsg: Message = {
-          id: `opt-${Date.now()}`,
-          text: "🔄 Neerzy AI is refining the description, matching keywords, and formatting SEO tags for Google Business Profile...",
-          sender: 'bot',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages(prev => [...prev, optimizationMsg]);
+      // Call AI generation endpoint to create the post
+      const gbpLink = businessProfile?.google_place_id 
+        ? `https://www.google.com/maps/place/?q=place_id:${businessProfile.google_place_id}`
+        : 'https://business.google.com/';
 
-        setTimeout(() => {
-          const postId = newPost.id;
-          // Always use the production URL for user-facing links
-          const appUrl = 'https://www.neerzy.com';
-          const copyLink = `${appUrl}/copy/${postId}`;
-          const imagesLink = `${appUrl}/images/${postId}`;
-          const gbpLink = businessProfile?.google_place_id 
-            ? `https://www.google.com/maps/place/?q=place_id:${businessProfile.google_place_id}`
-            : 'https://business.google.com/';
-          
+      // Show thinking indicator
+      const thinkingMsg: Message = {
+        id: `thinking-${Date.now()}`,
+        text: "🔄 Neerzy AI is generating your post...",
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, thinkingMsg]);
+
+      try {
+        const aiRes = await fetch('/api/generate-post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            description: textContent || 'Photo update',
+            businessName: businessProfile?.business_name || profile?.business_name || user?.user_metadata?.business_name || 'My Business Listing',
+            imageUrl: imageBase64 || pendingImage || null,
+          }),
+        });
+
+        if (!aiRes.ok) throw new Error('AI generation failed');
+
+        const aiData = await aiRes.json();
+
+        // Update the saved post with generated content
+        await supabase.from('posts').update({ content: aiData.fullText }).eq('id', newPost.id);
+
+        // Remove thinking indicator and add ready message
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.id !== thinkingMsg.id);
           const readyMsg: Message = {
             id: `ready-${Date.now()}`,
-            text: `✅ *Post Ready!*
-
-📋 *Copy Post:*
-${copyLink}
-
-🖼️ *Download Images:*
-${imagesLink}
-
-🌐 *Open GBP:*
-${gbpLink}
-
-Copy the text, open GBP, paste and publish! 
-Type *DONE* when published.`,
+            text: `✅ *Post Ready!*\n\n${aiData.fullText}`,
             sender: 'bot',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            postReady: true,
+            gbpLink,
+            generatedText: aiData.fullText,
           };
-          setMessages(prev => [...prev, readyMsg]);
-        }, 1500);
-
-      }, 1000);
+          return [...filtered, readyMsg];
+        });
+      } catch (aiErr) {
+        console.error('AI generation error, falling back to links:', aiErr);
+        // Fallback: show links if AI fails
+        const postId = newPost.id;
+        const appUrl = 'https://www.neerzy.com';
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.id !== thinkingMsg.id);
+          const readyMsg: Message = {
+            id: `ready-${Date.now()}`,
+            text: `✅ *Post Ready!*\n\n📋 Copy Post: ${appUrl}/copy/${postId}\n\n🌐 Open GBP: ${gbpLink}`,
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            gbpLink,
+          };
+          return [...filtered, readyMsg];
+        });
+      }
 
     } catch (err) {
       console.error("Error creating post:", err);
@@ -1023,6 +1047,32 @@ Type *DONE* when published.`,
                       <p className="text-sm font-semibold whitespace-pre-wrap leading-relaxed break-words">
                         {renderMessageContent(msg.text)}
                       </p>
+
+                      {/* Inline action buttons when post is ready */}
+                      {msg.postReady && (
+                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-200/60">
+                          <button
+                            onClick={() => {
+                              const textToCopy = msg.generatedText || msg.text.replace(/^✅ \*Post Ready!\*\n\n/, '');
+                              navigator.clipboard.writeText(textToCopy);
+                              alert('Post copied to clipboard!');
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm active:scale-95"
+                          >
+                            <Copy className="w-3.5 h-3.5" /> Copy Post
+                          </button>
+                          {msg.gbpLink && (
+                            <a
+                              href={msg.gbpLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm active:scale-95"
+                            >
+                              🌐 Open GBP
+                            </a>
+                          )}
+                        </div>
+                      )}
                       
                       <div className="flex items-center justify-between mt-2">
                         {/* Copy Button */}
