@@ -332,6 +332,19 @@ export default function Dashboard() {
         }
       }
 
+      // 3b. Fetch review requests to show in chat history
+      let reviewRequests: any[] = [];
+      try {
+        const { data: reviewData } = await supabase
+          .from('review_requests')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('sent_at', { ascending: true });
+        if (reviewData) reviewRequests = reviewData;
+      } catch (rrErr) {
+        console.warn('⚠️ Could not load review_requests:', rrErr);
+      }
+
       const { data: postsData } = await supabase
         .from('posts')
         .select('*')
@@ -400,7 +413,25 @@ export default function Dashboard() {
         };
       });
 
-      const dbMessages = [...mappedWebMessages, ...mappedWAMessages].sort(
+      // Map review requests as chat messages (they already persist in DB)
+      const mappedReviewMessages = (reviewRequests || []).map((r: any) => {
+        const customerName = r.customer_name || 'Customer';
+        const customerPhone = r.customer_phone || '';
+        return {
+          id: `review-${r.id}`,
+          text: r.status === 'review_received'
+            ? `⭐ *Review received from ${customerName}!*`
+            : `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${r.review_link}\n\n_Done! Workflow complete._ ✅`,
+          sender: 'bot' as const,
+          timestamp: new Date(r.sent_at || r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: new Date(r.sent_at || r.created_at).toLocaleDateString(),
+          created_at: new Date(r.sent_at || r.created_at),
+          status: 'published',
+          source: 'webapp' as const
+        };
+      });
+
+      const dbMessages = [...mappedWebMessages, ...mappedWAMessages, ...mappedReviewMessages].sort(
         (a, b) => a.created_at.getTime() - b.created_at.getTime()
       );
 
@@ -779,7 +810,8 @@ Try sending a photo or typing a description of a job you completed!`,
         return [...filtered, readyMsg];
       });
 
-      setStats(prev => ({ total: prev.total + 1, daily: prev.daily + 1 }));
+      // Refresh dashboard data to update counts from DB
+      await loadDashboardData();
     } catch (aiErr: any) {
       console.error('AI generation error:', aiErr);
       setMessages(prev => {
