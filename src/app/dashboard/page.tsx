@@ -939,10 +939,21 @@ Try sending a photo or typing a description of a job you completed!`,
         };
         setMessages(prev => [...prev, sentMsg]);
 
+        // Also save a post record so it counts toward quota + shows in chat after refresh
+        await supabase.from('posts').insert({
+          user_id: user.id,
+          title: `Review sent to ${customerName}`,
+          content: `Review request sent to ${customerName} (${customerPhone})`,
+          status: 'published'
+        });
+
         // Reset customer state
         setCustomerName('');
         setCustomerPhone('');
         setPostPublished(false);
+
+        // Refresh dashboard to update counts from DB
+        await loadDashboardData();
         return;
       }
 
