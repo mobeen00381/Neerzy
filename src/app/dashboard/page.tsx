@@ -667,6 +667,11 @@ Try sending a photo or typing a description of a job you completed!`,
   const [draftImages, setDraftImages] = useState<string[]>([]);
   const [draftDescription, setDraftDescription] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Customer state for review flow
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [postPublished, setPostPublished] = useState(false);
 
   // Check if text is a recognized command (POST, DONE, RESET)
   const isPostCommand = (text: string) => text.trim().toUpperCase() === 'POST';
@@ -847,27 +852,85 @@ Try sending a photo or typing a description of a job you completed!`,
       };
       setMessages(prev => [...prev, doneMsg]);
 
-      // Show "post updated" message
+      // If customer details already saved → send the review request
+      if (customerName && customerPhone) {
+        const bizName = businessProfile?.business_name || profile?.business_name || user?.user_metadata?.business_name || 'My Business Listing';
+        const reviewLink = businessProfile?.review_link || 
+          (businessProfile?.google_place_id ? `https://search.google.com/local/writereview?placeid=${businessProfile.google_place_id}` : '');
+
+        if (!reviewLink) {
+          const noGbMsg: Message = {
+            id: `bot-nogb-${Date.now()}`,
+            text: '⚠️ *No Google Business Profile connected.*\n\nPlease connect your GBP first to send review requests.',
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          setMessages(prev => [...prev, noGbMsg]);
+          return;
+        }
+
+        // Send the review via API
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch('/api/reviews/send-request', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token || ''}`,
+            },
+            body: JSON.stringify({
+              to: customerPhone,
+              review_link: reviewLink,
+              trader_name: bizName,
+              customer_name: customerName,
+              user_id: user.id,
+            }),
+          });
+        } catch (err) {
+          console.error('Failed to send review:', err);
+          const errMsg: Message = {
+            id: `bot-err-${Date.now()}`,
+            text: '❌ *Failed to send review request.* Please try again or use the Reviews tab.',
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          setMessages(prev => [...prev, errMsg]);
+          return;
+        }
+
+        // Show completion message
+        const sentMsg: Message = {
+          id: `bot-sent-${Date.now()}`,
+          text: `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${reviewLink}\n\n_Done! Workflow complete._ ✅`,
+          sender: 'bot',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev, sentMsg]);
+
+        // Reset customer state
+        setCustomerName('');
+        setCustomerPhone('');
+        setPostPublished(false);
+        return;
+      }
+
+      // No customer info yet → show post published + ask for customer
       const postedMsg: Message = {
-        id: `bot-${Date.now()}`,
-        text: '✅ *Post has been published on Google My Business!* 📍\n\n_Your Google listing has been updated._',
+        id: `bot-posted-${Date.now()}`,
+        text: '✅ *Post has been published on Google My Business!* 📍',
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages(prev => [...prev, postedMsg]);
 
-      // If we have a business profile, send review link prompt
       if (businessProfile?.review_link || businessProfile?.google_place_id) {
-        const reviewLink = businessProfile?.review_link || 
-          `https://search.google.com/local/writereview?placeid=${businessProfile.google_place_id}`;
-        
-        const reviewMsg: Message = {
-          id: `bot-review-${Date.now()}`,
-          text: `⭐ *Send a review request to your customer?*\n\nSend their name & number like:\n_Mike +15552221617_\n\nThen type *DONE* again to send the review link.`,
+        const promptMsg: Message = {
+          id: `bot-prompt-${Date.now()}`,
+          text: `⭐ *Send a review request to your customer?*\n\nSend their name & number like:\n_Mike +15552221617_\n\nThen type *DONE* again to send.`,
           sender: 'bot',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
-        setMessages(prev => [...prev, reviewMsg]);
+        setMessages(prev => [...prev, promptMsg]);
       } else {
         const noGbMsg: Message = {
           id: `bot-nogb-${Date.now()}`,
@@ -887,6 +950,10 @@ Try sending a photo or typing a description of a job you completed!`,
       const phoneMatch = textContent.match(/(\+?\d{10,15})/);
       const name = phoneMatch ? textContent.replace(phoneMatch[1], '').trim() || 'Customer' : 'Customer';
       const phone = phoneMatch ? phoneMatch[1] : '';
+      
+      // Save customer state
+      setCustomerName(name);
+      setCustomerPhone(phone);
       
       const custMsg: Message = {
         id: `user-${Date.now()}`,
