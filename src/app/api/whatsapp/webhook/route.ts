@@ -121,11 +121,13 @@ export async function POST(req: Request) {
       if (phoneMatch) {
         const name = body.replace(phoneMatch[1], '').trim() || 'Customer';
         const formattedCustPhone = formatToE164(phoneMatch[1], from);
+        const cc = extractCountryCode(formattedCustPhone);
+        const flag = getCountryFlag(cc);
         const postState = await saveDraft(from, { customerName: name, customerPhone: formattedCustPhone });
         if (postState === 'generated') {
-          return await sendTwilioMessage(from, `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${formattedCustPhone}\n\nType *DONE* to send the review link to ${name} now.`, to);
+          return await sendTwilioMessage(from, `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${flag} ${formattedCustPhone}\n\nType *DONE* to send the review link to ${name} now.`, to);
         }
-        return await sendTwilioMessage(from, `✅ *Customer details saved.*\n\n👤 ${name}\n\nType *DONE* to send the review link, or send photos & a description then type *POST* to create a post.`, to);
+        return await sendTwilioMessage(from, `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${flag} ${formattedCustPhone}\n\nType *DONE* to send the review link to ${name}, or send photos & a description then type *POST* to create a post.`, to);
       }
     }
 
@@ -681,7 +683,9 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     }
 
     // Always send confirmation to the trader since we verified it's a real customer
-    const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n📱 Sent to: ${targetCustomerPhone}\n🔗 Review link: ${reviewLink}`;
+    const customerCC = extractCountryCode(targetCustomerPhone);
+    const customerFlag = getCountryFlag(customerCC);
+    const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n📱 Sent to: ${customerFlag} ${targetCustomerPhone}\n🔗 Here is the review link:\n\n${reviewLink}\n\n_Your customer received the review request via WhatsApp._\n_Done! Workflow complete._ ✅`;
     await sendTwilioMessage(phone, confirmMessage, fromNumber);
 
     return NextResponse.json({ success: true });
@@ -766,6 +770,237 @@ function parsePostContent(content: string) {
 function extractLine(lines: string[], prefix: string) {
   const line = lines.find(l => l.toUpperCase().includes(prefix.toUpperCase()));
   return line ? line.replace(new RegExp(prefix, 'i'), '').trim() : '';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Country Code → Flag Emoji Helper
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function getCountryFlag(countryCode: string): string {
+  // Map of common country codes to their flag emoji
+  const flagMap: Record<string, string> = {
+    '1': '🇺🇸',    // US/Canada
+    '20': '🇪🇬',   // Egypt
+    '27': '🇿🇦',   // South Africa
+    '30': '🇬🇷',   // Greece
+    '31': '🇳🇱',   // Netherlands
+    '32': '🇧🇪',   // Belgium
+    '33': '🇫🇷',   // France
+    '34': '🇪🇸',   // Spain
+    '36': '🇭🇺',   // Hungary
+    '39': '🇮🇹',   // Italy
+    '40': '🇷🇴',   // Romania
+    '41': '🇨🇭',   // Switzerland
+    '43': '🇦🇹',   // Austria
+    '44': '🇬🇧',   // UK
+    '45': '🇩🇰',   // Denmark
+    '46': '🇸🇪',   // Sweden
+    '47': '🇳🇴',   // Norway
+    '48': '🇵🇱',   // Poland
+    '49': '🇩🇪',   // Germany
+    '51': '🇵🇪',   // Peru
+    '52': '🇲🇽',   // Mexico
+    '54': '🇦🇷',   // Argentina
+    '55': '🇧🇷',   // Brazil
+    '56': '🇨🇱',   // Chile
+    '57': '🇨🇴',   // Colombia
+    '58': '🇻🇪',   // Venezuela
+    '60': '🇲🇾',   // Malaysia
+    '61': '🇦🇺',   // Australia
+    '62': '🇮🇩',   // Indonesia
+    '63': '🇵🇭',   // Philippines
+    '64': '🇳🇿',   // New Zealand
+    '65': '🇸🇬',   // Singapore
+    '66': '🇹🇭',   // Thailand
+    '81': '🇯🇵',   // Japan
+    '82': '🇰🇷',   // South Korea
+    '84': '🇻🇳',   // Vietnam
+    '86': '🇨🇳',   // China
+    '90': '🇹🇷',   // Turkey
+    '91': '🇮🇳',   // India
+    '92': '🇵🇰',   // Pakistan
+    '93': '🇦🇫',   // Afghanistan
+    '94': '🇱🇰',   // Sri Lanka
+    '95': '🇲🇲',   // Myanmar
+    '98': '🇮🇷',   // Iran
+    '212': '🇲🇦',  // Morocco
+    '213': '🇩🇿',  // Algeria
+    '216': '🇹🇳',  // Tunisia
+    '218': '🇱🇾',  // Libya
+    '220': '🇬🇲',  // Gambia
+    '221': '🇸🇳',  // Senegal
+    '222': '🇲🇷',  // Mauritania
+    '223': '🇲🇱',  // Mali
+    '224': '🇬🇳',  // Guinea
+    '225': '🇨🇮',  // Cote d'Ivoire
+    '226': '🇧🇫',  // Burkina Faso
+    '227': '🇳🇪',  // Niger
+    '228': '🇹🇬',  // Togo
+    '229': '🇧🇯',  // Benin
+    '230': '🇲🇺',  // Mauritius
+    '231': '🇱🇷',  // Liberia
+    '232': '🇸🇱',  // Sierra Leone
+    '233': '🇬🇭',  // Ghana
+    '234': '🇳🇬',  // Nigeria
+    '235': '🇹🇩',  // Chad
+    '236': '🇨🇫',  // Central African Republic
+    '237': '🇨🇲',  // Cameroon
+    '238': '🇨🇻',  // Cape Verde
+    '239': '🇸🇹',  // Sao Tome
+    '240': '🇬🇶',  // Equatorial Guinea
+    '241': '🇬🇦',  // Gabon
+    '242': '🇨🇬',  // Congo
+    '243': '🇨🇩',  // DR Congo
+    '244': '🇦🇴',  // Angola
+    '245': '🇬🇼',  // Guinea-Bissau
+    '246': '🇮🇴',  // British Indian Ocean
+    '248': '🇸🇨',  // Seychelles
+    '249': '🇸🇩',  // Sudan
+    '250': '🇷🇼',  // Rwanda
+    '251': '🇪🇹',  // Ethiopia
+    '252': '🇸🇴',  // Somalia
+    '253': '🇩🇯',  // Djibouti
+    '254': '🇰🇪',  // Kenya
+    '255': '🇹🇿',  // Tanzania
+    '256': '🇺🇬',  // Uganda
+    '257': '🇧🇮',  // Burundi
+    '258': '🇲🇿',  // Mozambique
+    '260': '🇿🇲',  // Zambia
+    '261': '🇲🇬',  // Madagascar
+    '262': '🇷🇪',  // Reunion
+    '263': '🇿🇼',  // Zimbabwe
+    '264': '🇳🇦',  // Namibia
+    '265': '🇲🇼',  // Malawi
+    '266': '🇱🇸',  // Lesotho
+    '267': '🇧🇼',  // Botswana
+    '268': '🇸🇿',  // Eswatini
+    '269': '🇰🇲',  // Comoros
+    '291': '🇪🇷',  // Eritrea
+    '297': '🇦🇼',  // Aruba
+    '298': '🇫🇴',  // Faroe Islands
+    '299': '🇬🇱',  // Greenland
+    '350': '🇬🇮',  // Gibraltar
+    '351': '🇵🇹',  // Portugal
+    '352': '🇱🇺',  // Luxembourg
+    '353': '🇮🇪',  // Ireland
+    '354': '🇮🇸',  // Iceland
+    '355': '🇦🇱',  // Albania
+    '356': '🇲🇹',  // Malta
+    '357': '🇨🇾',  // Cyprus
+    '358': '🇫🇮',  // Finland
+    '359': '🇧🇬',  // Bulgaria
+    '370': '🇱🇹',  // Lithuania
+    '371': '🇱🇻',  // Latvia
+    '372': '🇪🇪',  // Estonia
+    '373': '🇲🇩',  // Moldova
+    '374': '🇦🇲',  // Armenia
+    '375': '🇧🇾',  // Belarus
+    '376': '🇦🇩',  // Andorra
+    '377': '🇲🇨',  // Monaco
+    '378': '🇸🇲',  // San Marino
+    '380': '🇺🇦',  // Ukraine
+    '381': '🇷🇸',  // Serbia
+    '382': '🇲🇪',  // Montenegro
+    '383': '🇽🇰',  // Kosovo
+    '385': '🇭🇷',  // Croatia
+    '386': '🇸🇮',  // Slovenia
+    '387': '🇧🇦',  // Bosnia
+    '389': '🇲🇰',  // North Macedonia
+    '420': '🇨🇿',  // Czech
+    '421': '🇸🇰',  // Slovakia
+    '423': '🇱🇮',  // Liechtenstein
+    '500': '🇫🇰',  // Falkland Islands
+    '501': '🇧🇿',  // Belize
+    '502': '🇬🇹',  // Guatemala
+    '503': '🇸🇻',  // El Salvador
+    '504': '🇭🇳',  // Honduras
+    '505': '🇳🇮',  // Nicaragua
+    '506': '🇨🇷',  // Costa Rica
+    '507': '🇵🇦',  // Panama
+    '509': '🇭🇹',  // Haiti
+    '591': '🇧🇴',  // Bolivia
+    '592': '🇬🇾',  // Guyana
+    '593': '🇪🇨',  // Ecuador
+    '594': '🇬🇫',  // French Guiana
+    '595': '🇵🇾',  // Paraguay
+    '597': '🇸🇷',  // Suriname
+    '598': '🇺🇾',  // Uruguay
+    '599': '🇨🇼',  // Curacao
+    '672': '🇦🇶',  // Antarctica
+    '673': '🇧🇳',  // Brunei
+    '674': '🇳🇷',  // Nauru
+    '675': '🇵🇬',  // Papua New Guinea
+    '676': '🇹🇴',  // Tonga
+    '677': '🇸🇧',  // Solomon Islands
+    '678': '🇻🇺',  // Vanuatu
+    '679': '🇫🇯',  // Fiji
+    '680': '🇵🇼',  // Palau
+    '681': '🇼🇫',  // Wallis and Futuna
+    '682': '🇨🇰',  // Cook Islands
+    '685': '🇼🇸',  // Samoa
+    '686': '🇰🇮',  // Kiribati
+    '687': '🇳🇨',  // New Caledonia
+    '688': '🇹🇻',  // Tuvalu
+    '689': '🇵🇫',  // French Polynesia
+    '690': '🇹🇰',  // Tokelau
+    '691': '🇫🇲',  // Micronesia
+    '692': '🇲🇭',  // Marshall Islands
+    '850': '🇰🇵',  // North Korea
+    '852': '🇭🇰',  // Hong Kong
+    '853': '🇲🇴',  // Macau
+    '855': '🇰🇭',  // Cambodia
+    '856': '🇱🇦',  // Laos
+    '880': '🇧🇩',  // Bangladesh
+    '886': '🇹🇼',  // Taiwan
+    '960': '🇲🇻',  // Maldives
+    '961': '🇱🇧',  // Lebanon
+    '962': '🇯🇴',  // Jordan
+    '963': '🇸🇾',  // Syria
+    '964': '🇮🇶',  // Iraq
+    '965': '🇰🇼',  // Kuwait
+    '966': '🇸🇦',  // Saudi Arabia
+    '967': '🇾🇪',  // Yemen
+    '968': '🇴🇲',  // Oman
+    '970': '🇵🇸',  // Palestine
+    '971': '🇦🇪',  // UAE
+    '972': '🇮🇱',  // Israel
+    '973': '🇧🇭',  // Bahrain
+    '974': '🇶🇦',  // Qatar
+    '975': '🇧🇹',  // Bhutan
+    '976': '🇲🇳',  // Mongolia
+    '977': '🇳🇵',  // Nepal
+    '992': '🇹🇯',  // Tajikistan
+    '993': '🇹🇲',  // Turkmenistan
+    '994': '🇦🇿',  // Azerbaijan
+    '995': '🇬🇪',  // Georgia
+    '996': '🇰🇬',  // Kyrgyzstan
+    '998': '🇺🇿',  // Uzbekistan
+  };
+  return flagMap[countryCode] || '🌍';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Get country code from E.164 number for flag display
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function extractCountryCode(e164Phone: string): string {
+  if (!e164Phone.startsWith('+')) return '';
+  const digits = e164Phone.replace(/\D/g, '');
+  // Try longest match first (3-digit codes)
+  const threeDigit = digits.substring(0, 3);
+  const twoDigit = digits.substring(0, 2);
+  const oneDigit = digits.substring(0, 1);
+  
+  // Known 3-digit codes
+  const threeDigitCodes = ['212','213','216','218','220','221','222','223','224','225','226','227','228','229','230','231','232','233','234','235','236','237','238','239','240','241','242','243','244','245','246','248','249','250','251','252','253','254','255','256','257','258','260','261','262','263','264','265','266','267','268','269','291','297','298','299','350','351','352','353','354','355','356','357','358','359','370','371','372','373','374','375','376','377','378','380','381','382','383','385','386','387','389','420','421','423','500','501','502','503','504','505','506','507','509','591','592','593','594','595','597','598','599','672','673','674','675','676','677','678','679','680','681','682','685','686','687','688','689','690','691','692','850','852','853','855','856','880','886','960','961','962','963','964','965','966','967','968','970','971','972','973','974','975','976','977','992','993','994','995','996','998'];
+  if (threeDigitCodes.includes(threeDigit)) return threeDigit;
+  
+  // Known 2-digit codes (and single digit)
+  const twoDigitCodes = ['20','27','30','31','32','33','34','36','39','40','41','43','44','45','46','47','48','49','51','52','54','55','56','57','58','60','61','62','63','64','65','66','81','82','84','86','90','91','92','93','94','95','98'];
+  if (twoDigitCodes.includes(twoDigit)) return twoDigit;
+  
+  // Single digit (US/Canada)
+  if (['1','7'].includes(oneDigit)) return oneDigit;
+  
+  return twoDigit; // fallback guess
 }
 
 function formatToE164(rawPhone: string, merchantPhone: string): string {

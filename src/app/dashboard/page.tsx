@@ -673,10 +673,14 @@ Try sending a photo or typing a description of a job you completed!`,
   const isDoneCommand = (text: string) => text.trim().toUpperCase() === 'DONE';
   const isResetCommand = (text: string) => text.trim().toUpperCase() === 'RESET';
 
-  // Check if text looks like irrelevant chatter (phone numbers, single words, etc.)
+  // Check if text looks like name + phone number: "Mike +15552221617"
+  const hasPhoneNumber = (text: string) => {
+    return /(\+?\d{10,15})/.test(text);
+  };
+
+  // Check if text looks like irrelevant chatter (single words, etc.)
   const isIrrelevantChat = (text: string) => {
     const t = text.trim().toLowerCase();
-    if (/^[\+\d\s\-\(\)]{5,}$/.test(t)) return true; // just a phone number
     if (t.length < 3) return true;
     return false;
   };
@@ -828,6 +832,77 @@ Try sending a photo or typing a description of a job you completed!`,
       setMessages(prev => [...prev, postMsg]);
 
       await doGeneratePost();
+      return;
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Command: DONE — publish post on GMB & send review request
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (isDoneCommand(textContent)) {
+      const doneMsg: Message = {
+        id: `user-${Date.now()}`,
+        text: 'DONE',
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, doneMsg]);
+
+      // Show "post updated" message
+      const postedMsg: Message = {
+        id: `bot-${Date.now()}`,
+        text: '✅ *Post has been published on Google My Business!* 📍\n\n_Your Google listing has been updated._',
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, postedMsg]);
+
+      // If we have a business profile, send review link prompt
+      if (businessProfile?.review_link || businessProfile?.google_place_id) {
+        const reviewLink = businessProfile?.review_link || 
+          `https://search.google.com/local/writereview?placeid=${businessProfile.google_place_id}`;
+        
+        const reviewMsg: Message = {
+          id: `bot-review-${Date.now()}`,
+          text: `⭐ *Send a review request to your customer?*\n\nSend their name & number like:\n_Mike +15552221617_\n\nThen type *DONE* again to send the review link.`,
+          sender: 'bot',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev, reviewMsg]);
+      } else {
+        const noGbMsg: Message = {
+          id: `bot-nogb-${Date.now()}`,
+          text: '⚠️ *No Google Business Profile connected.*\n\nPlease connect your GBP first to send review requests.',
+          sender: 'bot',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev, noGbMsg]);
+      }
+      return;
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Customer name + phone: "Mike +15552221617"
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (hasPhoneNumber(textContent)) {
+      const phoneMatch = textContent.match(/(\+?\d{10,15})/);
+      const name = phoneMatch ? textContent.replace(phoneMatch[1], '').trim() || 'Customer' : 'Customer';
+      const phone = phoneMatch ? phoneMatch[1] : '';
+      
+      const custMsg: Message = {
+        id: `user-${Date.now()}`,
+        text: textContent,
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, custMsg]);
+
+      const confirmMsg: Message = {
+        id: `bot-cust-${Date.now()}`,
+        text: `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${phone}\n\nType *DONE* to send the review link to ${name}.`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, confirmMsg]);
       return;
     }
 
