@@ -149,7 +149,7 @@ export default function Dashboard() {
   const [businessProfile, setBusinessProfile] = useState<any>(null);
   
   // Stats
-  const [stats, setStats] = useState({ total: 0, daily: 0 });
+  const [stats, setStats] = useState({ total: 0, daily: 0, reviewCount: 0 });
   
   // Review stats
   const [reviewStats, setReviewStats] = useState<{
@@ -452,14 +452,15 @@ Try sending a photo or typing a description of a job you completed!`,
 
       setMessages([welcomeMessage, ...dbMessages]);
 
-      // Calculate counts of generated + published posts towards plan quotas
-      // (generated = WhatsApp POST flow, published = DONE flow)
-      const totalCount = dbMessages.filter(p => p.status === 'published' || p.status === 'generated').length;
+      // Calculate post counts directly from posts DB (web posts) + pending_posts (WhatsApp)
+      const totalPostCount = (postsData || []).length + (whatsappPosts || []).length;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const dailyCount = dbMessages.filter(p => (p.status === 'published' || p.status === 'generated') && p.created_at >= today).length;
+      const dailyPostCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= today).length
+        + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= today).length;
+      const reviewCount = (reviewRequests || []).length;
 
-      setStats({ total: totalCount, daily: dailyCount });
+      setStats({ total: totalPostCount, daily: dailyPostCount, reviewCount });
 
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -902,9 +903,10 @@ Try sending a photo or typing a description of a job you completed!`,
         }
 
         // Send the review via API
+        let reviewSent = false;
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          await fetch('/api/reviews/send-request', {
+          const response = await fetch('/api/reviews/send-request', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -918,11 +920,17 @@ Try sending a photo or typing a description of a job you completed!`,
               user_id: user.id,
             }),
           });
-        } catch (err) {
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to send review request');
+          }
+          reviewSent = true;
+        } catch (err: any) {
           console.error('Failed to send review:', err);
           const errMsg: Message = {
             id: `bot-err-${Date.now()}`,
-            text: '❌ *Failed to send review request.* Please try again or use the Reviews tab.',
+            text: `❌ *Failed to send review request: ${err.message || 'Unknown error'}*\n\nPlease try again or use the Reviews tab.`,
             sender: 'bot',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           };
@@ -930,29 +938,23 @@ Try sending a photo or typing a description of a job you completed!`,
           return;
         }
 
-        // Show completion message
-        const sentMsg: Message = {
-          id: `bot-sent-${Date.now()}`,
-          text: `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${reviewLink}\n\n_Done! Workflow complete._ ✅`,
-          sender: 'bot',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-        setMessages(prev => [...prev, sentMsg]);
-
-        // Also save a post record so it counts toward quota + shows in chat after refresh
-        await supabase.from('posts').insert({
-          user_id: user.id,
-          title: `Review sent to ${customerName}`,
-          content: `Review request sent to ${customerName} (${customerPhone})`,
-          status: 'published'
-        });
+        if (reviewSent) {
+          // Show completion message
+          const sentMsg: Message = {
+            id: `bot-sent-${Date.now()}`,
+            text: `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${reviewLink}\n\n_Done! Workflow complete._ ✅`,
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          setMessages(prev => [...prev, sentMsg]);
+        }
 
         // Reset customer state
         setCustomerName('');
         setCustomerPhone('');
         setPostPublished(false);
 
-        // Refresh dashboard to update counts from DB
+        // Refresh dashboard to update counts and show the new review request in chat
         await loadDashboardData();
         return;
       }

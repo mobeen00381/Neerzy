@@ -94,12 +94,21 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
 };
 
 export function getRemainingDays(startDate: string, trialDays: number): number {
-  const start = new Date(startDate);
-  const end = new Date(start);
-  end.setDate(end.getDate() + trialDays);
-  const now = new Date();
-  const diff = end.getTime() - now.getTime();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  if (!startDate || trialDays <= 0) return 0;
+  try {
+    const start = new Date(startDate);
+    // Guard: if the start date is invalid or in the future, return 0
+    if (isNaN(start.getTime())) return 0;
+    const now = new Date();
+    // If start date is somehow in the future, clamp to now
+    const effectiveStart = start > now ? now : start;
+    const end = new Date(effectiveStart);
+    end.setDate(end.getDate() + trialDays);
+    const diff = end.getTime() - now.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  } catch {
+    return 0;
+  }
 }
 
 export function getPlan(tier: string | null | undefined): PlanLimits {

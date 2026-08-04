@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { PLAN_LIMITS } from '@/lib/plans';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -12,6 +13,9 @@ export async function POST(req: Request) {
     const authHeader = req.headers.get('authorization') || '';
     let userId: string | null = null;
 
+    // Parse body once — must clone before reading since .json() consumes the stream
+    const body = await req.json();
+
     // Try to get user from auth header or session
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(
       authHeader.replace('Bearer ', '')
@@ -21,15 +25,12 @@ export async function POST(req: Request) {
       userId = user.id;
     } else {
       // Fallback: try to get from the request body
-      const body = await req.json();
       userId = body.user_id || null;
       
       if (!userId) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       }
     }
-
-    const body = await req.json();
     const { to: customerPhone, review_link, trader_name, customer_name } = body;
 
     if (!customerPhone) {
@@ -48,7 +49,6 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     const planTier = profile?.selected_plan || 'free';
-    const { PLAN_LIMITS } = await import('@/lib/plans');
     const planLimits = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
 
     // Check total review request quota

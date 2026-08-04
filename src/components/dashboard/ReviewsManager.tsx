@@ -132,6 +132,7 @@ const ReviewRequestList = ({ userId }: { userId: string }) => {
 };
 
 export function ReviewsManager({ userId }: { userId: string }) {
+  const queryClient = useQueryClient();
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -202,6 +203,8 @@ export function ReviewsManager({ userId }: { userId: string }) {
         alert("✅ Review request sent successfully!");
         setCustomerPhone('');
         setCustomerName('');
+        // Invalidate review-requests query so the list refreshes immediately
+        queryClient.invalidateQueries({ queryKey: ['review-requests', userId] });
       } else {
         setError(result.error || 'Failed to send request');
       }
