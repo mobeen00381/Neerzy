@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import twilio from 'twilio';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
+import { PLAN_LIMITS } from '@/lib/plans';
 
 // ✅ Use correct server-side env vars from your .env
 const supabase = createClient(
@@ -628,6 +629,60 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     }).eq('id', post.id);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Soft Plan-Quota Check: block sending if trader has hit their plan limits
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (userIdForPublish) {
+      try {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('selected_plan')
+          .eq('id', userIdForPublish)
+          .maybeSingle();
+
+        const planTier = profileData?.selected_plan || 'free';
+        const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+
+        // Check total quota
+        if (quota.totalReviewRequests !== -1) {
+          const { count: sentTotal } = await supabase
+            .from('review_requests')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userIdForPublish);
+
+          if (sentTotal !== null && sentTotal >= quota.totalReviewRequests) {
+            return await sendTwilioMessage(
+              phone,
+              `⚠️ *Review request limit reached.*\n\nYour ${planTier} plan allows ${quota.totalReviewRequests} review requests total. Upgrade to send more.`,
+              fromNumber
+            );
+          }
+        }
+
+        // Check daily quota
+        if (quota.dailyReviewRequests !== -1) {
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const { count: sentToday } = await supabase
+            .from('review_requests')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userIdForPublish)
+            .gte('sent_at', todayStart.toISOString());
+
+          if (sentToday !== null && sentToday >= quota.dailyReviewRequests) {
+            return await sendTwilioMessage(
+              phone,
+              `⚠️ *Daily review limit reached.*\n\nYour ${planTier} plan allows ${quota.dailyReviewRequests} review requests per day. Try again tomorrow.`,
+              fromNumber
+            );
+          }
+        }
+      } catch (quotaErr) {
+        console.warn('⚠️ Could not check review quota:', quotaErr);
+        // Soft check: continue even if quota lookup fails
+      }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 3. Send Review Request to the CUSTOMER (never the trader)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const businessName = business?.business_name || 'Your Connected Business';
@@ -682,6 +737,29 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       console.error('⚠️ Failed to send parallel backup SMS:', smsError.message);
     }
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Insert review_requests row for dashboard tracking/stats
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    try {
+      const messageText = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${reviewLink}`;
+      const businessId = business?.id || null;
+      await supabase.from('review_requests').insert({
+        user_id: userIdForPublish || null,
+        business_id: businessId,
+        customer_name: customerName,
+        customer_phone: targetCustomerPhone,
+        message_text: messageText,
+        review_link: reviewLink,
+        status: 'sent',
+        sent_via: 'whatsapp',
+        sent_at: new Date().toISOString(),
+      });
+      console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'})`);
+    } catch (insertErr) {
+      console.error('⚠️ Failed to insert review_requests row:', insertErr);
+      // Non-fatal: the WhatsApp message was already sent
+    }
+
     // Always send confirmation to the trader since we verified it's a real customer
     const customerCC = extractCountryCode(targetCustomerPhone);
     const customerFlag = getCountryFlag(customerCC);
@@ -699,13 +777,20 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 async function sendTwilioMessage(to: string, text: string, fromNumber?: string) {
   try {
     // Check both TWILIO_PHONE_NUMBER and TWILIO_WHATSAPP_NUMBER for env robustness
-    const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    let defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    // Normalize from to always include whatsapp: prefix
+    if (!defaultFrom.startsWith('whatsapp:')) {
+      defaultFrom = `whatsapp:${defaultFrom}`;
+    }
     const from = fromNumber || defaultFrom;
-    console.log('📤 Sending message to:', to, 'from:', from);
+    // Normalize: strip any existing whatsapp: prefix, then add cleanly
+    const cleanTo = to.replace(/^whatsapp:/, '');
+    const toWithPrefix = `whatsapp:${cleanTo}`;
+    console.log('📤 Sending message to:', toWithPrefix, 'from:', from);
     
     const message = await twilioClient.messages.create({
       from: from,
-      to: `whatsapp:${to}`,
+      to: toWithPrefix,
       body: text
     });
     
@@ -719,13 +804,20 @@ async function sendTwilioMessage(to: string, text: string, fromNumber?: string) 
 
 async function sendTwilioTemplate(to: string, sid: string, vars: any, fromNumber?: string) {
   try {
-    const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    let defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    // Normalize from to always include whatsapp: prefix
+    if (!defaultFrom.startsWith('whatsapp:')) {
+      defaultFrom = `whatsapp:${defaultFrom}`;
+    }
     const from = fromNumber || defaultFrom;
-    console.log('📤 Sending template SID:', sid, 'to:', to, 'from:', from);
+    // Normalize: strip any existing whatsapp: prefix, then add cleanly
+    const cleanTo = to.replace(/^whatsapp:/, '');
+    const toWithPrefix = `whatsapp:${cleanTo}`;
+    console.log('📤 Sending template SID:', sid, 'to:', toWithPrefix, 'from:', from);
     
     const message = await twilioClient.messages.create({
       from: from,
-      to: `whatsapp:${to}`,
+      to: toWithPrefix,
       contentSid: sid,
       contentVariables: JSON.stringify(vars)
     });
@@ -739,13 +831,20 @@ async function sendTwilioTemplate(to: string, sid: string, vars: any, fromNumber
 
 async function sendTwilioMedia(to: string, url: string, caption: string, fromNumber?: string) {
   try {
-    const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    let defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
+    // Normalize from to always include whatsapp: prefix
+    if (!defaultFrom.startsWith('whatsapp:')) {
+      defaultFrom = `whatsapp:${defaultFrom}`;
+    }
     const from = fromNumber || defaultFrom;
+    // Normalize: strip any existing whatsapp: prefix, then add cleanly
+    const cleanTo = to.replace(/^whatsapp:/, '');
+    const toWithPrefix = `whatsapp:${cleanTo}`;
     console.log('📤 Sending media:', url, 'from:', from);
     
     const message = await twilioClient.messages.create({
       from: from,
-      to: `whatsapp:${to}`,
+      to: toWithPrefix,
       body: caption,
       mediaUrl: [url]
     });

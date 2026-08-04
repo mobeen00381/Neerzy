@@ -31,7 +31,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       }
     }
-    const { to: customerPhone, review_link, trader_name, customer_name } = body;
+    const { to: customerPhone, review_link, trader_name, customer_name, user_phone } = body;
 
     if (!customerPhone) {
       return NextResponse.json({ error: 'Customer phone number is required' }, { status: 400 });
@@ -41,10 +41,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Review link is required' }, { status: 400 });
     }
 
-    // Get user's plan for quota checking
+    // Get user's profile for plan quota checking and phone lookup
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('selected_plan')
+      .select('selected_plan, phone')
       .eq('id', userId)
       .maybeSingle();
 
@@ -91,19 +91,47 @@ export async function POST(req: Request) {
     const customerName = customer_name || trader_name || 'Valued Customer';
     const messageText = `Hi ${customerName}! 👋\n\nThank you for choosing ${trader_name || 'our business'}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${review_link}`;
 
-    // Get the business profile to link the request
-    const { data: businessProfile } = await supabaseAdmin
-      .from('business_profiles')
-      .select('id')
-      .eq('user_phone', body.user_phone || '')
-      .maybeSingle();
+    // Resolve the business profile robustly:
+    // 1. body.user_phone (now sent by ReviewsManager)
+    // 2. Look up profiles.phone → business_profiles.user_phone
+    // 3. Auth user metadata phone
+    // 4. If nothing found, still insert with business_id: null — never fail
+    let businessId: string | null = null;
+
+    if (user_phone) {
+      const { data: bizProfile } = await supabaseAdmin
+        .from('business_profiles')
+        .select('id')
+        .eq('user_phone', user_phone)
+        .maybeSingle();
+
+      if (bizProfile?.id) {
+        businessId = bizProfile.id;
+      }
+    }
+
+    // Fallback: try via profiles.phone
+    if (!businessId) {
+      const phoneFromProfile = profile?.phone || user?.user_metadata?.phone || user?.user_metadata?.phone_number;
+      if (phoneFromProfile) {
+        const { data: bizByPhone } = await supabaseAdmin
+          .from('business_profiles')
+          .select('id')
+          .eq('user_phone', phoneFromProfile)
+          .maybeSingle();
+
+        if (bizByPhone?.id) {
+          businessId = bizByPhone.id;
+        }
+      }
+    }
 
     // Insert the review request record
     const { data: reviewRequest, error: insertError } = await supabaseAdmin
       .from('review_requests')
       .insert({
         user_id: userId,
-        business_id: businessProfile?.id || null,
+        business_id: businessId,
         customer_name: customerName,
         customer_phone: customerPhone,
         message_text: messageText,
@@ -128,8 +156,18 @@ export async function POST(req: Request) {
           process.env.TWILIO_ACCOUNT_SID,
           process.env.TWILIO_AUTH_TOKEN
         );
-        const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+18338872999';
-        
+
+        // Normalize `from` to always include whatsapp: prefix
+        // Prefer TWILIO_WHATSAPP_NUMBER, fall back to TWILIO_PHONE_NUMBER
+        let defaultFrom = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '+18338872999';
+        if (!defaultFrom.startsWith('whatsapp:')) {
+          defaultFrom = `whatsapp:${defaultFrom.replace(/^whatsapp:/, '')}`;
+        }
+
+        // Normalize customer phone: strip any existing whatsapp: prefix, then add it cleanly
+        const cleanCustomerPhone = customerPhone.replace(/^whatsapp:/, '');
+        const toWithPrefix = `whatsapp:${cleanCustomerPhone}`;
+
         // Try template first
         const templateSid = process.env.TWILIO_TEMPLATE_REVIEW_REQUEST || 'HX36dc564715671fad2b3617c795984ee2';
         const templateVars = {
@@ -140,12 +178,12 @@ export async function POST(req: Request) {
 
         await twilioClient.messages.create({
           from: defaultFrom,
-          to: `whatsapp:${customerPhone.replace('whatsapp:', '')}`,
+          to: toWithPrefix,
           contentSid: templateSid,
           contentVariables: JSON.stringify(templateVars)
         });
         whatsappSent = true;
-        console.log(`✅ Review request sent via WhatsApp template to ${customerName} at ${customerPhone}`);
+        console.log(`✅ Review request sent via WhatsApp template to ${customerName} at ${toWithPrefix}`);
       } catch (twilioErr: any) {
         console.warn('⚠️ WhatsApp template send failed, trying SMS fallback:', twilioErr.message);
         
@@ -155,16 +193,21 @@ export async function POST(req: Request) {
             process.env.TWILIO_ACCOUNT_SID,
             process.env.TWILIO_AUTH_TOKEN
           );
-          const smsFrom = (process.env.TWILIO_PHONE_NUMBER || 'whatsapp:+18338872999').replace('whatsapp:', '');
-          const smsTo = customerPhone.replace('whatsapp:', '');
+
+          // For SMS, strip the whatsapp: prefix and use a plain E.164 number
+          const smsFrom = ((process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER) || '+18338872999')
+            .replace(/^whatsapp:/, '');
+          const smsTo = customerPhone.replace(/^whatsapp:/, '').replace(/^\+/, '');
+          // Re-add + for E.164 format
+          const smsToFormatted = smsTo.startsWith('+') ? smsTo : `+${smsTo}`;
           
           await twilioClient.messages.create({
             from: smsFrom,
-            to: smsTo,
+            to: smsToFormatted,
             body: messageText
           });
           whatsappSent = true;
-          console.log(`✅ Review request sent via SMS fallback to ${customerName} at ${smsTo}`);
+          console.log(`✅ Review request sent via SMS fallback to ${customerName} at ${smsToFormatted}`);
         } catch (smsErr: any) {
           console.error('❌ SMS fallback also failed:', smsErr.message);
         }

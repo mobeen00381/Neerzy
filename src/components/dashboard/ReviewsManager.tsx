@@ -131,52 +131,20 @@ const ReviewRequestList = ({ userId }: { userId: string }) => {
   );
 };
 
-export function ReviewsManager({ userId }: { userId: string }) {
+export function ReviewsManager({ userId, businessProfile, userPhone }: { userId: string; businessProfile?: any; userPhone?: string }) {
   const queryClient = useQueryClient();
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: gbp } = useQuery({
-    queryKey: ['gbp', userId],
-    queryFn: async () => {
-      // Try business_profiles first (the actual table used elsewhere)
-      const { data: bizProfile, error: bizError } = await supabase
-        .from('business_profiles')
-        .select('*')
-        .eq('user_phone', userId) // business_profiles uses user_phone
-        .maybeSingle();
-      
-      if (bizProfile) return bizProfile;
-
-      // Fallback to gbp_connections
-      const { data: gbpConn, error: gbpError } = await supabase
-        .from('gbp_connections')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      if (gbpConn) return gbpConn;
-      
-      // Try to get user's phone from auth metadata
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.user_metadata?.phone) {
-        const { data: byPhone } = await supabase
-          .from('business_profiles')
-          .select('*')
-          .eq('user_phone', user.user_metadata.phone)
-          .maybeSingle();
-        if (byPhone) return byPhone;
-      }
-
-      return null;
-    },
-    enabled: !!userId,
-  });
+  // Use the already-loaded business profile from the dashboard (resolved via service-role API)
+  // instead of broken client-side lookups that matched on userId (UUID) ≠ user_phone
+  const reviewLink = businessProfile?.review_link || null;
+  const businessName = businessProfile?.business_name || null;
 
   const sendReviewRequest = async () => {
-    if (!customerPhone || !gbp?.review_link) return;
+    if (!customerPhone || !reviewLink) return;
     
     setIsSending(true);
     setError(null);
@@ -190,10 +158,11 @@ export function ReviewsManager({ userId }: { userId: string }) {
         },
         body: JSON.stringify({
           to: customerPhone,
-          review_link: gbp.review_link,
-          trader_name: gbp.business_name,
+          review_link: reviewLink,
+          trader_name: businessName,
           customer_name: customerName || undefined,
           user_id: userId,
+          user_phone: userPhone || '', // now sent so the API can link business_id
         }),
       });
       
@@ -241,7 +210,7 @@ export function ReviewsManager({ userId }: { userId: string }) {
             </div>
             <Button 
               onClick={sendReviewRequest}
-              disabled={isSending || !customerPhone || !gbp?.review_link}
+              disabled={isSending || !customerPhone || !reviewLink}
               className="w-full md:w-auto bg-[#25D366] hover:bg-[#1da851] text-black rounded-full px-8 py-4 font-bold shadow-md transition active:scale-95 disabled:opacity-50 flex items-center gap-2 justify-center"
             >
               {isSending ? (
@@ -259,10 +228,10 @@ export function ReviewsManager({ userId }: { userId: string }) {
           )}
         </div>
         
-        {gbp?.review_link && (
+        {reviewLink && (
           <div className="mt-6 p-4 bg-[#F0F7F5] dark:bg-slate-800/50 rounded-xl border border-[#25D366]/20">
             <div className="text-[10px] font-black text-[#0F5C4D] dark:text-[#25D366] uppercase tracking-widest mb-1">Your Direct Review Link</div>
-            <code className="text-xs text-slate-600 dark:text-slate-300 break-all">{gbp.review_link}</code>
+            <code className="text-xs text-slate-600 dark:text-slate-300 break-all">{reviewLink}</code>
           </div>
         )}
       </div>

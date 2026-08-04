@@ -147,6 +147,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [businessProfile, setBusinessProfile] = useState<any>(null);
+  const [phone, setPhone] = useState<string | undefined>(undefined);
   
   // Stats
   const [stats, setStats] = useState({ total: 0, daily: 0, reviewCount: 0 });
@@ -301,6 +302,7 @@ export default function Dashboard() {
       }
 
       setProfile(profileData);
+      setPhone(phone); // lift phone to component state for ReviewsManager
 
       // 2. Fetch business profile
       let bData = null;
@@ -1609,7 +1611,7 @@ Try sending a photo or typing a description of a job you completed!`,
                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">Review Requests</h2>
                   <p className="text-sm text-slate-500 font-semibold mt-1">Send Google review requests via WhatsApp and track responses</p>
                 </div>
-                <ReviewsManager userId={user?.id || ''} />
+                <ReviewsManager userId={user?.id || ''} businessProfile={businessProfile} userPhone={phone} />
               </div>
             </div>
           )}
