@@ -743,7 +743,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     try {
       const messageText = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${reviewLink}`;
       const businessId = business?.id || null;
-      await supabase.from('review_requests').insert({
+      const { error: insertErr } = await supabase.from('review_requests').insert({
         user_id: userIdForPublish || null,
         business_id: businessId,
         customer_name: customerName,
@@ -754,7 +754,36 @@ async function handleSendReview(phone: string, fromNumber?: string) {
         sent_via: 'whatsapp',
         sent_at: new Date().toISOString(),
       });
-      console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'})`);
+
+      // If insert fails with PGRST204 (missing business_id column in prod),
+      // retry without business_id so the row is still recorded for the dashboard
+      if (insertErr) {
+        const isPGRST204 = (insertErr as any)?.code === 'PGRST204' ||
+          (insertErr as any)?.message?.includes('PGRST204') ||
+          (insertErr as any)?.message?.includes('Could not find');
+        if (isPGRST204 && businessId) {
+          console.warn('⚠️ business_id column not found in review_requests — retrying without it');
+          const { error: retryErr } = await supabase.from('review_requests').insert({
+            user_id: userIdForPublish || null,
+            customer_name: customerName,
+            customer_phone: targetCustomerPhone,
+            message_text: messageText,
+            review_link: reviewLink,
+            status: 'sent',
+            sent_via: 'whatsapp',
+            sent_at: new Date().toISOString(),
+          });
+          if (retryErr) {
+            console.error('⚠️ Failed to insert review_requests row (retry):', retryErr);
+          } else {
+            console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'})`);
+          }
+        } else {
+          console.error('⚠️ Failed to insert review_requests row:', insertErr);
+        }
+      } else {
+        console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'})`);
+      }
     } catch (insertErr) {
       console.error('⚠️ Failed to insert review_requests row:', insertErr);
       // Non-fatal: the WhatsApp message was already sent

@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       .eq('user_id', userId);
 
     if (totalCountError) {
-      console.error('Error counting total review requests:', totalCountError);
+      console.error('Error counting total review requests:', totalCountError.message || totalCountError);
     }
 
     if (totalSent !== null && planLimits.totalReviewRequests !== -1 && totalSent >= planLimits.totalReviewRequests) {
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       .gte('sent_at', todayStart.toISOString());
 
     if (dailyCountError) {
-      console.error('Error counting daily review requests:', dailyCountError);
+      console.error('Error counting daily review requests:', dailyCountError.message || dailyCountError);
     }
 
     if (dailySent !== null && planLimits.dailyReviewRequests !== -1 && dailySent >= planLimits.dailyReviewRequests) {
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
     }
 
     // Insert the review request record
-    const { data: reviewRequest, error: insertError } = await supabaseAdmin
+    let { data: reviewRequest, error: insertError } = await supabaseAdmin
       .from('review_requests')
       .insert({
         user_id: userId,
@@ -143,9 +143,37 @@ export async function POST(req: Request) {
       .select()
       .single();
 
+    // If insert fails with PGRST204 (missing column in production schema),
+    // retry without business_id so the API doesn't 500 before the migration runs
     if (insertError) {
-      console.error('Failed to insert review request:', insertError);
-      return NextResponse.json({ error: 'Failed to save review request' }, { status: 500 });
+      const isPGRST204 = (insertError as any)?.code === 'PGRST204' ||
+        (insertError as any)?.message?.includes('PGRST204') ||
+        (insertError as any)?.message?.includes('Could not find');
+      if (isPGRST204 && businessId) {
+        console.warn('⚠️ business_id column not found in review_requests — retrying without it');
+        const retry = await supabaseAdmin
+          .from('review_requests')
+          .insert({
+            user_id: userId,
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            message_text: messageText,
+            review_link: review_link,
+            status: 'sent',
+            sent_via: 'whatsapp',
+            sent_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        if (retry.error) {
+          console.error('Failed to insert review request (retry):', retry.error);
+          return NextResponse.json({ error: 'Failed to save review request' }, { status: 500 });
+        }
+        reviewRequest = retry.data;
+      } else {
+        console.error('Failed to insert review request:', insertError);
+        return NextResponse.json({ error: 'Failed to save review request' }, { status: 500 });
+      }
     }
 
     // Try to send via Twilio WhatsApp if configured
