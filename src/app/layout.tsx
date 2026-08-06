@@ -22,6 +22,9 @@ export const metadata: Metadata = {
     default: "Neerzy | Turn Every Job into More Calls via WhatsApp",
     template: "%s | Neerzy"
   },
+  verification: {
+    google: "WNBG1UImWPiIgPnHCknhn5f4ky7V-xKc_CBSl3kTe8Y",
+  },
   description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
   metadataBase: new URL('https://www.neerzy.com'),
   alternates: {
