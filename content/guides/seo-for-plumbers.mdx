@@ -1,89 +1,29 @@
-import React from 'react';
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { ROUTES, SITE_URL } from '@/lib/routes';
-import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
-import { Screenshot } from '@/components/seo-visuals/Screenshot';
-import { SeoDiagram, FivePillarDiagram, FlowDiagram, HubAndSpokeDiagram, ComparisonCard, GridDiagram, ThreePillarDiagram, WeightChart, LocalPackDiagram, GeoGridDiagram, SiteArchitectureDiagram, TimelineDiagram, WireframeDiagram, GaugeDiagram, SchemaDiagram, AuditResultDiagram, CategoryScoreDiagram, AuditOverviewDiagram, RecommendationsDiagram, BeforeAfterDiagram, ProgressGraphDiagram } from '@/components/seo-visuals/SeoDiagram';
+---
+title: 'SEO for Plumbers: The Complete 2026 Guide to Rank Higher on Google'
+meta_description: 'The complete guide to SEO for plumbers in 2026 — Google Business Profile, Google Maps, reviews, website SEO, and AI search. Free GBP audit tool included.'
+category: 'Local SEO'
+date: '2026-07-13'
+readTime: '35 min read'
+featured: true
+guideType: 'pillar'
+breadcrumbName: 'SEO for Plumbers'
+schemaArticle: 'SEO for Plumbers: The Complete 2026 Guide to Rank Higher on Google, Google Maps & AI Search'
+schemaFaq: [{"q":"What is SEO for plumbers?","a":"SEO for plumbers is the process of improving a plumbing company's visibility in Google Search, Google Maps, and AI search tools so that more local customers find and call the business."},{"q":"How long does plumbing SEO take to work?","a":"Google Business Profile improvements (photos, posts, reviews) can show impact within a few weeks. Website and content-based SEO typically takes 3–6 months to show significant ranking movement."},{"q":"What is the single highest-impact SEO action for a plumber?","a":"Completing and actively maintaining your Google Business Profile — it typically has a larger, faster impact than any single website change."},{"q":"How much does plumbing SEO cost?","a":"Agency-managed plumbing SEO commonly ranges from a few hundred to several thousand dollars per month. Automated tools like Neerzy offer a lower-cost alternative starting free."}]
+---
 
-const PAGE_URL = `${SITE_URL}${ROUTES.PILLAR}`;
+{/* Breadcrumb */}
+        
 
-export const metadata: Metadata = {
-  title: 'SEO for Plumbers: The Complete 2026 Guide to Rank Higher on Google',
-  description: 'The complete guide to SEO for plumbers in 2026 — Google Business Profile, Google Maps, reviews, website SEO, and AI search. Free GBP audit tool included.',
-  alternates: { canonical: PAGE_URL },
-  openGraph: {
-    title: 'SEO for Plumbers: The Complete 2026 Guide',
-    description: 'The complete guide to SEO for plumbers in 2026 — GBP, Google Maps, reviews, website SEO, and AI search. Free audit included.',
-    url: PAGE_URL,
-    type: 'article',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'SEO for Plumbers: The Complete 2026 Guide',
-    description: 'Free GBP audit tool included. No agency jargon — just a practical system for busy plumbing businesses.',
-  },
-};
+        
 
-export default function SeoForPlumbersPage() {
-  const articleSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: 'SEO for Plumbers: The Complete 2026 Guide to Rank Higher on Google, Google Maps & AI Search',
-    description: metadata.description,
-    author: { '@type': 'Organization', name: 'Neerzy', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Neerzy', url: SITE_URL },
-    datePublished: '2026-07-13',
-    mainEntityOfPage: PAGE_URL,
-  };
-
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'What is SEO for plumbers?', acceptedAnswer: { '@type': 'Answer', text: 'SEO for plumbers is the process of improving a plumbing company\'s visibility in Google Search, Google Maps, and AI search tools so that more local customers find and call the business.' } },
-      { '@type': 'Question', name: 'How long does plumbing SEO take to work?', acceptedAnswer: { '@type': 'Answer', text: 'Google Business Profile improvements (photos, posts, reviews) can show impact within a few weeks. Website and content-based SEO typically takes 3–6 months to show significant ranking movement.' } },
-      { '@type': 'Question', name: 'What is the single highest-impact SEO action for a plumber?', acceptedAnswer: { '@type': 'Answer', text: 'Completing and actively maintaining your Google Business Profile — it typically has a larger, faster impact than any single website change.' } },
-      { '@type': 'Question', name: 'How much does plumbing SEO cost?', acceptedAnswer: { '@type': 'Answer', text: 'Agency-managed plumbing SEO commonly ranges from a few hundred to several thousand dollars per month. Automated tools like Neerzy offer a lower-cost alternative starting free.' } },
-    ],
-  };
-
-  const breadcrumbSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
-      { '@type': 'ListItem', position: 2, name: 'SEO for Plumbers', item: PAGE_URL },
-    ],
-  };
-
-  return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 lg:py-20 font-sans text-gray-800">
-
-        {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="text-sm text-gray-500 mb-8">
-          <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
-          <span className="mx-2">/</span>
-          <span className="text-gray-900 font-medium">SEO for Plumbers</span>
-        </nav>
-
-        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6 leading-tight">
-          SEO for Plumbers: The Complete 2026 Guide to Rank Higher on Google, Google Maps &amp; AI Search
-        </h1>
-
-        <article className="prose prose-lg prose-slate max-w-none">
+        
 
           <p>You didn&apos;t get into plumbing to become a marketer. But in 2026, the plumbers winning the most calls aren&apos;t necessarily the best plumbers in town — they&apos;re the ones Google trusts the most.</p>
           <p>This guide is the most complete resource on the internet for <strong>SEO for plumbers</strong>. It covers everything from Google Business Profile optimization to Google Maps rankings, website SEO, reviews, schema markup, and the new frontier of AI search — Google AI Overviews, ChatGPT, Gemini, and Perplexity.</p>
           <p>No agency jargon. No upsells disguised as advice. Just a complete, practical system a busy plumbing business owner can actually use — with <strong>zero SEO experience required</strong>.</p>
 
           <CalloutBox type="important" title="Start With Your Free Audit">
-            <strong>→ <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Run your Free Google Business Profile Audit</Link></strong> and see exactly where your plumbing business stands in under 30 seconds.
+            <strong>→ <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Run your Free Google Business Profile Audit</Link></strong> and see exactly where your plumbing business stands in under 30 seconds.
           </CalloutBox>
 
           <hr />
@@ -146,7 +86,7 @@ export default function SeoForPlumbersPage() {
           </SeoDiagram>
 
           <CalloutBox type="tip" title="How this guide connects to your free audit">
-            The <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy GBP Audit</Link> scores five things — Completeness, Reviews &amp; Reputation, Visual Content, Engagement &amp; Activity, and Local SEO Optimization — all covered in Sections 2, 5, 6, 7, and 13 below. Think of the audit as your GBP diagnostic, and the rest of this guide as the fuller picture around it. Already have your score back? Start with <Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> or jump straight to <Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link>.
+            The <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Neerzy GBP Audit</Link> scores five things — Completeness, Reviews &amp; Reputation, Visual Content, Engagement &amp; Activity, and Local SEO Optimization — all covered in Sections 2, 5, 6, 7, and 13 below. Think of the audit as your GBP diagnostic, and the rest of this guide as the fuller picture around it. Already have your score back? Start with <Link href="/understanding-your-gbp-audit-score" className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> or jump straight to <Link href="/improve-your-audit-score" className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link>.
           </CalloutBox>
 
           <hr />
@@ -293,7 +233,7 @@ export default function SeoForPlumbersPage() {
           <SeoDiagram caption="What a neglected Google Business Profile looks like in the Neerzy Audit.">
             <AuditResultDiagram />
           </SeoDiagram>
-          <p><strong>→ <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Check exactly which of these problems your business has — run your free audit</Link></strong></p>
+          <p><strong>→ <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Check exactly which of these problems your business has — run your free audit</Link></strong></p>
 
           <h3>How Much Does Plumbing SEO Really Cost?</h3>
           <p>The honest answer depends entirely on which path you choose — and the paths differ far more in <em>time</em> than most plumbers expect.</p>
@@ -373,14 +313,14 @@ export default function SeoForPlumbersPage() {
 
           <h3>Business Categories</h3>
           <p>Set &quot;Plumber&quot; as your primary category. Add accurate secondary categories like &quot;Drainage service,&quot; &quot;Water heater repair service,&quot; or &quot;Emergency plumber&quot; if applicable. Incorrect or overly broad categories (like just &quot;Contractor&quot;) dilute your relevance for plumbing-specific searches.</p>
-          <p><em>→ Category and NAP accuracy both feed into the audit&apos;s Local SEO Optimization and Completeness scores — <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">check yours</Link>, or read the <Link href={ROUTES.GUIDES.COMPLETENESS} className="text-blue-600 hover:underline">Completeness Score Guide</Link> and <Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link> directly.</em></p>
+          <p><em>→ Category and NAP accuracy both feed into the audit&apos;s Local SEO Optimization and Completeness scores — <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">check yours</Link>, or read the <Link href="/completeness-score-guide" className="text-blue-600 hover:underline">Completeness Score Guide</Link> and <Link href="/local-seo-optimization-score-guide" className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link> directly.</em></p>
           <h3>NAP Consistency</h3>
           <p>Your Name, Address, and Phone number must match exactly across your Google Business Profile, website, and every directory listing (Yelp, Angi, BBB, Facebook). Even small inconsistencies — &quot;St.&quot; vs. &quot;Street,&quot; a different phone extension — can quietly weaken local trust signals.</p>
           <h3>Business Description</h3>
           <p>Use the full character allowance (roughly 750 characters) to describe your services, service area, and what makes your business different. Write for humans first, but naturally include terms like &quot;licensed plumber,&quot; your city name, and your core services.</p>
           <h3>Service Areas</h3>
           <p>Define every city, town, or zip code you actually serve. This directly affects whether you show up in the Local Pack for searches made outside your exact business address.</p>
-          <p><em>→ Service area setup is checked as part of the audit&apos;s Local SEO Optimization score — <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">run your audit</Link> or read the <Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link> to see if it&apos;s limiting your visibility.</em></p>
+          <p><em>→ Service area setup is checked as part of the audit&apos;s Local SEO Optimization score — <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">run your audit</Link> or read the <Link href="/local-seo-optimization-score-guide" className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link> to see if it&apos;s limiting your visibility.</em></p>
           <h3>Products</h3>
           <p>List common services as &quot;products&quot; where relevant — water heaters, fixtures, pipe materials — to give Google (and customers) more specific, searchable detail.</p>
           <h3>Services</h3>
@@ -389,12 +329,12 @@ export default function SeoForPlumbersPage() {
           <CalloutBox type="best-practice" title="Real Photos Outrank Stock Photos Every Time">
             Profiles with 100+ photos consistently outperform profiles with fewer than 10. Upload real photos regularly — job sites, before-and-after shots, your team, your trucks. Stock photos and generic imagery don&apos;t build the same trust with Google or real customers.
           </CalloutBox>
-          <p><em>→ Not sure where your photo count stands? The free audit tool scores Visual Content as its own weighted category (20% of your total score) — <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">check your photo score</Link> or read the <Link href={ROUTES.GUIDES.VISUAL} className="text-blue-600 hover:underline">Visual Content Score Guide</Link>.</em></p>
+          <p><em>→ Not sure where your photo count stands? The free audit tool scores Visual Content as its own weighted category (20% of your total score) — <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">check your photo score</Link> or read the <Link href="/visual-content-score-guide" className="text-blue-600 hover:underline">Visual Content Score Guide</Link>.</em></p>
           <h3>Videos</h3>
           <p>Short videos of completed jobs or your team at work add another layer of trust and engagement — an underused lever most competitors haven&apos;t touched.</p>
           <h3>Google Posts</h3>
           <p>Weekly posts (offers, completed jobs, seasonal reminders) are one of the strongest &quot;activity&quot; signals Google uses to judge whether a business is alive and engaged.</p>
-          <p><em>→ Want to know whether Google is currently detecting enough activity on your profile? Engagement &amp; Activity is its own scored category in the audit — <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">run it here</Link> or read the <Link href={ROUTES.GUIDES.ENGAGEMENT} className="text-blue-600 hover:underline">Engagement &amp; Activity Score Guide</Link>.</em></p>
+          <p><em>→ Want to know whether Google is currently detecting enough activity on your profile? Engagement &amp; Activity is its own scored category in the audit — <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">run it here</Link> or read the <Link href="/engagement-score-guide" className="text-blue-600 hover:underline">Engagement &amp; Activity Score Guide</Link>.</em></p>
           <h3>Questions &amp; Answers</h3>
           <p>Monitor and answer the public Q&amp;A section on your profile. Seed it yourself with common questions (&quot;Do you offer emergency service?&quot;) if it&apos;s empty.</p>
           <h3>Attributes</h3>
@@ -427,7 +367,7 @@ export default function SeoForPlumbersPage() {
             </ul>
           </div>
 
-          <p><strong>→ <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Run a free audit of your Google Business Profile</Link> to see exactly which of these fields are complete, and which are quietly costing you rankings — or read <Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> for a full breakdown of how each field connects to your overall score.</strong></p>
+          <p><strong>→ <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Run a free audit of your Google Business Profile</Link> to see exactly which of these fields are complete, and which are quietly costing you rankings — or read <Link href="/understanding-your-gbp-audit-score" className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> for a full breakdown of how each field connects to your overall score.</strong></p>
 
           <hr />
 
@@ -444,7 +384,7 @@ export default function SeoForPlumbersPage() {
           <p>Properly defined service areas (rather than relying solely on your physical address) allow you to appear in Map searches for surrounding towns you actually serve, not just your home city.</p>
           <h3>Local Citations</h3>
           <p>Consistent listings on Yelp, Angi, HomeAdvisor, BBB, and local chamber-of-commerce directories reinforce your business&apos;s legitimacy and location to Google&apos;s local algorithm.</p>
-          <p><em>→ NAP consistency across the web is part of the audit&apos;s Local SEO Optimization score — <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">check yours</Link> or read the <Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link> to catch mismatches before they cost you rankings.</em></p>
+          <p><em>→ NAP consistency across the web is part of the audit&apos;s Local SEO Optimization score — <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">check yours</Link> or read the <Link href="/local-seo-optimization-score-guide" className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link> to catch mismatches before they cost you rankings.</em></p>
           <h3>Geo Signals</h3>
           <p>Location-specific content on your website (city and neighborhood names used naturally) helps reinforce the geographic relevance Google is trying to match to the searcher.</p>
           <h3>Map Embeds</h3>
@@ -710,7 +650,7 @@ export default function SeoForPlumbersPage() {
 
           {/* ── SECTION 13 ── */}
           <h2 id="section-13">Section 13: How Plumbers Get More Google Reviews</h2>
-          <p><em>→ This section maps directly to the <Link href={ROUTES.GUIDES.REVIEWS} className="text-blue-600 hover:underline">Reviews &amp; Reputation category</Link> in your Neerzy Audit — the highest-weighted single category at 25% of your overall score.</em></p>
+          <p><em>→ This section maps directly to the <Link href="/reviews-score-guide" className="text-blue-600 hover:underline">Reviews &amp; Reputation category</Link> in your Neerzy Audit — the highest-weighted single category at 25% of your overall score.</em></p>
 
           <h3>Why Reviews Matter</h3>
           <p>Reviews are a confirmed local ranking factor and the single biggest trust signal a potential customer encounters when choosing between plumbers. For most homeowners, the decision of who to call is made in the few seconds they spend looking at star ratings and recent review snippets in the Local Pack — before they ever visit a website.</p>
@@ -751,7 +691,7 @@ export default function SeoForPlumbersPage() {
           </ul>
           <h3>How Often to Post</h3>
           <p>At least once a week. Businesses posting two to three times weekly, tied directly to completed jobs, tend to score highest on the Engagement &amp; Activity category. The Neerzy workflow — sending a job photo on WhatsApp and having a post generated automatically — is built specifically to make this habit effortless regardless of posting frequency.</p>
-          <p><em>→ <Link href={ROUTES.GUIDES.ENGAGEMENT} className="text-blue-600 hover:underline">Read the Engagement &amp; Activity Score Guide</Link> for how post frequency and recency are scored in your audit.</em></p>
+          <p><em>→ <Link href="/engagement-score-guide" className="text-blue-600 hover:underline">Read the Engagement &amp; Activity Score Guide</Link> for how post frequency and recency are scored in your audit.</em></p>
 
           <h2 id="section-15">Section 15: Citation Building and NAP Consistency</h2>
           <p>A <strong>citation</strong> is any mention of your business&apos;s name, address, and phone number (NAP) on the web — whether on a major directory like Yelp or Angi, a local chamber of commerce website, an industry association listing, or a local news article. Citations don&apos;t require a backlink to count — unlinked mentions are still signals to Google that your business is real, established, and geographically anchored to a specific location.</p>
@@ -765,7 +705,7 @@ export default function SeoForPlumbersPage() {
             <li><strong>Facebook Business Page</strong> — used as a citation source and separately visible in local searches.</li>
             <li><strong>Local chamber of commerce</strong> — geographically specific and often highly trusted by Google&apos;s local algorithm.</li>
           </ul>
-          <p><em>→ NAP consistency across these directories is scored directly in the <Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization category</Link> of your Neerzy audit.</em></p>
+          <p><em>→ NAP consistency across these directories is scored directly in the <Link href="/local-seo-optimization-score-guide" className="text-blue-600 hover:underline">Local SEO Optimization category</Link> of your Neerzy audit.</em></p>
 
           <h2 id="section-16">Section 16: AI Search and Plumbing SEO in 2026</h2>
           <p>Google AI Overviews, ChatGPT, Gemini, and Perplexity aren&apos;t a replacement for traditional search — yet. But they&apos;re an increasingly significant share of how local service searches get answered, and the businesses showing up in AI-generated answers in 2026 are the ones that optimized their traditional local SEO fundamentals well enough to also be credible, structured, and consistently visible online.</p>
@@ -820,7 +760,7 @@ export default function SeoForPlumbersPage() {
             </ul>
           </div>
 
-          <p><strong>→ <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Run your free audit now to see your current score against this checklist</Link> — then use <Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link> to turn your results into a sequenced action plan.</strong></p>
+          <p><strong>→ <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Run your free audit now to see your current score against this checklist</Link> — then use <Link href="/improve-your-audit-score" className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link> to turn your results into a sequenced action plan.</strong></p>
 
           <hr />
 
@@ -856,10 +796,10 @@ export default function SeoForPlumbersPage() {
             <li><strong>Local SEO Optimization (15% weight):</strong> Keyword usage in your business name and description, category optimization, defined service areas, NAP consistency, and backlinks from your website to your GBP.</li>
           </ul>
           <h3>How to Read Your Audit Score</h3>
-          <p>The tool returns a single score out of 100, along with a plain-language summary and a category-by-category breakdown showing exactly which of the five areas are dragging the score down. Read <Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> for the full breakdown, or go straight to <Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link> for the action-first version.</p>
+          <p>The tool returns a single score out of 100, along with a plain-language summary and a category-by-category breakdown showing exactly which of the five areas are dragging the score down. Read <Link href="/understanding-your-gbp-audit-score" className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> for the full breakdown, or go straight to <Link href="/improve-your-audit-score" className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link> for the action-first version.</p>
           <h3>Why Monthly Audits Matter</h3>
           <p>Google Business Profiles aren&apos;t &quot;set and forget.&quot; Reviews age, posting activity lapses, and competitors improve their own profiles. Running the free audit monthly is the easiest way to catch a slipping score before it costs you rankings.</p>
-          <p><strong>→ <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Run Your Free Google Business Profile Audit Now</Link></strong></p>
+          <p><strong>→ <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Run Your Free Google Business Profile Audit Now</Link></strong></p>
 
           <hr />
 
@@ -892,7 +832,7 @@ export default function SeoForPlumbersPage() {
             <li><strong>Non-technical business owners</strong> who don&apos;t want to learn a dashboard, a CMS, or an SEO tool</li>
           </ul>
           <p>Pricing starts at <strong>Free</strong> (5 total WhatsApp posts), then <strong>Pro at $39/month</strong>, <strong>Growth at $79/month</strong>, and <strong>Agency at $199/month</strong> — built for marketing agencies managing multiple plumbing or trade clients.</p>
-          <p><strong>→ <Link href="https://www.neerzy.com/" className="text-blue-600 hover:underline">Start with 5 Free Posts</Link> · <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline" rel="noopener">View Pricing</Link></strong></p>
+          <p><strong>→ <Link href="https://www.neerzy.com/" className="text-blue-600 hover:underline">Start with 5 Free Posts</Link> · <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline" rel="noopener">View Pricing</Link></strong></p>
 
           <hr />
 
@@ -932,7 +872,7 @@ export default function SeoForPlumbersPage() {
             <ProgressGraphDiagram />
           </SeoDiagram>
 
-        </article>
+        
 
         {/* Hub-and-Spoke Internal Linking Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200">
@@ -943,31 +883,26 @@ export default function SeoForPlumbersPage() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Understand Your Results</h4>
                 <ul className="space-y-2">
-                  <li><Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link></li>
-                  <li><Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Score</Link></li>
+                  <li><Link href="/understanding-your-gbp-audit-score" className="text-blue-600 hover:underline">Understanding Your Audit Score</Link></li>
+                  <li><Link href="/improve-your-audit-score" className="text-blue-600 hover:underline">How to Improve Your Overall Score</Link></li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Category Guides</h4>
                 <ul className="space-y-2">
-                  <li><Link href={ROUTES.GUIDES.COMPLETENESS} className="text-blue-600 hover:underline">Completeness Score Guide (25%)</Link></li>
-                  <li><Link href={ROUTES.GUIDES.REVIEWS} className="text-blue-600 hover:underline">Reviews Score Guide (25%)</Link></li>
-                  <li><Link href={ROUTES.GUIDES.VISUAL} className="text-blue-600 hover:underline">Visual Content Score Guide (20%)</Link></li>
-                  <li><Link href={ROUTES.GUIDES.ENGAGEMENT} className="text-blue-600 hover:underline">Engagement &amp; Activity Score Guide (15%)</Link></li>
-                  <li><Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization Guide (15%)</Link></li>
+                  <li><Link href="/completeness-score-guide" className="text-blue-600 hover:underline">Completeness Score Guide (25%)</Link></li>
+                  <li><Link href="/reviews-score-guide" className="text-blue-600 hover:underline">Reviews Score Guide (25%)</Link></li>
+                  <li><Link href="/visual-content-score-guide" className="text-blue-600 hover:underline">Visual Content Score Guide (20%)</Link></li>
+                  <li><Link href="/engagement-score-guide" className="text-blue-600 hover:underline">Engagement &amp; Activity Score Guide (15%)</Link></li>
+                  <li><Link href="/local-seo-optimization-score-guide" className="text-blue-600 hover:underline">Local SEO Optimization Guide (15%)</Link></li>
                 </ul>
               </div>
             </div>
             <div className="mt-8 text-center">
-              <Link href={ROUTES.AUDIT_TOOL} className="inline-block bg-blue-600 text-white font-bold py-4 px-10 rounded-lg hover:bg-blue-700 transition-colors text-lg">
+              <Link href="/gmb-audit-tool" className="inline-block bg-blue-600 text-white font-bold py-4 px-10 rounded-lg hover:bg-blue-700 transition-colors text-lg">
                 Run Your Free Audit Now →
               </Link>
             </div>
           </div>
           <p className="mt-8 text-xs text-gray-400 text-center"><em>Neerzy is an independent platform and is not affiliated with, endorsed by, or a partner of Google or WhatsApp. Google Business Profile and WhatsApp are trademarks of their respective owners.</em></p>
         </footer>
-
-      </main>
-    </>
-  );
-}

@@ -1,48 +1,15 @@
-import React from 'react';
-import type { Metadata } from 'next';
-import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { SeoDiagram, CategoryScoreDiagram, BeforeAfterDiagram } from '@/components/seo-visuals/SeoDiagram';
-import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
-import Link from 'next/link';
-import { ROUTES } from '@/lib/routes';
+---
+title: 'How to Improve Your Google Business Profile Local SEO Optimization Score | Neerzy'
+meta_description: "Local SEO Optimization makes up 15% of your Google Business Profile audit score. Here's what's checked — keywords, categories, service areas, NAP consistency — and how to fix it."
+category: 'Local SEO'
+date: '2026-07-13'
+readTime: '8 min read'
+featured: false
+guideType: 'category'
+breadcrumbName: ''
+---
 
-export const metadata: Metadata = {
-  title: 'How to Improve Your Google Business Profile Local SEO Optimization Score | Neerzy',
-  description: 'Local SEO Optimization makes up 15% of your Google Business Profile audit score. Here\'s what\'s checked — keywords, categories, service areas, NAP consistency — and how to fix it.',
-  alternates: { canonical: `https://neerzy.com${ROUTES.GUIDES.LOCAL_SEO}` },
-  openGraph: {
-    title: 'Local SEO Optimization Score Guide | Neerzy',
-    description: 'Local SEO Optimization is 15% of your GBP audit score. Here\'s what\'s checked and how to fix NAP consistency, service areas, and categories.',
-    url: `https://neerzy.com${ROUTES.GUIDES.LOCAL_SEO}`,
-    type: 'article',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Local SEO Optimization Score Guide | Neerzy',
-    description: 'Local SEO Optimization is 15% of your GBP audit score — built around consistency across the web.',
-  },
-};
-
-export default function LocalSeoOptimizationScoreGuidePage() {
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'What counts as a NAP mismatch?', acceptedAnswer: { '@type': 'Answer', text: 'Anything that isn\'t character-for-character identical — a different suite number, "St." instead of "Street," an old phone extension. These seem trivial but are exactly what this category is built to catch.' } },
-      { '@type': 'Question', name: 'Do I need a separate landing page for every city I serve?', acceptedAnswer: { '@type': 'Answer', text: 'Not necessarily to pass this category — service areas just need to be accurately defined in your profile. Dedicated location pages help with broader website SEO, but that\'s a separate strategy.' } },
-      { '@type': 'Question', name: 'Can I use my city name in my business name to help this score?', acceptedAnswer: { '@type': 'Answer', text: 'No — adding a location or service keyword to a business name that isn\'t your real, registered name violates Google\'s guidelines and risks suspension. Use your actual business name, and let your defined service areas and category do the geographic work instead.' } },
-    ],
-  };
-
-  return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <SeoGuideLayout
-        title="How to Improve Your Local SEO Optimization Score"
-        description="Local SEO Optimization makes up 15% of your Google Business Profile audit score. Here's what's checked — keywords, categories, service areas, NAP consistency — and how to fix it."
-        path={ROUTES.GUIDES.LOCAL_SEO}
-      >
-        <p>Local SEO Optimization is weighted at 15% in <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy&apos;s free GBP audit</Link>. Unlike the other four categories, this one is less about any single field being filled in and more about <strong>consistency</strong> — the same accurate information about your business, stated identically everywhere it appears online.</p>
+<p>Local SEO Optimization is weighted at 15% in <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Neerzy&apos;s free GBP audit</Link>. Unlike the other four categories, this one is less about any single field being filled in and more about <strong>consistency</strong> — the same accurate information about your business, stated identically everywhere it appears online.</p>
 
         <h2>1. What This Score Measures</h2>
 
@@ -122,7 +89,7 @@ export default function LocalSeoOptimizationScoreGuidePage() {
 
         <h2>Common Questions</h2>
 
-        <p><strong>Do I need a separate landing page for every city I list as a service area?</strong><br/>Not necessarily to pass this category — service areas just need to be accurately defined in your profile. Dedicated location pages (covered in <Link href={`${ROUTES.PILLAR}#section-7`} className="text-blue-600 hover:underline">Section 7 of the full guide</Link>) help with broader website SEO, but that&apos;s a separate, additional strategy.</p>
+        <p><strong>Do I need a separate landing page for every city I list as a service area?</strong><br/>Not necessarily to pass this category — service areas just need to be accurately defined in your profile. Dedicated location pages (covered in <Link href="/seo-for-plumbers#section-7" className="text-blue-600 hover:underline">Section 7 of the full guide</Link>) help with broader website SEO, but that&apos;s a separate, additional strategy.</p>
         <p><strong>What counts as a NAP &quot;mismatch&quot;?</strong><br/>Anything that isn&apos;t character-for-character identical — a different suite number, &quot;St.&quot; instead of &quot;Street,&quot; an old phone extension. These seem trivial but are exactly what this category is built to catch.</p>
         <p><strong>Where should I add a backlink to my Google Business Profile from my website?</strong><br/>The footer or contact page are the most common, low-effort placements — a single link is enough to satisfy this sub-signal.</p>
         <p><strong>Can I use my city name in my business name to help this score?</strong><br/>No — adding a location or service keyword to a business name that isn&apos;t your real, registered name violates Google&apos;s guidelines and risks suspension. Use your actual business name, and let your defined service areas and category do the geographic work instead.</p>
@@ -143,9 +110,9 @@ export default function LocalSeoOptimizationScoreGuidePage() {
         <h2>8. Related Guides</h2>
 
         <ul>
-          <li><Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link></li>
-          <li><Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link></li>
-          <li><Link href={`${ROUTES.PILLAR}#section-7`} className="text-blue-600 hover:underline">Section 6 and Section 7 of the full plumbing SEO guide</Link> — Maps SEO and Local SEO Strategy</li>
+          <li><Link href="/understanding-your-gbp-audit-score" className="text-blue-600 hover:underline">Understanding Your Audit Score</Link></li>
+          <li><Link href="/improve-your-audit-score" className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link></li>
+          <li><Link href="/seo-for-plumbers#section-7" className="text-blue-600 hover:underline">Section 6 and Section 7 of the full plumbing SEO guide</Link> — Maps SEO and Local SEO Strategy</li>
         </ul>
 
         <h2>9. What Improvement Should You Expect?</h2>
@@ -162,10 +129,5 @@ export default function LocalSeoOptimizationScoreGuidePage() {
         </div>
 
         <CalloutBox type="tip" title="Most Fixes Here Take Under an Hour">
-          <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit</Link> — most Local SEO Optimization fixes take under an hour combined.
+          <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit</Link> — most Local SEO Optimization fixes take under an hour combined.
         </CalloutBox>
-
-      </SeoGuideLayout>
-    </>
-  );
-}

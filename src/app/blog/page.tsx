@@ -2,6 +2,8 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ROUTES, SITE_URL } from '@/lib/routes';
+import { getAllGuides } from '@/lib/mdx';
+import type { GuideFrontmatter } from '@/lib/mdx';
 
 export const metadata: Metadata = {
   title: 'Neerzy Blog: Local SEO, Google Business Profile & Reviews',
@@ -25,73 +27,39 @@ interface BlogPost {
   featured?: boolean;
 }
 
-const blogPosts: BlogPost[] = [
-  {
-    title: 'SEO for Plumbers: The Complete 2026 Guide',
-    href: ROUTES.PILLAR,
-    excerpt: 'The most complete guide to SEO for plumbers in 2026 — Google Business Profile, Google Maps, reviews, website SEO, content marketing, and AI search. Free GBP audit tool included.',
-    category: 'Local SEO',
-    readTime: '35 min read',
-    date: 'July 13, 2026',
-    featured: true,
-  },
-  {
-    title: 'Understanding Your GBP Audit Score',
-    href: ROUTES.UNDERSTANDING_SCORE,
-    excerpt: 'A plain-English breakdown of what your Google Business Profile audit score means, how each category is weighted, and what to fix first for the fastest impact.',
-    category: 'GBP Audit',
-    readTime: '8 min read',
-    date: 'July 13, 2026',
-  },
-  {
-    title: 'How to Improve Your Overall Audit Score',
-    href: ROUTES.IMPROVE_SCORE,
-    excerpt: 'A step-by-step action plan to raise your Google Business Profile audit score — prioritized by impact and sequenced for a busy local business owner.',
-    category: 'GBP Audit',
-    readTime: '10 min read',
-    date: 'July 13, 2026',
-  },
-  {
-    title: 'Completeness Score Guide',
-    href: ROUTES.GUIDES.COMPLETENESS,
-    excerpt: 'Everything that goes into your GBP completeness score — business name, address, phone, categories, description, attributes, and services — and how to max it out.',
-    category: 'GBP Audit',
-    readTime: '7 min read',
-    date: 'July 13, 2026',
-  },
-  {
-    title: 'Reviews Score Guide',
-    href: ROUTES.GUIDES.REVIEWS,
-    excerpt: 'How Google weighs your review count, star rating, review velocity, and response rate — and a practical system for collecting more reviews without feeling pushy.',
-    category: 'Reviews',
-    readTime: '9 min read',
-    date: 'July 13, 2026',
-  },
-  {
-    title: 'Visual Content Score Guide',
-    href: ROUTES.GUIDES.VISUAL,
-    excerpt: 'Why photo count, recency, and diversity matter for your GBP ranking — and how to build a visual content habit that fits into your existing workflow.',
-    category: 'GBP Audit',
-    readTime: '6 min read',
-    date: 'July 13, 2026',
-  },
-  {
-    title: 'Engagement & Activity Score Guide',
-    href: ROUTES.GUIDES.ENGAGEMENT,
-    excerpt: 'How Google Posts, Q&A activity, review responses, and profile freshness combine into your engagement score — and how to stay active without extra effort.',
-    category: 'GBP Audit',
-    readTime: '7 min read',
-    date: 'July 13, 2026',
-  },
-  {
-    title: 'Local SEO Optimization Score Guide',
-    href: ROUTES.GUIDES.LOCAL_SEO,
-    excerpt: 'NAP consistency, category optimization, service-area setup, keyword usage, and backlink signals — what the local SEO score checks and how to improve it.',
-    category: 'Local SEO',
-    readTime: '8 min read',
-    date: 'July 13, 2026',
-  },
-];
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+/** Slug → display mapping consistent with ROUTES where possible */
+const SLUG_ALIASES: Record<string, string> = {
+  'seo-for-plumbers': ROUTES.PILLAR,
+  'seo-for-electricians': '/seo-for-electricians',
+  'locksmith-seo': '/locksmith-seo',
+  'completeness-score-guide': ROUTES.GUIDES.COMPLETENESS,
+  'reviews-score-guide': ROUTES.GUIDES.REVIEWS,
+  'visual-content-score-guide': ROUTES.GUIDES.VISUAL,
+  'engagement-score-guide': ROUTES.GUIDES.ENGAGEMENT,
+  'local-seo-optimization-score-guide': ROUTES.GUIDES.LOCAL_SEO,
+  'understanding-your-gbp-audit-score': ROUTES.UNDERSTANDING_SCORE,
+  'improve-your-audit-score': ROUTES.IMPROVE_SCORE,
+};
+
+function buildBlogPosts(): BlogPost[] {
+  const guides = getAllGuides();
+  return guides.map((g) => ({
+    title: g.frontmatter.title,
+    href: SLUG_ALIASES[g.slug] || `/${g.slug}`,
+    excerpt: g.frontmatter.meta_description,
+    category: g.frontmatter.category,
+    readTime: g.frontmatter.readTime,
+    date: formatDate(g.frontmatter.date),
+    featured: g.frontmatter.featured || false,
+  }));
+}
+
+const blogPosts = buildBlogPosts();
 
 const categoryColors: Record<string, string> = {
   'Local SEO': 'bg-blue-100 text-blue-800',

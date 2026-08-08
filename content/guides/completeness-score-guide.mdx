@@ -1,48 +1,15 @@
-import React from 'react';
-import type { Metadata } from 'next';
-import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { SeoDiagram, CategoryScoreDiagram, BeforeAfterDiagram } from '@/components/seo-visuals/SeoDiagram';
-import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
-import Link from 'next/link';
-import { ROUTES } from '@/lib/routes';
+---
+title: 'How to Improve Your Google Business Profile Completeness Score | Neerzy'
+meta_description: "Completeness makes up 25% of your Google Business Profile audit score — and it's the fastest category to fix. Here's exactly what's checked and how to raise it today."
+category: 'GBP Audit'
+date: '2026-07-13'
+readTime: '7 min read'
+featured: false
+guideType: 'category'
+breadcrumbName: ''
+---
 
-export const metadata: Metadata = {
-  title: 'How to Improve Your Google Business Profile Completeness Score | Neerzy',
-  description: 'Completeness makes up 25% of your Google Business Profile audit score — and it\'s the fastest category to fix. Here\'s exactly what\'s checked and how to raise it today.',
-  alternates: { canonical: `https://neerzy.com${ROUTES.GUIDES.COMPLETENESS}` },
-  openGraph: {
-    title: 'Completeness Score Guide | Neerzy',
-    description: 'Completeness is 25% of your GBP audit score and the fastest category to fix. Here\'s exactly what\'s checked.',
-    url: `https://neerzy.com${ROUTES.GUIDES.COMPLETENESS}`,
-    type: 'article',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Completeness Score Guide | Neerzy',
-    description: 'Completeness is 25% of your GBP audit score and the fastest category to fix.',
-  },
-};
-
-export default function CompletenessScoreGuidePage() {
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'Can I leave the business description blank?', acceptedAnswer: { '@type': 'Answer', text: 'You can, but it counts as an incomplete field — even a short, factual paragraph naming your services and city scores better than leaving it empty.' } },
-      { '@type': 'Question', name: 'Can I add multiple categories to my Google Business Profile?', acceptedAnswer: { '@type': 'Answer', text: 'Yes — one primary category and multiple accurate secondary categories. Only add categories that genuinely describe your services to avoid violating Google\'s guidelines.' } },
-      { '@type': 'Question', name: 'What if I work from home and don\'t want my address public?', acceptedAnswer: { '@type': 'Answer', text: 'Google allows service-area businesses to hide their exact address while still listing service areas — this doesn\'t count against your Completeness score as long as the service-area fields themselves are filled in.' } },
-    ],
-  };
-
-  return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <SeoGuideLayout
-        title="How to Improve Your Completeness Score"
-        description="Completeness makes up 25% of your Google Business Profile audit score — and it's the fastest category to fix. Here's exactly what's checked and how to raise it today."
-        path={ROUTES.GUIDES.COMPLETENESS}
-      >
-        <p>Completeness is one of two categories weighted at 25% in <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy&apos;s free GBP audit</Link> — tied with Reviews &amp; Reputation for the most influence on your overall score. The difference is that Completeness is almost entirely within your direct control and can be fixed in a single sitting, which makes it the best place to start if you&apos;re looking for the fastest visible improvement after your first audit.</p>
+<p>Completeness is one of two categories weighted at 25% in <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Neerzy&apos;s free GBP audit</Link> — tied with Reviews &amp; Reputation for the most influence on your overall score. The difference is that Completeness is almost entirely within your direct control and can be fixed in a single sitting, which makes it the best place to start if you&apos;re looking for the fastest visible improvement after your first audit.</p>
 
         <h2>1. What This Score Measures</h2>
 
@@ -156,9 +123,9 @@ export default function CompletenessScoreGuidePage() {
         <h2>8. Related Guides</h2>
 
         <ul>
-          <li><Link href={ROUTES.UNDERSTANDING_SCORE} className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> — how all five categories fit together</li>
-          <li><Link href={ROUTES.GUIDES.REVIEWS} className="text-blue-600 hover:underline">Reviews Score Guide</Link> — the other 25%-weighted category</li>
-          <li><Link href={`${ROUTES.PILLAR}#section-5`} className="text-blue-600 hover:underline">Section 5 of the full plumbing SEO guide</Link> — the complete field-by-field GBP optimization walkthrough</li>
+          <li><Link href="/understanding-your-gbp-audit-score" className="text-blue-600 hover:underline">Understanding Your Audit Score</Link> — how all five categories fit together</li>
+          <li><Link href="/reviews-score-guide" className="text-blue-600 hover:underline">Reviews Score Guide</Link> — the other 25%-weighted category</li>
+          <li><Link href="/seo-for-plumbers#section-5" className="text-blue-600 hover:underline">Section 5 of the full plumbing SEO guide</Link> — the complete field-by-field GBP optimization walkthrough</li>
         </ul>
 
         <h2>9. What Improvement Should You Expect?</h2>
@@ -175,10 +142,5 @@ export default function CompletenessScoreGuidePage() {
         </div>
 
         <CalloutBox type="tip" title="Run or Re-Run Your Free Audit">
-          Most Completeness fixes take under 20 minutes and show up the same day. <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit at neerzy.com/gmb-audit-tool</Link>
+          Most Completeness fixes take under 20 minutes and show up the same day. <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit at neerzy.com/gmb-audit-tool</Link>
         </CalloutBox>
-
-      </SeoGuideLayout>
-    </>
-  );
-}

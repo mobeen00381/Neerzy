@@ -1,48 +1,15 @@
-import React from 'react';
-import type { Metadata } from 'next';
-import { SeoGuideLayout } from '@/components/seo-visuals/SeoGuideLayout';
-import { SeoDiagram, WeightChart, CategoryScoreDiagram, RecommendationsDiagram } from '@/components/seo-visuals/SeoDiagram';
-import { CalloutBox } from '@/components/seo-visuals/CalloutBox';
-import Link from 'next/link';
-import { ROUTES } from '@/lib/routes';
+---
+title: 'Understanding Your Google Business Profile Audit Score | Neerzy'
+meta_description: "A complete breakdown of Neerzy's free GBP audit score — what Completeness, Reviews, Visual Content, Engagement, and Local SEO Optimization actually measure, and how to improve each one."
+category: 'GBP Audit'
+date: '2026-07-13'
+readTime: '8 min read'
+featured: false
+guideType: 'category'
+breadcrumbName: ''
+---
 
-export const metadata: Metadata = {
-  title: 'Understanding Your Google Business Profile Audit Score | Neerzy',
-  description: 'A complete breakdown of Neerzy\'s free GBP audit score — what Completeness, Reviews, Visual Content, Engagement, and Local SEO Optimization actually measure, and how to improve each one.',
-  alternates: { canonical: `https://neerzy.com${ROUTES.UNDERSTANDING_SCORE}` },
-  openGraph: {
-    title: 'Understanding Your Google Business Profile Audit Score',
-    description: 'A complete breakdown of Neerzy\'s free GBP audit score — what each category measures and how to fix it.',
-    url: `https://neerzy.com${ROUTES.UNDERSTANDING_SCORE}`,
-    type: 'article',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Understanding Your Google Business Profile Audit Score | Neerzy',
-    description: 'A complete breakdown of Neerzy\'s free GBP audit score — what each category measures and how to fix it.',
-  },
-};
-
-export default function UnderstandingAuditScorePage() {
-  const faqSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'What does my GBP audit score mean?', acceptedAnswer: { '@type': 'Answer', text: 'Your score is built from five weighted categories: Completeness (25%), Reviews & Reputation (25%), Visual Content (20%), Engagement & Activity (15%), and Local SEO Optimization (15%). The number out of 100 reflects how strong your Google Business Profile is across all five areas.' } },
-      { '@type': 'Question', name: 'Which audit category should I fix first?', acceptedAnswer: { '@type': 'Answer', text: 'Fix your lowest-scoring category first — but within that, prioritize the two highest-weighted categories (Completeness and Reviews) since they move your overall score the most per fix.' } },
-      { '@type': 'Question', name: 'How long does it take to see score improvement?', acceptedAnswer: { '@type': 'Answer', text: 'Completeness and Visual Content fixes can show same-day improvement. Reviews & Reputation is the slowest — expect 4–8 weeks of consistent requesting before seeing meaningful movement.' } },
-    ],
-  };
-
-  return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
-      <SeoGuideLayout
-        title="Understanding Your Google Business Profile Audit Score"
-        description="A complete breakdown of Neerzy's free GBP audit score — what Completeness, Reviews, Visual Content, Engagement, and Local SEO Optimization actually measure, and how to improve each one."
-        path={ROUTES.UNDERSTANDING_SCORE}
-      >
-        <p>If you&apos;ve just run <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline">Neerzy&apos;s free Google Business Profile audit</Link> and landed on a number out of 100, this page exists to answer the question that number raises: <strong>what does this actually mean, and what do I do about it?</strong></p>
+<p>If you&apos;ve just run <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline">Neerzy&apos;s free Google Business Profile audit</Link> and landed on a number out of 100, this page exists to answer the question that number raises: <strong>what does this actually mean, and what do I do about it?</strong></p>
         <p>Your score is built from five weighted categories. This page walks through each one — what it measures, why it&apos;s weighted the way it is, and the specific, concrete fixes that move it.</p>
 
         <h2>How the Score Is Built</h2>
@@ -57,11 +24,11 @@ export default function UnderstandingAuditScorePage() {
               <tr><th>Category</th><th>Weight</th><th>What It Measures</th></tr>
             </thead>
             <tbody>
-              <tr><td><Link href={ROUTES.GUIDES.COMPLETENESS} className="text-blue-600 hover:underline">Completeness</Link></td><td><strong>25%</strong></td><td>NAP, hours, categories, description, attributes</td></tr>
-              <tr><td><Link href={ROUTES.GUIDES.REVIEWS} className="text-blue-600 hover:underline">Reviews &amp; Reputation</Link></td><td><strong>25%</strong></td><td>Review count, rating, velocity, response rate</td></tr>
-              <tr><td><Link href={ROUTES.GUIDES.VISUAL} className="text-blue-600 hover:underline">Visual Content</Link></td><td><strong>20%</strong></td><td>Photo count, recency, diversity, video presence</td></tr>
-              <tr><td><Link href={ROUTES.GUIDES.ENGAGEMENT} className="text-blue-600 hover:underline">Engagement &amp; Activity</Link></td><td><strong>15%</strong></td><td>Posting frequency, Q&amp;A activity, review responses</td></tr>
-              <tr><td><Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization</Link></td><td><strong>15%</strong></td><td>Keywords, category accuracy, service areas, NAP consistency</td></tr>
+              <tr><td><Link href="/completeness-score-guide" className="text-blue-600 hover:underline">Completeness</Link></td><td><strong>25%</strong></td><td>NAP, hours, categories, description, attributes</td></tr>
+              <tr><td><Link href="/reviews-score-guide" className="text-blue-600 hover:underline">Reviews &amp; Reputation</Link></td><td><strong>25%</strong></td><td>Review count, rating, velocity, response rate</td></tr>
+              <tr><td><Link href="/visual-content-score-guide" className="text-blue-600 hover:underline">Visual Content</Link></td><td><strong>20%</strong></td><td>Photo count, recency, diversity, video presence</td></tr>
+              <tr><td><Link href="/engagement-score-guide" className="text-blue-600 hover:underline">Engagement &amp; Activity</Link></td><td><strong>15%</strong></td><td>Posting frequency, Q&amp;A activity, review responses</td></tr>
+              <tr><td><Link href="/local-seo-optimization-score-guide" className="text-blue-600 hover:underline">Local SEO Optimization</Link></td><td><strong>15%</strong></td><td>Keywords, category accuracy, service areas, NAP consistency</td></tr>
             </tbody>
           </table>
         </div>
@@ -96,7 +63,7 @@ export default function UnderstandingAuditScorePage() {
           <li>Write out the full ~750-character business description, naturally including your core services and city.</li>
           <li>Add every applicable attribute (free estimates, licensed, veteran-owned, etc.) and every individual service you offer, not just a general category.</li>
         </ul>
-        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.COMPLETENESS} className="text-blue-600 hover:underline">Completeness Score Guide</Link></p>
+        <p>→ Full deep-dive: <Link href="/completeness-score-guide" className="text-blue-600 hover:underline">Completeness Score Guide</Link></p>
 
         <hr />
 
@@ -124,9 +91,9 @@ export default function UnderstandingAuditScorePage() {
         <ul>
           <li>Prioritize velocity over volume if you&apos;re starting from a low base — a steady trickle of new reviews each month outperforms a single burst followed by silence.</li>
           <li>Respond to every review, especially negative ones — response rate is scored directly, and it&apos;s often the easiest sub-metric to fix immediately.</li>
-          <li>See <Link href={`${ROUTES.PILLAR}#section-13`} className="text-blue-600 hover:underline">Section 13 of the full plumbing SEO guide</Link> for review request timing and templates.</li>
+          <li>See <Link href="/seo-for-plumbers#section-13" className="text-blue-600 hover:underline">Section 13 of the full plumbing SEO guide</Link> for review request timing and templates.</li>
         </ul>
-        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.REVIEWS} className="text-blue-600 hover:underline">Reviews Score Guide</Link></p>
+        <p>→ Full deep-dive: <Link href="/reviews-score-guide" className="text-blue-600 hover:underline">Reviews Score Guide</Link></p>
 
         <hr />
 
@@ -156,7 +123,7 @@ export default function UnderstandingAuditScorePage() {
           <li>Mix photo types: completed work, before-and-afters, your team, your trucks — diversity is scored, not just quantity.</li>
           <li>Add at least one video if you have none — it&apos;s a distinct sub-check most competitors skip entirely.</li>
         </ul>
-        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.VISUAL} className="text-blue-600 hover:underline">Visual Content Score Guide</Link></p>
+        <p>→ Full deep-dive: <Link href="/visual-content-score-guide" className="text-blue-600 hover:underline">Visual Content Score Guide</Link></p>
 
         <hr />
 
@@ -182,10 +149,10 @@ export default function UnderstandingAuditScorePage() {
 
         <p><strong>How to fix a low Engagement &amp; Activity score:</strong></p>
         <ul>
-          <li>Publish at least one Google Post per week — see <Link href={`${ROUTES.PILLAR}#section-14`} className="text-blue-600 hover:underline">Section 14 of the full guide</Link> for simple post templates that require no marketing background.</li>
+          <li>Publish at least one Google Post per week — see <Link href="/seo-for-plumbers#section-14" className="text-blue-600 hover:underline">Section 14 of the full guide</Link> for simple post templates that require no marketing background.</li>
           <li>Seed your own Q&amp;A section with the 3–5 questions customers ask most, rather than leaving it empty for a stranger to fill first.</li>
         </ul>
-        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.ENGAGEMENT} className="text-blue-600 hover:underline">Engagement &amp; Activity Score Guide</Link></p>
+        <p>→ Full deep-dive: <Link href="/engagement-score-guide" className="text-blue-600 hover:underline">Engagement &amp; Activity Score Guide</Link></p>
 
         <hr />
 
@@ -215,7 +182,7 @@ export default function UnderstandingAuditScorePage() {
           <li>Make sure your service areas are explicitly defined, not just implied by your business address.</li>
           <li>Link from your website&apos;s contact page directly to your Google Business Profile.</li>
         </ul>
-        <p>→ Full deep-dive: <Link href={ROUTES.GUIDES.LOCAL_SEO} className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link></p>
+        <p>→ Full deep-dive: <Link href="/local-seo-optimization-score-guide" className="text-blue-600 hover:underline">Local SEO Optimization Score Guide</Link></p>
 
         <hr />
 
@@ -229,16 +196,11 @@ export default function UnderstandingAuditScorePage() {
           <li><strong>Note your lowest-scoring category</strong> — that&apos;s where the fastest gains are available, not necessarily the category that sounds most important.</li>
           <li><strong>Fix the highest-weighted issues first</strong> within that category, since Completeness and Reviews &amp; Reputation move your overall score the most per fix.</li>
           <li><strong>Re-run the audit in 30 days.</strong> Most of these fixes (photos, posts, review responses) show measurable score movement within a month.</li>
-          <li><strong>Read the full guide</strong> for the complete strategy behind each category: <Link href={ROUTES.PILLAR} className="text-blue-600 hover:underline">SEO for Plumbers: The Complete 2026 Guide</Link>.</li>
+          <li><strong>Read the full guide</strong> for the complete strategy behind each category: <Link href="/seo-for-plumbers" className="text-blue-600 hover:underline">SEO for Plumbers: The Complete 2026 Guide</Link>.</li>
         </ol>
 
-        <p>Ready to act on your results? → <Link href={ROUTES.IMPROVE_SCORE} className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link></p>
+        <p>Ready to act on your results? → <Link href="/improve-your-audit-score" className="text-blue-600 hover:underline">How to Improve Your Overall Audit Score</Link></p>
 
         <CalloutBox type="tip" title="Run or Re-Run Your Free Audit">
-          <Link href={ROUTES.AUDIT_TOOL} className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit at neerzy.com/gmb-audit-tool</Link>
+          <Link href="/gmb-audit-tool" className="text-blue-600 hover:underline font-semibold">→ Run or re-run your free audit at neerzy.com/gmb-audit-tool</Link>
         </CalloutBox>
-
-      </SeoGuideLayout>
-    </>
-  );
-}

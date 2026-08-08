@@ -335,7 +335,8 @@ export function ProgressGraphDiagram({ data, businessName, trendLabel }: { data?
 /**
  * FlowDiagram — Simple step flow for #2 (audit journey) and #5 (customer journey)
  */
-export function FlowDiagram({ steps, direction = 'horizontal' }: { steps: { label: string; desc?: string }[]; direction?: 'horizontal' | 'vertical' }) {
+export function FlowDiagram({ steps = [], direction = 'horizontal' }: { steps?: { label: string; desc?: string }[]; direction?: 'horizontal' | 'vertical' }) {
+  if (!steps || steps.length === 0) return null;
   return (
     <div className={`flex ${direction === 'horizontal' ? 'flex-row flex-wrap justify-center' : 'flex-col'} gap-4 p-4`}>
       {steps.map((step, i) => (
@@ -361,7 +362,8 @@ export function FlowDiagram({ steps, direction = 'horizontal' }: { steps: { labe
 /**
  * HubAndSpokeDiagram — For #3 (content ecosystem) and #4 (6 systems of plumbing SEO)
  */
-export function HubAndSpokeDiagram({ nodes, centerLabel }: { nodes: { label: string; desc?: string }[]; centerLabel: string }) {
+export function HubAndSpokeDiagram({ nodes, centerLabel }: { nodes?: { label: string; desc?: string }[]; centerLabel?: string }) {
+  if (!nodes || nodes.length === 0) return null;
   return (
     <div className="flex flex-col items-center p-4">
       {/* Center hub */}
@@ -387,7 +389,8 @@ export function HubAndSpokeDiagram({ nodes, centerLabel }: { nodes: { label: str
 /**
  * ComparisonCard — Side-by-side comparison for #7 (Business A vs Business B)
  */
-export function ComparisonCard({ left, right }: { left: { label: string; items: { label: string; value: string }[]; winner?: boolean }; right: { label: string; items: { label: string; value: string }[]; winner?: boolean } }) {
+export function ComparisonCard({ left, right }: { left?: { label: string; items: { label: string; value: string }[]; winner?: boolean }; right?: { label: string; items: { label: string; value: string }[]; winner?: boolean } }) {
+  if (!left || !right) return null;
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
       <div className={`rounded-xl border ${left.winner ? 'border-[#22C55E] bg-[#E6F2EA]' : 'border-[#E1E8E4] bg-white'} p-4 shadow-sm`}>
@@ -417,7 +420,8 @@ export function ComparisonCard({ left, right }: { left: { label: string; items: 
 /**
  * GridDiagram — Generic grid of items for #9 (7 failure points)
  */
-export function GridDiagram({ items, columns = 3 }: { items: { label: string; desc?: string }[]; columns?: number }) {
+export function GridDiagram({ items, columns = 3 }: { items?: { label: string; desc?: string }[]; columns?: number }) {
+  if (!items || items.length === 0) return null;
   return (
     <div className={`grid grid-cols-1 md:grid-cols-${columns} gap-3 p-4`}>
       {items.map((item, i) => (
@@ -492,7 +496,8 @@ export function WeightChart() {
 /**
  * TimelineDiagram — For #21 (4-step rollout plan)
  */
-export function TimelineDiagram({ steps }: { steps: { label: string; desc: string }[] }) {
+export function TimelineDiagram({ steps }: { steps?: { label: string; desc: string }[] }) {
+  if (!steps || steps.length === 0) return null;
   return (
     <div className="p-4">
       <div className="relative">
@@ -517,7 +522,8 @@ export function TimelineDiagram({ steps }: { steps: { label: string; desc: strin
 /**
  * WireframeDiagram — For #22 (page anatomy with callouts)
  */
-export function WireframeDiagram({ elements }: { elements: { label: string; x: number; y: number }[] }) {
+export function WireframeDiagram({ elements }: { elements?: { label: string; x: number; y: number }[] }) {
+  if (!elements || elements.length === 0) return null;
   return (
     <div className="p-4">
       <div className="relative bg-white border-2 border-[#E1E8E4] rounded-lg p-6 min-h-[300px]">
