@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import twilio from 'twilio';
+import { sendMetaText } from '@/lib/whatsapp';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 
 const supabase = createClient(
@@ -9,11 +9,6 @@ const supabase = createClient(
 );
 
 const openai = getOpenAIClient();
-
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
 
 export async function POST(req: Request) {
   try {
@@ -63,31 +58,21 @@ export async function POST(req: Request) {
       aiMessage = completion.choices[0].message.content || '';
     }
 
-    // 3. Send via WhatsApp API
-    // Note: process.env.TWILIO_WHATSAPP_NUMBER should include 'whatsapp:' prefix
-    const from = process.env.TWILIO_WHATSAPP_NUMBER?.startsWith('whatsapp:') 
-      ? process.env.TWILIO_WHATSAPP_NUMBER 
-      : `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`;
-      
-    const to = phoneNumber?.startsWith('whatsapp:') 
-      ? phoneNumber 
-      : `whatsapp:${phoneNumber || job.customer_phone || '+1234567890'}`;
-
-    const msg = await twilioClient.messages.create({
-      from,
-      to,
-      body: `🚀 ${businessName} Update:\n\n${aiMessage}\n\nCheck out our work: ${process.env.NEXT_PUBLIC_APP_URL}/showcase/${placeId}`
-    });
+    // 3. Send via Meta WhatsApp API
+    const to = phoneNumber || job.customer_phone || '+1234567890';
+    const body = `🚀 ${businessName} Update:\n\n${aiMessage}\n\nCheck out our work: ${process.env.NEXT_PUBLIC_APP_URL}/showcase/${placeId}`;
+    
+    const result = await sendMetaText({ to, body });
 
     // 4. Log the action in Supabase
     await supabase.from('audit_logs').insert({
       action: `whatsapp_${action}`,
-      meta: { placeId, businessName, twilioSid: msg.sid, message: aiMessage }
+      meta: { placeId, businessName, metaMessageId: result.messages?.[0]?.id, message: aiMessage }
     });
 
     return NextResponse.json({
       success: true,
-      sid: msg.sid,
+      messageId: result.messages?.[0]?.id,
       message: aiMessage,
       sentTo: to
     });

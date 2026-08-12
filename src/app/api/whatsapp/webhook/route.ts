@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import twilio from 'twilio';
+import { sendMetaText, sendMetaTemplate, sendMetaMedia } from '@/lib/whatsapp';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 import { PLAN_LIMITS } from '@/lib/plans';
 
@@ -12,14 +12,25 @@ const supabase = createClient(
 
 const openai = getOpenAIClient();
 
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+const META_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '1256240127573258';
+const META_VERIFY_TOKEN = process.env.META_WHATSAPP_VERIFY_TOKEN || 'neerzy_webhook_verify_2024';
 
-// GET - Health Check / Verification
+// GET - Meta Webhook Verification
 export async function GET(req: Request) {
-  return new NextResponse('OK', { status: 200 });
+  const url = new URL(req.url);
+  const mode = url.searchParams.get('hub.mode');
+  const token = url.searchParams.get('hub.verify_token');
+  const challenge = url.searchParams.get('hub.challenge');
+
+  console.log('🔔 Meta Webhook Verification:', { mode, token, challenge });
+
+  if (mode === 'subscribe' && token === META_VERIFY_TOKEN) {
+    console.log('✅ Webhook verified successfully');
+    return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
+  }
+
+  console.warn('❌ Webhook verification failed');
+  return new Response('Verification failed', { status: 403 });
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -72,19 +83,47 @@ async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; rem
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
+  // Parse Meta WhatsApp webhook JSON payload
+    // Meta sends: { object: "whatsapp_business_account", entry: [{ changes: [{ value: { messages: [...] } }] }] }
+    const webhookData = await req.json();
     
-    // Parse parameters from the inbound Twilio form-encoded payload
-    const from = (formData.get('From') as string)?.replace('whatsapp:', '') || '';
-    const to = (formData.get('To') as string) || '';
-    const body = (formData.get('Body') as string) || '';
-    const numMedia = parseInt(formData.get('NumMedia') as string || '0', 10);
-    const mediaUrl0 = formData.get('MediaUrl0') as string;
-    const mediaContentType0 = formData.get('MediaContentType0') as string;
+    // Extract the message from the webhook payload
+    const entry = webhookData?.entry?.[0];
+    const change = entry?.changes?.[0];
+    const value = change?.value;
+    const messages = value?.messages;
+    const contacts = value?.contacts;
 
-    if (!from) return NextResponse.json({});
+    // Ignore non-message events (status updates, etc.)
+    if (!messages || !messages.length) {
+      console.log('📥 Non-message webhook event, ignoring');
+      return NextResponse.json({ status: 'ok' });
+    }
 
-    console.log(`📥 Message from ${from} to ${to}: "${body}" (Media: ${numMedia})`);
+    const message = messages[0];
+    const from = message?.from || '';
+    const body = message?.text?.body || '';
+    const messageType = message?.type || 'text';
+    
+    // Extract media if present (image, video, audio, document)
+    let mediaUrl = '';
+    let mediaType = '';
+    const hasMedia = ['image', 'video', 'audio', 'document'].includes(messageType);
+    if (hasMedia && message[messageType]) {
+      mediaType = messageType;
+      // For media, we get the media ID — we'll need to download it
+      const mediaId = message[messageType]?.id;
+      if (mediaId) {
+        mediaUrl = `https://graph.facebook.com/v22.0/${mediaId}`;
+      }
+    }
+
+    if (!from) return NextResponse.json({ status: 'ok' });
+
+    console.log(`📥 [Meta WhatsApp] From: ${from}, Type: ${messageType}, Body: "${body.substring(0, 100)}"`);
+
+    // `to` was the business number in Twilio — now unused (Meta uses phone number ID), keep as null for compat
+    const to = undefined;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Commands first (POST / DONE)
@@ -96,7 +135,7 @@ export async function POST(req: Request) {
         // Rate-limit check before allowing generation
         const rateCheck = await checkGenRateLimit(from);
         if (!rateCheck.allowed) {
-          return await sendTwilioMessage(
+          return await sendWhatsappText(
             from,
             `⚠️ *Generation limit reached.*\n\nYou can generate ${GEN_RATE_MAX} posts every 60 minutes. Try again in about ${rateCheck.retryMinutes} minute${rateCheck.retryMinutes !== 1 ? 's' : ''}.`,
             to
@@ -109,7 +148,7 @@ export async function POST(req: Request) {
         // Clear all active drafts for this phone
         await supabase.from('pending_posts').update({ status: 'cleared' }).eq('user_phone', from).eq('status', 'draft');
         userIdCache.delete(from); // clear user ID cache
-        return await sendTwilioMessage(from, '🗑️ *All drafts cleared.*\n\nStart fresh by sending a new photo.', to);
+        return await sendWhatsappText(from, '🗑️ *All drafts cleared.*\n\nStart fresh by sending a new photo.', to);
       }
 
       if (text === 'DONE') {
@@ -126,27 +165,30 @@ export async function POST(req: Request) {
         const flag = getCountryFlag(cc);
         const postState = await saveDraft(from, { customerName: name, customerPhone: formattedCustPhone });
         if (postState === 'generated') {
-          return await sendTwilioMessage(from, `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${flag} ${formattedCustPhone}\n\nType *DONE* to send the review link to ${name} now.`, to);
+          return await sendWhatsappText(from, `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${flag} ${formattedCustPhone}\n\nType *DONE* to send the review link to ${name} now.`, to);
         }
-        return await sendTwilioMessage(from, `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${flag} ${formattedCustPhone}\n\nType *DONE* to send the review link to ${name}, or send photos & a description then type *POST* to create a post.`, to);
+        return await sendWhatsappText(from, `✅ *Customer details saved.*\n\n👤 ${name}\n📱 ${flag} ${formattedCustPhone}\n\nType *DONE* to send the review link to ${name}, or send photos & a description then type *POST* to create a post.`, to);
       }
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Media handling with clear workflow confirmations
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    if (mediaUrl0 && numMedia > 0) {
-      if (mediaContentType0 && mediaContentType0.includes('audio')) {
-        console.log('🎙️ Received Voice Note:', mediaUrl0);
+    if (hasMedia) {
+      // For Meta, media is referenced by ID — we need to download via Graph API
+      const mediaId = message[messageType]?.id;
+      const mimeType = message[messageType]?.mime_type || '';
+      const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+      const downloadUrl = `https://graph.facebook.com/v22.0/${mediaId}`;
+
+      if (messageType === 'audio') {
+        console.log('🎙️ Received Voice Note, downloading from Meta...');
         try {
-          const headers: HeadersInit = {};
-          if (mediaUrl0.includes('api.twilio.com') && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-            const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
-            headers['Authorization'] = `Basic ${auth}`;
-          }
-          const audioResponse = await fetch(mediaUrl0, { headers });
+          const audioResponse = await fetch(downloadUrl, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
           if (!audioResponse.ok) {
-            throw new Error(`Failed to fetch audio from Twilio: ${audioResponse.status}`);
+            throw new Error(`Failed to fetch audio from Meta: ${audioResponse.status}`);
           }
           const buffer = await audioResponse.arrayBuffer();
           
@@ -156,10 +198,7 @@ export async function POST(req: Request) {
             voiceText = "[Voice Note] Update recorded via WhatsApp";
           } else {
             const transcription = await openai.audio.transcriptions.create({
-              file: await (async () => {
-                const f = new File([buffer], "audio.ogg", { type: mediaContentType0 });
-                return f;
-              })(),
+              file: new File([buffer], "audio.ogg", { type: mimeType || 'audio/ogg' }),
               model: "whisper-1",
             });
             console.log('✅ Transcribed:', transcription.text);
@@ -167,7 +206,7 @@ export async function POST(req: Request) {
           }
           
           await saveDraft(from, { voice_note: voiceText });
-          return await sendTwilioMessage(
+          return await sendWhatsappText(
             from,
             `✅ *Voice note received & saved!* 🎙️\n\n_Transcribed: ${voiceText.length > 80 ? voiceText.substring(0, 80) + '...' : voiceText}_\n\nNow type *POST* to generate your GMB post.`,
             to
@@ -175,12 +214,12 @@ export async function POST(req: Request) {
         } catch (err) {
           console.error("❌ Whisper Transcription Failed:", err);
           await saveDraft(from, { voice_note: "[Voice note transcription failed]" });
-          return await sendTwilioMessage(from, `⚠️ *Voice note saved but couldn't transcribe.*\n\nPlease send a short text description instead, then type *POST*.`, to);
+          return await sendWhatsappText(from, `⚠️ *Voice note saved but couldn't transcribe.*\n\nPlease send a short text description instead, then type *POST*.`, to);
         }
       } else {
-        // Image received
-        console.log('💾 Saving image draft:', mediaUrl0);
-        await saveDraft(from, { imageUrl: mediaUrl0 });
+        // Image received — use the download URL directly (Meta serves it with Bearer auth)
+        console.log('💾 Saving image draft, media ID:', mediaId);
+        await saveDraft(from, { imageUrl: downloadUrl });
         
         // Get current image count
         const { data: draft } = await supabase
@@ -193,7 +232,7 @@ export async function POST(req: Request) {
           .maybeSingle();
         const imageCount = draft?.images?.length || 1;
         
-        return await sendTwilioMessage(
+        return await sendWhatsappText(
           from,
           `✅ *Image received & saved!* 📸 (${imageCount} photo${imageCount !== 1 ? 's' : ''} saved in gallery)\n\n_Send a short description or voice note, then type *POST* to generate your post._`,
           to
@@ -219,13 +258,13 @@ export async function POST(req: Request) {
       
       const hasImages = existingDraft?.images?.length > 0;
       if (hasImages) {
-        return await sendTwilioMessage(
+        return await sendWhatsappText(
           from,
           `✅ *Description saved!* ✍️\n\nNow type *POST* to generate your GMB post with your photos & description.`,
           to
         );
       }
-      return await sendTwilioMessage(
+      return await sendWhatsappText(
         from,
         `✅ *Description saved!* ✍️\n\n_Send photos or a voice note, then type *POST* to generate._`,
         to
@@ -384,11 +423,11 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
 
     if (fetchError || !draft) {
       console.error('❌ Database fetch error:', fetchError);
-      return await sendTwilioMessage(phone, "⚠️ *No active draft found.*\n\nSend details or photos first, then type *POST*.", fromNumber);
+      return await sendWhatsappText(phone, "⚠️ *No active draft found.*\n\nSend details or photos first, then type *POST*.", fromNumber);
     }
 
     if (!draft.images?.length) {
-      return await sendTwilioMessage(phone, "⚠️ *No images found.*\n\nSend photos first, then type *POST*.", fromNumber);
+      return await sendWhatsappText(phone, "⚠️ *No images found.*\n\nSend photos first, then type *POST*.", fromNumber);
     }
 
     console.log('📊 Found draft with', draft.images.length, 'images. Generating post...');
@@ -424,14 +463,14 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     const imagesToSend = draft.images.slice(0, 5);
     for (let i = 0; i < imagesToSend.length; i++) {
       try {
-        await sendTwilioMedia(phone, imagesToSend[i], `📸 Photo ${i+1}/${imagesToSend.length}`, fromNumber);
+        await sendWhatsappMedia(phone, imagesToSend[i], `📸 Photo ${i+1}/${imagesToSend.length}`, fromNumber);
       } catch (mediaError) {
         console.error('❌ Media send error:', mediaError);
       }
     }
 
     // Notice about images download
-    await sendTwilioMessage(phone, `📸 *Photos are sent above. Tap and save them directly to your phone's gallery!*`, fromNumber);
+    await sendWhatsappText(phone, `📸 *Photos are sent above. Tap and save them directly to your phone's gallery!*`, fromNumber);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Send Post Text directly (User can long-press and copy on WhatsApp)
@@ -457,7 +496,7 @@ ${cta}
 
 ${hashtags}`;
 
-    await sendTwilioMessage(phone, formattedPostText, fromNumber);
+    await sendWhatsappText(phone, formattedPostText, fromNumber);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Resolve & Send GBP Link directly on WhatsApp
@@ -485,7 +524,7 @@ ${hashtags}`;
 ${gbpLink}
 
 (Paste the copied text above and select the saved photos)`;
-    await sendTwilioMessage(phone, gbpMessage, fromNumber);
+    await sendWhatsappText(phone, gbpMessage, fromNumber);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Send fallback link to Dashboard directly
@@ -512,11 +551,11 @@ ${gbpLink}
 Copy the text, open GBP, paste and publish!
 Type *DONE* when published.`;
 
-    return await sendTwilioMessage(phone, actionMessage, fromNumber);
+    return await sendWhatsappText(phone, actionMessage, fromNumber);
 
   } catch (error: any) {
     console.error('❌ handleGeneratePost error:', error);
-    return await sendTwilioMessage(phone, `❌ Error: ${error.message}\n\nPlease try again.`, fromNumber);
+    return await sendWhatsappText(phone, `❌ Error: ${error.message}\n\nPlease try again.`, fromNumber);
   }
 }
 
@@ -570,13 +609,13 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     }
 
     if (!post) {
-      return await sendTwilioMessage(phone, "⚠️ *No pending generated post or review draft found.*", fromNumber);
+      return await sendWhatsappText(phone, "⚠️ *No pending generated post or review draft found.*", fromNumber);
     }
 
     // ⛔ CRITICAL: Ensure we have a customer phone — NEVER fall back to the trader's phone
     if (!post.customer_phone) {
       console.warn(`⚠️ Post ${post.id} has no customer_phone. Trader phone: ${phone}. NOT sending review to trader.`);
-      return await sendTwilioMessage(
+      return await sendWhatsappText(
         phone,
         "⚠️ *No customer phone number found.*\n\nPlease send the customer's name and phone number first.\n\nExample: _Amjad +923711291617_",
         fromNumber
@@ -618,7 +657,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     }
 
     if (!reviewLink) {
-      return await sendTwilioMessage(phone, "⚠️ *No Google Business Profile connected.* Please connect your GBP first at https://www.neerzy.com/onboarding", fromNumber);
+      return await sendWhatsappText(phone, "⚠️ *No Google Business Profile connected.* Please connect your GBP first at https://www.neerzy.com/onboarding", fromNumber);
     }
 
     // Mark post as published — also set user_id for quota tracking
@@ -650,7 +689,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
             .eq('user_id', userIdForPublish);
 
           if (sentTotal !== null && sentTotal >= quota.totalReviewRequests) {
-            return await sendTwilioMessage(
+            return await sendWhatsappText(
               phone,
               `⚠️ *Review request limit reached.*\n\nYour ${planTier} plan allows ${quota.totalReviewRequests} review requests total. Upgrade to send more.`,
               fromNumber
@@ -669,7 +708,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
             .gte('sent_at', todayStart.toISOString());
 
           if (sentToday !== null && sentToday >= quota.dailyReviewRequests) {
-            return await sendTwilioMessage(
+            return await sendWhatsappText(
               phone,
               `⚠️ *Daily review limit reached.*\n\nYour ${planTier} plan allows ${quota.dailyReviewRequests} review requests per day. Try again tomorrow.`,
               fromNumber
@@ -696,7 +735,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
     if (isSelfSend) {
       console.warn(`⚠️ Customer phone ${targetCustomerPhone} matches trader phone ${phone}. Blocking self-send.`);
-      return await sendTwilioMessage(
+      return await sendWhatsappText(
         phone,
         "⚠️ *The customer phone number matches your own number.*\n\nPlease send the correct customer's name and phone number.\n\nExample: _Amjad +923711291617_",
         fromNumber
@@ -713,29 +752,9 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       "3": reviewLink
     };
     // Use the billing-enabled toll-free number for sending the template review request
-    let billingFrom = process.env.TWILIO_PHONE_NUMBER || 'whatsapp:+18338872999';
-    if (!billingFrom.startsWith('whatsapp:')) {
-      billingFrom = `whatsapp:${billingFrom}`;
-    }
+    await sendWhatsappTemplate(targetCustomerPhone, templateSid, templateVars);
 
-    await sendTwilioTemplate(targetCustomerPhone, templateSid, templateVars, billingFrom);
-
-    // 📱 Parallel/Backup SMS Delivery to guarantee customer receives the link (since WhatsApp templates can fail with Error 63020)
-    try {
-      const smsFrom = billingFrom.replace('whatsapp:', '');
-      const smsTo = targetCustomerPhone.replace('whatsapp:', '');
-      const smsBody = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${reviewLink}`;
-      
-      console.log(`📤 Sending parallel backup SMS from ${smsFrom} to ${smsTo}`);
-      await twilioClient.messages.create({
-        from: smsFrom,
-        to: smsTo,
-        body: smsBody
-      });
-      console.log(`✅ Backup SMS successfully sent to ${customerName}`);
-    } catch (smsError: any) {
-      console.error('⚠️ Failed to send parallel backup SMS:', smsError.message);
-    }
+    // Meta WhatsApp templates are reliable — no SMS fallback needed
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Insert review_requests row for dashboard tracking/stats
@@ -793,94 +812,53 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     const customerCC = extractCountryCode(targetCustomerPhone);
     const customerFlag = getCountryFlag(customerCC);
     const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n📱 Sent to: ${customerFlag} ${targetCustomerPhone}\n🔗 Here is the review link:\n\n${reviewLink}\n\n_Your customer received the review request via WhatsApp._\n_Done! Workflow complete._ ✅`;
-    await sendTwilioMessage(phone, confirmMessage, fromNumber);
+    await sendWhatsappText(phone, confirmMessage, fromNumber);
 
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
     console.error('❌ handleSendReview error:', error);
-    return await sendTwilioMessage(phone, `❌ Error: ${error.message}`, fromNumber);
+    return await sendWhatsappText(phone, `❌ Error: ${error.message}`, fromNumber);
   }
 }
 
-async function sendTwilioMessage(to: string, text: string, fromNumber?: string) {
+async function sendWhatsappText(to: string, text: string, _fromNumber?: string) {
   try {
-    // Check both TWILIO_PHONE_NUMBER and TWILIO_WHATSAPP_NUMBER for env robustness
-    let defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
-    // Normalize from to always include whatsapp: prefix
-    if (!defaultFrom.startsWith('whatsapp:')) {
-      defaultFrom = `whatsapp:${defaultFrom}`;
-    }
-    const from = fromNumber || defaultFrom;
-    // Normalize: strip any existing whatsapp: prefix, then add cleanly
-    const cleanTo = to.replace(/^whatsapp:/, '');
-    const toWithPrefix = `whatsapp:${cleanTo}`;
-    console.log('📤 Sending message to:', toWithPrefix, 'from:', from);
-    
-    const message = await twilioClient.messages.create({
-      from: from,
-      to: toWithPrefix,
-      body: text
-    });
-    
-    console.log('✅ Message sent! SID:', message.sid);
-    return NextResponse.json({ success: true, sid: message.sid });
+    const result = await sendMetaText({ to, body: text });
+    console.log('✅ Meta WhatsApp text sent! ID:', result.messages?.[0]?.id);
+    return NextResponse.json({ success: true, id: result.messages?.[0]?.id });
   } catch (error: any) {
-    console.error('❌ sendTwilioMessage error:', error.message);
+    console.error('❌ sendWhatsappText error:', error.message);
     throw error;
   }
 }
 
-async function sendTwilioTemplate(to: string, sid: string, vars: any, fromNumber?: string) {
+async function sendWhatsappTemplate(to: string, templateName: string, vars: any, _fromNumber?: string) {
   try {
-    let defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
-    // Normalize from to always include whatsapp: prefix
-    if (!defaultFrom.startsWith('whatsapp:')) {
-      defaultFrom = `whatsapp:${defaultFrom}`;
-    }
-    const from = fromNumber || defaultFrom;
-    // Normalize: strip any existing whatsapp: prefix, then add cleanly
-    const cleanTo = to.replace(/^whatsapp:/, '');
-    const toWithPrefix = `whatsapp:${cleanTo}`;
-    console.log('📤 Sending template SID:', sid, 'to:', toWithPrefix, 'from:', from);
-    
-    const message = await twilioClient.messages.create({
-      from: from,
-      to: toWithPrefix,
-      contentSid: sid,
-      contentVariables: JSON.stringify(vars)
+    // Convert Twilio-style vars {"1":"val1","2":"val2"} → Meta-style components
+    const parameters = Object.entries(vars || {}).map(([, value]) => ({
+      type: "text" as const,
+      text: String(value),
+    }));
+    const result = await sendMetaTemplate({
+      to,
+      templateName,
+      languageCode: "en",
+      components: parameters.length > 0 ? [{ type: "body", parameters }] : [],
     });
-    
-    console.log('✅ Template sent! SID:', message.sid);
+    console.log('✅ Meta WhatsApp template sent! ID:', result.messages?.[0]?.id);
   } catch (error: any) {
-    console.error('❌ sendTwilioTemplate error:', error.message);
+    console.error('❌ sendWhatsappTemplate error:', error.message);
     throw error;
   }
 }
 
-async function sendTwilioMedia(to: string, url: string, caption: string, fromNumber?: string) {
+async function sendWhatsappMedia(to: string, url: string, caption: string, _fromNumber?: string) {
   try {
-    let defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
-    // Normalize from to always include whatsapp: prefix
-    if (!defaultFrom.startsWith('whatsapp:')) {
-      defaultFrom = `whatsapp:${defaultFrom}`;
-    }
-    const from = fromNumber || defaultFrom;
-    // Normalize: strip any existing whatsapp: prefix, then add cleanly
-    const cleanTo = to.replace(/^whatsapp:/, '');
-    const toWithPrefix = `whatsapp:${cleanTo}`;
-    console.log('📤 Sending media:', url, 'from:', from);
-    
-    const message = await twilioClient.messages.create({
-      from: from,
-      to: toWithPrefix,
-      body: caption,
-      mediaUrl: [url]
-    });
-    
-    console.log('✅ Media sent! SID:', message.sid);
+    const result = await sendMetaMedia({ to, mediaUrl: url, caption, mediaType: "image" });
+    console.log('✅ Meta WhatsApp media sent! ID:', result.messages?.[0]?.id);
   } catch (error: any) {
-    console.error('❌ sendTwilioMedia error:', error.message);
+    console.error('❌ sendWhatsappMedia error:', error.message);
     throw error;
   }
 }

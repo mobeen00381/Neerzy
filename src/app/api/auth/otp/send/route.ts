@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import twilio from "twilio";
+import { sendMetaText } from "@/lib/whatsapp";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -8,11 +8,6 @@ const supabase = createClient(
 );
 
 export async function POST(req: Request) {
-  const twilioClient = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
-  const fromNumber = "whatsapp:+14155238886"; // SANDBOX ONLY
   try {
     const { phone } = await req.json();
 
@@ -38,29 +33,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Failed to generate OTP" }, { status: 500 });
     }
 
-    // Force WhatsApp delivery via template
-    const twilioFrom = 'whatsapp:+14155238886'; // SANDBOX ONLY
+    // Send OTP via Meta WhatsApp
     const formattedPhone = phone.replace(/\s+/g, '');
-    const toNumber = `whatsapp:${formattedPhone}`;
     try {
-      const message = await twilioClient.messages.create({
-        from: twilioFrom,
-        to: toNumber,
+      const result = await sendMetaText({
+        to: formattedPhone,
         body: `Your Neerzy verification code is ${otpCode}. This code expires in 10 minutes.`,
       });
-      console.log(`✅ Sandbox WhatsApp OTP sent to ${toNumber}. SID: ${message.sid}`);
-      return NextResponse.json({ success: true, sid: message.sid });
+      console.log(`✅ Meta WhatsApp OTP sent to ${formattedPhone}. ID: ${result.messages?.[0]?.id}`);
+      return NextResponse.json({ success: true, messageId: result.messages?.[0]?.id });
     } catch (waErr: any) {
-      console.error(`❌ WhatsApp OTP failed for ${toNumber}:`, waErr.message);
+      console.error(`❌ WhatsApp OTP failed for ${formattedPhone}:`, waErr.message);
       return NextResponse.json({ 
         error: "Failed to send WhatsApp OTP", 
         details: waErr.message 
       }, { status: 500 });
     }
-
-
-    return NextResponse.json({ success: true });
-
   } catch (error: any) {
     console.error("OTP Send Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

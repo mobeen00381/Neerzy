@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { MDXRemote } from 'next-mdx-remote/rsc';
+import remarkGfm from 'remark-gfm';
+import remarkFootnotes from 'remark-footnotes';
 import { mdxComponents, SITE_URL_EXPORT } from '@/lib/mdx-components';
 import { getGuideBySlug, getAllSlugs } from '@/lib/mdx';
 import { ROUTES } from '@/lib/routes';
@@ -133,6 +135,11 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         <MDXRemote
           source={content}
           components={mdxComponents}
+          options={{
+            mdxOptions: {
+              remarkPlugins: [remarkGfm, remarkFootnotes],
+            },
+          }}
         />
         
         {/* Hub-and-Spoke Internal Linking Footer */}

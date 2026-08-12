@@ -15,17 +15,39 @@ function getOpenAI() {
 
 export async function POST(req: Request) {
   try {
-    // Twilio sends data as form-urlencoded
-    const formData = await req.formData();
-    const from = formData.get("From") as string; // User's WhatsApp number e.g., "whatsapp:+1234567890"
-    const bodyText = formData.get("Body") as string; // Any text they typed
-    const numMedia = parseInt(formData.get("NumMedia") as string || "0");
+    // Parse Meta WhatsApp webhook JSON payload
+    const data = await req.json();
+    const messages = data?.entry?.[0]?.changes?.[0]?.value?.messages;
+    const contacts = data?.entry?.[0]?.changes?.[0]?.value?.contacts;
+    
+    if (!messages?.length) {
+      console.log('📡 Non-message event, ignoring');
+      return NextResponse.json({ status: 'ok' });
+    }
+    
+    const message = messages[0];
+    const from = message?.from || '';
+    const bodyText = message?.text?.body || '';
+    const messageType = message?.type || 'text';
+
+    // Handle media (image/audio)
+    let mediaUrl = '';
+    let mediaType = '';
+    if (['image', 'audio', 'video', 'document'].includes(messageType) && message[messageType]) {
+      const mediaId = message[messageType]?.id;
+      mediaType = message[messageType]?.mime_type || messageType;
+      if (mediaId) {
+        const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+        mediaUrl = `https://graph.facebook.com/v22.0/${mediaId}`;
+      }
+    }
+
+    const numMedia = mediaUrl ? 1 : 0;
 
     console.log(`📡 [WhatsApp Webhook] Received from ${from}. Media files: ${numMedia}`);
 
     // STEP 0: Identify User by Phone Number
-    // Clean the number from "whatsapp:" prefix
-    const cleanPhone = from.replace("whatsapp:", "");
+    const cleanPhone = from; // Meta already sends clean number without prefix
 
     const { data: user, error: userError } = await supabase
       .from("users")
@@ -43,10 +65,8 @@ export async function POST(req: Request) {
 
       const registerMessage = `Welcome to Neerzy! 👷‍♂️ It looks like your number isn't registered yet. \n\nPlease log in to your dashboard at ${appUrl}/login and add your phone number in settings to start posting!`;
       
-      return new Response(
-        `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${registerMessage}</Message></Response>`, 
-        { status: 200, headers: { 'Content-Type': 'text/xml' } }
-      );
+      // Meta uses JSON, not TwiML XML
+      return NextResponse.json({ message: registerMessage });
     }
 
     console.log(`👤 Found user: ${user.email} (${user.business_name})`);
@@ -57,16 +77,17 @@ export async function POST(req: Request) {
     const openai = getOpenAI();
 
     if (numMedia > 0) {
-      const mediaUrl = formData.get("MediaUrl0") as string;
-      const mediaType = formData.get("MediaContentType0") as string;
-
       console.log(`Processing media: ${mediaType} from ${mediaUrl}`);
 
       if (mediaType.includes("audio")) {
         // --- VOICE NOTE LOGIC (Whisper) ---
         try {
-          // Download audio from Twilio
-          const audioResponse = await fetch(mediaUrl);
+          // Download audio from Meta
+          const headers: HeadersInit = {};
+          if (process.env.META_WHATSAPP_ACCESS_TOKEN) {
+            headers['Authorization'] = `Bearer ${process.env.META_WHATSAPP_ACCESS_TOKEN}`;
+          }
+          const audioResponse = await fetch(mediaUrl, { headers });
           const buffer = await audioResponse.arrayBuffer();
           
           // Whisper expects a file. We can use a File object in recent OpenAI Node SDKs
@@ -108,10 +129,7 @@ export async function POST(req: Request) {
     }
 
     if (!rawContent || rawContent.length < 5) {
-      return new Response(
-        `<?xml version="1.0" encoding="UTF-8"?><Response><Message>We couldn't read that! Please send a voice note, photo, or at least 5 characters of text describing your job.</Message></Response>`, 
-        { headers: { 'Content-Type': 'text/xml' } }
-      );
+      return NextResponse.json({ message: "We couldn't read that! Please send a voice note, photo, or at least 5 characters of text describing your job." }, { status: 400 });
     }
 
     // STEP 2: Generate SEO & GMB Optimized Content
@@ -170,16 +188,10 @@ Return JSON: {"seoTitle": "...", "websiteHtml": "...", "gmbPost": "..."}`
     // STEP 5: Reply to User on WhatsApp
     const replyMessage = `Boom! 🚀 We just updated your website and Google My Business.\n\n*SEO Title:* ${seoTitle}\n\n*GMB Post:* ${gmbPost}\n\nView it live: ${user.domain}/blog`;
 
-    return new Response(
-      `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n<Message>${replyMessage}</Message>\n</Response>`,
-      { status: 200, headers: { 'Content-Type': 'text/xml' }}
-    );
+    return NextResponse.json({ message: replyMessage });
 
   } catch (error) {
     console.error("WhatsApp Webhook Error:", error);
-    return new Response(
-      `<?xml version="1.0" encoding="UTF-8"?><Response><Message>Oops, something went wrong processing your update.</Message></Response>`, 
-      { status: 200, headers: { 'Content-Type': 'text/xml' } }
-    );
+    return NextResponse.json({ message: "Oops, something went wrong processing your update." }, { status: 500 });
   }
 }

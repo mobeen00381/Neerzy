@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PLAN_LIMITS } from '@/lib/plans';
+import { sendMetaTemplate } from '@/lib/whatsapp';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -176,72 +177,35 @@ export async function POST(req: Request) {
       }
     }
 
-    // Try to send via Twilio WhatsApp if configured
+    // Try to send via Meta WhatsApp if configured
     let whatsappSent = false;
-    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    if (process.env.META_WHATSAPP_ACCESS_TOKEN && process.env.META_WHATSAPP_PHONE_NUMBER_ID) {
       try {
-        const twilioClient = require('twilio')(
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
+        const templateName = 'review_request'; // Meta template name
+        const components = [
+          {
+            type: "body" as const,
+            parameters: [
+              { type: "text" as const, text: customerName },
+              { type: "text" as const, text: trader_name || 'Our Services' },
+              { type: "text" as const, text: review_link },
+            ]
+          }
+        ];
 
-        // Normalize `from` to always include whatsapp: prefix
-        // Prefer TWILIO_WHATSAPP_NUMBER, fall back to TWILIO_PHONE_NUMBER
-        let defaultFrom = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER || '+18338872999';
-        if (!defaultFrom.startsWith('whatsapp:')) {
-          defaultFrom = `whatsapp:${defaultFrom.replace(/^whatsapp:/, '')}`;
-        }
-
-        // Normalize customer phone: strip any existing whatsapp: prefix, then add it cleanly
-        const cleanCustomerPhone = customerPhone.replace(/^whatsapp:/, '');
-        const toWithPrefix = `whatsapp:${cleanCustomerPhone}`;
-
-        // Try template first
-        const templateSid = process.env.TWILIO_TEMPLATE_REVIEW_REQUEST || 'HX36dc564715671fad2b3617c795984ee2';
-        const templateVars = {
-          "1": customerName,
-          "2": trader_name || 'Our Services',
-          "3": review_link
-        };
-
-        await twilioClient.messages.create({
-          from: defaultFrom,
-          to: toWithPrefix,
-          contentSid: templateSid,
-          contentVariables: JSON.stringify(templateVars)
+        await sendMetaTemplate({
+          to: customerPhone,
+          templateName,
+          languageCode: "en",
+          components,
         });
         whatsappSent = true;
-        console.log(`✅ Review request sent via WhatsApp template to ${customerName} at ${toWithPrefix}`);
-      } catch (twilioErr: any) {
-        console.warn('⚠️ WhatsApp template send failed, trying SMS fallback:', twilioErr.message);
-        
-        // Fallback to SMS
-        try {
-          const twilioClient = require('twilio')(
-            process.env.TWILIO_ACCOUNT_SID,
-            process.env.TWILIO_AUTH_TOKEN
-          );
-
-          // For SMS, strip the whatsapp: prefix and use a plain E.164 number
-          const smsFrom = ((process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_PHONE_NUMBER) || '+18338872999')
-            .replace(/^whatsapp:/, '');
-          const smsTo = customerPhone.replace(/^whatsapp:/, '').replace(/^\+/, '');
-          // Re-add + for E.164 format
-          const smsToFormatted = smsTo.startsWith('+') ? smsTo : `+${smsTo}`;
-          
-          await twilioClient.messages.create({
-            from: smsFrom,
-            to: smsToFormatted,
-            body: messageText
-          });
-          whatsappSent = true;
-          console.log(`✅ Review request sent via SMS fallback to ${customerName} at ${smsToFormatted}`);
-        } catch (smsErr: any) {
-          console.error('❌ SMS fallback also failed:', smsErr.message);
-        }
+        console.log(`✅ Review request sent via Meta WhatsApp template to ${customerName} at ${customerPhone}`);
+      } catch (metaErr: any) {
+        console.error('❌ Meta WhatsApp template send failed:', metaErr.message);
       }
     } else {
-      console.log('📝 Twilio not configured — review request logged but not sent via WhatsApp');
+      console.log('📝 Meta WhatsApp not configured — review request logged but not sent via WhatsApp');
     }
 
     return NextResponse.json({

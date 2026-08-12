@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { sendTwilioMessage } from '@/lib/twilio';
+import { sendMetaText } from '@/lib/whatsapp';
 import { enrichLocationData } from '@/lib/google';
 import { createGBPDraft } from '@/lib/gbp';
 
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
       if (pending && !fetchError) {
         const reviewLink = `https://search.google.com/local/writereview?placeid=${pending.place_id}`;
-        await sendTwilioMessage(from, `🌟 Thanks! Share your experience here:\n${reviewLink}\n\nYour feedback helps us serve ${pending.city} better.`);
+        await sendMetaText({ to: from, body: `🌟 Thanks! Share your experience here:\n${reviewLink}\n\nYour feedback helps us serve ${pending.city} better.` });
         
         await supabase
           .from('pending_posts')
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     // Parse JOB payload: JOB|Name|Service|Address|PhotoURL
     const parts = body.split('|');
     if (parts[0].toUpperCase() !== 'JOB' || parts.length < 4) {
-      await sendTwilioMessage(from, '❌ Invalid format. Use: JOB|Name|Service|Address|PhotoURL');
+      await sendMetaText({ to: from, body: '❌ Invalid format. Use: JOB|Name|Service|Address|PhotoURL' });
       return NextResponse.json({ error: 'invalid_format' }, { status: 400 });
     }
 
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
 
     // 4. Send Twilio preview
     const gbpLink = `https://business.google.com/edit/${geo.locationId}/posts`;
-    await sendTwilioMessage(from, `✅ Draft Ready!\n📝 ${aiPost.title}\n\n👉 Review & Publish:\n${gbpLink}\n\nReply "PUBLISHED" when done.`);
+    await sendMetaText({ to: from, body: `✅ Draft Ready!\n📝 ${aiPost.title}\n\n👉 Review & Publish:\n${gbpLink}\n\nReply "PUBLISHED" when done.` });
 
     // 5. Log state
     await supabase.from('pending_posts').insert({
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
     try {
       const formData = await req.formData();
       const from = formData.get('From') as string;
-      if (from) await sendTwilioMessage(from, '⚠️ System error while processing your job. Please try again or contact support.');
+      if (from) await sendMetaText({ to: from, body: '⚠️ System error while processing your job. Please try again or contact support.' });
     } catch {}
     
     return NextResponse.json({ error: 'failed', message: err.message }, { status: 500 });

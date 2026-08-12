@@ -1,14 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { sendMetaTemplate } from '@/lib/whatsapp';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-);
-
-const twilioClient = require('twilio')(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
 );
 
 async function getPost(jobId: string) {
@@ -79,45 +75,32 @@ export async function POST(req: Request) {
       console.warn('⚠️ Could not fetch review link:', dbErr);
     }
 
-    // Send WhatsApp review request to the customer
-    const defaultFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+923056500917';
-    
+    // Send WhatsApp review request to the customer via Meta template
     try {
-      const templateSid = process.env.TWILIO_TEMPLATE_REVIEW_REQUEST || 'HX36dc564715671fad2b3617c795984ee2';
-      const templateVars = {
-        "1": customerName,
-        "2": businessName,
-        "3": reviewLink
-      };
+      const templateName = 'review_request'; // Meta template name
+      const components = [
+        {
+          type: "body" as const,
+          parameters: [
+            { type: "text" as const, text: customerName },
+            { type: "text" as const, text: businessName },
+            { type: "text" as const, text: reviewLink },
+          ]
+        }
+      ];
 
-      await twilioClient.messages.create({
-        from: defaultFrom,
-        to: `whatsapp:${customerPhone}`,
-        contentSid: templateSid,
-        contentVariables: JSON.stringify(templateVars)
+      await sendMetaTemplate({
+        to: customerPhone,
+        templateName,
+        languageCode: "en",
+        components,
       });
       console.log(`✅ Review request template sent to ${customerName} at ${customerPhone}`);
-    } catch (twilioErr: any) {
-      console.error('❌ Failed to send WhatsApp review request:', twilioErr.message);
-      // We don't fail immediately, we will try sending backup SMS
+    } catch (metaErr: any) {
+      console.error('❌ Failed to send WhatsApp review request:', metaErr.message);
     }
 
-    // 📱 Parallel/Backup SMS Delivery to guarantee customer receives the link (since WhatsApp templates can fail with Error 63020)
-    try {
-      const smsFrom = defaultFrom.replace('whatsapp:', '');
-      const smsTo = customerPhone.replace('whatsapp:', '');
-      const smsBody = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${reviewLink}`;
-      
-      console.log(`📤 Sending parallel backup SMS from ${smsFrom} to ${smsTo}`);
-      await twilioClient.messages.create({
-        from: smsFrom,
-        to: smsTo,
-        body: smsBody
-      });
-      console.log(`✅ Backup SMS successfully sent to ${customerName}`);
-    } catch (smsError: any) {
-      console.error('⚠️ Failed to send parallel backup SMS:', smsError.message);
-    }
+    // Meta WhatsApp templates are reliable — no SMS fallback needed
 
     // Update post status — also set user_id if it's a pending_posts record
     const table = post.source === 'pending_posts' ? 'pending_posts' : 'jobs';
