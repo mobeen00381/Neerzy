@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import remarkGfm from 'remark-gfm';
-import remarkFootnotes from 'remark-footnotes';
 import { mdxComponents, SITE_URL_EXPORT } from '@/lib/mdx-components';
 import { getGuideBySlug, getAllSlugs } from '@/lib/mdx';
 import { ROUTES } from '@/lib/routes';
@@ -106,8 +105,6 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
     { href: ROUTES.GUIDES.LOCAL_SEO, label: 'Local SEO Optimization Guide (15%)' },
   ];
   
-  // ---- Sources (electricians/locksmith) ----
-  const sources = frontmatter.sources;
   
   return (
     <>
@@ -137,7 +134,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           components={mdxComponents}
           options={{
             mdxOptions: {
-              remarkPlugins: [remarkGfm, remarkFootnotes],
+              remarkPlugins: [remarkGfm],
             },
           }}
         />
@@ -173,19 +170,6 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           <p className="mt-8 text-xs text-gray-400 text-center"><em>Neerzy is an independent platform and is not affiliated with, endorsed by, or a partner of Google or WhatsApp. Google Business Profile and WhatsApp are trademarks of their respective owners.</em></p>
         </footer>
         
-        {/* Sources section (if present) */}
-        {sources && sources.length > 0 && (
-          <section className="mt-8 pt-4 border-t border-gray-200">
-            <h3 className="text-lg font-bold text-slate-900 mb-3">Sources</h3>
-            <ol className="text-sm text-gray-600 space-y-1 list-decimal pl-5">
-              {sources.map((s: { id: number; text: string }) => (
-                <li key={s.id} id={`source-${s.id}`}>
-                  <a href={`#fn-${s.id}`} className="text-blue-600 hover:underline">↑</a> {s.text}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
       </main>
     </>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabase";
 import { PLAN_LIMITS, getPlan, getRemainingDays } from '@/lib/plans';
@@ -56,7 +56,7 @@ function renderMessageContent(text: string) {
   // Internal path pattern (e.g., /onboarding, /copy/...)
   const internalPathPattern = /(\/[a-zA-Z0-9\-\/]+)/g;
   
-  const parts: (string | JSX.Element)[] = [];
+  const parts: (string | ReactElement)[] = [];
   let lastIndex = 0;
   let keyIndex = 0;
   

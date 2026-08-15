@@ -1,0 +1,61 @@
+﻿
+> neerzy@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 85s
+  Running TypeScript ...
+node.exe : 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:Str 
+   ing) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+<--- Last few GCs --->
+
+[888:000001FD7D9D1000]    74684 ms: Scavenge 
+(during sweeping) 2043.3 (2050.2) -> 2041.6 
+(2050.2) MB, pooled: 0.0 MB, 8.82 / 0.00 ms 
+(average mu = 0.315, current mu = 0.301) 
+allocation failure; 
+[888:000001FD7D9D1000]    75985 ms: Mark-Compact 
+(reduce) 2043.9 (2050.7) -> 2038.9 (2047.2) MB, 
+pooled: 0.0 MB, 1183.69 / 0.00 ms (+ 57.1 ms in 9 
+steps since start of marking, biggest step 11.6 
+ms, walltime since start of marking 1261 ms) 
+(average mu = 0
+FATAL ERROR: Ineffective mark-compacts near heap 
+limit Allocation failed - JavaScript heap out of 
+memory
+----- Native stack trace -----
+
+ 1: 00007FF76A6A4796 node::OnFatalError+1318
+ 2: 00007FF76B243537 v8::Function::NewInstance+423
+ 3: 00007FF76B051947 v8::base::AddressSpaceReserva
+tion::AddressSpaceReservation+328087
+ 4: 00007FF76B055857 v8::base::AddressSpaceReserva
+tion::AddressSpaceReservation+344231
+ 5: 00007FF76B067458 v8::internal::StrongRootAlloc
+atorBase::deallocate_impl+19176
+ 6: 00007FF76B066C8B v8::internal::StrongRootAlloc
+atorBase::deallocate_impl+17179
+ 7: 00007FF76C7E006D 
+v8::platform::DelayedTaskQueue::Terminate+10478845
+ 8: 00007FF76B04F278 v8::base::AddressSpaceReserva
+tion::AddressSpaceReservation+318152
+ 9: 00007FF76B06CEB0 X509_STORE_set_cleanup+5664
+10: 00007FF76B06BBDE X509_STORE_set_cleanup+846
+11: 00007FF76B07982B 
+SSL_CTX_set_cookie_generate_cb+21131
+12: 00007FF76AC7964E 
+v8::String::Utf8Value::~Utf8Value+152798
+13: 000001FD37E7B4FA 
+Next.js build worker exited with code: 134 and 
+signal: null

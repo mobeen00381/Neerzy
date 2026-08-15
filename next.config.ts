@@ -97,13 +97,6 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.co' },
     ],
   },
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
-  },
   compress: true,
 };
 

@@ -1,0 +1,114 @@
+﻿
+> neerzy@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 94s
+  Running TypeScript ...
+  Finished TypeScript in 114s ...
+  Collecting page data using 3 workers ...
+≡ƒñû AI Client: OpenAI primary (model: gpt-4o)
+≡ƒñû AI Client: OpenAI primary (model: gpt-4o)
+≡ƒñû AI Client: OpenAI primary (model: gpt-4o)
+≡ƒñû AI Client: OpenAI primary (model: gpt-4o)
+  Generating static pages using 3 workers (0/81) ...
+≡ƒñû AI Client: OpenAI primary (model: gpt-4o)
+≡ƒñû AI Client: OpenAI primary (model: gpt-4o)
+  Generating static pages using 3 workers (20/81) 
+  Generating static pages using 3 workers (40/81) 
+  Generating static pages using 3 workers (60/81) 
+Γ£ô Generating static pages using 3 workers (81/81) in 6.7s
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ ΓùÅ /[slug]
+Γöé Γö£ /completeness-score-guide
+Γöé Γö£ /engagement-score-guide
+Γöé Γö£ /improve-your-audit-score
+Γöé Γöö [+7 more paths]
+Γö£ Γùï /about
+Γö£ ╞Æ /action/[id]
+Γö£ Γùï /admin
+Γö£ ╞Æ /api/admin
+Γö£ ╞Æ /api/audit/run
+Γö£ ╞Æ /api/audit/search
+Γö£ ╞Æ /api/auth
+Γö£ ╞Æ /api/auth/gbp/callback
+Γö£ ╞Æ /api/auth/google
+Γö£ ╞Æ /api/auth/google/callback
+Γö£ ╞Æ /api/auth/otp/send
+Γö£ ╞Æ /api/auth/otp/verify
+Γö£ ╞Æ /api/auth/send-otp
+Γö£ ╞Æ /api/auth/signup
+Γö£ ╞Æ /api/auth/verify-otp
+Γö£ ╞Æ /api/business-profile
+Γö£ ╞Æ /api/chat
+Γö£ ╞Æ /api/checkout
+Γö£ ╞Æ /api/debug/env
+Γö£ ╞Æ /api/debug/phone-format
+Γö£ ╞Æ /api/debug/twilio-test
+Γö£ ╞Æ /api/domains
+Γö£ ╞Æ /api/download-image
+Γö£ ╞Æ /api/gbp/connect
+Γö£ ╞Æ /api/gbp/search
+Γö£ ╞Æ /api/generate-post
+Γö£ ╞Æ /api/generate-website
+Γö£ ╞Æ /api/gmb/audit
+Γö£ ╞Æ /api/gmb/check
+Γö£ ╞Æ /api/gmb/search
+Γö£ ╞Æ /api/jobs/mark-published
+Γö£ ╞Æ /api/neerzy/generate
+Γö£ ╞Æ /api/onboarding/complete
+Γö£ ╞Æ /api/onboarding/search-gbp
+Γö£ ╞Æ /api/places/search
+Γö£ ╞Æ /api/post-data/[id]
+Γö£ ╞Æ /api/posts/create
+Γö£ ╞Æ /api/posts/validate-token
+Γö£ ╞Æ /api/reviews/mark-received
+Γö£ ╞Æ /api/reviews/send-request
+Γö£ ╞Æ /api/reviews/stats
+Γö£ ╞Æ /api/subscriptions
+Γö£ ╞Æ /api/transcribe
+Γö£ ╞Æ /api/users
+Γö£ ╞Æ /api/webhook/paddle
+Γö£ ╞Æ /api/websites
+Γö£ ╞Æ /api/whatsapp
+Γö£ ╞Æ /api/whatsapp/inbound
+Γö£ ╞Æ /api/whatsapp/send-gmb-action
+Γö£ ╞Æ /api/whatsapp/webhook
+Γö£ Γùï /blog
+Γö£ ╞Æ /checkout/[plan_id]
+Γö£ Γùï /contact
+Γö£ Γùï /cookies
+Γö£ ╞Æ /copy/[id]
+Γö£ Γùï /dashboard
+Γö£ Γùï /dashboard/audit-report
+Γö£ Γùï /dashboard/gmb-checker
+Γö£ Γùï /dashboard/gmb-report
+Γö£ ╞Æ /demo/[code]
+Γö£ Γùï /gmb-audit-tool
+Γö£ Γùï /gmb-audit-tool/results
+Γö£ Γùï /gmb-report
+Γö£ ╞Æ /images/[id]
+Γö£ Γùï /login
+Γö£ Γùï /onboarding
+Γö£ Γùï /onboarding/success
+Γö£ Γùï /pricing
+Γö£ Γùï /privacy-policy
+Γö£ ╞Æ /publish/[id]
+Γö£ ╞Æ /quick-post/[token]
+Γö£ Γùï /signup
+Γö£ Γùï /terms
+Γö£ Γùï /welcome
+Γöö Γùï /whatsapp-demo
+
+
+Γùï  (Static)   prerendered as static content
+ΓùÅ  (SSG)      prerendered as static HTML (uses generateStaticParams)
+╞Æ  (Dynamic)  server-rendered on demand
+

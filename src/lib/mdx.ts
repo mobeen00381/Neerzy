@@ -13,7 +13,6 @@ export interface GuideFrontmatter {
   breadcrumbName: string;
   schemaArticle?: string;
   schemaFaq?: Array<{ q: string; a: string }>;
-  sources?: Array<{ id: number; text: string }>;
 }
 
 export interface GuideData {
