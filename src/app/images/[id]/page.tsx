@@ -114,7 +114,7 @@ export default function DownloadImagesPage({ params }: { params: Promise<{ id: s
               {/* Image preview */}
               <div style={{ width: '100%', height: 200, background: '#f1f5f9', position: 'relative' }}>
                 <img 
-                  src={url} 
+                  src={url.includes('graph.facebook.com') ? `/api/download-image?url=${encodeURIComponent(url)}&name=neerzy-photo-${i + 1}.jpg` : url} 
                   alt={`Photo ${i + 1}`}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   crossOrigin="anonymous"

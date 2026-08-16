@@ -24,6 +24,9 @@ function getAccessToken(): string {
   return token;
 }
 
+// Export for use in webhook route.ts
+export { getPhoneNumberId, getAccessToken };
+
 function normalizeTo(to: string): string {
   return to.replace(/^whatsapp:/, "").replace(/[^\d+]/g, "");
 }

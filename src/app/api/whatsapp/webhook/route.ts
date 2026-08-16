@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { sendMetaText, sendMetaTemplate, sendMetaMedia } from '@/lib/whatsapp';
+import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 import { PLAN_LIMITS } from '@/lib/plans';
 
@@ -14,6 +14,12 @@ const openai = getOpenAIClient();
 
 const META_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '1256240127573258';
 const META_VERIFY_TOKEN = process.env.META_WHATSAPP_VERIFY_TOKEN || 'neerzy_webhook_verify_2024';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Message-ID dedup cache: prevent double-processing from Meta retries
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const processedMessageIds = new Map<string, number>();
+const DEDUP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // GET - Meta Webhook Verification
 export async function GET(req: Request) {
@@ -105,6 +111,27 @@ export async function POST(req: Request) {
     const body = message?.text?.body || '';
     const messageType = message?.type || 'text';
     
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Dedup check: prevent double-processing from Meta retries
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const messageId = message?.id;
+    if (messageId) {
+      if (processedMessageIds.has(messageId)) {
+        console.log(`🔁 Duplicate message ID ${messageId}, skipping`);
+        return NextResponse.json({ status: 'ok' });
+      }
+      processedMessageIds.set(messageId, Date.now());
+      // Clean up old entries to prevent memory leak
+      if (processedMessageIds.size > 1000) {
+        const cutoff = Date.now() - DEDUP_TTL_MS;
+        for (const [id, timestamp] of processedMessageIds.entries()) {
+          if (timestamp < cutoff) {
+            processedMessageIds.delete(id);
+          }
+        }
+      }
+    }
+    
     // Extract media if present (image, video, audio, document)
     let mediaUrl = '';
     let mediaType = '';
@@ -138,10 +165,14 @@ export async function POST(req: Request) {
           return await sendWhatsappText(
             from,
             `⚠️ *Generation limit reached.*\n\nYou can generate ${GEN_RATE_MAX} posts every 60 minutes. Try again in about ${rateCheck.retryMinutes} minute${rateCheck.retryMinutes !== 1 ? 's' : ''}.`,
-            to
+            undefined
           );
         }
-        return await handleGeneratePost(from, to);
+        
+        // Return 200 immediately to Meta to avoid webhook timeout
+        // Process the heavy workflow asynchronously
+        void processPostWorkflow(from, undefined);
+        return NextResponse.json({ status: 'processing' });
       }
 
       if (text === 'RESET') {
@@ -152,7 +183,10 @@ export async function POST(req: Request) {
       }
 
       if (text === 'DONE') {
-        return await handleSendReview(from, to);
+        // Return 200 immediately to Meta to avoid webhook timeout
+        // Process the review workflow asynchronously
+        void processReviewWorkflow(from, undefined);
+        return NextResponse.json({ status: 'processing' });
       }
 
       // Check if message matches customer name and phone details: e.g. "John Doe +1234567890"
@@ -388,23 +422,6 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     }
   }
 
-  if (data.imageUrl) {
-    const newImages = existing?.images ? [...existing.images, data.imageUrl] : [data.imageUrl];
-    if (!existing) {
-      await supabase.from('pending_posts').insert({
-        user_phone: phone,
-        user_id: userId, // link to auth user for quota tracking
-        images: newImages,
-        status: 'draft'
-      });
-    } else {
-      await supabase.from('pending_posts').update({ 
-        images: newImages,
-        user_id: userId // also update in case it was null
-      }).eq('id', existing.id);
-    }
-  }
-
   return targetStatus;
 }
 
@@ -461,13 +478,66 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     // Send Images as WhatsApp media (user saves directly to gallery)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const imagesToSend = draft.images.slice(0, 5);
-    for (let i = 0; i < imagesToSend.length; i++) {
-      try {
-        await sendWhatsappMedia(phone, imagesToSend[i], `📸 Photo ${i+1}/${imagesToSend.length}`, fromNumber);
-      } catch (mediaError) {
-        console.error('❌ Media send error:', mediaError);
+    const uploadedMediaIds: string[] = [];
+  
+  for (let i = 0; i < imagesToSend.length; i++) {
+    try {
+      const imageUrl = imagesToSend[i];
+      
+      // If it's a graph.facebook.com URL, we need to download and re-upload to get a stable media ID
+      if (imageUrl.includes('graph.facebook.com')) {
+        const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+        const imageResponse = await fetch(imageUrl, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+        }
+        
+        const blob = await imageResponse.blob();
+        const formData = new FormData();
+        formData.append('file', blob, `photo-${i+1}.jpg`);
+        formData.append('messaging_product', 'whatsapp');
+        formData.append('type', 'image');
+        
+        const uploadResponse = await fetch(
+          `https://graph.facebook.com/v22.0/${getPhoneNumberId()}/messages`,
+          {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getAccessToken()}` },
+            body: formData
+          }
+        );
+        
+        if (!uploadResponse.ok) {
+          throw new Error(`Failed to upload image: ${uploadResponse.status}`);
+        }
+        
+        const uploadData: any = await uploadResponse.json();
+        if (!uploadData.messages || !uploadData.messages[0]?.id) {
+          throw new Error('Upload response missing message ID');
+        }
+        
+        uploadedMediaIds.push(uploadData.messages[0].id);
+        
+        // Send the uploaded media
+        await sendMetaMedia({
+          to: phone,
+          mediaUrl: `https://graph.facebook.com/v22.0/${uploadData.messages[0].id}`,
+          caption: `📸 Photo ${i+1}/${imagesToSend.length}`,
+          mediaType: "image"
+        });
+      } else {
+        // For non-graph URLs, send directly
+        await sendWhatsappMedia(phone, imageUrl, `📸 Photo ${i+1}/${imagesToSend.length}`, fromNumber);
+        uploadedMediaIds.push(imageUrl);
       }
+    } catch (mediaError) {
+      console.error('❌ Media send error:', mediaError);
+      // Continue with next image
     }
+  }
 
     // Notice about images download
     await sendWhatsappText(phone, `📸 *Photos are sent above. Tap and save them directly to your phone's gallery!*`, fromNumber);
@@ -660,16 +730,10 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       return await sendWhatsappText(phone, "⚠️ *No Google Business Profile connected.* Please connect your GBP first at https://www.neerzy.com/onboarding", fromNumber);
     }
 
-    // Mark post as published — also set user_id for quota tracking
-    const userIdForPublish = await getUserIdByPhone(phone);
-    await supabase.from('pending_posts').update({ 
-      status: 'published',
-      user_id: userIdForPublish 
-    }).eq('id', post.id);
-
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Soft Plan-Quota Check: block sending if trader has hit their plan limits
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const userIdForPublish = await getUserIdByPhone(phone);
     if (userIdForPublish) {
       try {
         const { data: profileData } = await supabase
@@ -744,17 +808,22 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
     console.log(`📤 Sending review link to CUSTOMER: ${customerName} at ${targetCustomerPhone} (trader: ${phone})`);
     
-    // Send the approved Twilio WhatsApp Template to prevent Error 63016 (no session window)
-    const templateSid = process.env.TWILIO_TEMPLATE_REVIEW_REQUEST || 'HX36dc564715671fad2b3617c795984ee2';
-    const templateVars = {
-      "1": customerName,
-      "2": businessName,
-      "3": reviewLink
-    };
-    // Use the billing-enabled toll-free number for sending the template review request
-    await sendWhatsappTemplate(targetCustomerPhone, templateSid, templateVars);
-
-    // Meta WhatsApp templates are reliable — no SMS fallback needed
+    // Send the approved Meta WhatsApp Template to prevent Error 63016 (no session window)
+    const templateName = process.env.META_TEMPLATE_REVIEW_REQUEST || 'review_request';
+    const templateResult = await sendMetaTemplate({
+      to: targetCustomerPhone,
+      templateName,
+      languageCode: "en",
+      components: [{
+        type: "body",
+        parameters: [
+          { type: "text", text: customerName },
+          { type: "text", text: businessName },
+          { type: "text", text: reviewLink },
+        ]
+      }],
+    });
+    console.log('✅ Review request template sent! ID:', templateResult.messages?.[0]?.id);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Insert review_requests row for dashboard tracking/stats
@@ -773,40 +842,20 @@ async function handleSendReview(phone: string, fromNumber?: string) {
         sent_via: 'whatsapp',
         sent_at: new Date().toISOString(),
       });
-
-      // If insert fails with PGRST204 (missing business_id column in prod),
-      // retry without business_id so the row is still recorded for the dashboard
       if (insertErr) {
-        const isPGRST204 = (insertErr as any)?.code === 'PGRST204' ||
-          (insertErr as any)?.message?.includes('PGRST204') ||
-          (insertErr as any)?.message?.includes('Could not find');
-        if (isPGRST204 && businessId) {
-          console.warn('⚠️ business_id column not found in review_requests — retrying without it');
-          const { error: retryErr } = await supabase.from('review_requests').insert({
-            user_id: userIdForPublish || null,
-            customer_name: customerName,
-            customer_phone: targetCustomerPhone,
-            message_text: messageText,
-            review_link: reviewLink,
-            status: 'sent',
-            sent_via: 'whatsapp',
-            sent_at: new Date().toISOString(),
-          });
-          if (retryErr) {
-            console.error('⚠️ Failed to insert review_requests row (retry):', retryErr);
-          } else {
-            console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'})`);
-          }
-        } else {
-          console.error('⚠️ Failed to insert review_requests row:', insertErr);
-        }
+        console.error('⚠️ Failed to insert review_requests row:', insertErr);
       } else {
         console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'})`);
       }
     } catch (insertErr) {
       console.error('⚠️ Failed to insert review_requests row:', insertErr);
-      // Non-fatal: the WhatsApp message was already sent
     }
+
+    // Now mark post as published — only after successful send + logging
+    await supabase.from('pending_posts').update({ 
+      status: 'published',
+      user_id: userIdForPublish 
+    }).eq('id', post.id);
 
     // Always send confirmation to the trader since we verified it's a real customer
     const customerCC = extractCountryCode(targetCustomerPhone);
@@ -819,6 +868,26 @@ async function handleSendReview(phone: string, fromNumber?: string) {
   } catch (error: any) {
     console.error('❌ handleSendReview error:', error);
     return await sendWhatsappText(phone, `❌ Error: ${error.message}`, fromNumber);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Async processing wrappers (prevent webhook timeouts)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function processPostWorkflow(phone: string, fromNumber?: string) {
+  try {
+    await handleGeneratePost(phone, fromNumber);
+  } catch (error) {
+    console.error('❌ Async post workflow failed:', error);
+  }
+}
+
+async function processReviewWorkflow(phone: string, fromNumber?: string) {
+  try {
+    await handleSendReview(phone, fromNumber);
+  } catch (error) {
+    console.error('❌ Async review workflow failed:', error);
   }
 }
 
