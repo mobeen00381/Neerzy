@@ -1191,7 +1191,7 @@ Try sending a photo or typing a description of a job you completed!`,
           {/* Center: Connect WhatsApp & Download App Buttons */}
           <div className="flex items-center gap-3">
             <a
-              href="https://wa.me/923056500917?text=Hi%20Neerzy!%20I%20want%20to%20connect%20my%20WhatsApp%20profile."
+              href="https://wa.me/923206291617?text=Hi%20Neerzy!%20I%20want%20to%20connect%20my%20WhatsApp%20profile."
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2.5 bg-[#25D366] text-white rounded-xl text-xs font-bold hover:bg-[#20ba56] transition-all shadow-sm shadow-[#25D366]/10 active:scale-95"

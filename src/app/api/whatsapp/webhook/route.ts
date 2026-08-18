@@ -422,6 +422,24 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     }
   }
 
+  // Save image URL
+  if (data.imageUrl) {
+    if (!existing) {
+      await supabase.from('pending_posts').insert({
+        user_phone: phone,
+        user_id: userId,
+        images: [data.imageUrl],
+        status: 'draft'
+      });
+    } else {
+      const currentImages = existing.images || [];
+      await supabase.from('pending_posts').update({
+        images: [...currentImages, data.imageUrl],
+        user_id: userId
+      }).eq('id', existing.id);
+    }
+  }
+
   return targetStatus;
 }
 
