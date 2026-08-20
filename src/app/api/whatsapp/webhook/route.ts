@@ -853,22 +853,61 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
     console.log(`📤 Sending review link to CUSTOMER: ${customerName} at ${targetCustomerPhone} (trader: ${phone})`);
     
-    // Send the approved Meta WhatsApp Template to prevent Error 63016 (no session window)
-    const templateName = process.env.META_TEMPLATE_REVIEW_REQUEST || 'review_request';
-    const templateResult = await sendMetaTemplate({
-      to: targetCustomerPhone,
-      templateName,
-      languageCode: "en",
-      components: [{
-        type: "body",
-        parameters: [
-          { type: "text", text: customerName },
-          { type: "text", text: businessName },
-          { type: "text", text: reviewLink },
-        ]
-      }],
-    });
-    console.log('✅ Review request template sent! ID:', templateResult.messages?.[0]?.id);
+    // Try sending review request via WhatsApp - first attempt template, fallback to text
+    console.log(`🔄 Sending review request to ${customerName} at ${targetCustomerPhone}`);
+    
+    let messageSentVia = 'whatsapp';
+    let messageSuccess = false;
+    
+    try {
+      // Step 1: Try approved template first
+      const templateName = process.env.META_TEMPLATE_REVIEW_REQUEST || 'review_request';
+      const templateResult = await sendMetaTemplate({
+        to: targetCustomerPhone,
+        templateName,
+        languageCode: "en",
+        components: [{
+          type: "body",
+          parameters: [
+            { type: "text", text: customerName },
+            { type: "text", text: businessName },
+            { type: "text", text: reviewLink },
+          ]
+        }],
+      });
+      console.log('✅ Review request TEMPLATE sent! Message ID:', templateResult.messages?.[0]?.id);
+      messageSentVia = 'whatsapp_template';
+      messageSuccess = true;
+      
+    } catch (templateError: any) {
+      console.error('❌ Template failed:', templateError.message);
+      console.error('   This usually means template is not approved yet in Meta Business Manager.');
+      
+      // Step 2: FALLBACK - Send free-form text within 24h window
+      console.log('📩 FALLBACK: Attempting free-form WhatsApp message...');
+      try {
+        const fallbackText = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review.\n\n🔗 Review link: ${reviewLink}\n\nIt helps us grow! 🙏`;
+        
+        const fallbackResult = await sendMetaText({ 
+          to: targetCustomerPhone, 
+          body: fallbackText 
+        });
+        
+        console.log('✅ FALLBACK MESSAGE SENT successfully! Message ID:', fallbackResult.messages?.[0]?.id);
+        console.log(`💡 Note: Free-form messages work when customers contacted you within last 24 hours.`);
+        messageSentVia = 'whatsapp_fallback';
+        messageSuccess = true;
+        
+      } catch (fallbackError: any) {
+        console.error('❌ Fallback also failed:', fallbackError.message);
+        console.error('   Both delivery methods failed. Check your Meta access token and phone number.');
+        messageSuccess = false;
+      }
+    }
+    
+    if (!messageSuccess) {
+      throw new Error('Failed to send WhatsApp review request via any method');
+    }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Insert review_requests row for dashboard tracking/stats
@@ -884,13 +923,13 @@ async function handleSendReview(phone: string, fromNumber?: string) {
         message_text: messageText,
         review_link: reviewLink,
         status: 'sent',
-        sent_via: 'whatsapp',
+        sent_via: messageSentVia,
         sent_at: new Date().toISOString(),
       });
       if (insertErr) {
         console.error('⚠️ Failed to insert review_requests row:', insertErr);
       } else {
-        console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'})`);
+        console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'}) via ${messageSentVia}`);
       }
     } catch (insertErr) {
       console.error('⚠️ Failed to insert review_requests row:', insertErr);

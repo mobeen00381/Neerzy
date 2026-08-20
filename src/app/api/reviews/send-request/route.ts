@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PLAN_LIMITS } from '@/lib/plans';
-import { sendMetaTemplate } from '@/lib/whatsapp';
+import { sendMetaTemplate, sendMetaText } from '@/lib/whatsapp';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -202,8 +202,9 @@ export async function POST(req: Request) {
           ? customerPhone.replace(/[^\\d+]/g, '') 
           : '+' + customerPhone.replace(/[^\\d+]/g, '');
 
-        console.log(`🔄 Normalized customer phone to E.164: ${e164Phone}`);
+        console.log(`🔄 Attempting WhatsApp message to ${customerName} at ${e164Phone}`);
 
+        // Step 1: Try approved template first
         const components = [
           {
             type: "body" as const,
@@ -215,22 +216,59 @@ export async function POST(req: Request) {
           }
         ];
 
-        await sendMetaTemplate({
+        const result = await sendMetaTemplate({
           to: e164Phone,
           templateName,
           languageCode: "en",
           components,
         });
         whatsappSent = true;
-        console.log(`✅ Review request sent via Meta WhatsApp template to ${customerName} at ${e164Phone}`);
-      } catch (metaErr: any) {
-        console.error('❌ Meta WhatsApp template send failed:', metaErr.message);
-        console.error('   Phone was normalized to:', customerPhone?.replace(/[^\\d+]/g, '').startsWith('+') 
-          ? customerPhone.replace(/[^\\d+]/g, '') 
-          : '+' + customerPhone.replace(/[^\\d+]/g, ''));
+        console.log(`✅ Review request sent via Meta WhatsApp TEMPLATE to ${customerName} at ${e164Phone}, Message ID: ${result.messages?.[0]?.id}`);
+        
+        // Update record to reflect success
+        if (reviewRequest?.id) {
+          await supabaseAdmin.from('review_requests').update({ 
+            status: 'sent',
+            sent_at: new Date().toISOString()
+          }).eq('id', reviewRequest.id);
+        }
+
+      } catch (templateError: any) {
+        console.error('❌ Template send failed:', templateError.message);
+        console.error('   This usually means the template is not approved yet or does not exist in Meta Business Manager.');
+        console.error('   Error details:', JSON.stringify(templateError, null, 2));
+        
+        // Step 2: FALLBACK - Send free-form text message (works within 24h conversation window)
+        console.log('📩 FALLBACK: Sending free-form WhatsApp message...');
+        try {
+          const fallbackText = `Hi ${customerName}! 👋\n\nThank you for choosing ${trader_name || 'our services'}! We'd really appreciate it if you could leave us a quick review.\n\n🔗 Review link: ${review_link}\n\nIt helps us grow! 🙏`;
+          
+          const fallbackResult = await sendMetaText({ 
+            to: e164Phone, 
+            body: fallbackText 
+          });
+          
+          whatsappSent = true;
+          console.log(`✅ FALLBACK MESSAGE SENT successfully! Message ID: ${fallbackResult.messages?.[0]?.id}`);
+          console.log(`💡 Note: Free-form messages work when customers have contacted you within the last 24 hours.`);
+          
+          // Update record to reflect success
+          if (reviewRequest?.id) {
+            await supabaseAdmin.from('review_requests').update({ 
+              status: 'sent',
+              sent_at: new Date().toISOString(),
+              sent_via: 'whatsapp_fallback'
+            }).eq('id', reviewRequest.id);
+          }
+        } catch (fallbackError: any) {
+          console.error('❌ Fallback message also failed:', fallbackError.message);
+          console.error('   Both template and fallback delivery attempts failed.');
+          // Don't throw - we still want to save the record to Supabase
+        }
       }
     } else {
       console.log('📝 Meta WhatsApp not configured — review request logged but not sent via WhatsApp');
+      console.log('   Set META_WHATSAPP_ACCESS_TOKEN, META_TEMPLATE_REVIEW_REQUEST, and META_WHATSAPP_PHONE_NUMBER_ID env vars.');
     }
 
     return NextResponse.json({
