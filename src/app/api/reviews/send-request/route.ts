@@ -127,7 +127,10 @@ export async function POST(req: Request) {
       }
     }
 
-    // Insert the review request record
+    // Insert with enhanced logging for debugging
+    console.log(`📝 Attempting review_requests insert for user ${userId}`);
+    console.log(`   Data: user_id=${userId}, business_id=${businessId}, customer_name=${customerName}`);
+    
     let { data: reviewRequest, error: insertError } = await supabaseAdmin
       .from('review_requests')
       .insert({
@@ -144,14 +147,16 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    // If insert fails with PGRST204 (missing column in production schema),
-    // retry without business_id so the API doesn't 500 before the migration runs
     if (insertError) {
+      console.error('❌ Insert failed:', JSON.stringify(insertError, null, 2));
+      
       const isPGRST204 = (insertError as any)?.code === 'PGRST204' ||
         (insertError as any)?.message?.includes('PGRST204') ||
         (insertError as any)?.message?.includes('Could not find');
-      if (isPGRST204 && businessId) {
-        console.warn('⚠️ business_id column not found in review_requests — retrying without it');
+        
+      // Retry without business_id if it's null/missing or column doesn't exist
+      if (isPGRST204 || !businessId) {
+        console.warn('⚠️ Retrying insert without business_id...');
         const retry = await supabaseAdmin
           .from('review_requests')
           .insert({
@@ -166,14 +171,23 @@ export async function POST(req: Request) {
           })
           .select()
           .single();
+          
         if (retry.error) {
-          console.error('Failed to insert review request (retry):', retry.error);
-          return NextResponse.json({ error: 'Failed to save review request' }, { status: 500 });
+          console.error('❌ Retry also failed:', JSON.stringify(retry.error, null, 2));
+          // Return full error details for debugging
+          return NextResponse.json({ 
+            error: 'Failed to save review request',
+            details: JSON.stringify(retry.error, null, 2),
+            partial_data: { userId, customerName, customerPhone }
+          }, { status: 500 });
         }
         reviewRequest = retry.data;
+        console.log('✅ Retry succeeded');
       } else {
-        console.error('Failed to insert review request:', insertError);
-        return NextResponse.json({ error: 'Failed to save review request' }, { status: 500 });
+        return NextResponse.json({ 
+          error: 'Database insert failed', 
+          details: JSON.stringify(insertError, null, 2) 
+        }, { status: 500 });
       }
     }
 
