@@ -182,6 +182,14 @@ export async function POST(req: Request) {
     if (process.env.META_WHATSAPP_ACCESS_TOKEN && process.env.META_WHATSAPP_PHONE_NUMBER_ID) {
       try {
         const templateName = 'review_request'; // Meta template name
+        
+        // Normalize phone to E.164 format (+92XXXXXXXXXX) - required by Meta API
+        const e164Phone = customerPhone.replace(/[^\\d+]/g, '').startsWith('+') 
+          ? customerPhone.replace(/[^\\d+]/g, '') 
+          : '+' + customerPhone.replace(/[^\\d+]/g, '');
+
+        console.log(`🔄 Normalized customer phone to E.164: ${e164Phone}`);
+
         const components = [
           {
             type: "body" as const,
@@ -194,15 +202,18 @@ export async function POST(req: Request) {
         ];
 
         await sendMetaTemplate({
-          to: customerPhone,
+          to: e164Phone,
           templateName,
           languageCode: "en",
           components,
         });
         whatsappSent = true;
-        console.log(`✅ Review request sent via Meta WhatsApp template to ${customerName} at ${customerPhone}`);
+        console.log(`✅ Review request sent via Meta WhatsApp template to ${customerName} at ${e164Phone}`);
       } catch (metaErr: any) {
         console.error('❌ Meta WhatsApp template send failed:', metaErr.message);
+        console.error('   Phone was normalized to:', customerPhone?.replace(/[^\\d+]/g, '').startsWith('+') 
+          ? customerPhone.replace(/[^\\d+]/g, '') 
+          : '+' + customerPhone.replace(/[^\\d+]/g, ''));
       }
     } else {
       console.log('📝 Meta WhatsApp not configured — review request logged but not sent via WhatsApp');
