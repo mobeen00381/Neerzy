@@ -251,26 +251,52 @@ export async function POST(req: Request) {
           return await sendWhatsappText(from, `⚠️ *Voice note saved but couldn't transcribe.*\n\nPlease send a short text description instead, then type *POST*.`, to);
         }
       } else {
-        // Image received — use the download URL directly (Meta serves it with Bearer auth)
-        console.log('💾 Saving image draft, media ID:', mediaId);
-        await saveDraft(from, { imageUrl: downloadUrl });
+        // Image/Document/Video received — resolve the actual download URL from Meta
+        console.log('📸 Received media, type:', messageType, 'media ID:', mediaId);
         
-        // Get current image count
-        const { data: draft } = await supabase
-          .from('pending_posts')
-          .select('images')
-          .eq('user_phone', from)
-          .eq('status', 'draft')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const imageCount = draft?.images?.length || 1;
+        let resolvedImageUrl = downloadUrl; // fallback to Graph API endpoint
+        try {
+          const mediaInfoRes = await fetch(`https://graph.facebook.com/v22.0/${mediaId}?phone_number_id=${META_PHONE_NUMBER_ID}`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
+          if (mediaInfoRes.ok) {
+            const mediaInfo = await mediaInfoRes.json();
+            resolvedImageUrl = mediaInfo.url || downloadUrl;
+            console.log('✅ Resolved media URL:', resolvedImageUrl.substring(0, 80));
+          } else {
+            console.warn('⚠️ Failed to resolve media URL, using Graph API endpoint:', mediaInfoRes.status);
+          }
+        } catch (err) {
+          console.warn('⚠️ Media URL resolution failed, using Graph API endpoint:', err);
+        }
         
-        return await sendWhatsappText(
-          from,
-          `✅ *Image received & saved!* 📸 (${imageCount} photo${imageCount !== 1 ? 's' : ''} saved in gallery)\n\n_Send a short description or voice note, then type *POST* to generate your post._`,
-          to
-        );
+        try {
+          await saveDraft(from, { imageUrl: resolvedImageUrl });
+          
+          // Get current image count
+          const { data: draft } = await supabase
+            .from('pending_posts')
+            .select('images')
+            .eq('user_phone', from)
+            .eq('status', 'draft')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const imageCount = draft?.images?.length || 1;
+          
+          return await sendWhatsappText(
+            from,
+            `✅ *Image received & saved!* 📸 (${imageCount} photo${imageCount !== 1 ? 's' : ''} saved in gallery)\n\n_Send a short description or voice note, then type *POST* to generate your post._`,
+            to
+          );
+        } catch (err) {
+          console.error('❌ Image save/send failed:', err);
+          return await sendWhatsappText(
+            from,
+            `⚠️ Image was received but there was an issue saving it. Please try sending again.`,
+            to
+          );
+        }
       }
     }
 
@@ -313,7 +339,8 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('❌ Webhook Error:', error);
-    return NextResponse.json({ error: 'Failed' }, { status: 500 });
+    // Always return 200 to Meta to prevent retry loops
+    return NextResponse.json({ status: 'ok' });
   }
 }
 
