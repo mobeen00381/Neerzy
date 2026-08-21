@@ -21,7 +21,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     totalPosts: 5,
     dailyPosts: 1,
     totalReviewRequests: 5,
-    dailyReviewRequests: 1,
+    dailyReviewRequests: 5, // Temporarily increased from 1 to 5 for testing
     features: [
       '5 WhatsApp posts total',
       '1 post per day limit',
