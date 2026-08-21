@@ -194,15 +194,15 @@ export async function POST(req: Request) {
     // Try to send via Meta WhatsApp if configured
     let whatsappSent = false;
     if (process.env.META_WHATSAPP_ACCESS_TOKEN && process.env.META_WHATSAPP_PHONE_NUMBER_ID) {
+      // Normalize phone to E.164 format (+92XXXXXXXXXX) - required by Meta API
+      const e164Phone = customerPhone.replace(/[^\d+]/g, ').startsWith('+')
+        ? customerPhone.replace(/[^\d+]/g, '')
+        : '+' + customerPhone.replace(/[^\d+]/g, '');
+
+      console.log(`🔄 Attempting WhatsApp message to ${customerName} at ${e164Phone}`);
+
       try {
         const templateName = 'review_request'; // Meta template name
-        
-        // Normalize phone to E.164 format (+92XXXXXXXXXX) - required by Meta API
-        const e164Phone = customerPhone.replace(/[^\\d+]/g, '').startsWith('+') 
-          ? customerPhone.replace(/[^\\d+]/g, '') 
-          : '+' + customerPhone.replace(/[^\\d+]/g, '');
-
-        console.log(`🔄 Attempting WhatsApp message to ${customerName} at ${e164Phone}`);
 
         // Step 1: Try approved template first
         const components = [
