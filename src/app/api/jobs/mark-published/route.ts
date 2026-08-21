@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
     // Send WhatsApp review request to the customer via Meta template
     try {
-      const templateName = 'review_request'; // Meta template name
+      const templateName = process.env.META_TEMPLATE_REVIEW_REQUEST || 'review_request_utility'; // Meta template name
       const components = [
         {
           type: "body" as const,

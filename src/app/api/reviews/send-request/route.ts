@@ -202,7 +202,7 @@ export async function POST(req: Request) {
       console.log(`🔄 Attempting WhatsApp message to ${customerName} at ${e164Phone}`);
 
       try {
-        const templateName = 'review_request'; // Meta template name
+        const templateName = process.env.META_TEMPLATE_REVIEW_REQUEST || 'review_request_utility'; // Meta template name
 
         // Step 1: Try approved template first
         const components = [
