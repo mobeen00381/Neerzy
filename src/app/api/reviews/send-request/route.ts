@@ -195,7 +195,7 @@ export async function POST(req: Request) {
     let whatsappSent = false;
     if (process.env.META_WHATSAPP_ACCESS_TOKEN && process.env.META_WHATSAPP_PHONE_NUMBER_ID) {
       // Normalize phone to E.164 format (+92XXXXXXXXXX) - required by Meta API
-      const e164Phone = customerPhone.replace(/[^\d+]/g, ').startsWith('+')
+      const e164Phone = customerPhone.replace(/[^\d+]/g, '').startsWith('+')
         ? customerPhone.replace(/[^\d+]/g, '')
         : '+' + customerPhone.replace(/[^\d+]/g, '');
 
