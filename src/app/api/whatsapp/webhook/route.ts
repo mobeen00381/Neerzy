@@ -108,6 +108,7 @@ async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; rem
 
 
 
+
 ;
 }
 
@@ -357,6 +358,7 @@ You can also send job photos directly!`, fromNumber);
 
 
 
+
   } catch (error: any) {
     console.error('❌ Error in POST handler:', error);
     console.error('Error stack:', error.stack);
@@ -369,6 +371,7 @@ You can also send job photos directly!`, fromNumber);
             processedMessageIds.delete(id);
           }
 ;
+
 
 
 
