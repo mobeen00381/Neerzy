@@ -859,10 +859,12 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       const templateResult = await sendMetaTemplate({
         to: targetCustomerPhone,
         templateName,
-        languageCode: "en",
+        languageCode: "en_US",
         components: [{
           type: "body",
           parameters: [
+            { type: "text", text: customerName },
+            { type: "text", text: businessName },
             { type: "text", text: reviewLink },
           ]
         }],
@@ -990,7 +992,7 @@ async function sendWhatsappTemplate(to: string, templateName: string, vars: any,
     const result = await sendMetaTemplate({
       to,
       templateName,
-      languageCode: "en",
+      languageCode: "en_US",
       components: parameters.length > 0 ? [{ type: "body", parameters }] : [],
     });
     console.log('✅ Meta WhatsApp template sent! ID:', result.messages?.[0]?.id);

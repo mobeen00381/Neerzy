@@ -219,7 +219,7 @@ export async function POST(req: Request) {
         const result = await sendMetaTemplate({
           to: e164Phone,
           templateName,
-          languageCode: "en",
+          languageCode: "en_US",
           components,
         });
         whatsappSent = true;

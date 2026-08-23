@@ -92,7 +92,7 @@ export async function POST(req: Request) {
       await sendMetaTemplate({
         to: customerPhone,
         templateName,
-        languageCode: "en",
+        languageCode: "en_US",
         components,
       });
       console.log(`✅ Review request template sent to ${customerName} at ${customerPhone}`);
