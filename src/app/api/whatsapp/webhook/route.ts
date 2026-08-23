@@ -4,7 +4,6 @@ import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAcc
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 import { PLAN_LIMITS } from '@/lib/plans';
 
-// ✅ Use correct server-side env vars from your .env
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -21,7 +20,12 @@ const META_VERIFY_TOKEN = process.env.META_WHATSAPP_VERIFY_TOKEN || 'neerzy_webh
 const processedMessageIds = new Map<string, number>();
 const DEDUP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// Cache user_id lookups by phone to avoid repeated DB queries
+const userIdCache = new Map<string, string | null>();
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET - Meta Webhook Verification
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const mode = url.searchParams.get('hub.mode');
@@ -81,232 +85,24 @@ async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; rem
 
     await supabase.from('rate_limits').update({ request_count: existing.request_count + 1 }).eq('id', existing.id);
     return { allowed: true, remaining: GEN_RATE_MAX - (existing.request_count + 1), retryMinutes: 0 };
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;
-}
-
-// POST - Meta Webhook Message Handler (Minimal Debug Version)
-export async function POST(req: Request) {
-  try {
-    console.log('📩 WhatsApp webhook POST received');
-    
-    const rawBody = await req.text();
-    console.log('🔍 Raw body:', rawBody.substring(0, 200));
-    
-    let body;
-    try {
-      body = JSON.parse(rawBody);
-      console.log('✅ Parsed JSON successfully');
-    } catch (e) {
-      console.error('❌ JSON parse error:', e);
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-    }
-
-    // Extract phone number from message
-    const fromNumber = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from;
-    if (!fromNumber) {
-      console.warn('⚠️ No from number found');
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    console.log('📞 From number:', fromNumber);
-
-    // Look up user in Supabase
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('phone', fromNumber)
-      .or(`phone.eq.+${fromNumber}`)
-      .maybeSingle();
-
-    if (!userData) {
-      console.warn('⚠️ User not found for:', fromNumber);
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    console.log('✅ User found:', userData.id);
-
-    // Send success response
-    console.log('✅ Webhook processed successfully');
-    return NextResponse.json({ status: 'ok' });
-
-  } catch (error) {
-    console.error('❌ POST handler error:', error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
-export async function POST(req: Request) {
-  try {
-    console.log('📩 Received POST request to WhatsApp webhook');
-    
-    // Parse the raw body
-    const rawBody = await req.text();
-    console.log('🔍 Raw request body:', rawBody);
-    
-    let body;
-    try {
-      body = JSON.parse(rawBody);
-      console.log('✅ Successfully parsed JSON body');
-    } catch (parseError) {
-      console.error('❌ Failed to parse JSON body:', parseError);
-      console.error('Raw body:', rawBody);
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-    }
-
-    // Log the full webhook event for debugging
-    console.log('📊 Incoming WhatsApp webhook event:', JSON.stringify(body, null, 2));
-
-    // Check if this is a message event
-    if (!body.entry || !Array.isArray(body.entry) || body.entry.length === 0) {
-      console.warn('⚠️ No entry found in webhook payload');
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    const entry = body.entry[0];
-    if (!entry.changes || !Array.isArray(entry.changes) || entry.changes.length === 0) {
-      console.warn('⚠️ No changes found in entry');
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    const change = entry.changes[0];
-    if (!change.value || !change.value.messages || !Array.isArray(change.value.messages) || change.value.messages.length === 0) {
-      console.warn('⚠️ No messages found in change value');
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    const message = change.value.messages[0];
-    console.log('📨 Processing message:', message);
-
-    // Extract sender information
-    const fromNumber = message.from;
-    if (!fromNumber) {
-      console.warn('⚠️ No sender phone number found in message');
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    // Normalize phone number to E.164 format (remove spaces, +, etc.)
-    const normalizedPhone = fromNumber.replace(/[^0-9]/g, '');
-    const e164Phone = normalizedPhone.startsWith('92') ? `+${normalizedPhone}` : `+92${normalizedPhone}`;
-    console.log('📞 Normalized phone number:', e164Phone, 'from:', fromNumber);
-
-    // Check for duplicate message ID
-    const messageId = message?.id;
-    if (messageId) {
-      if (processedMessageIds.has(messageId)) {
-        console.log(`🔁 Duplicate message ID ${messageId}, skipping`);
-        return NextResponse.json({ status: 'ok' });
-      }
-      processedMessageIds.set(messageId, Date.now());
-      // Clean up old entries to prevent memory leak
-      if (processedMessageIds.size > 1000) {
-        const cutoff = Date.now() - DEDUP_TTL_MS;
-        for (const [id, timestamp] of processedMessageIds.entries()) {
-          if (timestamp < cutoff) {
-            processedMessageIds.delete(id);
-          }
-        }
-      }
-    }
-
-    // Look up user in Supabase
-    console.log('🔍 Looking up user in Supabase for phone:', e164Phone);
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('phone', e164Phone)
-      .or(`phone.eq.${e164Phone},phone.eq.${fromNumber}`)
-      .maybeSingle();
-
-    if (userError) {
-      console.error('❌ Supabase query error:', userError);
-      return NextResponse.json({ error: 'Database error' }, { status: 500 });
-    }
-
-    if (!userData) {
-      console.warn('⚠️ No user found for phone:', e164Phone, 'or', fromNumber);
-      // Send generic response to unregistered users
-      await sendWhatsappText(e164Phone, '👋 Hi there! You need to register with Neerzy first to use our WhatsApp service. Visit https://www.neerzy.com to get started!', fromNumber);
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    console.log('✅ Found user:', userData.id, 'plan:', userData.plan, 'whatsapp_verified:', userData.whatsapp_verified);
-
-    // Verify user is authorized (pro plan and whatsapp verified)
-    if (userData.plan !== 'pro' || !userData.whatsapp_verified) {
-      console.warn('⚠️ User not authorized:', userData.id, 'plan:', userData.plan, 'whatsapp_verified:', userData.whatsapp_verified);
-      await sendWhatsappText(e164Phone, '🔒 Your account needs to be upgraded to Pro and WhatsApp verification completed to use this service.', fromNumber);
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    // Process message content
-    let messageText = '';
-    if (message.type === 'text') {
-      messageText = message.text?.body || '';
-      console.log('💬 Text message content:', messageText);
-    } else if (message.type === 'interactive') {
-      // Handle interactive messages (buttons, lists)
-      if (message.interactive?.type === 'button_reply') {
-        messageText = message.interactive.button_reply?.title || '';
-        console.log('🔘 Button reply:', messageText);
-      } else if (message.interactive?.type === 'list_reply') {
-        messageText = message.interactive.list_reply?.title || '';
-        console.log('📋 List reply:', messageText);
-      }
-    }
-
-    // Check rate limit
-    const rateLimitResult = await checkGenRateLimit(e164Phone);
-    if (!rateLimitResult.allowed) {
-      console.warn(`⚠️ Rate limit exceeded for ${e164Phone}: ${rateLimitResult.remaining} remaining, retry in ${rateLimitResult.retryMinutes} minutes`);
-      await sendWhatsappText(e164Phone, `⏳ You've reached your limit of ${GEN_RATE_MAX} posts per hour. Please try again in ${rateLimitResult.retryMinutes} minutes.`, fromNumber);
-      return NextResponse.json({ status: 'ok' });
-    }
-
   } catch (err) {
     console.error('Rate limiter DB error:', err);
     return { allowed: false, remaining: 0, retryMinutes: 60 }; // fail-closed
   }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// POST - Meta Webhook Message Handler
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export async function POST(req: Request) {
   try {
-  // Parse Meta WhatsApp webhook JSON payload
     // Meta sends: { object: "whatsapp_business_account", entry: [{ changes: [{ value: { messages: [...] } }] }] }
     const webhookData = await req.json();
-    
-    // Extract the message from the webhook payload
+
     const entry = webhookData?.entry?.[0];
     const change = entry?.changes?.[0];
     const value = change?.value;
     const messages = value?.messages;
-    const contacts = value?.contacts;
 
     // Ignore non-message events (status updates, etc.)
     if (!messages || !messages.length) {
@@ -318,7 +114,7 @@ export async function POST(req: Request) {
     const from = message?.from || '';
     const body = message?.text?.body || '';
     const messageType = message?.type || 'text';
-    
+
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Dedup check: prevent double-processing from Meta retries
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -332,154 +128,16 @@ export async function POST(req: Request) {
       // Clean up old entries to prevent memory leak
       if (processedMessageIds.size > 1000) {
         const cutoff = Date.now() - DEDUP_TTL_MS;
-    // Process based on message content
-    if (messageText.toLowerCase().includes('post') || messageText.toLowerCase().includes('gmb') || messageText.toLowerCase().includes('google')) {
-      console.log('🚀 Triggering GMB post generation for:', e164Phone);
-      // Use async wrapper to avoid webhook timeout
-      void processPostWorkflow(e164Phone, fromNumber);
-    } else if (messageText.toLowerCase().includes('review') || messageText.toLowerCase().includes('feedback')) {
-      console.log('⭐ Triggering review request for:', e164Phone);
-      // Use async wrapper to avoid webhook timeout
-      void processReviewWorkflow(e164Phone, fromNumber);
-    } else {
-      // Default behavior: send help message
-      console.log('ℹ️ Sending help message for unknown command:', messageText);
-      await sendWhatsappText(e164Phone, `👋 Hello! I'm Neerzy's WhatsApp assistant.
-
-To generate a Google Business Post: send "POST" or "GMB"
-To request a customer review: send "REVIEW" or "FEEDBACK"
-
-You can also send job photos directly!`, fromNumber);
-    }
-
-    return NextResponse.json({ status: 'ok' });
-;
-
-
-
-
-
-  } catch (error: any) {
-    console.error('❌ Error in POST handler:', error);
-    console.error('Error stack:', error.stack);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
         for (const [id, timestamp] of processedMessageIds.entries()) {
           if (timestamp < cutoff) {
             processedMessageIds.delete(id);
           }
-;
-
-
-
-
         }
       }
     }
-    
+
     // Extract media if present (image, video, audio, document)
-    let mediaUrl = '';
-    let mediaType = '';
     const hasMedia = ['image', 'video', 'audio', 'document'].includes(messageType);
-    if (hasMedia && message[messageType]) {
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Helper functions for message processing
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-async function sendWhatsappText(to: string, text: string, _fromNumber?: string) {
-  try {
-    const result = await sendMetaText({ to, body: text });
-    console.log('✅ Meta WhatsApp text sent! ID:', result.messages?.[0]?.id);
-    return NextResponse.json({ success: true, id: result.messages?.[0]?.id });
-  } catch (error: any) {
-    console.error('❌ sendWhatsappText error:', error.message);
-    throw error;
-  }
-}
-
-async function sendWhatsappTemplate(to: string, templateName: string, vars: any, _fromNumber?: string) {
-  try {
-    // Convert Twilio-style vars {"1":"val1","2":"val2"} → Meta-style components
-    const parameters = Object.entries(vars || {}).map(([, value]) => ({
-      type: "text" as const,
-      text: String(value),
-    }));
-    const result = await sendMetaTemplate({
-      to,
-      templateName,
-      languageCode: "en",
-      components: parameters.length > 0 ? [{ type: "body", parameters }] : [],
-    });
-    console.log('✅ Meta WhatsApp template sent! ID:', result.messages?.[0]?.id);
-  } catch (error: any) {
-    console.error('❌ sendWhatsappTemplate error:', error.message);
-    throw error;
-  }
-}
-
-async function sendWhatsappMedia(to: string, url: string, caption: string, _fromNumber?: string) {
-  try {
-    const result = await sendMetaMedia({ to, mediaUrl: url, caption, mediaType: "image" });
-    console.log('✅ Meta WhatsApp media sent! ID:', result.messages?.[0]?.id);
-  } catch (error: any) {
-    console.error('❌ sendWhatsappMedia error:', error.message);
-    throw error;
-  }
-}
-
-function parsePostContent(content: string) {
-  const lines = content.split('\n');
-  return {
-    headline: extractLine(lines, 'HEADLINE:') || 'Great Work!',
-    body: extractLine(lines, 'BODY:') || 'Job completed.',
-    cta: extractLine(lines, 'CTA:') || 'Contact us!',
-    hashtags: extractLine(lines, 'HASHTAGS:') || '#Service'
-  };
-}
-
-function extractLine(lines: string[], prefix: string) {
-  const line = lines.find(l => l.toUpperCase().includes(prefix.toUpperCase()));
-  return line ? line.replace(new RegExp(prefix, 'i'), '').trim() : '';
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Country Code → Flag Emoji Helper
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-function countryCodeToFlag(countryCode: string): string {
-  if (!countryCode || countryCode.length !== 2) return '';
-  const offset = 127397;
-  return String.fromCodePoint(
-    countryCode.toUpperCase().charCodeAt(0) + offset,
-    countryCode.toUpperCase().charCodeAt(1) + offset
-  );
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Export all helper functions for testing
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-export {
-  handleGeneratePost,
-  handleSendReview,
-  processPostWorkflow,
-  processReviewWorkflow,
-  sendWhatsappText,
-  sendWhatsappTemplate,
-  sendWhatsappMedia,
-  parsePostContent,
-  extractLine,
-  countryCodeToFlag,
-};
-      mediaType = messageType;
-      // For media, we get the media ID — we'll need to download it
-      const mediaId = message[messageType]?.id;
-      if (mediaId) {
-        mediaUrl = `https://graph.facebook.com/v22.0/${mediaId}`;
-      }
-    }
 
     if (!from) return NextResponse.json({ status: 'ok' });
 
@@ -489,7 +147,7 @@ export {
     const to = undefined;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Commands first (POST / DONE)
+    // Commands first (POST / RESET / DONE)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (body) {
       const text = body.toUpperCase().trim();
@@ -504,7 +162,7 @@ export {
             undefined
           );
         }
-        
+
         // Return 200 immediately to Meta to avoid webhook timeout
         // Process the heavy workflow asynchronously
         void processPostWorkflow(from, undefined);
@@ -561,7 +219,7 @@ export {
             throw new Error(`Failed to fetch audio from Meta: ${audioResponse.status}`);
           }
           const buffer = await audioResponse.arrayBuffer();
-          
+
           let voiceText = '';
           if (!process.env.OPENAI_API_KEY && !process.env.DEEPSEEK_API_KEY) {
             console.warn("No AI API key, mocking voice note transcription");
@@ -574,7 +232,7 @@ export {
             console.log('✅ Transcribed:', transcription.text);
             voiceText = transcription.text;
           }
-          
+
           await saveDraft(from, { voice_note: voiceText });
           return await sendWhatsappText(
             from,
@@ -589,7 +247,7 @@ export {
       } else {
         // Image/Document/Video received — resolve the actual download URL from Meta
         console.log('📸 Received media, type:', messageType, 'media ID:', mediaId);
-        
+
         let resolvedImageUrl = downloadUrl; // fallback to Graph API endpoint
         try {
           const mediaInfoRes = await fetch(`https://graph.facebook.com/v22.0/${mediaId}?phone_number_id=${META_PHONE_NUMBER_ID}`, {
@@ -605,10 +263,10 @@ export {
         } catch (err) {
           console.warn('⚠️ Media URL resolution failed, using Graph API endpoint:', err);
         }
-        
+
         try {
           await saveDraft(from, { imageUrl: resolvedImageUrl });
-          
+
           // Get current image count
           const { data: draft } = await supabase
             .from('pending_posts')
@@ -619,7 +277,7 @@ export {
             .limit(1)
             .maybeSingle();
           const imageCount = draft?.images?.length || 1;
-          
+
           return await sendWhatsappText(
             from,
             `✅ *Image received & saved!* 📸 (${imageCount} photo${imageCount !== 1 ? 's' : ''} saved in gallery)\n\n_Send a short description or voice note, then type *POST* to generate your post._`,
@@ -641,7 +299,7 @@ export {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (body && !body.match(/(\+?\d{10,15})/)) {
       await saveDraft(from, { voice_note: body });
-      
+
       // Check if there are already images waiting
       const { data: existingDraft } = await supabase
         .from('pending_posts')
@@ -651,7 +309,7 @@ export {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      
+
       const hasImages = existingDraft?.images?.length > 0;
       if (hasImages) {
         return await sendWhatsappText(
@@ -680,15 +338,15 @@ export {
   }
 }
 
-// Cache user_id lookups by phone to avoid repeated DB queries
-const userIdCache = new Map<string, string | null>();
-
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// User lookup helper (cached)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function getUserIdByPhone(phone: string): Promise<string | null> {
   // Check cache first
   const cached = userIdCache.get(phone);
   if (cached !== undefined) return cached;
 
-  // Look up user by phone in auth.users (via raw_user_meta_data or phone column)
+  // Look up user by phone
   const { data: userData } = await supabase
     .from('users')
     .select('id')
@@ -700,7 +358,7 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
     return userData.id;
   }
 
-  // Fallback: try auth.users table directly
+  // Fallback: try matching on metadata too
   const { data: authUser } = await supabase
     .from('users')
     .select('id')
@@ -716,6 +374,9 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
   return null;
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Draft persistence helper
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function saveDraft(phone: string, data: any): Promise<string> {
   // Resolve user_id for quota tracking
   const userId = await getUserIdByPhone(phone);
@@ -753,7 +414,7 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     if (!existing) {
       await supabase.from('pending_posts').insert({
         user_phone: phone,
-        user_id: userId, // link to auth user for quota tracking
+        user_id: userId,
         customer_name: data.customerName,
         customer_phone: data.customerPhone,
         images: [],
@@ -763,7 +424,7 @@ async function saveDraft(phone: string, data: any): Promise<string> {
       await supabase.from('pending_posts').update({
         customer_name: data.customerName,
         customer_phone: data.customerPhone,
-        user_id: userId // also update in case it was null
+        user_id: userId
       }).eq('id', existing.id);
     }
   }
@@ -773,14 +434,14 @@ async function saveDraft(phone: string, data: any): Promise<string> {
     if (!existing) {
       await supabase.from('pending_posts').insert({
         user_phone: phone,
-        user_id: userId, // link to auth user for quota tracking
+        user_id: userId,
         voice_note: data.voice_note,
         status: 'draft'
       });
     } else {
       await supabase.from('pending_posts').update({
         voice_note: data.voice_note,
-        user_id: userId // also update in case it was null
+        user_id: userId
       }).eq('id', existing.id);
     }
   }
@@ -806,10 +467,13 @@ async function saveDraft(phone: string, data: any): Promise<string> {
   return targetStatus;
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Post generation workflow
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function handleGeneratePost(phone: string, fromNumber?: string) {
   try {
     console.log('🔍 Fetching draft for:', phone);
-    
+
     const { data: draft, error: fetchError } = await supabase
       .from('pending_posts')
       .select('*')
@@ -860,65 +524,65 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const imagesToSend = draft.images.slice(0, 5);
     const uploadedMediaIds: string[] = [];
-  
-  for (let i = 0; i < imagesToSend.length; i++) {
-    try {
-      const imageUrl = imagesToSend[i];
-      
-      // If it's a graph.facebook.com URL, we need to download and re-upload to get a stable media ID
-      if (imageUrl.includes('graph.facebook.com')) {
-        const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
-        const imageResponse = await fetch(imageUrl, {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-        
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to fetch image: ${imageResponse.status}`);
-        }
-        
-        const blob = await imageResponse.blob();
-        const formData = new FormData();
-        formData.append('file', blob, `photo-${i+1}.jpg`);
-        formData.append('messaging_product', 'whatsapp');
-        formData.append('type', 'image');
-        
-        const uploadResponse = await fetch(
-          `https://graph.facebook.com/v22.0/${getPhoneNumberId()}/messages`,
-          {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${getAccessToken()}` },
-            body: formData
+
+    for (let i = 0; i < imagesToSend.length; i++) {
+      try {
+        const imageUrl = imagesToSend[i];
+
+        // If it's a graph.facebook.com URL, we need to download and re-upload to get a stable media ID
+        if (imageUrl.includes('graph.facebook.com')) {
+          const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+          const imageResponse = await fetch(imageUrl, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
+
+          if (!imageResponse.ok) {
+            throw new Error(`Failed to fetch image: ${imageResponse.status}`);
           }
-        );
-        
-        if (!uploadResponse.ok) {
-          throw new Error(`Failed to upload image: ${uploadResponse.status}`);
+
+          const blob = await imageResponse.blob();
+          const formData = new FormData();
+          formData.append('file', blob, `photo-${i + 1}.jpg`);
+          formData.append('messaging_product', 'whatsapp');
+          formData.append('type', 'image');
+
+          const uploadResponse = await fetch(
+            `https://graph.facebook.com/v22.0/${getPhoneNumberId()}/messages`,
+            {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${getAccessToken()}` },
+              body: formData
+            }
+          );
+
+          if (!uploadResponse.ok) {
+            throw new Error(`Failed to upload image: ${uploadResponse.status}`);
+          }
+
+          const uploadData: any = await uploadResponse.json();
+          if (!uploadData.messages || !uploadData.messages[0]?.id) {
+            throw new Error('Upload response missing message ID');
+          }
+
+          uploadedMediaIds.push(uploadData.messages[0].id);
+
+          // Send the uploaded media
+          await sendMetaMedia({
+            to: phone,
+            mediaUrl: `https://graph.facebook.com/v22.0/${uploadData.messages[0].id}`,
+            caption: `📸 Photo ${i + 1}/${imagesToSend.length}`,
+            mediaType: "image"
+          });
+        } else {
+          // For non-graph URLs, send directly
+          await sendWhatsappMedia(phone, imageUrl, `📸 Photo ${i + 1}/${imagesToSend.length}`, fromNumber);
+          uploadedMediaIds.push(imageUrl);
         }
-        
-        const uploadData: any = await uploadResponse.json();
-        if (!uploadData.messages || !uploadData.messages[0]?.id) {
-          throw new Error('Upload response missing message ID');
-        }
-        
-        uploadedMediaIds.push(uploadData.messages[0].id);
-        
-        // Send the uploaded media
-        await sendMetaMedia({
-          to: phone,
-          mediaUrl: `https://graph.facebook.com/v22.0/${uploadData.messages[0].id}`,
-          caption: `📸 Photo ${i+1}/${imagesToSend.length}`,
-          mediaType: "image"
-        });
-      } else {
-        // For non-graph URLs, send directly
-        await sendWhatsappMedia(phone, imageUrl, `📸 Photo ${i+1}/${imagesToSend.length}`, fromNumber);
-        uploadedMediaIds.push(imageUrl);
+      } catch (mediaError) {
+        console.error('❌ Media send error:', mediaError);
+        // Continue with next image
       }
-    } catch (mediaError) {
-      console.error('❌ Media send error:', mediaError);
-      // Continue with next image
     }
-  }
 
     // Notice about images download
     await sendWhatsappText(phone, `📸 *Photos are sent above. Tap and save them directly to your phone's gallery!*`, fromNumber);
@@ -933,7 +597,7 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     };
 
     const headline = extractField('HEADLINE:') || draft.customer_name || 'New Post';
-    const body = extractField('BODY:') || draft.voice_note || '';
+    const bodyText = extractField('BODY:') || draft.voice_note || '';
     const cta = extractField('CTA:') || '';
     const hashtags = extractField('HASHTAGS:') || '';
 
@@ -941,7 +605,7 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
 
 ${headline}
 
-${body}
+${bodyText}
 
 ${cta}
 
@@ -980,11 +644,8 @@ ${gbpLink}
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Send fallback link to Dashboard directly
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Always use production URL for user-facing links
     const appUrl = 'https://www.neerzy.com';
 
-    // WhatsApp requires URLs to be completely on their own line with blank lines around them
-    // to be detected as clickable links
     const actionMessage = `✅ *Post Ready!*
 
 *Copy Post:*
@@ -1010,6 +671,9 @@ Type *DONE* when published.`;
   }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Review-request workflow
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function handleSendReview(phone: string, fromNumber?: string) {
   try {
     // 1. Try to find the last generated post WITH customer_phone
@@ -1054,7 +718,6 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       post = generatedPostWithCustomer || draftPostWithCustomer;
     }
 
-    // If no post with customer_phone, fall back to any generated post (but will require customer_phone below)
     if (!post) {
       post = generatedPostAny;
     }
@@ -1077,7 +740,6 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     let reviewLink = '';
     let business: any = null;
     try {
-      // Try exact phone match first
       const { data: exactBusiness } = await supabase
         .from('business_profiles')
         .select('review_link, google_place_id, business_name')
@@ -1086,7 +748,6 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
       business = exactBusiness;
 
-      // If no match, get any business profile (user may have different WhatsApp number)
       if (!business) {
         const { data: anyBusiness } = await supabase
           .from('business_profiles')
@@ -1167,7 +828,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 3. Send Review Request to the CUSTOMER (never the trader)
+    // Send Review Request to the CUSTOMER (never the trader)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const businessName = business?.business_name || 'Your Connected Business';
     const targetCustomerPhone = formatToE164(post.customer_phone, phone);
@@ -1188,13 +849,10 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     }
 
     console.log(`📤 Sending review link to CUSTOMER: ${customerName} at ${targetCustomerPhone} (trader: ${phone})`);
-    
-    // Try sending review request via WhatsApp - first attempt template, fallback to text
-    console.log(`🔄 Sending review request to ${customerName} at ${targetCustomerPhone}`);
-    
+
     let messageSentVia = 'whatsapp';
     let messageSuccess = false;
-    
+
     try {
       // Step 1: Try approved template first
       const templateName = process.env.META_TEMPLATE_REVIEW_REQUEST || 'review_request';
@@ -1212,33 +870,33 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       console.log('✅ Review request TEMPLATE sent! Message ID:', templateResult.messages?.[0]?.id);
       messageSentVia = 'whatsapp_template';
       messageSuccess = true;
-      
+
     } catch (templateError: any) {
       console.error('❌ Template failed:', templateError.message);
       console.error('   This usually means template is not approved yet in Meta Business Manager.');
-      
+
       // Step 2: FALLBACK - Send free-form text within 24h window
       console.log('📩 FALLBACK: Attempting free-form WhatsApp message...');
       try {
         const fallbackText = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review.\n\n🔗 Review link: ${reviewLink}\n\nIt helps us grow! 🙏`;
-        
-        const fallbackResult = await sendMetaText({ 
-          to: targetCustomerPhone, 
-          body: fallbackText 
+
+        const fallbackResult = await sendMetaText({
+          to: targetCustomerPhone,
+          body: fallbackText
         });
-        
+
         console.log('✅ FALLBACK MESSAGE SENT successfully! Message ID:', fallbackResult.messages?.[0]?.id);
         console.log(`💡 Note: Free-form messages work when customers contacted you within last 24 hours.`);
         messageSentVia = 'whatsapp_fallback';
         messageSuccess = true;
-        
+
       } catch (fallbackError: any) {
         console.error('❌ Fallback also failed:', fallbackError.message);
         console.error('   Both delivery methods failed. Check your Meta access token and phone number.');
         messageSuccess = false;
       }
     }
-    
+
     if (!messageSuccess) {
       throw new Error('Failed to send WhatsApp review request via any method');
     }
@@ -1270,9 +928,9 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     }
 
     // Now mark post as published — only after successful send + logging
-    await supabase.from('pending_posts').update({ 
+    await supabase.from('pending_posts').update({
       status: 'published',
-      user_id: userIdForPublish 
+      user_id: userIdForPublish
     }).eq('id', post.id);
 
     // Always send confirmation to the trader since we verified it's a real customer
@@ -1292,7 +950,6 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Async processing wrappers (prevent webhook timeouts)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
 async function processPostWorkflow(phone: string, fromNumber?: string) {
   try {
     await handleGeneratePost(phone, fromNumber);
@@ -1309,6 +966,9 @@ async function processReviewWorkflow(phone: string, fromNumber?: string) {
   }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Meta send helpers
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function sendWhatsappText(to: string, text: string, _fromNumber?: string) {
   try {
     const result = await sendMetaText({ to, body: text });
@@ -1350,6 +1010,9 @@ async function sendWhatsappMedia(to: string, url: string, caption: string, _from
   }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Parsing helpers
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function parsePostContent(content: string) {
   const lines = content.split('\n');
   return {
@@ -1366,282 +1029,117 @@ function extractLine(lines: string[], prefix: string) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Country Code → Flag Emoji Helper
+// Country Code → Flag Emoji Helper (calling-code based)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function getCountryFlag(countryCode: string): string {
-  // Map of common country codes to their flag emoji
   const flagMap: Record<string, string> = {
-    '1': '🇺🇸',    // US/Canada
-    '20': '🇪🇬',   // Egypt
-    '27': '🇿🇦',   // South Africa
-    '30': '🇬🇷',   // Greece
-    '31': '🇳🇱',   // Netherlands
-    '32': '🇧🇪',   // Belgium
-    '33': '🇫🇷',   // France
-    '34': '🇪🇸',   // Spain
-    '36': '🇭🇺',   // Hungary
-    '39': '🇮🇹',   // Italy
-    '40': '🇷🇴',   // Romania
-    '41': '🇨🇭',   // Switzerland
-    '43': '🇦🇹',   // Austria
-    '44': '🇬🇧',   // UK
-    '45': '🇩🇰',   // Denmark
-    '46': '🇸🇪',   // Sweden
-    '47': '🇳🇴',   // Norway
-    '48': '🇵🇱',   // Poland
-    '49': '🇩🇪',   // Germany
-    '51': '🇵🇪',   // Peru
-    '52': '🇲🇽',   // Mexico
-    '54': '🇦🇷',   // Argentina
-    '55': '🇧🇷',   // Brazil
-    '56': '🇨🇱',   // Chile
-    '57': '🇨🇴',   // Colombia
-    '58': '🇻🇪',   // Venezuela
-    '60': '🇲🇾',   // Malaysia
-    '61': '🇦🇺',   // Australia
-    '62': '🇮🇩',   // Indonesia
-    '63': '🇵🇭',   // Philippines
-    '64': '🇳🇿',   // New Zealand
-    '65': '🇸🇬',   // Singapore
-    '66': '🇹🇭',   // Thailand
-    '81': '🇯🇵',   // Japan
-    '82': '🇰🇷',   // South Korea
-    '84': '🇻🇳',   // Vietnam
-    '86': '🇨🇳',   // China
-    '90': '🇹🇷',   // Turkey
-    '91': '🇮🇳',   // India
-    '92': '🇵🇰',   // Pakistan
-    '93': '🇦🇫',   // Afghanistan
-    '94': '🇱🇰',   // Sri Lanka
-    '95': '🇲🇲',   // Myanmar
-    '98': '🇮🇷',   // Iran
-    '212': '🇲🇦',  // Morocco
-    '213': '🇩🇿',  // Algeria
-    '216': '🇹🇳',  // Tunisia
-    '218': '🇱🇾',  // Libya
-    '220': '🇬🇲',  // Gambia
-    '221': '🇸🇳',  // Senegal
-    '222': '🇲🇷',  // Mauritania
-    '223': '🇲🇱',  // Mali
-    '224': '🇬🇳',  // Guinea
-    '225': '🇨🇮',  // Cote d'Ivoire
-    '226': '🇧🇫',  // Burkina Faso
-    '227': '🇳🇪',  // Niger
-    '228': '🇹🇬',  // Togo
-    '229': '🇧🇯',  // Benin
-    '230': '🇲🇺',  // Mauritius
-    '231': '🇱🇷',  // Liberia
-    '232': '🇸🇱',  // Sierra Leone
-    '233': '🇬🇭',  // Ghana
-    '234': '🇳🇬',  // Nigeria
-    '235': '🇹🇩',  // Chad
-    '236': '🇨🇫',  // Central African Republic
-    '237': '🇨🇲',  // Cameroon
-    '238': '🇨🇻',  // Cape Verde
-    '239': '🇸🇹',  // Sao Tome
-    '240': '🇬🇶',  // Equatorial Guinea
-    '241': '🇬🇦',  // Gabon
-    '242': '🇨🇬',  // Congo
-    '243': '🇨🇩',  // DR Congo
-    '244': '🇦🇴',  // Angola
-    '245': '🇬🇼',  // Guinea-Bissau
-    '246': '🇮🇴',  // British Indian Ocean
-    '248': '🇸🇨',  // Seychelles
-    '249': '🇸🇩',  // Sudan
-    '250': '🇷🇼',  // Rwanda
-    '251': '🇪🇹',  // Ethiopia
-    '252': '🇸🇴',  // Somalia
-    '253': '🇩🇯',  // Djibouti
-    '254': '🇰🇪',  // Kenya
-    '255': '🇹🇿',  // Tanzania
-    '256': '🇺🇬',  // Uganda
-    '257': '🇧🇮',  // Burundi
-    '258': '🇲🇿',  // Mozambique
-    '260': '🇿🇲',  // Zambia
-    '261': '🇲🇬',  // Madagascar
-    '262': '🇷🇪',  // Reunion
-    '263': '🇿🇼',  // Zimbabwe
-    '264': '🇳🇦',  // Namibia
-    '265': '🇲🇼',  // Malawi
-    '266': '🇱🇸',  // Lesotho
-    '267': '🇧🇼',  // Botswana
-    '268': '🇸🇿',  // Eswatini
-    '269': '🇰🇲',  // Comoros
-    '291': '🇪🇷',  // Eritrea
-    '297': '🇦🇼',  // Aruba
-    '298': '🇫🇴',  // Faroe Islands
-    '299': '🇬🇱',  // Greenland
-    '350': '🇬🇮',  // Gibraltar
-    '351': '🇵🇹',  // Portugal
-    '352': '🇱🇺',  // Luxembourg
-    '353': '🇮🇪',  // Ireland
-    '354': '🇮🇸',  // Iceland
-    '355': '🇦🇱',  // Albania
-    '356': '🇲🇹',  // Malta
-    '357': '🇨🇾',  // Cyprus
-    '358': '🇫🇮',  // Finland
-    '359': '🇧🇬',  // Bulgaria
-    '370': '🇱🇹',  // Lithuania
-    '371': '🇱🇻',  // Latvia
-    '372': '🇪🇪',  // Estonia
-    '373': '🇲🇩',  // Moldova
-    '374': '🇦🇲',  // Armenia
-    '375': '🇧🇾',  // Belarus
-    '376': '🇦🇩',  // Andorra
-    '377': '🇲🇨',  // Monaco
-    '378': '🇸🇲',  // San Marino
-    '380': '🇺🇦',  // Ukraine
-    '381': '🇷🇸',  // Serbia
-    '382': '🇲🇪',  // Montenegro
-    '383': '🇽🇰',  // Kosovo
-    '385': '🇭🇷',  // Croatia
-    '386': '🇸🇮',  // Slovenia
-    '387': '🇧🇦',  // Bosnia
-    '389': '🇲🇰',  // North Macedonia
-    '420': '🇨🇿',  // Czech
-    '421': '🇸🇰',  // Slovakia
-    '423': '🇱🇮',  // Liechtenstein
-    '500': '🇫🇰',  // Falkland Islands
-    '501': '🇧🇿',  // Belize
-    '502': '🇬🇹',  // Guatemala
-    '503': '🇸🇻',  // El Salvador
-    '504': '🇭🇳',  // Honduras
-    '505': '🇳🇮',  // Nicaragua
-    '506': '🇨🇷',  // Costa Rica
-    '507': '🇵🇦',  // Panama
-    '509': '🇭🇹',  // Haiti
-    '591': '🇧🇴',  // Bolivia
-    '592': '🇬🇾',  // Guyana
-    '593': '🇪🇨',  // Ecuador
-    '594': '🇬🇫',  // French Guiana
-    '595': '🇵🇾',  // Paraguay
-    '597': '🇸🇷',  // Suriname
-    '598': '🇺🇾',  // Uruguay
-    '599': '🇨🇼',  // Curacao
-    '672': '🇦🇶',  // Antarctica
-    '673': '🇧🇳',  // Brunei
-    '674': '🇳🇷',  // Nauru
-    '675': '🇵🇬',  // Papua New Guinea
-    '676': '🇹🇴',  // Tonga
-    '677': '🇸🇧',  // Solomon Islands
-    '678': '🇻🇺',  // Vanuatu
-    '679': '🇫🇯',  // Fiji
-    '680': '🇵🇼',  // Palau
-    '681': '🇼🇫',  // Wallis and Futuna
-    '682': '🇨🇰',  // Cook Islands
-    '685': '🇼🇸',  // Samoa
-    '686': '🇰🇮',  // Kiribati
-    '687': '🇳🇨',  // New Caledonia
-    '688': '🇹🇻',  // Tuvalu
-    '689': '🇵🇫',  // French Polynesia
-    '690': '🇹🇰',  // Tokelau
-    '691': '🇫🇲',  // Micronesia
-    '692': '🇲🇭',  // Marshall Islands
-    '850': '🇰🇵',  // North Korea
-    '852': '🇭🇰',  // Hong Kong
-    '853': '🇲🇴',  // Macau
-    '855': '🇰🇭',  // Cambodia
-    '856': '🇱🇦',  // Laos
-    '880': '🇧🇩',  // Bangladesh
-    '886': '🇹🇼',  // Taiwan
-    '960': '🇲🇻',  // Maldives
-    '961': '🇱🇧',  // Lebanon
-    '962': '🇯🇴',  // Jordan
-    '963': '🇸🇾',  // Syria
-    '964': '🇮🇶',  // Iraq
-    '965': '🇰🇼',  // Kuwait
-    '966': '🇸🇦',  // Saudi Arabia
-    '967': '🇾🇪',  // Yemen
-    '968': '🇴🇲',  // Oman
-    '970': '🇵🇸',  // Palestine
-    '971': '🇦🇪',  // UAE
-    '972': '🇮🇱',  // Israel
-    '973': '🇧🇭',  // Bahrain
-    '974': '🇶🇦',  // Qatar
-    '975': '🇧🇹',  // Bhutan
-    '976': '🇲🇳',  // Mongolia
-    '977': '🇳🇵',  // Nepal
-    '992': '🇹🇯',  // Tajikistan
-    '993': '🇹🇲',  // Turkmenistan
-    '994': '🇦🇿',  // Azerbaijan
-    '995': '🇬🇪',  // Georgia
-    '996': '🇰🇬',  // Kyrgyzstan
-    '998': '🇺🇿',  // Uzbekistan
+    '1': '🇺🇸', '20': '🇪🇬', '27': '🇿🇦', '30': '🇬🇷', '31': '🇳🇱', '32': '🇧🇪',
+    '33': '🇫🇷', '34': '🇪🇸', '36': '🇭🇺', '39': '🇮🇹', '40': '🇷🇴', '41': '🇨🇭',
+    '43': '🇦🇹', '44': '🇬🇧', '45': '🇩🇰', '46': '🇸🇪', '47': '🇳🇴', '48': '🇵🇱',
+    '49': '🇩🇪', '51': '🇵🇪', '52': '🇲🇽', '54': '🇦🇷', '55': '🇧🇷', '56': '🇨🇱',
+    '57': '🇨🇴', '58': '🇻🇪', '60': '🇲🇾', '61': '🇦🇺', '62': '🇮🇩', '63': '🇵🇭',
+    '64': '🇳🇿', '65': '🇸🇬', '66': '🇹🇭', '81': '🇯🇵', '82': '🇰🇷', '84': '🇻🇳',
+    '86': '🇨🇳', '90': '🇹🇷', '91': '🇮🇳', '92': '🇵🇰', '93': '🇦🇫', '94': '🇱🇰',
+    '95': '🇲🇲', '98': '🇮🇷', '212': '🇲🇦', '213': '🇩🇿', '216': '🇹🇳', '218': '🇱🇾',
+    '220': '🇬🇲', '221': '🇸🇳', '222': '🇲🇷', '223': '🇲🇱', '224': '🇬🇳', '225': '🇨🇮',
+    '226': '🇧🇫', '227': '🇳🇪', '228': '🇹🇬', '229': '🇧🇯', '230': '🇲🇺', '231': '🇱🇷',
+    '232': '🇸🇱', '233': '🇬🇭', '234': '🇳🇬', '235': '🇹🇩', '236': '🇨🇫', '237': '🇨🇲',
+    '238': '🇨🇻', '239': '🇸🇹', '240': '🇬🇶', '241': '🇬🇦', '242': '🇨🇬', '243': '🇨🇩',
+    '244': '🇦🇴', '245': '🇬🇼', '246': '🇮🇴', '248': '🇸🇨', '249': '🇸🇩', '250': '🇷🇼',
+    '251': '🇪🇹', '252': '🇸🇴', '253': '🇩🇯', '254': '🇰🇪', '255': '🇹🇿', '256': '🇺🇬',
+    '257': '🇧🇮', '258': '🇲🇿', '260': '🇿🇲', '261': '🇲🇬', '262': '🇷🇪', '263': '🇿🇼',
+    '264': '🇳🇦', '265': '🇲🇼', '266': '🇱🇸', '267': '🇧🇼', '268': '🇸🇿', '269': '🇰🇲',
+    '291': '🇪🇷', '297': '🇦🇼', '298': '🇫🇴', '299': '🇬🇱', '350': '🇬🇮', '351': '🇵🇹',
+    '352': '🇱🇺', '353': '🇮🇪', '354': '🇮🇸', '355': '🇦🇱', '356': '🇲🇹', '357': '🇨🇾',
+    '358': '🇫🇮', '359': '🇧🇬', '370': '🇱🇹', '371': '🇱🇻', '372': '🇪🇪', '373': '🇲🇩',
+    '374': '🇦🇲', '375': '🇧🇾', '376': '🇦🇩', '377': '🇲🇨', '378': '🇸🇲', '380': '🇺🇦',
+    '381': '🇷🇸', '382': '🇲🇪', '383': '🇽🇰', '385': '🇭🇷', '386': '🇸🇮', '387': '🇧🇦',
+    '389': '🇲🇰', '420': '🇨🇿', '421': '🇸🇰', '423': '🇱🇮', '500': '🇫🇰', '501': '🇧🇿',
+    '502': '🇬🇹', '503': '🇸🇻', '504': '🇭🇳', '505': '🇳🇮', '506': '🇨🇷', '507': '🇵🇦',
+    '509': '🇭🇹', '591': '🇧🇴', '592': '🇬🇾', '593': '🇪🇨', '594': '🇬🇫', '595': '🇵🇾',
+    '597': '🇸🇷', '598': '🇺🇾', '599': '🇨🇼', '672': '🇦🇶', '673': '🇧🇳', '674': '🇳🇷',
+    '675': '🇵🇬', '676': '🇹🇴', '677': '🇸🇧', '678': '🇻🇺', '679': '🇫🇯', '680': '🇵🇼',
+    '681': '🇼🇫', '682': '🇨🇰', '685': '🇼🇸', '686': '🇰🇮', '687': '🇳🇨', '688': '🇹🇻',
+    '689': '🇵🇫', '690': '🇹🇰', '691': '🇫🇲', '692': '🇲🇭', '850': '🇰🇵', '852': '🇭🇰',
+    '853': '🇲🇴', '855': '🇰🇭', '856': '🇱🇦', '880': '🇧🇩', '886': '🇹🇼', '960': '🇲🇻',
+    '961': '🇱🇧', '962': '🇯🇴', '963': '🇸🇾', '964': '🇮🇶', '965': '🇰🇼', '966': '🇸🇦',
+    '967': '🇾🇪', '968': '🇴🇲', '970': '🇵🇸', '971': '🇦🇪', '972': '🇮🇱', '973': '🇧🇭',
+    '974': '🇶🇦', '975': '🇧🇹', '976': '🇲🇳', '977': '🇳🇵', '992': '🇹🇯', '993': '🇹🇲',
+    '994': '🇦🇿', '995': '🇬🇪', '996': '🇰🇬', '998': '🇺🇿',
   };
   return flagMap[countryCode] || '🌍';
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Get country code from E.164 number for flag display
+// Get country calling-code from an E.164 number for flag display
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function extractCountryCode(e164Phone: string): string {
   if (!e164Phone.startsWith('+')) return '';
   const digits = e164Phone.replace(/\D/g, '');
-  // Try longest match first (3-digit codes)
   const threeDigit = digits.substring(0, 3);
   const twoDigit = digits.substring(0, 2);
   const oneDigit = digits.substring(0, 1);
-  
-  // Known 3-digit codes
-  const threeDigitCodes = ['212','213','216','218','220','221','222','223','224','225','226','227','228','229','230','231','232','233','234','235','236','237','238','239','240','241','242','243','244','245','246','248','249','250','251','252','253','254','255','256','257','258','260','261','262','263','264','265','266','267','268','269','291','297','298','299','350','351','352','353','354','355','356','357','358','359','370','371','372','373','374','375','376','377','378','380','381','382','383','385','386','387','389','420','421','423','500','501','502','503','504','505','506','507','509','591','592','593','594','595','597','598','599','672','673','674','675','676','677','678','679','680','681','682','685','686','687','688','689','690','691','692','850','852','853','855','856','880','886','960','961','962','963','964','965','966','967','968','970','971','972','973','974','975','976','977','992','993','994','995','996','998'];
+
+  const threeDigitCodes = ['212', '213', '216', '218', '220', '221', '222', '223', '224', '225', '226', '227', '228', '229', '230', '231', '232', '233', '234', '235', '236', '237', '238', '239', '240', '241', '242', '243', '244', '245', '246', '248', '249', '250', '251', '252', '253', '254', '255', '256', '257', '258', '260', '261', '262', '263', '264', '265', '266', '267', '268', '269', '291', '297', '298', '299', '350', '351', '352', '353', '354', '355', '356', '357', '358', '359', '370', '371', '372', '373', '374', '375', '376', '377', '378', '380', '381', '382', '383', '385', '386', '387', '389', '420', '421', '423', '500', '501', '502', '503', '504', '505', '506', '507', '509', '591', '592', '593', '594', '595', '597', '598', '599', '672', '673', '674', '675', '676', '677', '678', '679', '680', '681', '682', '685', '686', '687', '688', '689', '690', '691', '692', '850', '852', '853', '855', '856', '880', '886', '960', '961', '962', '963', '964', '965', '966', '967', '968', '970', '971', '972', '973', '974', '975', '976', '977', '992', '993', '994', '995', '996', '998'];
   if (threeDigitCodes.includes(threeDigit)) return threeDigit;
-  
-  // Known 2-digit codes (and single digit)
-  const twoDigitCodes = ['20','27','30','31','32','33','34','36','39','40','41','43','44','45','46','47','48','49','51','52','54','55','56','57','58','60','61','62','63','64','65','66','81','82','84','86','90','91','92','93','94','95','98'];
+
+  const twoDigitCodes = ['20', '27', '30', '31', '32', '33', '34', '36', '39', '40', '41', '43', '44', '45', '46', '47', '48', '49', '51', '52', '54', '55', '56', '57', '58', '60', '61', '62', '63', '64', '65', '66', '81', '82', '84', '86', '90', '91', '92', '93', '94', '95', '98'];
   if (twoDigitCodes.includes(twoDigit)) return twoDigit;
-  
-  // Single digit (US/Canada)
-  if (['1','7'].includes(oneDigit)) return oneDigit;
-  
+
+  if (['1', '7'].includes(oneDigit)) return oneDigit;
+
   return twoDigit; // fallback guess
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Normalize a locally-entered phone number to E.164
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function formatToE164(rawPhone: string, merchantPhone: string): string {
   // Clean all non-digit characters except leading +
   let cleaned = rawPhone.replace(/[^\d+]/g, '');
-  
+
   // If already has +, assume it's E.164 format
   if (cleaned.startsWith('+')) {
     return cleaned;
   }
-  
+
   // Known country codes (ordered longest-first for correct matching)
   const knownCountryCodes = [
-    '971', '966', '965', '964', '963', '962', '961', '960', // Middle East
-    '994', '993', '992',  // Central Asia
-    '977', '975', '974', '973',  // South Asia / Gulf
-    '880',  // Bangladesh
-    '94',   // Sri Lanka
-    '92',   // Pakistan
-    '91',   // India
-    '90',   // Turkey
-    '86',   // China
-    '82',   // South Korea
-    '81',   // Japan
-    '66',   // Thailand
-    '65',   // Singapore
-    '63',   // Philippines
-    '62',   // Indonesia
-    '61',   // Australia
-    '60',   // Malaysia
-    '55',   // Brazil
-    '49',   // Germany
-    '48',   // Poland
-    '47',   // Norway
-    '46',   // Sweden
-    '45',   // Denmark
-    '44',   // UK
-    '43',   // Austria
-    '41',   // Switzerland
-    '39',   // Italy
-    '34',   // Spain
-    '33',   // France
-    '31',   // Netherlands
-    '27',   // South Africa
-    '20',   // Egypt
-    '1',    // US/Canada
+    '971', '966', '965', '964', '963', '962', '961', '960',
+    '994', '993', '992',
+    '977', '975', '974', '973',
+    '880',
+    '94',
+    '92',
+    '91',
+    '90',
+    '86',
+    '82',
+    '81',
+    '66',
+    '65',
+    '63',
+    '62',
+    '61',
+    '60',
+    '55',
+    '49',
+    '48',
+    '47',
+    '46',
+    '45',
+    '44',
+    '43',
+    '41',
+    '39',
+    '34',
+    '33',
+    '31',
+    '27',
+    '20',
+    '1',
   ];
-  
+
   // Extract merchant's country code using known codes table
   let merchantCountryCode = '92'; // default to Pakistan
   if (merchantPhone.startsWith('+')) {
@@ -1653,83 +1151,26 @@ function formatToE164(rawPhone: string, merchantPhone: string): string {
       }
     }
   }
-  
+
   // Handle leading 0 (common in local dialing: 0300... in PK, 07... in UK, etc.)
   if (cleaned.startsWith('0')) {
     cleaned = cleaned.substring(1);
   }
-  
+
   // If the cleaned number already starts with the country code, just add +
   if (cleaned.startsWith(merchantCountryCode)) {
-    // Validate: for Pakistan (92), full number should be 12 digits (92 + 10 digits)
     if (merchantCountryCode === '92' && cleaned.length !== 12) {
-      // If too long, the number likely doesn't start with the country code — it's a local number
       if (cleaned.length > 12) {
-        // Strip the apparent country code prefix and re-add it
         return `+${merchantCountryCode}${cleaned}`;
       }
     }
     return `+${cleaned}`;
   }
-  
+
   // Otherwise, prepend the merchant's country code
   const result = `+${merchantCountryCode}${cleaned}`;
-  
-  // Log for debugging
+
   console.log(`📱 formatToE164: "${rawPhone}" → "${result}" (country code: ${merchantCountryCode}, merchant: ${merchantPhone})`);
-  
+
   return result;
 }
-
-
-// POST - Meta Webhook Message Handler (Debug version)
-export async function POST(req: Request) {
-  try {
-    console.log('📩 WhatsApp webhook POST received');
-    
-    const rawBody = await req.text();
-    console.log('🔍 Raw body:', rawBody.substring(0, 200));
-    
-    let body;
-    try {
-      body = JSON.parse(rawBody);
-      console.log('✅ Parsed JSON successfully');
-    } catch (e) {
-      console.error('❌ JSON parse error:', e);
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-    }
-
-    // Extract phone number from message
-    const fromNumber = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from;
-    if (!fromNumber) {
-      console.warn('⚠️ No from number found');
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    console.log('📞 From number:', fromNumber);
-
-    // Look up user in Supabase
-    const { data: userData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('phone', fromNumber)
-      .or(`phone.eq.+${fromNumber}`)
-      .maybeSingle();
-
-    if (!userData) {
-      console.warn('⚠️ User not found for:', fromNumber);
-      return NextResponse.json({ status: 'ok' });
-    }
-
-    console.log('✅ User found:', userData.id);
-
-    // Send success response
-    console.log('✅ Webhook processed successfully');
-    return NextResponse.json({ status: 'ok' });
-
-  } catch (error) {
-    console.error('❌ POST handler error:', error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
-  }
-}
-
