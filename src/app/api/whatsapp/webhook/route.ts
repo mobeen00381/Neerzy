@@ -82,6 +82,12 @@ async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; rem
     await supabase.from('rate_limits').update({ request_count: existing.request_count + 1 }).eq('id', existing.id);
     return { allowed: true, remaining: GEN_RATE_MAX - (existing.request_count + 1), retryMinutes: 0 };
   }
+
+
+
+
+
+
 ;
 }
 
@@ -328,6 +334,7 @@ You can also send job photos directly!`, fromNumber);
     return NextResponse.json({ status: 'ok' });
 ;
 
+
   } catch (error: any) {
     console.error('❌ Error in POST handler:', error);
     console.error('Error stack:', error.stack);
@@ -340,6 +347,7 @@ You can also send job photos directly!`, fromNumber);
             processedMessageIds.delete(id);
           }
 ;
+
         }
       }
     }
