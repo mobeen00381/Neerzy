@@ -84,7 +84,56 @@ async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; rem
   }
 }
 
-// POST - Meta Webhook Message Handler
+// POST - Meta Webhook Message Handler (Minimal Debug Version)
+export async function POST(req: Request) {
+  try {
+    console.log('📩 WhatsApp webhook POST received');
+    
+    const rawBody = await req.text();
+    console.log('🔍 Raw body:', rawBody.substring(0, 200));
+    
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+      console.log('✅ Parsed JSON successfully');
+    } catch (e) {
+      console.error('❌ JSON parse error:', e);
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    // Extract phone number from message
+    const fromNumber = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from;
+    if (!fromNumber) {
+      console.warn('⚠️ No from number found');
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    console.log('📞 From number:', fromNumber);
+
+    // Look up user in Supabase
+    const { data: userData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('phone', fromNumber)
+      .or(`phone.eq.+${fromNumber}`)
+      .maybeSingle();
+
+    if (!userData) {
+      console.warn('⚠️ User not found for:', fromNumber);
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    console.log('✅ User found:', userData.id);
+
+    // Send success response
+    console.log('✅ Webhook processed successfully');
+    return NextResponse.json({ status: 'ok' });
+
+  } catch (error) {
+    console.error('❌ POST handler error:', error);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
 export async function POST(req: Request) {
   try {
     console.log('📩 Received POST request to WhatsApp webhook');
