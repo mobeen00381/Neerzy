@@ -95,9 +95,15 @@ async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; rem
 // POST - Meta Webhook Message Handler
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export async function POST(req: Request) {
+  // Per-invocation correlation id — lets logs from a single Meta delivery be tied together
+  const requestId = Math.random().toString(36).slice(2, 10);
+  let webhookData: any;
+  let senderPhone = '';
+
   try {
     // Meta sends: { object: "whatsapp_business_account", entry: [{ changes: [{ value: { messages: [...] } }] }] }
-    const webhookData = await req.json();
+    webhookData = await req.json();
+    console.log(`📥 [${requestId}] Webhook payload received, snapshot:`, JSON.stringify(webhookData).substring(0, 500));
 
     const entry = webhookData?.entry?.[0];
     const change = entry?.changes?.[0];
@@ -106,12 +112,13 @@ export async function POST(req: Request) {
 
     // Ignore non-message events (status updates, etc.)
     if (!messages || !messages.length) {
-      console.log('📥 Non-message webhook event, ignoring');
+      console.log(`📥 [${requestId}] Non-message webhook event, ignoring`);
       return NextResponse.json({ status: 'ok' });
     }
 
     const message = messages[0];
     const from = message?.from || '';
+    senderPhone = from;
     const body = message?.text?.body || '';
     const messageType = message?.type || 'text';
 
@@ -121,7 +128,7 @@ export async function POST(req: Request) {
     const messageId = message?.id;
     if (messageId) {
       if (processedMessageIds.has(messageId)) {
-        console.log(`🔁 Duplicate message ID ${messageId}, skipping`);
+        console.log(`🔁 [${requestId}] Duplicate message ID ${messageId}, skipping`);
         return NextResponse.json({ status: 'ok' });
       }
       processedMessageIds.set(messageId, Date.now());
@@ -139,9 +146,12 @@ export async function POST(req: Request) {
     // Extract media if present (image, video, audio, document)
     const hasMedia = ['image', 'video', 'audio', 'document'].includes(messageType);
 
-    if (!from) return NextResponse.json({ status: 'ok' });
+    if (!from) {
+      console.log(`📥 [${requestId}] Message with no sender, ignoring`);
+      return NextResponse.json({ status: 'ok' });
+    }
 
-    console.log(`📥 [Meta WhatsApp] From: ${from}, Type: ${messageType}, Body: "${body.substring(0, 100)}"`);
+    console.log(`📥 [${requestId}] [Meta WhatsApp] From: ${from}, Type: ${messageType}, Body: "${body.substring(0, 100)}"`);
 
     // `to` was the business number in Twilio — now unused (Meta uses phone number ID), keep as null for compat
     const to = undefined;
@@ -329,10 +339,30 @@ export async function POST(req: Request) {
     // Fallback: nothing meaningful received — silent (don't encourage
     // irrelevant chat)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log(`🔇 [${requestId}] No action taken for sender ${senderPhone} (nothing to process).`);
     return NextResponse.json({ success: true });
 
-  } catch (error) {
-    console.error('❌ Webhook Error:', error);
+  } catch (error: any) {
+    // Surface the FULL error so failures are never silent:
+    console.error(`❌ [${requestId}] Webhook Error (sender: ${senderPhone}):`, error?.message || error);
+    console.error('   Stack:', error?.stack || '(no stack)');
+    if (webhookData) {
+      console.error('   Payload snapshot:', JSON.stringify(webhookData).substring(0, 500));
+    }
+
+    // Best-effort: let the sender know something went wrong instead of leaving them in silence
+    if (senderPhone) {
+      try {
+        await sendMetaText({
+          to: senderPhone,
+          body: '⚠️ Something went wrong while processing your message. Please try again or contact support.',
+        });
+        console.log(`✅ [${requestId}] Notified sender ${senderPhone} about the failure.`);
+      } catch (notifyErr: any) {
+        console.error(`❌ [${requestId}] Could not notify sender (send failed too):`, notifyErr?.message || notifyErr);
+      }
+    }
+
     // Always return 200 to Meta to prevent retry loops
     return NextResponse.json({ status: 'ok' });
   }
@@ -977,7 +1007,7 @@ async function sendWhatsappText(to: string, text: string, _fromNumber?: string) 
     console.log('✅ Meta WhatsApp text sent! ID:', result.messages?.[0]?.id);
     return NextResponse.json({ success: true, id: result.messages?.[0]?.id });
   } catch (error: any) {
-    console.error('❌ sendWhatsappText error:', error.message);
+    console.error(`❌ sendWhatsappText error (to ${to}):`, error?.message || error);
     throw error;
   }
 }
