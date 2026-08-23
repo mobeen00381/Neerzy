@@ -81,6 +81,137 @@ async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; rem
 
     await supabase.from('rate_limits').update({ request_count: existing.request_count + 1 }).eq('id', existing.id);
     return { allowed: true, remaining: GEN_RATE_MAX - (existing.request_count + 1), retryMinutes: 0 };
+  }
+}
+
+// POST - Meta Webhook Message Handler
+export async function POST(req: Request) {
+  try {
+    console.log('📩 Received POST request to WhatsApp webhook');
+    
+    // Parse the raw body
+    const rawBody = await req.text();
+    console.log('🔍 Raw request body:', rawBody);
+    
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+      console.log('✅ Successfully parsed JSON body');
+    } catch (parseError) {
+      console.error('❌ Failed to parse JSON body:', parseError);
+      console.error('Raw body:', rawBody);
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    // Log the full webhook event for debugging
+    console.log('📊 Incoming WhatsApp webhook event:', JSON.stringify(body, null, 2));
+
+    // Check if this is a message event
+    if (!body.entry || !Array.isArray(body.entry) || body.entry.length === 0) {
+      console.warn('⚠️ No entry found in webhook payload');
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    const entry = body.entry[0];
+    if (!entry.changes || !Array.isArray(entry.changes) || entry.changes.length === 0) {
+      console.warn('⚠️ No changes found in entry');
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    const change = entry.changes[0];
+    if (!change.value || !change.value.messages || !Array.isArray(change.value.messages) || change.value.messages.length === 0) {
+      console.warn('⚠️ No messages found in change value');
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    const message = change.value.messages[0];
+    console.log('📨 Processing message:', message);
+
+    // Extract sender information
+    const fromNumber = message.from;
+    if (!fromNumber) {
+      console.warn('⚠️ No sender phone number found in message');
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    // Normalize phone number to E.164 format (remove spaces, +, etc.)
+    const normalizedPhone = fromNumber.replace(/[^0-9]/g, '');
+    const e164Phone = normalizedPhone.startsWith('92') ? `+${normalizedPhone}` : `+92${normalizedPhone}`;
+    console.log('📞 Normalized phone number:', e164Phone, 'from:', fromNumber);
+
+    // Check for duplicate message ID
+    const messageId = message?.id;
+    if (messageId) {
+      if (processedMessageIds.has(messageId)) {
+        console.log(`🔁 Duplicate message ID ${messageId}, skipping`);
+        return NextResponse.json({ status: 'ok' });
+      }
+      processedMessageIds.set(messageId, Date.now());
+      // Clean up old entries to prevent memory leak
+      if (processedMessageIds.size > 1000) {
+        const cutoff = Date.now() - DEDUP_TTL_MS;
+        for (const [id, timestamp] of processedMessageIds.entries()) {
+          if (timestamp < cutoff) {
+            processedMessageIds.delete(id);
+          }
+        }
+      }
+    }
+
+    // Look up user in Supabase
+    console.log('🔍 Looking up user in Supabase for phone:', e164Phone);
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('phone', e164Phone)
+      .or(`phone.eq.${e164Phone},phone.eq.${fromNumber}`)
+      .maybeSingle();
+
+    if (userError) {
+      console.error('❌ Supabase query error:', userError);
+      return NextResponse.json({ error: 'Database error' }, { status: 500 });
+    }
+
+    if (!userData) {
+      console.warn('⚠️ No user found for phone:', e164Phone, 'or', fromNumber);
+      // Send generic response to unregistered users
+      await sendWhatsappText(e164Phone, '👋 Hi there! You need to register with Neerzy first to use our WhatsApp service. Visit https://www.neerzy.com to get started!', fromNumber);
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    console.log('✅ Found user:', userData.id, 'plan:', userData.plan, 'whatsapp_verified:', userData.whatsapp_verified);
+
+    // Verify user is authorized (pro plan and whatsapp verified)
+    if (userData.plan !== 'pro' || !userData.whatsapp_verified) {
+      console.warn('⚠️ User not authorized:', userData.id, 'plan:', userData.plan, 'whatsapp_verified:', userData.whatsapp_verified);
+      await sendWhatsappText(e164Phone, '🔒 Your account needs to be upgraded to Pro and WhatsApp verification completed to use this service.', fromNumber);
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    // Process message content
+    let messageText = '';
+    if (message.type === 'text') {
+      messageText = message.text?.body || '';
+      console.log('💬 Text message content:', messageText);
+    } else if (message.type === 'interactive') {
+      // Handle interactive messages (buttons, lists)
+      if (message.interactive?.type === 'button_reply') {
+        messageText = message.interactive.button_reply?.title || '';
+        console.log('🔘 Button reply:', messageText);
+      } else if (message.interactive?.type === 'list_reply') {
+        messageText = message.interactive.list_reply?.title || '';
+        console.log('📋 List reply:', messageText);
+      }
+    }
+
+    // Check rate limit
+    const rateLimitResult = await checkGenRateLimit(e164Phone);
+    if (!rateLimitResult.allowed) {
+      console.warn(`⚠️ Rate limit exceeded for ${e164Phone}: ${rateLimitResult.remaining} remaining, retry in ${rateLimitResult.retryMinutes} minutes`);
+      await sendWhatsappText(e164Phone, `⏳ You've reached your limit of ${GEN_RATE_MAX} posts per hour. Please try again in ${rateLimitResult.retryMinutes} minutes.`, fromNumber);
+      return NextResponse.json({ status: 'ok' });
+    }
+
   } catch (err) {
     console.error('Rate limiter DB error:', err);
     return { allowed: false, remaining: 0, retryMinutes: 60 }; // fail-closed
@@ -124,6 +255,35 @@ export async function POST(req: Request) {
       // Clean up old entries to prevent memory leak
       if (processedMessageIds.size > 1000) {
         const cutoff = Date.now() - DEDUP_TTL_MS;
+    // Process based on message content
+    if (messageText.toLowerCase().includes('post') || messageText.toLowerCase().includes('gmb') || messageText.toLowerCase().includes('google')) {
+      console.log('🚀 Triggering GMB post generation for:', e164Phone);
+      // Use async wrapper to avoid webhook timeout
+      void processPostWorkflow(e164Phone, fromNumber);
+    } else if (messageText.toLowerCase().includes('review') || messageText.toLowerCase().includes('feedback')) {
+      console.log('⭐ Triggering review request for:', e164Phone);
+      // Use async wrapper to avoid webhook timeout
+      void processReviewWorkflow(e164Phone, fromNumber);
+    } else {
+      // Default behavior: send help message
+      console.log('ℹ️ Sending help message for unknown command:', messageText);
+      await sendWhatsappText(e164Phone, `👋 Hello! I'm Neerzy's WhatsApp assistant.
+
+To generate a Google Business Post: send "POST" or "GMB"
+To request a customer review: send "REVIEW" or "FEEDBACK"
+
+You can also send job photos directly!`, fromNumber);
+    }
+
+    return NextResponse.json({ status: 'ok' });
+
+  } catch (error: any) {
+    console.error('❌ Error in POST handler:', error);
+    console.error('Error stack:', error.stack);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
         for (const [id, timestamp] of processedMessageIds.entries()) {
           if (timestamp < cutoff) {
             processedMessageIds.delete(id);
@@ -137,6 +297,95 @@ export async function POST(req: Request) {
     let mediaType = '';
     const hasMedia = ['image', 'video', 'audio', 'document'].includes(messageType);
     if (hasMedia && message[messageType]) {
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Helper functions for message processing
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function sendWhatsappText(to: string, text: string, _fromNumber?: string) {
+  try {
+    const result = await sendMetaText({ to, body: text });
+    console.log('✅ Meta WhatsApp text sent! ID:', result.messages?.[0]?.id);
+    return NextResponse.json({ success: true, id: result.messages?.[0]?.id });
+  } catch (error: any) {
+    console.error('❌ sendWhatsappText error:', error.message);
+    throw error;
+  }
+}
+
+async function sendWhatsappTemplate(to: string, templateName: string, vars: any, _fromNumber?: string) {
+  try {
+    // Convert Twilio-style vars {"1":"val1","2":"val2"} → Meta-style components
+    const parameters = Object.entries(vars || {}).map(([, value]) => ({
+      type: "text" as const,
+      text: String(value),
+    }));
+    const result = await sendMetaTemplate({
+      to,
+      templateName,
+      languageCode: "en",
+      components: parameters.length > 0 ? [{ type: "body", parameters }] : [],
+    });
+    console.log('✅ Meta WhatsApp template sent! ID:', result.messages?.[0]?.id);
+  } catch (error: any) {
+    console.error('❌ sendWhatsappTemplate error:', error.message);
+    throw error;
+  }
+}
+
+async function sendWhatsappMedia(to: string, url: string, caption: string, _fromNumber?: string) {
+  try {
+    const result = await sendMetaMedia({ to, mediaUrl: url, caption, mediaType: "image" });
+    console.log('✅ Meta WhatsApp media sent! ID:', result.messages?.[0]?.id);
+  } catch (error: any) {
+    console.error('❌ sendWhatsappMedia error:', error.message);
+    throw error;
+  }
+}
+
+function parsePostContent(content: string) {
+  const lines = content.split('\n');
+  return {
+    headline: extractLine(lines, 'HEADLINE:') || 'Great Work!',
+    body: extractLine(lines, 'BODY:') || 'Job completed.',
+    cta: extractLine(lines, 'CTA:') || 'Contact us!',
+    hashtags: extractLine(lines, 'HASHTAGS:') || '#Service'
+  };
+}
+
+function extractLine(lines: string[], prefix: string) {
+  const line = lines.find(l => l.toUpperCase().includes(prefix.toUpperCase()));
+  return line ? line.replace(new RegExp(prefix, 'i'), '').trim() : '';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Country Code → Flag Emoji Helper
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function countryCodeToFlag(countryCode: string): string {
+  if (!countryCode || countryCode.length !== 2) return '';
+  const offset = 127397;
+  return String.fromCodePoint(
+    countryCode.toUpperCase().charCodeAt(0) + offset,
+    countryCode.toUpperCase().charCodeAt(1) + offset
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Export all helper functions for testing
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export {
+  handleGeneratePost,
+  handleSendReview,
+  processPostWorkflow,
+  processReviewWorkflow,
+  sendWhatsappText,
+  sendWhatsappTemplate,
+  sendWhatsappMedia,
+  parsePostContent,
+  extractLine,
+  countryCodeToFlag,
+};
       mediaType = messageType;
       // For media, we get the media ID — we'll need to download it
       const mediaId = message[messageType]?.id;
@@ -869,8 +1118,6 @@ async function handleSendReview(phone: string, fromNumber?: string) {
         components: [{
           type: "body",
           parameters: [
-            { type: "text", text: customerName },
-            { type: "text", text: businessName },
             { type: "text", text: reviewLink },
           ]
         }],
@@ -1345,5 +1592,57 @@ function formatToE164(rawPhone: string, merchantPhone: string): string {
   console.log(`📱 formatToE164: "${rawPhone}" → "${result}" (country code: ${merchantCountryCode}, merchant: ${merchantPhone})`);
   
   return result;
+}
+
+
+// POST - Meta Webhook Message Handler (Debug version)
+export async function POST(req: Request) {
+  try {
+    console.log('📩 WhatsApp webhook POST received');
+    
+    const rawBody = await req.text();
+    console.log('🔍 Raw body:', rawBody.substring(0, 200));
+    
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+      console.log('✅ Parsed JSON successfully');
+    } catch (e) {
+      console.error('❌ JSON parse error:', e);
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    // Extract phone number from message
+    const fromNumber = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from;
+    if (!fromNumber) {
+      console.warn('⚠️ No from number found');
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    console.log('📞 From number:', fromNumber);
+
+    // Look up user in Supabase
+    const { data: userData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('phone', fromNumber)
+      .or(`phone.eq.+${fromNumber}`)
+      .maybeSingle();
+
+    if (!userData) {
+      console.warn('⚠️ User not found for:', fromNumber);
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    console.log('✅ User found:', userData.id);
+
+    // Send success response
+    console.log('✅ Webhook processed successfully');
+    return NextResponse.json({ status: 'ok' });
+
+  } catch (error) {
+    console.error('❌ POST handler error:', error);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
 }
 
