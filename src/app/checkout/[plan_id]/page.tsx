@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { initializePaddle, Paddle } from '@paddle/paddle-js';
+import { supabase } from '@/lib/supabase';
 
 const PADDLE_PRICE_IDS: Record<string, string> = {
   pro: process.env.NEXT_PUBLIC_PADDLE_PRO_PRICE_ID || "pri_01kqw4dy15ptkzs43bm3pqr12w",
@@ -14,6 +15,14 @@ export default function CheckoutPage({ params }: { params: Promise<{ plan_id: st
   const [paddle, setPaddle] = useState<Paddle>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Load the current user id so it can be attached to the Paddle checkout custom data
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data?.user?.id || null);
+    });
+  }, []);
 
   // Initialize Paddle on mount using Client Token — no server API call needed
   useEffect(() => {
@@ -49,6 +58,10 @@ export default function CheckoutPage({ params }: { params: Promise<{ plan_id: st
       // Open Paddle checkout overlay directly with Price ID — no backend needed!
       paddle.Checkout.open({
         items: [{ priceId, quantity: 1 }],
+        customData: {
+          userId: userId || '',
+          planId: plan_id,
+        },
       });
     } catch (err: any) {
       setError(err.message || 'Failed to open checkout.');

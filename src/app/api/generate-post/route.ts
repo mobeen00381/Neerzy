@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
+import { countUserPosts } from '@/lib/post-usage';
+import { PLAN_LIMITS, getCycleStartIso } from '@/lib/plans';
 
 const openai = getOpenAIClient();
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+);
 
 /**
  * List of words/text that indicate the user hasn't given a real description
@@ -25,7 +33,7 @@ function isVagueDescription(description: string | null | undefined): boolean {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { description, businessName, imageUrl } = body;
+    const { description, businessName, imageUrl, userId } = body;
 
     if (!description && !businessName) {
       return NextResponse.json({ error: 'Missing description or business name' }, { status: 400 });
@@ -37,6 +45,40 @@ export async function POST(req: Request) {
         { error: 'VAGUE_DESCRIPTION', message: 'Please provide a short description of the job you completed before generating a post.' },
         { status: 422 }
       );
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Plan quota check — posts from WhatsApp + web dashboard count together
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (userId) {
+      try {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('selected_plan, phone, plan_started_at, trial_started_at, created_at')
+          .eq('id', userId)
+          .maybeSingle();
+
+        const planTier = profileData?.selected_plan || 'free';
+        const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+        const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
+        const usage = await countUserPosts(userId, profileData?.phone || null, cycleStartIso);
+
+        if (quota.totalPosts !== -1 && usage.total >= quota.totalPosts) {
+          return NextResponse.json(
+            { error: `You've reached your plan limit of ${quota.totalPosts} posts per month. Upgrade to post more.` },
+            { status: 403 }
+          );
+        }
+
+        if (quota.dailyPosts > 0 && usage.daily >= quota.dailyPosts) {
+          return NextResponse.json(
+            { error: `Daily limit of ${quota.dailyPosts} post${quota.dailyPosts !== 1 ? 's' : ''} reached. Try again tomorrow.` },
+            { status: 403 }
+          );
+        }
+      } catch (quotaErr) {
+        console.warn('⚠️ Could not check post quota:', quotaErr);
+      }
     }
 
     const jobDescription = description?.trim() || 'Completed job';

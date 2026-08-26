@@ -1,6 +1,6 @@
 // lib/usage.ts
 import { supabase } from './supabase';
-import { PlanType, PLAN_LIMITS, getRemainingDays } from './plans';
+import { PlanType, PLAN_LIMITS, getRemainingDays, getCycleStartIso } from './plans';
 
 export interface UsageStats {
   totalPostsUsed: number;
@@ -17,26 +17,28 @@ export async function getUserUsage(
   trialStart: string
 ): Promise<UsageStats> {
   const limits = PLAN_LIMITS[plan];
-  
+
   // Get today's date in UTC
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
-  // Fetch jobs created today
-  const { data: jobs, error } = await supabase
-    .from('jobs')
-    .select('id, created_at')
-    .eq('user_id', userId)
-    .gte('created_at', today.toISOString());
-  
-  if (error) {
-    console.error('Error fetching daily jobs:', error);
-    throw error;
-  }
-  
-  const dailyPostsUsed = jobs?.length || 0;
-  const totalPostsUsed = await getTotalPostsCount(userId);
-  
+
+  // 30-day billing cycle anchor (uses the plan-start/onboarding date)
+  const cycleStartIso = getCycleStartIso(trialStart);
+
+  // Fetch this cycle's posts from BOTH storage tables:
+  // `posts` (web dashboard) + `pending_posts` (WhatsApp) — both count toward the plan
+  const [postsRes, pendingRes] = await Promise.all([
+    supabase.from('posts').select('id, created_at').eq('user_id', userId).gte('created_at', cycleStartIso),
+    supabase.from('pending_posts').select('id, created_at').eq('user_id', userId).gte('created_at', cycleStartIso),
+  ]);
+
+  if (postsRes.error) console.error('Error fetching daily posts:', postsRes.error);
+  if (pendingRes.error) console.error('Error fetching daily pending_posts:', pendingRes.error);
+
+  const cycleRows = [...(postsRes.data || []), ...(pendingRes.data || [])];
+  const dailyPostsUsed = cycleRows.filter((p: any) => new Date(p.created_at) >= today).length;
+  const totalPostsUsed = cycleRows.length;
+
   const remainingToday = Math.max(0, limits.dailyPosts - dailyPostsUsed);
   const remainingTotal = limits.totalPosts === -1 
     ? Infinity 
@@ -58,17 +60,4 @@ export async function getUserUsage(
     daysLeft,
     isLimited,
   };
-}
-
-async function getTotalPostsCount(userId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from('jobs')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
-  
-  if (error) {
-    console.error('Error fetching total jobs count:', error);
-    throw error;
-  }
-  return count || 0;
 }

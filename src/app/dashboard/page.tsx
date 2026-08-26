@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabase";
-import { PLAN_LIMITS, getPlan, getRemainingDays } from '@/lib/plans';
+import { PLAN_LIMITS, getPlan, getRemainingDays, getCycleStartIso } from '@/lib/plans';
 import { ReviewsManager } from '@/components/dashboard/ReviewsManager';
 import { SocialContentStudio } from '@/components/dashboard/SocialContentStudio';
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
@@ -303,6 +303,10 @@ export default function Dashboard() {
       }
 
       setProfile(profileData);
+
+      // 30-day billing cycle anchor (plan_started_at || trial_started_at || created_at)
+      const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
+
       setPhone(phone); // lift phone to component state for ReviewsManager
 
       // 2. Fetch business profile
@@ -451,13 +455,17 @@ Try sending a photo or typing a description of a job you completed!`,
 
       setMessages([welcomeMessage, ...dbMessages]);
 
-      // Calculate post counts directly from posts DB (web posts) + pending_posts (WhatsApp)
-      const totalPostCount = (postsData || []).length + (whatsappPosts || []).length;
+      // Calculate post counts directly from posts DB (web posts) + pending_posts (WhatsApp),
+      // filtered to the current 30-day billing cycle so WhatsApp + dashboard usage count
+      // together against the plan's per-month quota.
+      const cycleStart = new Date(cycleStartIso);
+      const totalPostCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= cycleStart).length
+        + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= cycleStart).length;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const dailyPostCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= today).length
         + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= today).length;
-      const reviewCount = (reviewRequests || []).length;
+      const reviewCount = (reviewRequests || []).filter((r: any) => new Date(r.sent_at || r.created_at) >= cycleStart).length;
 
       setStats({ total: totalPostCount, daily: dailyPostCount, reviewCount });
 
@@ -738,30 +746,34 @@ Try sending a photo or typing a description of a job you completed!`,
       return;
     }
 
+    // Plan quota pre-check (client-side UX; /api/generate-post also enforces server-side)
+    if (planLimits.totalPosts !== -1 && stats.total >= planLimits.totalPosts) {
+      const limitMsg: Message = {
+        id: `limit-${Date.now()}`,
+        text: `⚠️ *Post limit reached.*\n\nYour ${plan} plan allows ${planLimits.totalPosts} posts total. Upgrade to continue posting.`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, limitMsg]);
+      return;
+    }
+    if (planLimits.dailyPosts > 0 && stats.daily >= planLimits.dailyPosts) {
+      const limitMsg: Message = {
+        id: `limit-${Date.now()}`,
+        text: `⚠️ *Daily post limit reached.*\n\nYour ${plan} plan allows ${planLimits.dailyPosts} post${planLimits.dailyPosts !== 1 ? 's' : ''} per day. Try again tomorrow.`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, limitMsg]);
+      return;
+    }
+
     setIsGenerating(true);
 
     const bizName = businessProfile?.business_name || profile?.business_name || user?.user_metadata?.business_name || 'My Business Listing';
     const gbpLink = businessProfile?.google_place_id
       ? `https://www.google.com/maps/place/?q=place_id:${businessProfile.google_place_id}`
       : 'https://business.google.com/';
-
-    // Save draft description + images as a post entry
-    const { data: newPost, error } = await supabase
-      .from('posts')
-      .insert({
-        user_id: user.id,
-        content: draftDescription || 'Photo update',
-        image_url: draftImages[0] || null,
-        status: 'published'
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Failed to save post:', error);
-      setIsGenerating(false);
-      return;
-    }
 
     // Show thinking
     const thinkingMsg: Message = {
@@ -780,8 +792,25 @@ Try sending a photo or typing a description of a job you completed!`,
           description: draftDescription || 'Photo update',
           businessName: bizName,
           imageUrl: draftImages[0] || null,
+          userId: user.id,
         }),
       });
+
+      if (aiRes.status === 403) {
+        const errData = await aiRes.json().catch(() => ({}));
+        setMessages(prev => {
+          const filtered = prev.filter(m => m.id !== thinkingMsg.id);
+          const limitMsg: Message = {
+            id: `limit-${Date.now()}`,
+            text: `⚠️ ${errData.error || 'Plan limit reached.'}`,
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          return [...filtered, limitMsg];
+        });
+        setIsGenerating(false);
+        return;
+      }
 
       if (!aiRes.ok) {
         const errData = await aiRes.json().catch(() => ({}));
@@ -790,7 +819,21 @@ Try sending a photo or typing a description of a job you completed!`,
 
       const aiData = await aiRes.json();
 
-      await supabase.from('posts').update({ ai_reply: aiData.fullText }).eq('id', newPost.id);
+      // Save generated post ONLY after successful generation (blocked/failed attempts don't count)
+      const { error } = await supabase
+        .from('posts')
+        .insert({
+          user_id: user.id,
+          content: draftDescription || 'Photo update',
+          image_url: draftImages[0] || null,
+          status: 'published',
+          ai_reply: aiData.fullText,
+        });
+
+      if (error) {
+        console.error('Failed to save post:', error);
+        throw new Error('Failed to save post');
+      }
 
       // Clear draft state
       setDraftImages([]);

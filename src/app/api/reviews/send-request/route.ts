@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { PLAN_LIMITS } from '@/lib/plans';
+import { PLAN_LIMITS, getCycleStartIso } from '@/lib/plans';
 import { sendMetaTemplate, sendMetaText } from '@/lib/whatsapp';
 
 const supabaseAdmin = createClient(
@@ -45,18 +45,20 @@ export async function POST(req: Request) {
     // Get user's profile for plan quota checking and phone lookup
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('selected_plan, phone')
+      .select('selected_plan, phone, plan_started_at, trial_started_at, created_at')
       .eq('id', userId)
       .maybeSingle();
 
     const planTier = profile?.selected_plan || 'free';
     const planLimits = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+    const cycleStartIso = getCycleStartIso(profile?.plan_started_at || profile?.trial_started_at || profile?.created_at);
 
-    // Check total review request quota
+    // Check total review request quota for the current 30-day cycle
     const { count: totalSent, error: totalCountError } = await supabaseAdmin
       .from('review_requests')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .gte('sent_at', cycleStartIso);
 
     if (totalCountError) {
       console.error('Error counting total review requests:', totalCountError.message || totalCountError);
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
 
     if (totalSent !== null && planLimits.totalReviewRequests !== -1 && totalSent >= planLimits.totalReviewRequests) {
       return NextResponse.json({
-        error: `You've reached your plan limit of ${planLimits.totalReviewRequests} review requests. Upgrade to send more.`
+        error: `You've reached your plan limit of ${planLimits.totalReviewRequests} review requests per month. Upgrade to send more.`
       }, { status: 403 });
     }
 

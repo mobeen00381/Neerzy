@@ -114,3 +114,23 @@ export function getPlan(tier: string | null | undefined): PlanLimits {
   const t = (tier?.toLowerCase() as PlanType) || 'free';
   return PLAN_LIMITS[t] || PLAN_LIMITS.free;
 }
+
+const BILLING_CYCLE_DAYS = 30;
+
+/**
+ * Returns the ISO start of the user's current 30-day billing cycle.
+ * The cycle is anchored to the user's plan-start / onboarding date, so a user
+ * who onboards on the 5th (or 10th, 18th, ...) gets a fresh quota every 30 days
+ * from that date. All plans (free + paid) follow this monthly cycle.
+ *
+ * Pass `plan_started_at || trial_started_at || created_at` as the anchor.
+ */
+export function getCycleStartIso(anchorIso?: string | null, now = new Date()): string {
+  if (!anchorIso) return now.toISOString();
+  const anchor = new Date(anchorIso);
+  if (isNaN(anchor.getTime())) return now.toISOString();
+  if (now.getTime() < anchor.getTime()) return now.toISOString();
+  const cycleMs = BILLING_CYCLE_DAYS * 24 * 60 * 60 * 1000;
+  const cycles = Math.floor((now.getTime() - anchor.getTime()) / cycleMs);
+  return new Date(anchor.getTime() + cycles * cycleMs).toISOString();
+}

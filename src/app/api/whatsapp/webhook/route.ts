@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
-import { PLAN_LIMITS } from '@/lib/plans';
+import { PLAN_LIMITS, getCycleStartIso } from '@/lib/plans';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
+import { countUserPosts } from '@/lib/post-usage';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -523,6 +524,44 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
       return await sendWhatsappText(phone, "⚠️ *No images found.*\n\nSend photos first, then type *POST*.", fromNumber);
     }
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Plan Quota Check: posts from WhatsApp + web dashboard count together
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const userIdForQuota = await getUserIdByPhone(phone);
+    if (userIdForQuota) {
+      try {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('selected_plan, plan_started_at, trial_started_at, created_at')
+          .eq('id', userIdForQuota)
+          .maybeSingle();
+
+        const planTier = profileData?.selected_plan || 'free';
+        const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+        const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
+        const usage = await countUserPosts(userIdForQuota, phone, cycleStartIso);
+
+        if (quota.totalPosts !== -1 && usage.total >= quota.totalPosts) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Post limit reached.*\n\nYour ${planTier} plan allows ${quota.totalPosts} posts per month. Upgrade to continue posting.`,
+            fromNumber
+          );
+        }
+
+        if (quota.dailyPosts > 0 && usage.daily >= quota.dailyPosts) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Daily post limit reached.*\n\nYour ${planTier} plan allows ${quota.dailyPosts} post${quota.dailyPosts !== 1 ? 's' : ''} per day. Try again tomorrow.`,
+            fromNumber
+          );
+        }
+      } catch (quotaErr) {
+        console.warn('⚠️ Could not check post quota:', quotaErr);
+        // Soft check: continue even if quota lookup fails
+      }
+    }
+
     console.log('📊 Found draft with', draft.images.length, 'images. Generating post...');
 
     // AI Generation — strict prompt to prevent hallucination
@@ -800,24 +839,26 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       try {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('selected_plan')
+          .select('selected_plan, plan_started_at, trial_started_at, created_at')
           .eq('id', userIdForPublish)
           .maybeSingle();
 
         const planTier = profileData?.selected_plan || 'free';
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+        const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
 
-        // Check total quota
+        // Check total quota for the current 30-day cycle
         if (quota.totalReviewRequests !== -1) {
           const { count: sentTotal } = await supabase
             .from('review_requests')
             .select('*', { count: 'exact', head: true })
-            .eq('user_id', userIdForPublish);
+            .eq('user_id', userIdForPublish)
+            .gte('sent_at', cycleStartIso);
 
           if (sentTotal !== null && sentTotal >= quota.totalReviewRequests) {
             return await sendWhatsappText(
               phone,
-              `⚠️ *Review request limit reached.*\n\nYour ${planTier} plan allows ${quota.totalReviewRequests} review requests total. Upgrade to send more.`,
+              `⚠️ *Review request limit reached.*\n\nYour ${planTier} plan allows ${quota.totalReviewRequests} review requests per month. Upgrade to send more.`,
               fromNumber
             );
           }

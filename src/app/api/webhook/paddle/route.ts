@@ -118,6 +118,25 @@ export async function POST(req: Request) {
       } else {
         console.log("✅ User inserted into Supabase:", customerEmail);
       }
+
+      // 4. Sync plan + 30-day cycle anchor to the user's profile (quota engine)
+      const userIdFromCustom = (customData as any)?.userId;
+      const planIdFromCustom = (customData as any)?.planId;
+      if (userIdFromCustom) {
+        const { error: profileErr } = await supabase
+          .from("profiles")
+          .update({
+            selected_plan: planIdFromCustom || "pro",
+            plan_started_at: new Date().toISOString(),
+          })
+          .eq("id", userIdFromCustom);
+
+        if (profileErr) {
+          console.error("❌ Failed to sync plan to profiles:", profileErr);
+        } else {
+          console.log(`✅ Synced plan '${planIdFromCustom || "pro"}' + cycle start to profile ${userIdFromCustom}`);
+        }
+      }
       
       console.log("🚀 Business is now LIVE on:", customData.domainName);
     }
