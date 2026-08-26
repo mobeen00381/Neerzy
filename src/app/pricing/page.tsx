@@ -21,11 +21,10 @@ const PLANS = [
     href: '/signup?plan=free',
     highlight: false,
     features: [
-      { text: '5 WhatsApp posts total', included: true },
+      { text: '5 posts per month', included: true },
+      { text: '5 review requests per month', included: true },
       { text: '1 post per day limit', included: true },
       { text: 'Google post generation', included: true },
-      { text: 'Website update generation', included: true },
-      { text: 'Review request generation', included: true },
       { text: 'Publish workflow page', included: true },
       { text: 'No social posting', included: false },
       { text: 'Neerzy branding visible', included: false },

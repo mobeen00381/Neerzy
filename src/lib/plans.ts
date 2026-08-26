@@ -23,11 +23,10 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     totalReviewRequests: 5,
     dailyReviewRequests: 5, // Temporarily increased from 1 to 5 for testing
     features: [
-      '5 WhatsApp posts total',
+      '5 posts per month',
+      '5 review requests per month',
       '1 post per day limit',
       'Google post generation',
-      'Website update generation',
-      'Review request generation',
     ],
     color: '#64748B', // Gray
   },
