@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
+import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 
 const openai = getOpenAIClient();
 
@@ -70,19 +71,16 @@ HASHTAGS: (3 max)`
     });
 
     const postContent = aiResponse.choices[0].message.content || '';
-    const lines = postContent.split('\n');
+    const parsed = parsePostContent(postContent);
 
-    const extractField = (prefix: string) => {
-      const line = lines.find((l: string) => l.toUpperCase().includes(prefix.toUpperCase()));
-      return line ? line.replace(new RegExp(`\\*{0,2}${prefix}\\*{0,2}`, 'i'), '').trim() : '';
-    };
+    // Full multi-line extraction (same as the WhatsApp webhook) — no truncation,
+    // no generic fallbacks injected. Body falls back to the real job description.
+    const headline = parsed.headline || '';
+    const bodyText = parsed.body || jobDescription;
+    const cta = parsed.cta || '';
+    const hashtags = parsed.hashtags || '';
 
-    const headline = extractField('HEADLINE:') || 'Job Completed!';
-    const bodyText = extractField('BODY:') || jobDescription;
-    const cta = extractField('CTA:') || 'Contact us today!';
-    const hashtags = extractField('HASHTAGS:') || '#Service #LocalBusiness';
-
-    const fullText = [headline, '', bodyText, '', cta, '', hashtags].filter(Boolean).join('\n');
+    const fullText = buildCleanPost(headline, bodyText, cta, hashtags);
 
     return NextResponse.json({
       success: true,

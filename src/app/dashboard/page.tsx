@@ -7,6 +7,7 @@ import { PLAN_LIMITS, getPlan, getRemainingDays } from '@/lib/plans';
 import { ReviewsManager } from '@/components/dashboard/ReviewsManager';
 import { SocialContentStudio } from '@/components/dashboard/SocialContentStudio';
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
+import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { 
   Sparkles, 
   Smartphone, 
@@ -391,16 +392,12 @@ export default function Dashboard() {
 
       const mappedWAMessages = whatsappPosts.map((p: any) => {
         const googlePost = p.google_post || '';
-        const lines = googlePost.split('\n');
-        const extractField = (prefix: string) => {
-          const line = lines.find((l: string) => l.toUpperCase().includes(prefix.toUpperCase()));
-          return line ? line.replace(new RegExp(`\\*{0,2}${prefix}\\*{0,2}`, 'i'), '').trim() : '';
-        };
-        const headline = extractField('HEADLINE:') || p.customer_name || 'New Post';
-        const body = extractField('BODY:') || p.voice_note || '';
-        const cta = extractField('CTA:') || '';
-        const hashtags = extractField('HASHTAGS:') || '';
-        const fullText = [headline, '', body, '', cta, '', hashtags].filter(Boolean).join('\n');
+        const parsed = parsePostContent(googlePost);
+        const headline = parsed.headline || p.customer_name || 'New Post';
+        const body = parsed.body || p.voice_note || '';
+        const cta = parsed.cta || '';
+        const hashtags = parsed.hashtags || '';
+        const fullText = buildCleanPost(headline, body, cta, hashtags);
 
         return {
           id: p.id,

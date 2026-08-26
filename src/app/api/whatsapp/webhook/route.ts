@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 import { PLAN_LIMITS } from '@/lib/plans';
+import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -627,10 +628,7 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     const hashtags = parsed.hashtags || '';
 
     // One clean, copy-paste-ready block (no labels, no markdown noise)
-    const cleanPost = [headline, bodyText, cta, hashtags]
-      .map((s: string) => (s || '').trim())
-      .filter(Boolean)
-      .join('\n\n');
+    const cleanPost = buildCleanPost(headline, bodyText, cta, hashtags);
 
     const postTextMessage = `✅ *Post Ready — copy the text below:*
 
@@ -1035,48 +1033,9 @@ async function sendWhatsappMedia(to: string, url: string, caption: string, _from
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Parsing helpers
+// Parsing helpers — shared via @/lib/post-parser (used by the
+// WhatsApp webhook, dashboard generate API, and dashboard view)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const POST_LABELS = ['HEADLINE:', 'BODY:', 'CTA:', 'HASHTAGS:'];
-
-function parsePostContent(content: string) {
-  const lines = content.split('\n');
-  return {
-    headline: extractLine(lines, 'HEADLINE:'),
-    body: extractLine(lines, 'BODY:'),
-    cta: extractLine(lines, 'CTA:'),
-    hashtags: extractLine(lines, 'HASHTAGS:')
-  };
-}
-
-/**
- * Extracts the FULL value of a labelled field (e.g. "BODY:") from the AI output.
- * Handles multi-line values (everything until the next label) and strips any
- * leftover markdown asterisks around the label.
- */
-function extractLine(lines: string[], prefix: string) {
-  const labelIndex = lines.findIndex(l => l.toUpperCase().includes(prefix.toUpperCase()));
-  if (labelIndex === -1) return '';
-
-  // Find where the next label starts (end of this field's value)
-  let endIndex = lines.length;
-  for (let i = labelIndex + 1; i < lines.length; i++) {
-    if (POST_LABELS.some(lbl => lines[i].toUpperCase().includes(lbl.toUpperCase()))) {
-      endIndex = i;
-      break;
-    }
-  }
-
-  const section = lines.slice(labelIndex, endIndex);
-  // Strip the label (and any surrounding markdown asterisks) from the first line
-  const firstLine = section[0];
-  const labelPos = firstLine.toUpperCase().indexOf(prefix.toUpperCase());
-  let value = labelPos === -1 ? firstLine : firstLine.slice(labelPos + prefix.length);
-  value = value.replace(/^\s*\*+\s*/, '').replace(/\s*\*+\s*$/, '');
-  section[0] = value;
-
-  return section.join('\n').trim();
-}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Country Code → Flag Emoji Helper (calling-code based)
