@@ -155,7 +155,7 @@ export async function POST(req: Request) {
 
     console.log(`📥 [${requestId}] [Meta WhatsApp] From: ${from}, Type: ${messageType}, Body: "${body.substring(0, 100)}"`);
 
-    // `to` was the business number in Twilio — now unused (Meta uses phone number ID), keep as null for compat
+    // `to` was the business number in the legacy flow — now unused (Meta uses phone number ID), keep as null for compat
     const to = undefined;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1045,7 +1045,7 @@ async function sendWhatsappText(to: string, text: string, _fromNumber?: string) 
 
 async function sendWhatsappTemplate(to: string, templateName: string, vars: any, _fromNumber?: string) {
   try {
-    // Convert Twilio-style vars {"1":"val1","2":"val2"} → Meta-style components
+    // Convert {key:value} vars to Meta-style components
     const parameters = Object.entries(vars || {}).map(([, value]) => ({
       type: "text" as const,
       text: String(value),

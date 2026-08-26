@@ -28,7 +28,7 @@ export default function WhatsAppSimulator() {
     setIsLoading(true);
 
     try {
-      // Simulate sending data like Twilio does (FormData)
+      // Simulate sending data like a webhook would (FormData)
       const formData = new FormData();
       formData.append("From", "whatsapp:+1234567890");
       formData.append("Body", text);

@@ -14,11 +14,6 @@ export async function GET(req: Request) {
     if (imageUrl.includes('graph.facebook.com') && process.env.META_WHATSAPP_ACCESS_TOKEN) {
       headers['Authorization'] = `Bearer ${process.env.META_WHATSAPP_ACCESS_TOKEN}`;
     }
-    // Legacy Twilio media URLs (api.twilio.com) use Basic auth
-    else if (imageUrl.includes('api.twilio.com') && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-      const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
-      headers['Authorization'] = `Basic ${auth}`;
-    }
 
     const imageRes = await fetch(imageUrl, { headers });
     if (!imageRes.ok) throw new Error(`Failed to fetch from source: ${imageRes.status}`);

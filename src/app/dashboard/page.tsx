@@ -1409,7 +1409,7 @@ Try sending a photo or typing a description of a job you completed!`,
           {activeTab === 'post' && (
             <div className="flex-1 flex flex-col h-full relative">
               
-              {/* Removed: Backend status banner (Twilio/Model info) — not user-facing */}
+              {/* Removed: Backend status banner (model info) — not user-facing */}
 
               {/* WhatsApp chat top bar (mobile) */}
               <div className="md:hidden flex items-center gap-3 bg-white p-3 border-b border-slate-200">

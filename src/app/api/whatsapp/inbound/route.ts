@@ -87,7 +87,7 @@ export async function POST(req: Request) {
     // 3. Create GBP DRAFT
     const draft = await createGBPDraft(geo.locationId, aiPost, photoUrl);
 
-    // 4. Send Twilio preview
+    // 4. Send WhatsApp preview
     const gbpLink = `https://business.google.com/edit/${geo.locationId}/posts`;
     await sendMetaText({ to: from, body: `✅ Draft Ready!\n📝 ${aiPost.title}\n\n👉 Review & Publish:\n${gbpLink}\n\nReply "PUBLISHED" when done.` });
 

@@ -218,7 +218,7 @@ export function AnalyticsPanel({ userId, userPlan = 'free', reviewStats }: Analy
               <div className="flex justify-between text-xs font-bold">
                 <span className="text-slate-700 flex items-center gap-2">
                   <Send className="w-4 h-4 text-blue-600" />
-                  1. Requests Dispatched (Twilio WhatsApp / Web Link)
+                  1. Requests Dispatched (WhatsApp / Web Link)
                 </span>
                 <span className="text-slate-900 font-black">{totalSent} Sent</span>
               </div>
@@ -282,14 +282,14 @@ export function AnalyticsPanel({ userId, userPlan = 'free', reviewStats }: Analy
 
             <div className="space-y-4 mt-6">
               
-              {/* Channel 1: Twilio WhatsApp Direct */}
+              {/* Channel 1: WhatsApp Direct */}
               <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-[#25D366] text-white rounded-xl flex items-center justify-center shadow-sm">
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="font-extrabold text-xs text-slate-900 block">Twilio WhatsApp Message</span>
+                    <span className="font-extrabold text-xs text-slate-900 block">WhatsApp Message</span>
                     <span className="text-[10px] font-bold text-slate-500">Direct phone dispatch</span>
                   </div>
                 </div>

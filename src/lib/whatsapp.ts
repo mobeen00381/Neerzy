@@ -1,6 +1,6 @@
 /**
  * Meta WhatsApp Cloud API Client
- * Replaces Twilio for sending WhatsApp messages via the WhatsApp Business Platform.
+ * Sends WhatsApp messages via the WhatsApp Business Cloud API (Meta).
  * 
  * API Reference: https://developers.facebook.com/docs/whatsapp/cloud-api
  * 
