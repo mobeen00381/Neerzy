@@ -618,30 +618,27 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     await sendWhatsappText(phone, `📸 *Photos are sent above. Tap and save them directly to your phone's gallery!*`, fromNumber);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Send Post Text directly (User can long-press and copy on WhatsApp)
+    // Send the COMPLETE post text directly on WhatsApp so the trader can
+    // long-press → copy right from the chat (no extra tabs / links).
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const lines = postContent.split('\n');
-    const extractField = (prefix: string) => {
-      const line = lines.find((l: string) => l.toUpperCase().includes(prefix.toUpperCase()));
-      return line ? line.replace(new RegExp(`\\*{0,2}${prefix}\\*{0,2}`, 'i'), '').trim() : '';
-    };
+    const headline = parsed.headline || draft.customer_name || '';
+    const bodyText = parsed.body || draft.voice_note || '';
+    const cta = parsed.cta || '';
+    const hashtags = parsed.hashtags || '';
 
-    const headline = extractField('HEADLINE:') || draft.customer_name || 'New Post';
-    const bodyText = extractField('BODY:') || draft.voice_note || '';
-    const cta = extractField('CTA:') || '';
-    const hashtags = extractField('HASHTAGS:') || '';
+    // One clean, copy-paste-ready block (no labels, no markdown noise)
+    const cleanPost = [headline, bodyText, cta, hashtags]
+      .map((s: string) => (s || '').trim())
+      .filter(Boolean)
+      .join('\n\n');
 
-    const formattedPostText = `📋 *Copy Post Text below:*
+    const postTextMessage = `✅ *Post Ready — copy the text below:*
 
-${headline}
+${cleanPost}
 
-${bodyText}
+(Then open Google below, paste & publish)`;
 
-${cta}
-
-${hashtags}`;
-
-    await sendWhatsappText(phone, formattedPostText, fromNumber);
+    await sendWhatsappText(phone, postTextMessage, fromNumber);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Resolve & Send GBP Link directly on WhatsApp
@@ -672,25 +669,20 @@ ${gbpLink}
     await sendWhatsappText(phone, gbpMessage, fromNumber);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Send fallback link to Dashboard directly
+    // Quick links: download images + open Google (no "Copy Post" link —
+    // the full post text was already sent above for direct copy).
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const appUrl = 'https://www.neerzy.com';
 
-    const actionMessage = `✅ *Post Ready!*
-
-*Copy Post:*
-
-${appUrl}/copy/${draft.id}
-
-*Download Images:*
+    const actionMessage = `🖼️ *Download Images (save to your phone):*
 
 ${appUrl}/images/${draft.id}
 
-*Open GBP:*
+🌐 *Open Google to publish:*
 
 ${gbpLink}
 
-Copy the text, open GBP, paste and publish!
+📌 *Steps:* copy the text above → paste on Google → add the saved photos → publish.
 Type *DONE* when published.`;
 
     return await sendWhatsappText(phone, actionMessage, fromNumber);
@@ -1045,19 +1037,45 @@ async function sendWhatsappMedia(to: string, url: string, caption: string, _from
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Parsing helpers
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const POST_LABELS = ['HEADLINE:', 'BODY:', 'CTA:', 'HASHTAGS:'];
+
 function parsePostContent(content: string) {
   const lines = content.split('\n');
   return {
-    headline: extractLine(lines, 'HEADLINE:') || 'Great Work!',
-    body: extractLine(lines, 'BODY:') || 'Job completed.',
-    cta: extractLine(lines, 'CTA:') || 'Contact us!',
-    hashtags: extractLine(lines, 'HASHTAGS:') || '#Service'
+    headline: extractLine(lines, 'HEADLINE:'),
+    body: extractLine(lines, 'BODY:'),
+    cta: extractLine(lines, 'CTA:'),
+    hashtags: extractLine(lines, 'HASHTAGS:')
   };
 }
 
+/**
+ * Extracts the FULL value of a labelled field (e.g. "BODY:") from the AI output.
+ * Handles multi-line values (everything until the next label) and strips any
+ * leftover markdown asterisks around the label.
+ */
 function extractLine(lines: string[], prefix: string) {
-  const line = lines.find(l => l.toUpperCase().includes(prefix.toUpperCase()));
-  return line ? line.replace(new RegExp(prefix, 'i'), '').trim() : '';
+  const labelIndex = lines.findIndex(l => l.toUpperCase().includes(prefix.toUpperCase()));
+  if (labelIndex === -1) return '';
+
+  // Find where the next label starts (end of this field's value)
+  let endIndex = lines.length;
+  for (let i = labelIndex + 1; i < lines.length; i++) {
+    if (POST_LABELS.some(lbl => lines[i].toUpperCase().includes(lbl.toUpperCase()))) {
+      endIndex = i;
+      break;
+    }
+  }
+
+  const section = lines.slice(labelIndex, endIndex);
+  // Strip the label (and any surrounding markdown asterisks) from the first line
+  const firstLine = section[0];
+  const labelPos = firstLine.toUpperCase().indexOf(prefix.toUpperCase());
+  let value = labelPos === -1 ? firstLine : firstLine.slice(labelPos + prefix.length);
+  value = value.replace(/^\s*\*+\s*/, '').replace(/\s*\*+\s*$/, '');
+  section[0] = value;
+
+  return section.join('\n').trim();
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
