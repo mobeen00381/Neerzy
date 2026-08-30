@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+import { waitUntil } from '@vercel/functions';
 import { createClient } from '@supabase/supabase-js';
 import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
-import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
+import { getOpenAIClient, getTranscriptionClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 import { PLAN_LIMITS, getCycleStartIso } from '@/lib/plans';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { countUserPosts } from '@/lib/post-usage';
@@ -176,8 +177,8 @@ export async function POST(req: Request) {
         }
 
         // Return 200 immediately to Meta to avoid webhook timeout
-        // Process the heavy workflow asynchronously
-        void processPostWorkflow(from, undefined);
+        // Keep processing after the response via waitUntil (Vercel)
+        waitUntil(processPostWorkflow(from, undefined));
         return NextResponse.json({ status: 'processing' });
       }
 
@@ -190,8 +191,8 @@ export async function POST(req: Request) {
 
       if (text === 'DONE') {
         // Return 200 immediately to Meta to avoid webhook timeout
-        // Process the review workflow asynchronously
-        void processReviewWorkflow(from, undefined);
+        // Keep processing after the response via waitUntil (Vercel)
+        waitUntil(processReviewWorkflow(from, undefined));
         return NextResponse.json({ status: 'processing' });
       }
 
@@ -233,11 +234,11 @@ export async function POST(req: Request) {
           const buffer = await audioResponse.arrayBuffer();
 
           let voiceText = '';
-          if (!process.env.OPENAI_API_KEY && !process.env.DEEPSEEK_API_KEY) {
-            console.warn("No AI API key, mocking voice note transcription");
+          if (!process.env.OPENAI_API_KEY) {
+            console.warn("No OPENAI_API_KEY for whisper-1, mocking voice note transcription");
             voiceText = "[Voice Note] Update recorded via WhatsApp";
           } else {
-            const transcription = await openai.audio.transcriptions.create({
+            const transcription = await getTranscriptionClient().audio.transcriptions.create({
               file: new File([buffer], "audio.ogg", { type: mimeType || 'audio/ogg' }),
               model: "whisper-1",
             });

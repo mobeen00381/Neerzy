@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getOpenAIClient } from '@/lib/openai';
+import { getTranscriptionClient } from '@/lib/openai';
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ text: "Voice note transcribed successfully (simulated fallback due to missing API key)." });
     }
 
-    const openai = getOpenAIClient();
+    const openai = getTranscriptionClient();
     
     const response = await openai.audio.transcriptions.create({
       file: audioFile,

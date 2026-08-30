@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { postToGMB } from "@/lib/gmb";
 import { createClient } from "@supabase/supabase-js";
-import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
+import { getOpenAIClient, getTranscriptionClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
           const buffer = await audioResponse.arrayBuffer();
           
           // Whisper expects a file. We can use a File object in recent OpenAI Node SDKs
-          const transcription = await openai.audio.transcriptions.create({
+          const transcription = await getTranscriptionClient().audio.transcriptions.create({
             file: await (async () => {
               const f = new File([buffer], "audio.ogg", { type: mediaType });
               return f;
