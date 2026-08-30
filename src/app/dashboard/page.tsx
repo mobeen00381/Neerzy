@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabase";
 import { PLAN_LIMITS, getPlan, getRemainingDays, getCycleStartIso } from '@/lib/plans';
 import { ReviewsManager } from '@/components/dashboard/ReviewsManager';
+import { FallbackReviewModal } from '@/components/dashboard/FallbackReviewModal';
 import { SocialContentStudio } from '@/components/dashboard/SocialContentStudio';
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
@@ -420,11 +421,14 @@ export default function Dashboard() {
       const mappedReviewMessages = (reviewRequests || []).map((r: any) => {
         const customerName = r.customer_name || 'Customer';
         const customerPhone = r.customer_phone || '';
+        const isManual = r.status === 'manual_fallback' || r.sent_via === 'manual_link';
         return {
           id: `review-${r.id}`,
           text: r.status === 'review_received'
             ? `⭐ *Review received from ${customerName}!*`
-            : `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${r.review_link}\n\n_Done! Workflow complete._ ✅`,
+            : isManual
+              ? `📱 *Review request sent via Device Link to ${customerName}!*\n\n📱 Sent to: ${customerPhone}\n🔗 ${r.review_link}\n\n_Open WhatsApp or SMS to send directly._`
+              : `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${r.review_link}\n\n_Done! Workflow complete._ ✅`,
           sender: 'bot' as const,
           timestamp: new Date(r.sent_at || r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           date: new Date(r.sent_at || r.created_at).toLocaleDateString(),
@@ -711,6 +715,11 @@ Try sending a photo or typing a description of a job you completed!`,
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [postPublished, setPostPublished] = useState(false);
+  const [fallbackReview, setFallbackReview] = useState<{
+    customerName: string;
+    customerPhone: string;
+    reviewLink: string;
+  } | null>(null);
 
   // Check if text is a recognized command (POST, DONE, RESET)
   const isPostCommand = (text: string) => text.trim().toUpperCase() === 'POST';
@@ -946,6 +955,7 @@ Try sending a photo or typing a description of a job you completed!`,
 
         // Send the review via API
         let reviewSent = false;
+        let fallbackOpened = false;
         try {
           const { data: { session } } = await supabase.auth.getSession();
           const response = await fetch('/api/reviews/send-request', {
@@ -967,7 +977,25 @@ Try sending a photo or typing a description of a job you completed!`,
           if (!response.ok) {
             throw new Error(result.error || 'Failed to send review request');
           }
-          reviewSent = true;
+
+          if (result.whatsapp_sent === false) {
+            fallbackOpened = true;
+            setFallbackReview({
+              customerName: customerName || 'Customer',
+              customerPhone,
+              reviewLink,
+            });
+
+            const fallbackMsg: Message = {
+              id: `bot-fallback-${Date.now()}`,
+              text: '⚠️ *WhatsApp delivery failed.*\n\nWe couldn\'t send the automated request, so we opened a fallback for you to send it directly from your phone.',
+              sender: 'bot',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            };
+            setMessages(prev => [...prev, fallbackMsg]);
+          } else {
+            reviewSent = true;
+          }
         } catch (err: any) {
           console.error('Failed to send review:', err);
           const errMsg: Message = {
@@ -996,8 +1024,12 @@ Try sending a photo or typing a description of a job you completed!`,
         setCustomerPhone('');
         setPostPublished(false);
 
-        // Refresh dashboard to update counts and show the new review request in chat
-        await loadDashboardData();
+        // Refresh dashboard to update counts and show the new review request in chat.
+        // Skip this when the fallback modal is open so we don't replace the fallback
+        // note (and the modal stays focused on the direct-send options).
+        if (!fallbackOpened) {
+          await loadDashboardData();
+        }
         return;
       }
 
@@ -1941,6 +1973,15 @@ Try sending a photo or typing a description of a job you completed!`,
           </div>
         </div>
       )}
+
+      {/* FALLBACK REVIEW MODAL */}
+      <FallbackReviewModal
+        isOpen={!!fallbackReview}
+        onClose={() => setFallbackReview(null)}
+        customerName={fallbackReview?.customerName || 'Customer'}
+        customerPhone={fallbackReview?.customerPhone || ''}
+        reviewLink={fallbackReview?.reviewLink || ''}
+      />
 
     </div>
   );

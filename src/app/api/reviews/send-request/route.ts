@@ -229,8 +229,9 @@ export async function POST(req: Request) {
         
         // Update record to reflect success
         if (reviewRequest?.id) {
-          await supabaseAdmin.from('review_requests').update({ 
+          await supabaseAdmin.from('review_requests').update({
             status: 'sent',
+            sent_via: 'whatsapp_template',
             sent_at: new Date().toISOString()
           }).eq('id', reviewRequest.id);
         }
@@ -271,6 +272,15 @@ export async function POST(req: Request) {
     } else {
       console.log('📝 Meta WhatsApp not configured — review request logged but not sent via WhatsApp');
       console.log('   Set META_WHATSAPP_ACCESS_TOKEN, META_TEMPLATE_REVIEW_REQUEST, and META_WHATSAPP_PHONE_NUMBER_ID env vars.');
+    }
+
+    // If Meta WhatsApp could not deliver, record the request as needing a manual
+    // fallback (device link) so history/analytics reflect what actually happened.
+    if (!whatsappSent && reviewRequest?.id) {
+      await supabaseAdmin.from('review_requests').update({
+        status: 'manual_fallback',
+        sent_via: 'manual_link',
+      }).eq('id', reviewRequest.id);
     }
 
     return NextResponse.json({

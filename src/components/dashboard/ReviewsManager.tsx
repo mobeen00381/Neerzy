@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, Send, Loader2, Clock, CheckCheck, MessageSquare } from 'lucide-react';
+import { CheckCircle, Send, Loader2, Clock, CheckCheck, MessageSquare, Smartphone } from 'lucide-react';
+import { FallbackReviewModal } from '@/components/dashboard/FallbackReviewModal';
 
 interface ReviewRequest {
   id: string;
@@ -14,7 +15,7 @@ interface ReviewRequest {
   customer_phone: string | null;
   message_text: string | null;
   review_link: string;
-  status: 'sent' | 'opened' | 'review_received';
+  status: 'sent' | 'opened' | 'review_received' | 'manual_fallback';
   sent_via: string;
   sent_at: string;
   converted_at: string | null;
@@ -25,6 +26,7 @@ const statusConfig = {
   sent: { label: 'Sent', icon: Send, color: 'text-blue-600 bg-blue-50' },
   opened: { label: 'Opened', icon: Clock, color: 'text-amber-600 bg-amber-50' },
   review_received: { label: 'Review Received', icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
+  manual_fallback: { label: 'Device Link', icon: Smartphone, color: 'text-slate-600 bg-slate-100' },
 };
 
 const ReviewRequestList = ({ userId }: { userId: string }) => {
@@ -137,6 +139,11 @@ export function ReviewsManager({ userId, businessProfile, userPhone }: { userId:
   const [customerName, setCustomerName] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fallback, setFallback] = useState<{
+    customerName: string;
+    customerPhone: string;
+    reviewLink: string;
+  } | null>(null);
 
   // Use the already-loaded business profile from the dashboard (resolved via service-role API)
   // instead of broken client-side lookups that matched on userId (UUID) ≠ user_phone
@@ -169,9 +176,18 @@ export function ReviewsManager({ userId, businessProfile, userPhone }: { userId:
       const result = await response.json();
       
       if (response.ok) {
-        alert("✅ Review request sent successfully!");
-        setCustomerPhone('');
-        setCustomerName('');
+        if (result.whatsapp_sent === false) {
+          // Open the fallback modal when Meta could not deliver the message.
+          setFallback({
+            customerName: customerName || 'Customer',
+            customerPhone,
+            reviewLink,
+          });
+        } else {
+          alert("✅ Review request sent successfully!");
+          setCustomerPhone('');
+          setCustomerName('');
+        }
         // Invalidate review-requests query so the list refreshes immediately
         queryClient.invalidateQueries({ queryKey: ['review-requests', userId] });
       } else {
@@ -241,6 +257,14 @@ export function ReviewsManager({ userId, businessProfile, userPhone }: { userId:
         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Review Requests Sent</h3>
         <ReviewRequestList userId={userId} />
       </div>
+
+      <FallbackReviewModal
+        isOpen={!!fallback}
+        onClose={() => setFallback(null)}
+        customerName={fallback?.customerName || 'Customer'}
+        customerPhone={fallback?.customerPhone || ''}
+        reviewLink={fallback?.reviewLink || ''}
+      />
     </div>
   );
 }
