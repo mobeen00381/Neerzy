@@ -743,6 +743,18 @@ Try sending a photo or typing a description of a job you completed!`,
     if (!user) return;
     if (isGenerating) return;
 
+    // Hard trial lockout — block post generation after the 30-day trial.
+    if (trialExpired) {
+      const trialMsg: Message = {
+        id: `trial-${Date.now()}`,
+        text: '⏳ *Your 30-day free trial has ended.*\n\nUpgrade to continue posting to Google.',
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, trialMsg]);
+      return;
+    }
+
     // Must have at least an image to generate
     if (draftImages.length === 0) {
       const warnMsg: Message = {
@@ -935,6 +947,18 @@ Try sending a photo or typing a description of a job you completed!`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages(prev => [...prev, doneMsg]);
+
+      // Hard trial lockout — block review requests after the 30-day trial.
+      if (trialExpired) {
+        const trialMsg: Message = {
+          id: `trial-${Date.now()}`,
+          text: '⏳ *Your 30-day free trial has ended.*\n\nUpgrade to send review requests.',
+          sender: 'bot',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages(prev => [...prev, trialMsg]);
+        return;
+      }
 
       // If customer details already saved → send the review request
       if (customerName && customerPhone) {
@@ -1172,6 +1196,7 @@ Try sending a photo or typing a description of a job you completed!`,
   const trialStart = profile?.trial_started_at || profile?.created_at || user?.user_metadata?.trial_started_at || user?.created_at || new Date().toISOString();
   const daysLeft = planLimits.trialDays > 0 ? getRemainingDays(trialStart, planLimits.trialDays) : 30;
   const daysCountdown = planLimits.trialDays > 0 ? `${daysLeft} days left` : 'Unlimited';
+  const trialExpired = planLimits.trialDays > 0 && daysLeft <= 0;
 
   const totalRemaining = planLimits.totalPosts === -1 ? 'Unlimited' : Math.max(0, planLimits.totalPosts - stats.total);
   const totalCountdown = planLimits.totalPosts === -1 ? 'Unlimited' : `${totalRemaining}/${planLimits.totalPosts} remaining`;
@@ -1443,6 +1468,14 @@ Try sending a photo or typing a description of a job you completed!`,
               
               {/* Removed: Backend status banner (model info) — not user-facing */}
 
+              {trialExpired && (
+                <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 text-center text-sm font-bold text-amber-800">
+                  ⏳ Your 30-day free trial has ended.{' '}
+                  <a href="/pricing" className="underline text-amber-900 font-black">Upgrade</a>{' '}
+                  to keep posting and sending review requests.
+                </div>
+              )}
+
               {/* WhatsApp chat top bar (mobile) */}
               <div className="md:hidden flex items-center gap-3 bg-white p-3 border-b border-slate-200">
                 <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm">
@@ -1679,11 +1712,17 @@ Try sending a photo or typing a description of a job you completed!`,
           {activeTab === 'reviews' && (
             <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto space-y-8 max-h-[calc(100vh-80px)]">
               <div className="max-w-3xl mx-auto">
+                {trialExpired && (
+                  <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-bold text-amber-800">
+                    ⏳ Your 30-day free trial has ended.{' '}
+                    <a href="/pricing" className="underline font-black">Upgrade</a> to send review requests.
+                  </div>
+                )}
                 <div className="mb-8">
                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">Review Requests</h2>
                   <p className="text-sm text-slate-500 font-semibold mt-1">Send Google review requests via WhatsApp and track responses</p>
                 </div>
-                <ReviewsManager userId={user?.id || ''} businessProfile={businessProfile} userPhone={phone} />
+                <ReviewsManager userId={user?.id || ''} businessProfile={businessProfile} userPhone={phone} trialExpired={trialExpired} />
               </div>
             </div>
           )}

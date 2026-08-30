@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { countUserPosts } from '@/lib/post-usage';
-import { PLAN_LIMITS, getCycleStartIso } from '@/lib/plans';
+import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 
 const openai = getOpenAIClient();
 
@@ -60,6 +60,15 @@ export async function POST(req: Request) {
 
         const planTier = profileData?.selected_plan || 'free';
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+        const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
+
+        if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
+          return NextResponse.json(
+            { error: 'Your 30-day free trial has ended. Upgrade to continue posting.' },
+            { status: 403 }
+          );
+        }
+
         const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
         const usage = await countUserPosts(userId, profileData?.phone || null, cycleStartIso);
 

@@ -3,7 +3,7 @@ import { waitUntil } from '@vercel/functions';
 import { createClient } from '@supabase/supabase-js';
 import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
 import { getOpenAIClient, getTranscriptionClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
-import { PLAN_LIMITS, getCycleStartIso } from '@/lib/plans';
+import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { countUserPosts } from '@/lib/post-usage';
 
@@ -539,6 +539,16 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
 
         const planTier = profileData?.selected_plan || 'free';
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+        const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
+
+        if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Your 30-day free trial has ended.*\n\nUpgrade to continue posting.`,
+            fromNumber
+          );
+        }
+
         const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
         const usage = await countUserPosts(userIdForQuota, phone, cycleStartIso);
 
@@ -846,6 +856,16 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
         const planTier = profileData?.selected_plan || 'free';
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+        const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
+
+        if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Your 30-day free trial has ended.*\n\nUpgrade to send more review requests.`,
+            fromNumber
+          );
+        }
+
         const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
 
         // Check total quota for the current 30-day cycle

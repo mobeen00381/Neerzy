@@ -133,7 +133,7 @@ const ReviewRequestList = ({ userId }: { userId: string }) => {
   );
 };
 
-export function ReviewsManager({ userId, businessProfile, userPhone }: { userId: string; businessProfile?: any; userPhone?: string }) {
+export function ReviewsManager({ userId, businessProfile, userPhone, trialExpired = false }: { userId: string; businessProfile?: any; userPhone?: string; trialExpired?: boolean }) {
   const queryClient = useQueryClient();
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -207,7 +207,14 @@ export function ReviewsManager({ userId, businessProfile, userPhone }: { userId:
       <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
         <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Send Review Request</h3>
         <p className="text-slate-500 text-sm mb-6">Send a branded WhatsApp message with your direct Google review link.</p>
-        
+
+        {trialExpired && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm font-bold text-amber-800">
+            ⏳ Your 30-day free trial has ended.{' '}
+            <a href="/pricing" className="underline font-black">Upgrade</a> to send review requests.
+          </div>
+        )}
+
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 w-full">
@@ -226,7 +233,7 @@ export function ReviewsManager({ userId, businessProfile, userPhone }: { userId:
             </div>
             <Button 
               onClick={sendReviewRequest}
-              disabled={isSending || !customerPhone || !reviewLink}
+              disabled={isSending || !customerPhone || !reviewLink || trialExpired}
               className="w-full md:w-auto bg-[#25D366] hover:bg-[#1da851] text-black rounded-full px-8 py-4 font-bold shadow-md transition active:scale-95 disabled:opacity-50 flex items-center gap-2 justify-center"
             >
               {isSending ? (

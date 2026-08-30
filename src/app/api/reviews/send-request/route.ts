@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { PLAN_LIMITS, getCycleStartIso } from '@/lib/plans';
+import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 import { sendMetaTemplate, sendMetaText } from '@/lib/whatsapp';
 
 const supabaseAdmin = createClient(
@@ -51,6 +51,12 @@ export async function POST(req: Request) {
 
     const planTier = profile?.selected_plan || 'free';
     const planLimits = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+    const trialStart = profile?.plan_started_at || profile?.trial_started_at || profile?.created_at;
+
+    if (planLimits.trialDays > 0 && trialStart && getRemainingDays(trialStart, planLimits.trialDays) <= 0) {
+      return NextResponse.json({ error: 'Your 30-day free trial has ended. Upgrade to send more review requests.' }, { status: 403 });
+    }
+
     const cycleStartIso = getCycleStartIso(profile?.plan_started_at || profile?.trial_started_at || profile?.created_at);
 
     // Check total review request quota for the current 30-day cycle

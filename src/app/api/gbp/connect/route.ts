@@ -47,8 +47,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
     }
 
+    let existingProfile: any = null;
+
     // Sync the business details with the user's Auth metadata (bulletproof source of truth)
     if (data.userId) {
+      // Fetch the existing profile first so we never reset the one-time trial.
+      const { data: fetchedProfile } = await supabase
+        .from('profiles')
+        .select('id, trial_started_at, created_at')
+        .eq('id', data.userId)
+        .maybeSingle();
+      existingProfile = fetchedProfile;
+
       try {
         await supabase.auth.admin.updateUserById(data.userId, {
           user_metadata: {
@@ -57,7 +67,7 @@ export async function POST(req: Request) {
             gbp_connected: true,
             gbp_connected_at: new Date().toISOString(),
             onboarded_at: new Date().toISOString(),
-            trial_started_at: new Date().toISOString()
+            trial_started_at: existingProfile?.trial_started_at || new Date().toISOString()
           }
         });
         console.log(`✅ Successfully updated auth user_metadata for user: ${data.userId}`);
@@ -68,13 +78,7 @@ export async function POST(req: Request) {
 
     // Sync with profiles table — this is CRITICAL for trial_started_at and plan tracking
     if (data.userId) {
-      // First, check if a profile row already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id, trial_started_at, created_at')
-        .eq('id', data.userId)
-        .maybeSingle();
-
+      // Reuse the profile already fetched above (trial_started_at preserved).
       const profilePayload: Record<string, any> = {
         id: data.userId,
         business_name: data.businessName,
@@ -108,7 +112,14 @@ export async function POST(req: Request) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          // Update metadata via admin
+          // Fetch existing profile first so we never reset the one-time trial.
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id, trial_started_at, created_at')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          // Update metadata via admin (preserve original trial start)
           await supabase.auth.admin.updateUserById(user.id, {
             user_metadata: {
               phone: targetPhone,
@@ -116,16 +127,9 @@ export async function POST(req: Request) {
               gbp_connected: true,
               gbp_connected_at: new Date().toISOString(),
               onboarded_at: new Date().toISOString(),
-              trial_started_at: new Date().toISOString()
+              trial_started_at: existingProfile?.trial_started_at || new Date().toISOString()
             }
           });
-
-          // Same profile upsert logic for fallback path
-          const { data: existingProfile } = await supabase
-            .from('profiles')
-            .select('id, trial_started_at, created_at')
-            .eq('id', user.id)
-            .maybeSingle();
 
           const profilePayload: Record<string, any> = {
             id: user.id,
