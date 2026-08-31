@@ -479,55 +479,116 @@ async function saveDraft(phone: string, data: any): Promise<string> {
 
   if (data.customerName) {
     if (!existing) {
-      await supabase.from('pending_posts').insert({
+      const insertPayload: Record<string, any> = {
         user_phone: phone,
-        user_id: userId,
         customer_name: data.customerName,
         customer_phone: data.customerPhone,
         images: [],
         status: 'draft'
-      });
+      };
+      if (userId) insertPayload.user_id = userId;
+      const { error: insertErr } = await supabase.from('pending_posts').insert(insertPayload);
+      if (insertErr) {
+        console.error('❌ saveDraft customer insert failed:', insertErr.message);
+        if (userId) {
+          const { error: retryErr } = await supabase.from('pending_posts').insert({
+            user_phone: phone,
+            customer_name: data.customerName,
+            customer_phone: data.customerPhone,
+            images: [],
+            status: 'draft'
+          });
+          if (retryErr) console.error('❌ saveDraft customer insert retry (no user_id) failed:', retryErr.message);
+        }
+      }
     } else {
-      await supabase.from('pending_posts').update({
+      const updatePayload: Record<string, any> = {
         customer_name: data.customerName,
-        customer_phone: data.customerPhone,
-        user_id: userId
-      }).eq('id', existing.id);
+        customer_phone: data.customerPhone
+      };
+      if (userId) updatePayload.user_id = userId;
+      const { error: updateErr } = await supabase.from('pending_posts').update(updatePayload).eq('id', existing.id);
+      if (updateErr) {
+        console.error('❌ saveDraft customer update failed:', updateErr.message);
+        if (userId) {
+          const { error: retryErr } = await supabase.from('pending_posts').update({
+            customer_name: data.customerName,
+            customer_phone: data.customerPhone
+          }).eq('id', existing.id);
+          if (retryErr) console.error('❌ saveDraft customer update retry (no user_id) failed:', retryErr.message);
+        }
+      }
     }
   }
 
   // Save voice_note (job details/description)
   if (data.voice_note) {
     if (!existing) {
-      await supabase.from('pending_posts').insert({
+      const insertPayload: Record<string, any> = {
         user_phone: phone,
-        user_id: userId,
         voice_note: data.voice_note,
         status: 'draft'
-      });
+      };
+      if (userId) insertPayload.user_id = userId;
+      const { error: insertErr } = await supabase.from('pending_posts').insert(insertPayload);
+      if (insertErr) {
+        console.error('❌ saveDraft voice_note insert failed:', insertErr.message);
+        if (userId) {
+          const { error: retryErr } = await supabase.from('pending_posts').insert({
+            user_phone: phone,
+            voice_note: data.voice_note,
+            status: 'draft'
+          });
+          if (retryErr) console.error('❌ saveDraft voice_note insert retry (no user_id) failed:', retryErr.message);
+        }
+      }
     } else {
-      await supabase.from('pending_posts').update({
-        voice_note: data.voice_note,
-        user_id: userId
-      }).eq('id', existing.id);
+      const updatePayload: Record<string, any> = { voice_note: data.voice_note };
+      if (userId) updatePayload.user_id = userId;
+      const { error: updateErr } = await supabase.from('pending_posts').update(updatePayload).eq('id', existing.id);
+      if (updateErr) {
+        console.error('❌ saveDraft voice_note update failed:', updateErr.message);
+        if (userId) {
+          const { error: retryErr } = await supabase.from('pending_posts').update({ voice_note: data.voice_note }).eq('id', existing.id);
+          if (retryErr) console.error('❌ saveDraft voice_note update retry (no user_id) failed:', retryErr.message);
+        }
+      }
     }
   }
 
   // Save image URL
   if (data.imageUrl) {
     if (!existing) {
-      await supabase.from('pending_posts').insert({
+      const insertPayload: Record<string, any> = {
         user_phone: phone,
-        user_id: userId,
         images: [data.imageUrl],
         status: 'draft'
-      });
+      };
+      if (userId) insertPayload.user_id = userId;
+      const { error: insertErr } = await supabase.from('pending_posts').insert(insertPayload);
+      if (insertErr) {
+        console.error('❌ saveDraft image insert failed:', insertErr.message);
+        if (userId) {
+          const { error: retryErr } = await supabase.from('pending_posts').insert({
+            user_phone: phone,
+            images: [data.imageUrl],
+            status: 'draft'
+          });
+          if (retryErr) console.error('❌ saveDraft image insert retry (no user_id) failed:', retryErr.message);
+        }
+      }
     } else {
       const currentImages = existing.images || [];
-      await supabase.from('pending_posts').update({
-        images: [...currentImages, data.imageUrl],
-        user_id: userId
-      }).eq('id', existing.id);
+      const updatePayload: Record<string, any> = { images: [...currentImages, data.imageUrl] };
+      if (userId) updatePayload.user_id = userId;
+      const { error: updateErr } = await supabase.from('pending_posts').update(updatePayload).eq('id', existing.id);
+      if (updateErr) {
+        console.error('❌ saveDraft image update failed:', updateErr.message);
+        if (userId) {
+          const { error: retryErr } = await supabase.from('pending_posts').update({ images: [...currentImages, data.imageUrl] }).eq('id', existing.id);
+          if (retryErr) console.error('❌ saveDraft image update retry (no user_id) failed:', retryErr.message);
+        }
+      }
     }
   }
 
