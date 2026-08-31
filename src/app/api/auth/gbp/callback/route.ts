@@ -84,11 +84,13 @@ export async function GET(req: Request) {
 
       if (dbError) throw dbError;
 
-      // Update user metadata to mark GBP as connected
+      // Update user metadata to mark GBP as connected, and sync the public
+      // profile (phone + one-time trial) so WhatsApp flows can resolve this user.
       if (state) {
         await supabase.auth.admin.updateUserById(state, {
           user_metadata: { gbp_connected: true }
         });
+        await syncProfileForGoogleConnect(state);
       }
 
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard?gbp_connected=true`);
@@ -154,10 +156,57 @@ async function handleMockOAuthBypass(userId: string | null) {
       }
     });
 
+    // Sync the public profile (phone + one-time trial) so WhatsApp flows can
+    // resolve this user for quota/trial checks.
+    await syncProfileForGoogleConnect(userId);
+
     console.log(`✅ Google OAuth connection completed successfully via mock bypass for user: ${userId}`);
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard?gbp_connected=true`);
   } catch (err) {
     console.error("❌ Error in handleMockOAuthBypass:", err);
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/welcome?error=mock_bypass_failed`);
+  }
+}
+
+
+async function syncProfileForGoogleConnect(userId: string) {
+  try {
+    // Fetch existing profile so we never reset the one-time trial.
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id, phone, trial_started_at, created_at, selected_plan')
+      .eq('id', userId)
+      .maybeSingle();
+
+    // Try to find the user's phone (auth phone or metadata).
+    let phone = existing?.phone || null;
+    if (!phone) {
+      const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+      phone = authUser?.user?.phone
+        || authUser?.user?.user_metadata?.phone
+        || authUser?.user?.user_metadata?.phone_number
+        || null;
+    }
+
+    const payload: Record<string, any> = {
+      id: userId,
+      gbp_connected: true,
+      gbp_connected_at: new Date().toISOString(),
+      onboarded_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    if (phone) payload.phone = phone;
+    if (!existing) {
+      payload.trial_started_at = new Date().toISOString();
+      payload.created_at = new Date().toISOString();
+      payload.selected_plan = 'free';
+    }
+
+    const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('Failed to sync profile after Google connect:', error.message);
+    }
+  } catch (err) {
+    console.error('Profile sync error after Google connect:', err);
   }
 }

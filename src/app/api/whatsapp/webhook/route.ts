@@ -381,10 +381,13 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
 
   // Primary identity: auth-linked profiles table (what the dashboard uses for
   // plan/quota/trial checks). This is the source of truth for trial state.
+  const digits = phone.replace(/\D/g, '');
+  const withPlus = `+${digits}`;
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')
-    .eq('phone', phone)
+    .or(`phone.eq.${phone},phone.eq.${withPlus},phone.eq.${digits}`)
     .maybeSingle();
 
   if (profile?.id) {
@@ -396,7 +399,7 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
   const { data: userData } = await supabase
     .from('users')
     .select('id')
-    .eq('phone', phone)
+    .or(`phone.eq.${phone},phone.eq.${withPlus},phone.eq.${digits}`)
     .maybeSingle();
 
   if (userData?.id) {
