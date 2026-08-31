@@ -379,7 +379,20 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
   const cached = userIdCache.get(phone);
   if (cached !== undefined) return cached;
 
-  // Look up user by phone
+  // Primary identity: auth-linked profiles table (what the dashboard uses for
+  // plan/quota/trial checks). This is the source of truth for trial state.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('phone', phone)
+    .maybeSingle();
+
+  if (profile?.id) {
+    userIdCache.set(phone, profile.id);
+    return profile.id;
+  }
+
+  // Legacy public users table fallback
   const { data: userData } = await supabase
     .from('users')
     .select('id')
@@ -389,18 +402,6 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
   if (userData?.id) {
     userIdCache.set(phone, userData.id);
     return userData.id;
-  }
-
-  // Fallback: try matching on metadata too
-  const { data: authUser } = await supabase
-    .from('users')
-    .select('id')
-    .or(`phone.eq.${phone},raw_user_meta_data->>phone.eq.${phone}`)
-    .maybeSingle();
-
-  if (authUser?.id) {
-    userIdCache.set(phone, authUser.id);
-    return authUser.id;
   }
 
   userIdCache.set(phone, null);
