@@ -196,6 +196,25 @@ export async function POST(req: Request) {
         return NextResponse.json({ status: 'processing' });
       }
 
+      // WhatsApp connection: "CONNECT:<userId>" links the sender's number to the
+      // user's account so trial/quota checks can run on WhatsApp flows.
+      const connectMatch = body.match(/CONNECT[:=]\s*([0-9a-fA-F-]{36})/);
+      if (connectMatch && connectMatch[1]) {
+        try {
+          await supabase.from('profiles').upsert({
+            id: connectMatch[1],
+            phone: from,
+            gbp_connected: true,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'id' });
+          userIdCache.delete(from);
+          console.log(`✅ Linked WhatsApp number ${from} to user ${connectMatch[1]}`);
+          return await sendWhatsappText(from, '✅ *WhatsApp connected to your Neerzy account!*', undefined);
+        } catch (connectErr) {
+          console.error('❌ Failed to link WhatsApp number:', connectErr);
+        }
+      }
+
       // Check if message matches customer name and phone details: e.g. "John Doe +1234567890"
       const phoneMatch = body.match(/(\+?\d{10,15})/);
 
@@ -405,6 +424,17 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
   if (userData?.id) {
     userIdCache.set(phone, userData.id);
     return userData.id;
+  }
+
+  // Auth-level fallback: Supabase auth users created via OTP carry the phone.
+  try {
+    const { data: authByPhone } = await (supabase.auth.admin as any).getUserByPhone(phone);
+    if (authByPhone?.user?.id) {
+      userIdCache.set(phone, authByPhone.user.id);
+      return authByPhone.user.id;
+    }
+  } catch (phoneErr) {
+    // getUserByPhone may not exist on this client — safe to ignore.
   }
 
   userIdCache.set(phone, null);

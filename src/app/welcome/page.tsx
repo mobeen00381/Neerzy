@@ -51,7 +51,8 @@ export default function WelcomePage() {
   };
 
   const handleConnectWhatsApp = () => {
-    window.open("https://wa.me/923206291617?text=Hi%20Neerzy!%20I%20want%20to%20connect%20my%20WhatsApp%20profile.", "_blank");
+    const text = encodeURIComponent(`Hi Neerzy! I want to connect my WhatsApp profile. CONNECT:${user?.id || ""}`);
+    window.open(`https://wa.me/923206291617?text=${text}`, "_blank");
     setWhatsappConnected(true);
   };
 
