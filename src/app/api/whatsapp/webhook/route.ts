@@ -403,11 +403,13 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
   const digits = phone.replace(/\D/g, '');
   const withPlus = `+${digits}`;
 
-  const { data: profile } = await supabase
+  const { data: profileRows } = await supabase
     .from('profiles')
     .select('id')
     .or(`phone.eq.${phone},phone.eq.${withPlus},phone.eq.${digits}`)
-    .maybeSingle();
+    .order('updated_at', { ascending: false })
+    .limit(1);
+  const profile = profileRows?.[0] ?? null;
 
   if (profile?.id) {
     userIdCache.set(phone, profile.id);
@@ -415,11 +417,13 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
   }
 
   // Legacy public users table fallback
-  const { data: userData } = await supabase
+  const { data: userRows } = await supabase
     .from('users')
     .select('id')
     .or(`phone.eq.${phone},phone.eq.${withPlus},phone.eq.${digits}`)
-    .maybeSingle();
+    .order('updated_at', { ascending: false })
+    .limit(1);
+  const userData = userRows?.[0] ?? null;
 
   if (userData?.id) {
     userIdCache.set(phone, userData.id);
@@ -624,6 +628,9 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     // Plan Quota Check: posts from WhatsApp + web dashboard count together
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const userIdForQuota = await getUserIdByPhone(phone);
+    if (!userIdForQuota) {
+      console.warn(`⚠️ [trial-check post] Could not resolve user for phone ${phone} — skipping quota/trial check`);
+    }
     if (userIdForQuota) {
       try {
         const { data: profileData } = await supabase
@@ -635,6 +642,7 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
         const planTier = profileData?.selected_plan || 'free';
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
         const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
+        console.log(`[trial-check post] phone=${phone} user=${userIdForQuota} plan=${planTier} trialStart=${trialStart} daysLeft=${trialStart ? getRemainingDays(trialStart, quota.trialDays) : 'n/a'}`);
 
         if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
           return await sendWhatsappText(
@@ -941,6 +949,9 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     // Soft Plan-Quota Check: block sending if trader has hit their plan limits
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const userIdForPublish = await getUserIdByPhone(phone);
+    if (!userIdForPublish) {
+      console.warn(`⚠️ [trial-check review] Could not resolve user for phone ${phone} — skipping quota/trial check`);
+    }
     if (userIdForPublish) {
       try {
         const { data: profileData } = await supabase
@@ -952,6 +963,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
         const planTier = profileData?.selected_plan || 'free';
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
         const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
+        console.log(`[trial-check review] phone=${phone} user=${userIdForPublish} plan=${planTier} trialStart=${trialStart} daysLeft=${trialStart ? getRemainingDays(trialStart, quota.trialDays) : 'n/a'}`);
 
         if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
           return await sendWhatsappText(
