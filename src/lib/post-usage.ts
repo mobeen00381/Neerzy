@@ -12,7 +12,14 @@ import { createClient } from '@supabase/supabase-js';
  * `cycleStartIso` (start of the user's 30-day billing cycle) limits the "total"
  * count to the current cycle — matching the plan's per-month quota. The daily
  * count always uses "today".
+ *
+ * IMPORTANT: only COMPLETED posts count toward quota. WhatsApp `pending_posts`
+ * rows start life as `status = 'draft'` the moment a photo/description/customer
+ * is received — counting those would block a brand-new user's very first POST
+ * (the draft being generated is not a used post). A row only counts once it has
+ * been generated (`generated`) or published (`published`).
  */
+const COMPLETED_POST_STATUSES = ['generated', 'published'];
 export async function countUserPosts(
   userId: string | null,
   phone?: string | null,
@@ -55,12 +62,14 @@ export async function countUserPosts(
       .from('pending_posts')
       .select('*', { count: 'exact', head: true })
       .eq('user_phone', phone)
+      .in('status', COMPLETED_POST_STATUSES)
       .gte('created_at', totalSince);
 
     const { count: dailyCount, error: dailyErr } = await supabase
       .from('pending_posts')
       .select('*', { count: 'exact', head: true })
       .eq('user_phone', phone)
+      .in('status', COMPLETED_POST_STATUSES)
       .gte('created_at', todayIso);
 
     if (!totalErr && totalCount !== null) total += totalCount;

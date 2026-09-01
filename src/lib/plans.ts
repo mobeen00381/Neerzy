@@ -21,7 +21,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     totalPosts: 5,
     dailyPosts: 1,
     totalReviewRequests: 5,
-    dailyReviewRequests: 5, // Temporarily increased from 1 to 5 for testing
+    dailyReviewRequests: 1, // Free trial: 1 review request per day
     features: [
       '5 posts per month',
       '5 review requests per month',

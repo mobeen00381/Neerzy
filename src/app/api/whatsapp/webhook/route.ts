@@ -287,6 +287,25 @@ export async function POST(req: Request) {
               );
             }
           }
+          // Wipe stale drafts left by a previous account on this number so the
+          // freshly-linked account starts clean — orphaned drafts can't resurface
+          // as "No active draft found" or inflate quota counts. (pending_posts is
+          // keyed by user_phone text, so a deleted account's rows survive.)
+          try {
+            const { error: wipeErr } = await supabase
+              .from('pending_posts')
+              .delete()
+              .eq('user_phone', from)
+              .eq('status', 'draft');
+            if (wipeErr) {
+              console.warn('⚠️ connect stale draft cleanup failed:', wipeErr.message);
+            } else {
+              console.log(`🧹 Cleared stale WhatsApp drafts for ${from}`);
+            }
+          } catch (wipeErr) {
+            console.warn('⚠️ connect stale draft cleanup threw:', wipeErr);
+          }
+
           userIdCache.delete(from);
           console.log(`✅ Linked WhatsApp number ${from} to user ${userId}`);
           return await sendWhatsappText(from, '✅ *WhatsApp connected to your Neerzy account!*', undefined);
