@@ -202,7 +202,9 @@ export async function POST(req: Request) {
       if (connectMatch && connectMatch[1]) {
         try {
           // Fetch existing profile so we never reset a one-time trial.
-          const { data: existingProfile } = await supabase
+          // If the query errors (e.g., trial_started_at column missing in this
+          // project), we treat the profile as unknown and skip trial anchoring.
+          const { data: existingProfile, error: profileErr } = await supabase
             .from('profiles')
             .select('id, trial_started_at')
             .eq('id', connectMatch[1])
@@ -218,7 +220,7 @@ export async function POST(req: Request) {
           // If no profile row exists yet (Google/email signups have none),
           // anchor the trial to the auth account's creation date instead of
           // NOW(), so an old account doesn't get a fresh 30-day trial.
-          if (!existingProfile) {
+          if (!profileErr && !existingProfile) {
             try {
               const { data: authUser } = await (supabase.auth.admin as any).getUserById(connectMatch[1]);
               upsertPayload.trial_started_at = authUser?.user?.created_at || new Date().toISOString();
@@ -230,7 +232,19 @@ export async function POST(req: Request) {
           const { error: linkErr } = await supabase.from('profiles').upsert(upsertPayload, { onConflict: 'id' });
           if (linkErr) {
             console.error('❌ connect upsert failed:', linkErr.message);
-            return await sendWhatsappText(from, '⚠️ Could not link your WhatsApp number to your account. Please try again or contact support.', undefined);
+            // Retry with a minimal payload (no trial columns) so the WhatsApp
+            // number still gets linked even if the schema is missing columns.
+            const minimalPayload: Record<string, any> = {
+              id: connectMatch[1],
+              phone: from,
+              gbp_connected: true,
+              updated_at: new Date().toISOString(),
+            };
+            const { error: retryErr } = await supabase.from('profiles').upsert(minimalPayload, { onConflict: 'id' });
+            if (retryErr) {
+              console.error('❌ connect minimal upsert failed:', retryErr.message);
+              return await sendWhatsappText(from, '⚠️ Could not link your WhatsApp number to your account. Please try again or contact support.', undefined);
+            }
           }
           userIdCache.delete(from);
           console.log(`✅ Linked WhatsApp number ${from} to user ${connectMatch[1]}`);

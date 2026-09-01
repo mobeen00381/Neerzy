@@ -215,6 +215,20 @@ async function syncProfileForGoogleConnect(userId: string) {
     const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
     if (error) {
       console.error('Failed to sync profile after Google connect:', error.message);
+      // Retry with a minimal payload so the profile is still created/updated
+      // even if the schema is missing optional columns.
+      const minimalPayload: Record<string, any> = {
+        id: userId,
+        gbp_connected: true,
+        gbp_connected_at: new Date().toISOString(),
+        onboarded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (phone) minimalPayload.phone = phone;
+      const { error: retryErr } = await supabase.from('profiles').upsert(minimalPayload, { onConflict: 'id' });
+      if (retryErr) {
+        console.error('Failed to sync profile after Google connect (minimal retry):', retryErr.message);
+      }
     }
   } catch (err) {
     console.error('Profile sync error after Google connect:', err);
