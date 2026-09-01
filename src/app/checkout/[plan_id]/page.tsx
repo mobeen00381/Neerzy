@@ -31,7 +31,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ plan_id: st
       token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN!,
       eventCallback: function (data) {
         if (data.name === 'checkout.completed') {
-          window.location.href = `/welcome?plan=${plan_id}`;
+          window.location.href = `/dashboard?plan=${plan_id}`;
         }
       }
     }).then((paddleInstance: Paddle | undefined) => {
@@ -77,22 +77,20 @@ export default function CheckoutPage({ params }: { params: Promise<{ plan_id: st
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="bg-white p-10 rounded-3xl shadow-xl border border-slate-100 max-w-md w-full text-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-[#25D366] opacity-10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
-
-        <div className="w-16 h-16 bg-[#F0F7F5] rounded-full flex items-center justify-center mx-auto mb-5">
+    <div className="min-h-screen flex items-center justify-center bg-[#E6F2EA] px-4">
+      <div className="bg-white p-10 rounded-3xl shadow-xl border border-[#E1E8E4] max-w-md w-full text-center relative overflow-hidden">
+        <div className="w-16 h-16 bg-[#E6F2EA] rounded-full flex items-center justify-center mx-auto mb-5">
           <span className="text-2xl">🔒</span>
         </div>
 
-        <h1 className="text-3xl font-black text-slate-900 mb-1">Complete Your Subscription</h1>
-        <p className="text-slate-500 mb-2 font-medium">
-          Plan: <span className="font-black text-[#0F5C4D] uppercase">{plan_id}</span>
+        <h1 className="text-3xl font-black text-[#0A2E22] mb-1">Complete Your Subscription</h1>
+        <p className="text-[#5B6B64] mb-2 font-medium">
+          Plan: <span className="font-black text-[#0F5132] uppercase">{plan_id}</span>
         </p>
-        <p className="text-[#25D366] font-bold text-lg mb-8">{planNames[plan_id]}</p>
+        <p className="text-[#22C55E] font-bold text-lg mb-8">{planNames[plan_id]}</p>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-semibold border border-red-100">
+          <div className="mb-6 p-4 bg-[#0B3D2E] text-white rounded-xl text-sm font-semibold border border-[#0B3D2E]">
             {error}
           </div>
         )}
@@ -100,12 +98,12 @@ export default function CheckoutPage({ params }: { params: Promise<{ plan_id: st
         <button
           onClick={handleCheckout}
           disabled={loading || !paddle}
-          className="w-full bg-[#25D366] text-black font-black py-4 rounded-xl text-lg hover:bg-[#20bd5a] active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-[#25D366]/20"
+          className="w-full bg-[#22C55E] text-white font-black py-4 rounded-xl text-lg hover:bg-[#16A34A] active:scale-[0.98] transition-all disabled:opacity-50 shadow-lg shadow-[#22C55E]/20"
         >
           {loading ? 'Opening checkout...' : !paddle ? 'Loading...' : 'Pay Now'}
         </button>
 
-        <p className="mt-5 text-xs text-slate-400">
+        <p className="mt-5 text-xs text-[#5B6B64]">
           Secure payments powered by Paddle. By continuing, you agree to our Terms and Privacy Policy.
         </p>
       </div>

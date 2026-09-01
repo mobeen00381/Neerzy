@@ -8,7 +8,6 @@ export default function Footer() {
   const pathname = usePathname();
   const hideFooter = pathname?.startsWith('/dashboard') || 
                      pathname?.startsWith('/onboarding') || 
-                     pathname?.startsWith('/welcome') || 
                      pathname?.startsWith('/login') || 
                      pathname?.startsWith('/signup') ||
                      pathname?.startsWith('/checkout');

@@ -40,13 +40,13 @@ export default function LegalLayout({ title, subtitle, lastUpdated, sections, ch
   }, [sections]);
 
   return (
-    <div className="min-h-screen bg-white text-slate-800 font-sans">
+    <div className="min-h-screen bg-white text-[#0A2E22] font-sans">
       {/* Hero Section */}
-      <section className="bg-slate-50 border-b border-slate-200 py-20 px-6">
+      <section className="bg-[#E6F2EA] border-b border-[#E1E8E4] py-20 px-6">
         <div className="container mx-auto max-w-4xl text-center">
-          <h1 className="text-4xl md:text-5xl font-black text-[#0F5C4D] mb-6">{title}</h1>
-          <p className="text-xl text-slate-600 mb-4">{subtitle}</p>
-          <div className="text-sm font-bold uppercase tracking-widest text-slate-400">
+          <h1 className="text-4xl md:text-5xl font-black text-[#0F5132] mb-6">{title}</h1>
+          <p className="text-xl text-[#5B6B64] mb-4">{subtitle}</p>
+          <div className="text-sm font-bold uppercase tracking-widest text-[#5B6B64]">
             Last Updated: {lastUpdated}
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function LegalLayout({ title, subtitle, lastUpdated, sections, ch
           {/* Sticky Sidebar */}
           <aside className="lg:w-1/4">
             <div className="sticky top-24 space-y-6">
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">On this page</h4>
+              <h4 className="text-xs font-black uppercase tracking-widest text-[#5B6B64] mb-4">On this page</h4>
               <nav className="flex flex-col space-y-2">
                 {sections.map((section) => (
                   <Link
@@ -66,16 +66,16 @@ export default function LegalLayout({ title, subtitle, lastUpdated, sections, ch
                     href={`#${section.id}`}
                     className={`text-sm font-medium py-1 transition-all border-l-2 pl-4 ${
                       activeSection === section.id
-                        ? 'border-[#0F5C4D] text-[#0F5C4D] font-bold'
-                        : 'border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-300'
+                        ? 'border-[#0F5132] text-[#0F5132] font-bold'
+                        : 'border-[#E1E8E4] text-[#5B6B64] hover:text-[#0A2E22] hover:border-[#D3E6DA]'
                     }`}
                   >
                     {section.title}
                   </Link>
                 ))}
               </nav>
-              <div className="pt-8 border-t border-slate-100">
-                <p className="text-xs text-slate-400 leading-relaxed italic">
+              <div className="pt-8 border-t border-[#E1E8E4]">
+                <p className="text-xs text-[#5B6B64] leading-relaxed italic">
                   Neerzy is an independent platform and is not affiliated with Google or WhatsApp.
                 </p>
               </div>
@@ -83,14 +83,14 @@ export default function LegalLayout({ title, subtitle, lastUpdated, sections, ch
           </aside>
 
           {/* Body Text */}
-          <main className="lg:w-3/4 max-w-3xl prose prose-slate prose-lg lg:prose-xl prose-headings:text-slate-900 prose-headings:font-black prose-a:text-[#0F5C4D] prose-a:font-bold prose-strong:text-slate-900">
+          <main className="lg:w-3/4 max-w-3xl prose prose-slate prose-lg lg:prose-xl prose-headings:text-[#0A2E22] prose-headings:font-black prose-a:text-[#0F5132] prose-a:font-bold prose-strong:text-[#0A2E22]">
             {children}
             
-            <div className="mt-20 pt-12 border-t border-slate-100">
+            <div className="mt-20 pt-12 border-t border-[#E1E8E4]">
               <h3 className="text-2xl font-bold mb-4">Questions?</h3>
-              <p className="text-slate-600">
+              <p className="text-[#5B6B64]">
                 If you have any questions about these terms, please contact us at{' '}
-                <a href="mailto:support@neerzy.com" className="text-[#0F5C4D] underline">support@neerzy.com</a>
+                <a href="mailto:support@neerzy.com" className="text-[#0F5132] underline">support@neerzy.com</a>
               </p>
             </div>
           </main>

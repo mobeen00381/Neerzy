@@ -33,7 +33,7 @@ import {
 function Footnote({ id }: { id: number }) {
   return (
     <sup>
-      <a href={`#source-${id}`} id={`fn-${id}`} className="text-blue-600 no-underline hover:underline">
+      <a href={`#source-${id}`} id={`fn-${id}`} className="text-[#0F5132] no-underline hover:underline">
         [{id}]
       </a>
     </sup>
@@ -170,13 +170,13 @@ export const mdxComponents = {
     const { href, children, ...rest } = props;
     if (href && (href.startsWith('/') || href.startsWith('#'))) {
       return (
-        <Link href={href} className="text-blue-600 hover:underline" {...rest}>
+        <Link href={href} className="text-[#0F5132] hover:underline" {...rest}>
           {children}
         </Link>
       );
     }
     return (
-      <a href={href} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...rest}>
+      <a href={href} className="text-[#0F5132] hover:underline" target="_blank" rel="noopener noreferrer" {...rest}>
         {children}
       </a>
     );

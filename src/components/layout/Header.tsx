@@ -31,7 +31,6 @@ export default function Header() {
 
   const hideHeader = pathname?.startsWith('/dashboard') || 
                      pathname?.startsWith('/onboarding') || 
-                     pathname?.startsWith('/welcome') || 
                      pathname?.startsWith('/login') || 
                      pathname?.startsWith('/signup') ||
                      pathname?.startsWith('/checkout');
@@ -45,7 +44,7 @@ export default function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#075E54] backdrop-blur-md transition-colors duration-300">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#0B3D2E] backdrop-blur-md transition-colors duration-300">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex gap-6 md:gap-10 items-center">
           <Link href="/" className="flex items-center">
@@ -57,7 +56,7 @@ export default function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex items-center text-sm font-medium text-white/80 hover:text-[#25D366] transition-colors"
+                className="flex items-center text-sm font-medium text-white/80 hover:text-[#22C55E] transition-colors"
               >
                 {link.label}
               </Link>
@@ -67,7 +66,7 @@ export default function Header() {
         <div className="flex items-center gap-2 sm:gap-4">
           {isLoggedIn ? (
             <Link href="/dashboard">
-              <Button className="bg-[#25D366] hover:bg-[#1da851] text-black shadow-md transition-all font-medium border-none rounded-full px-6">Dashboard</Button>
+              <Button className="bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-md transition-all font-medium border-none rounded-full px-6">Dashboard</Button>
             </Link>
           ) : (
             <>
@@ -75,7 +74,7 @@ export default function Header() {
                 <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 font-medium">Log in</Button>
               </Link>
               <Link href="/pricing#plans">
-                <Button className="bg-[#25D366] hover:bg-[#1da851] text-black shadow-md transition-all font-medium border-none rounded-full px-6">Get Started</Button>
+                <Button className="bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-md transition-all font-medium border-none rounded-full px-6">Get Started</Button>
               </Link>
             </>
           )}
@@ -106,13 +105,13 @@ export default function Header() {
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-white/10 bg-[#075E54] shadow-lg">
+        <div className="md:hidden border-t border-white/10 bg-[#0B3D2E] shadow-lg">
           <nav className="container mx-auto px-4 sm:px-6 py-4 flex flex-col gap-2">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="block py-3 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-[#25D366] hover:bg-white/5 transition-colors"
+                className="block py-3 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-[#22C55E] hover:bg-white/5 transition-colors"
               >
                 {link.label}
               </Link>
@@ -120,7 +119,7 @@ export default function Header() {
             {/* Mobile-only login link */}
             <Link
               href="/login"
-              className="block sm:hidden py-3 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-[#25D366] hover:bg-white/5 transition-colors"
+              className="block sm:hidden py-3 px-4 rounded-lg text-sm font-medium text-white/80 hover:text-[#22C55E] hover:bg-white/5 transition-colors"
             >
               Log in
             </Link>

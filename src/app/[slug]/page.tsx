@@ -16,7 +16,7 @@ const RESERVED_SLUGS = new Set([
   'contact', 'cookies', 'copy', 'dashboard', 'demo',
   'gmb-audit-tool', 'gmb-report', 'images', 'login',
   'onboarding', 'pricing', 'privacy-policy', 'publish',
-  'quick-post', 'signup', 'terms', 'welcome', 'whatsapp-demo',
+  'quick-post', 'signup', 'terms', 'whatsapp-demo',
   'favicon.ico', '_next',
 ]);
 
@@ -120,7 +120,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="text-sm text-gray-500 mb-8">
-          <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
+          <Link href="/" className="hover:text-[#0F5132] transition-colors">Home</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-900 font-medium">{frontmatter.breadcrumbName || frontmatter.title}</span>
         </nav>
@@ -148,21 +148,21 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Understand Your Results</h4>
                 <ul className="space-y-2">
-                  <li><Link href="/understanding-your-gbp-audit-score" className="text-blue-600 hover:underline">Understanding Your Audit Score</Link></li>
-                  <li><Link href="/improve-your-audit-score" className="text-blue-600 hover:underline">How to Improve Your Overall Score</Link></li>
+                  <li><Link href="/understanding-your-gbp-audit-score" className="text-[#0F5132] hover:underline">Understanding Your Audit Score</Link></li>
+                  <li><Link href="/improve-your-audit-score" className="text-[#0F5132] hover:underline">How to Improve Your Overall Score</Link></li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Category Guides</h4>
                 <ul className="space-y-2">
                   {categoryGuides.map((g) => (
-                    <li key={g.href}><Link href={g.href} className="text-blue-600 hover:underline">{g.label}</Link></li>
+                    <li key={g.href}><Link href={g.href} className="text-[#0F5132] hover:underline">{g.label}</Link></li>
                   ))}
                 </ul>
               </div>
             </div>
             <div className="mt-8 text-center">
-              <Link href={ROUTES.AUDIT_TOOL} className="inline-block bg-blue-600 text-white font-bold py-4 px-10 rounded-lg hover:bg-blue-700 transition-colors text-lg">
+              <Link href={ROUTES.AUDIT_TOOL} className="inline-block bg-[#22C55E] text-white font-bold py-4 px-10 rounded-lg hover:bg-[#16A34A] transition-colors text-lg">
                 Run Your Free Audit Now →
               </Link>
             </div>

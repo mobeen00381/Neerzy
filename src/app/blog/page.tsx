@@ -62,9 +62,9 @@ function buildBlogPosts(): BlogPost[] {
 const blogPosts = buildBlogPosts();
 
 const categoryColors: Record<string, string> = {
-  'Local SEO': 'bg-blue-100 text-blue-800',
-  'GBP Audit': 'bg-emerald-100 text-emerald-800',
-  'Reviews': 'bg-amber-100 text-amber-800',
+  'Local SEO': 'bg-[#E6F2EA] text-[#0F5132]',
+  'GBP Audit': 'bg-[#E6F2EA] text-[#0F5132]',
+  'Reviews': 'bg-[#E6F2EA] text-[#0F5132]',
 };
 
 function BlogCard({ post }: { post: BlogPost }) {
@@ -72,7 +72,7 @@ function BlogCard({ post }: { post: BlogPost }) {
 
   return (
     <article
-      className="group flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:border-blue-200 overflow-hidden"
+      className="group flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:border-[#22C55E] overflow-hidden"
     >
       <div className="flex flex-col flex-1 p-6">
         {/* Category badge + meta */}
@@ -84,8 +84,8 @@ function BlogCard({ post }: { post: BlogPost }) {
         </div>
 
         {/* Title */}
-        <h2 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors leading-snug">
-          <Link href={post.href} className="no-underline text-inherit hover:text-blue-600">
+        <h2 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-[#0F5132] transition-colors leading-snug">
+          <Link href={post.href} className="no-underline text-inherit hover:text-[#0F5132]">
             {post.title}
           </Link>
         </h2>
@@ -100,7 +100,7 @@ function BlogCard({ post }: { post: BlogPost }) {
           <span className="text-xs text-gray-400">{post.readTime}</span>
           <Link
             href={post.href}
-            className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors inline-flex items-center gap-1"
+            className="text-sm font-semibold text-[#0F5132] hover:text-[#0B3D2E] transition-colors inline-flex items-center gap-1"
           >
             Read More
             <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,10 +117,10 @@ function FeaturedCard({ post }: { post: BlogPost }) {
   const categoryColor = categoryColors[post.category] || 'bg-gray-100 text-gray-700';
 
   return (
-    <article className="group relative rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg hover:border-blue-300">
+    <article className="group relative rounded-2xl border-2 border-[#E1E8E4] bg-white shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg hover:border-[#22C55E]">
       {/* Featured badge */}
       <div className="absolute top-4 right-4">
-        <span className="inline-flex items-center gap-1 bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+        <span className="inline-flex items-center gap-1 bg-[#0F5132] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
@@ -136,8 +136,8 @@ function FeaturedCard({ post }: { post: BlogPost }) {
           <span className="text-xs text-gray-400">{post.date}</span>
         </div>
 
-        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors leading-tight">
-          <Link href={post.href} className="no-underline text-inherit hover:text-blue-600">
+        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-4 group-hover:text-[#0F5132] transition-colors leading-tight">
+          <Link href={post.href} className="no-underline text-inherit hover:text-[#0F5132]">
             {post.title}
           </Link>
         </h2>
@@ -150,7 +150,7 @@ function FeaturedCard({ post }: { post: BlogPost }) {
           <span className="text-sm text-gray-400">{post.readTime}</span>
           <Link
             href={post.href}
-            className="inline-flex items-center gap-2 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 text-base font-semibold text-white bg-[#22C55E] hover:bg-[#16A34A] px-6 py-3 rounded-lg transition-colors shadow-sm"
           >
             Read the Guide
             <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@ export default function BlogPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-12 lg:py-20 font-sans text-gray-800">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="text-sm text-gray-500 mb-8">
-          <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
+          <Link href="/" className="hover:text-[#0F5132] transition-colors">Home</Link>
           <span className="mx-2">/</span>
           <span className="text-gray-900 font-medium">Blog</span>
         </nav>

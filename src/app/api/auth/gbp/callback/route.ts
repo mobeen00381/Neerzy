@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
   try {
     if (!code) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/welcome?error=missing_code`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard?error=missing_code`);
     }
 
     // Check if running in mock fallback mode
@@ -101,14 +101,14 @@ export async function GET(req: Request) {
 
   } catch (error: any) {
     console.error("GBP Callback Error:", error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/welcome?error=callback_failed`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard?error=callback_failed`);
   }
 }
 
 async function handleMockOAuthBypass(userId: string | null) {
   try {
     if (!userId) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/welcome?error=no_user`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard?error=no_user`);
     }
 
     // 1. Get the user's profile to find their phone
@@ -169,7 +169,7 @@ async function handleMockOAuthBypass(userId: string | null) {
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard?gbp_connected=true`);
   } catch (err) {
     console.error("❌ Error in handleMockOAuthBypass:", err);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/welcome?error=mock_bypass_failed`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/dashboard?error=mock_bypass_failed`);
   }
 }
 

@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     const messageText = `Hi ${customerName}! 👋\n\nThank you for choosing ${trader_name || 'our business'}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${review_link}`;
 
     // Resolve the business profile robustly:
-    // 1. body.user_phone (now sent by ReviewsManager)
+    // 1. body.user_phone (now sent by the post flow)
     // 2. Look up profiles.phone → business_profiles.user_phone
     // 3. Auth user metadata phone
     // 4. If nothing found, still insert with business_id: null — never fail

@@ -147,7 +147,7 @@ export default function PricingPage() {
             <span style={{ color: 'var(--color-primary)' }}>busy local businesses</span>
           </h1>
           <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto var(--space-5)' }}>
-            Send a job photo on <WhatsAppIcon size={24} className="text-[#25D366] mx-1" /> <strong>WhatsApp</strong> → Neerzy helps create your Google posts, 
+            Send a job photo on <WhatsAppIcon size={24} className="text-[#22C55E] mx-1" /> <strong>WhatsApp</strong> → Neerzy helps create your Google posts, 
             website updates, and review requests in minutes.
           </p>
           
@@ -247,7 +247,7 @@ export default function PricingPage() {
                         )}
                       </span>
                       <span style={{ lineHeight: '1.4' }}>
-                        {feature.text.includes('WhatsApp') && <WhatsAppIcon size={12} className="text-[#25D366] mt-0.5 shrink-0" />}
+                        {feature.text.includes('WhatsApp') && <WhatsAppIcon size={12} className="text-[#22C55E] mt-0.5 shrink-0" />}
                         {feature.text}
                       </span>
                     </li>

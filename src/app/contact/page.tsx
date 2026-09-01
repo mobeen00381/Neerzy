@@ -23,27 +23,27 @@ export default function ContactPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <h1 className="text-4xl font-bold mb-8 text-[#0F5C4D]">Contact Us</h1>
+      <h1 className="text-4xl font-bold mb-8 text-[#0F5132]">Contact Us</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         <div>
           <h2 className="text-2xl font-semibold mb-4">Get in Touch</h2>
-          <p className="text-slate-600 mb-8">Have questions about Neerzy? Our team is here to help local traders grow.</p>
+          <p className="text-[#5B6B64] mb-8">Have questions about Neerzy? Our team is here to help local traders grow.</p>
           
           <div className="mb-6">
-            <h3 className="font-bold text-slate-900">Email</h3>
-            <p className="text-slate-600">support@neerzy.com</p>
+            <h3 className="font-bold text-[#0A2E22]">Email</h3>
+            <p className="text-[#5B6B64]">support@neerzy.com</p>
           </div>
           
           <div className="mb-6">
-            <h3 className="font-bold text-slate-900">Phone</h3>
-            <p className="text-slate-600">
-              <a href="tel:+18338872999" className="hover:text-blue-500 transition-colors">Toll Free: +1 (833) 887-2999</a>
+            <h3 className="font-bold text-[#0A2E22]">Phone</h3>
+            <p className="text-[#5B6B64]">
+              <a href="tel:+18338872999" className="hover:text-[#0F5132] transition-colors">Toll Free: +1 (833) 887-2999</a>
             </p>
           </div>
           
           <div className="mb-6">
-            <h3 className="font-bold text-slate-900">Business Address</h3>
-            <p className="text-slate-600">
+            <h3 className="font-bold text-[#0A2E22]">Business Address</h3>
+            <p className="text-[#5B6B64]">
               Neerzy AI Ltd<br />
               123 Trader Lane, Suite 400<br />
               London, EC1V 2NX<br />
@@ -52,22 +52,22 @@ export default function ContactPage() {
           </div>
         </div>
         
-        <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100">
+        <div className="bg-[#F7F9F8] p-8 rounded-2xl border border-[#E1E8E4]">
           <h2 className="text-xl font-bold mb-6">Send a Message</h2>
           <form className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Name</label>
-              <input type="text" className="w-full p-3 rounded-lg border border-slate-200" placeholder="Your name" />
+              <input type="text" className="w-full p-3 rounded-lg border border-[#E1E8E4]" placeholder="Your name" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Email</label>
-              <input type="email" className="w-full p-3 rounded-lg border border-slate-200" placeholder="Your email" />
+              <input type="email" className="w-full p-3 rounded-lg border border-[#E1E8E4]" placeholder="Your email" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Message</label>
-              <textarea className="w-full p-3 rounded-lg border border-slate-200 h-32" placeholder="How can we help?"></textarea>
+              <textarea className="w-full p-3 rounded-lg border border-[#E1E8E4] h-32" placeholder="How can we help?"></textarea>
             </div>
-            <button className="w-full bg-[#25D366] text-black font-bold py-3 rounded-lg hover:brightness-110 transition-all">
+            <button className="w-full bg-[#22C55E] text-white font-bold py-3 rounded-lg hover:bg-[#16A34A] transition-all">
               Send Message
             </button>
           </form>

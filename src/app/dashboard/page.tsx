@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabase";
 import { PLAN_LIMITS, getPlan, getRemainingDays, getCycleStartIso } from '@/lib/plans';
-import { ReviewsManager } from '@/components/dashboard/ReviewsManager';
 import { FallbackReviewModal } from '@/components/dashboard/FallbackReviewModal';
 import { SocialContentStudio } from '@/components/dashboard/SocialContentStudio';
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
@@ -31,9 +30,9 @@ import {
   Activity,
   ChevronRight,
   Copy,
-  Star,
   Share2,
-  Cpu
+  Cpu,
+  Store
 } from 'lucide-react';
 
 interface Message {
@@ -143,7 +142,7 @@ function renderMessageContent(text: string) {
 export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'post' | 'analytics' | 'account' | 'reviews' | 'social'>('post');
+  const [activeTab, setActiveTab] = useState<'post' | 'analytics' | 'account' | 'social'>('post');
   
   // User & Business Profiles
   const [user, setUser] = useState<any>(null);
@@ -266,7 +265,7 @@ export default function Dashboard() {
       // 30-day billing cycle anchor (plan_started_at || trial_started_at || created_at)
       const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
 
-      setPhone(phone); // lift phone to component state for ReviewsManager
+      setPhone(phone); // used to detect WhatsApp connection state for the setup card
 
       // 2. Fetch business profile
       let bData = null;
@@ -400,22 +399,7 @@ export default function Dashboard() {
         (a, b) => a.created_at.getTime() - b.created_at.getTime()
       );
 
-      const welcomeMessage: Message = {
-        id: 'welcome',
-        text: `Welcome to Neerzy! 🤖 I am your Google Business Profile assistant.
-
-Here's how it works:
-1. 📸 Send photos of your completed job
-2. ✍️ Send a short description or voice note
-3. 💚 Type *POST* to generate your GMB post
-4. 📋 Copy the text & publish to Google
-
-Try sending a photo or typing a description of a job you completed!`,
-        sender: 'bot',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setMessages([welcomeMessage, ...dbMessages]);
+      setMessages(dbMessages);
 
       // Calculate post counts directly from posts DB (web posts) + pending_posts (WhatsApp),
       // filtered to the current 30-day billing cycle so WhatsApp + dashboard usage count
@@ -1199,6 +1183,34 @@ Try sending a photo or typing a description of a job you completed!`,
     );
   }
 
+  // Connection state for the setup card (drives the big connect CTAs)
+  const gbpConnected = !!(profile?.gbp_connected || businessProfile?.google_place_id);
+  const whatsAppConnected = !!phone;
+  const showSetupCard = !gbpConnected || !whatsAppConnected;
+
+  // Connect Google Business Profile (OAuth with mock bypass when no client ID configured)
+  const handleConnectGBP = () => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+    const isMock = !clientId || clientId.includes("your_google_client");
+
+    if (isMock) {
+      console.log("Mocking Google OAuth redirect client-side.");
+      window.location.href = `/api/auth/gbp/callback?code=mock_oauth_code_bypass&state=${user?.id || ""}`;
+      return;
+    }
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: `${window.location.origin}/api/auth/gbp/callback`,
+      response_type: 'code',
+      scope: 'https://www.googleapis.com/auth/business.manage https://www.googleapis.com/auth/userinfo.profile',
+      access_type: 'offline',
+      prompt: 'consent',
+      state: user?.id || ""
+    })}`;
+    window.location.href = authUrl;
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800">
       
@@ -1214,7 +1226,6 @@ Try sending a photo or typing a description of a job you completed!`,
               </div>
               <span className="text-xl font-black tracking-tight text-slate-900">Neerzy</span>
             </div>
-
             {/* Clean Tabs */}
             <div className="flex bg-slate-100 p-1 rounded-xl">
               <button
@@ -1226,16 +1237,6 @@ Try sending a photo or typing a description of a job you completed!`,
                 }`}
               >
                 Post
-              </button>
-              <button
-                onClick={() => setActiveTab('reviews')}
-                className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
-                  activeTab === 'reviews' 
-                    ? 'bg-white text-emerald-700 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                Reviews
               </button>
               <button
                 onClick={() => setActiveTab('social')}
@@ -1273,15 +1274,17 @@ Try sending a photo or typing a description of a job you completed!`,
 
           {/* Center: Connect WhatsApp & Download App Buttons */}
           <div className="flex items-center gap-3">
-            <a
-              href={`https://wa.me/923206291617?text=${encodeURIComponent(`Hi Neerzy! I want to connect my WhatsApp profile. CONNECT:${user?.id || ""}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#25D366] text-white rounded-xl text-xs font-bold hover:bg-[#20ba56] transition-all shadow-sm shadow-[#25D366]/10 active:scale-95"
-            >
-              <MessageSquare className="w-4 h-4" />
-              Connect with WhatsApp
-            </a>
+            {!whatsAppConnected && (
+              <a
+                href={`https://wa.me/923206291617?text=${encodeURIComponent(`Hi Neerzy! I want to connect my WhatsApp profile. CONNECT:${user?.id || ""}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[#25D366] text-white rounded-xl text-xs font-bold hover:bg-[#20ba56] transition-all shadow-sm shadow-[#25D366]/10 active:scale-95"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Connect with WhatsApp
+              </a>
+            )}
             <button
               onClick={handleDownloadApp}
               className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-700 bg-white rounded-xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm active:scale-95"
@@ -1407,25 +1410,6 @@ Try sending a photo or typing a description of a job you completed!`,
             </button>
 
             <button
-              onClick={() => setActiveTab('reviews')}
-              className={`w-full flex items-center gap-4 px-4 py-3.5 border-b border-slate-100/50 transition-all ${
-                activeTab === 'reviews' 
-                  ? 'bg-emerald-50/55 border-l-4 border-emerald-600' 
-                  : 'hover:bg-slate-50'
-              }`}
-            >
-              <div className="w-11 h-11 bg-amber-600 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm">
-                <Star className="w-5 h-5" />
-              </div>
-              <div className="flex-1 text-left min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-sm text-slate-900">Review Requests</span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">Send & track Google review requests</p>
-              </div>
-            </button>
-
-            <button
               onClick={() => setActiveTab('account')}
               className={`w-full flex items-center gap-4 px-4 py-3.5 border-b border-slate-100/50 transition-all ${
                 activeTab === 'account' 
@@ -1459,6 +1443,46 @@ Try sending a photo or typing a description of a job you completed!`,
                   ⏳ Your 30-day free trial has ended.{' '}
                   <a href="/pricing" className="underline text-amber-900 font-black">Upgrade</a>{' '}
                   to keep posting and sending review requests.
+                </div>
+              )}
+
+              {/* SETUP CARD: Connect Google Profile + WhatsApp (hidden once both connected) */}
+              {showSetupCard && (
+                <div className="bg-gradient-to-r from-[#0F5C4D] to-emerald-700 px-5 py-5 md:px-6 border-b border-emerald-900/30 shadow-inner">
+                  <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base md:text-lg font-black tracking-tight flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-emerald-300" /> Get started in under a minute
+                      </h3>
+                      <p className="text-xs md:text-sm text-emerald-100/90 font-semibold mt-1 leading-relaxed">
+                        Connect your Google Profile and WhatsApp so Neerzy can post to your listing and send review requests automatically.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 shrink-0">
+                      {!gbpConnected && (
+                        <button
+                          onClick={handleConnectGBP}
+                          className="flex items-center justify-center gap-2.5 px-6 py-4 bg-white text-emerald-900 rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-emerald-50 hover:shadow-xl transition-all active:scale-95 cursor-pointer"
+                        >
+                          <Store className="w-5 h-5 text-[#4285F4]" />
+                          Connect Google Profile
+                          <ChevronRight className="w-4 h-4 opacity-60" />
+                        </button>
+                      )}
+                      {!whatsAppConnected && (
+                        <a
+                          href={`https://wa.me/923206291617?text=${encodeURIComponent(`Hi Neerzy! I want to connect my WhatsApp profile. CONNECT:${user?.id || ""}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2.5 px-6 py-4 bg-[#25D366] text-white rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-[#20ba56] hover:shadow-xl transition-all active:scale-95"
+                        >
+                          <MessageSquare className="w-5 h-5" />
+                          Connect WhatsApp
+                          <ChevronRight className="w-4 h-4 opacity-70" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1695,25 +1719,6 @@ Try sending a photo or typing a description of a job you completed!`,
                   businessName={bName}
                   businessCategory={businessProfile?.category || 'Local Service'}
                 />
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: REVIEWS */}
-          {activeTab === 'reviews' && (
-            <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto space-y-8 max-h-[calc(100vh-80px)]">
-              <div className="max-w-3xl mx-auto">
-                {trialExpired && (
-                  <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-bold text-amber-800">
-                    ⏳ Your 30-day free trial has ended.{' '}
-                    <a href="/pricing" className="underline font-black">Upgrade</a> to send review requests.
-                  </div>
-                )}
-                <div className="mb-8">
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">Review Requests</h2>
-                  <p className="text-sm text-slate-500 font-semibold mt-1">Send Google review requests via WhatsApp and track responses</p>
-                </div>
-                <ReviewsManager userId={user?.id || ''} businessProfile={businessProfile} userPhone={phone} trialExpired={trialExpired} />
               </div>
             </div>
           )}
