@@ -201,18 +201,60 @@ export async function POST(req: Request) {
       const connectMatch = body.match(/CONNECT[:=]\s*([0-9a-fA-F-]{36})/);
       if (connectMatch && connectMatch[1]) {
         try {
+          const userId = connectMatch[1];
+          // Store the sender's number in a consistent +<digits> format so
+          // lookups and unique constraints always see the same string.
+          const digitsOnly = from.replace(/\D/g, '').replace(/^00/, '');
+          const normalizedPhone = `+${digitsOnly}`;
+
+          // Guard against stale CONNECT links: verify the auth account still
+          // exists before writing a profile row (FK: profiles.id → auth.users).
+          let authUserData: { created_at?: string } | null = null;
+          try {
+            const { data: authUser, error: authErr } = await (supabase.auth.admin as any).getUserById(userId);
+            if (authErr) {
+              console.error('❌ connect getUserById error:', authErr.message);
+            }
+            authUserData = authUser?.user ?? null;
+          } catch (authErr) {
+            console.error('❌ connect getUserById threw:', authErr);
+          }
+          if (!authUserData) {
+            return await sendWhatsappText(
+              from,
+              '⚠️ Your Neerzy session has changed. Please open the Neerzy dashboard, log in again, and tap "Connect with WhatsApp".',
+              undefined
+            );
+          }
+
+          // Re-bind this phone: clear it from any other profile row (stale
+          // links from earlier accounts or different number formats).
+          const { error: clearErr } = await supabase
+            .from('profiles')
+            .update({ phone: null, updated_at: new Date().toISOString() })
+            .neq('id', userId)
+            .or(`phone.eq.${normalizedPhone},phone.eq.${digitsOnly},phone.eq.${from}`);
+          if (clearErr) {
+            console.warn('⚠️ connect phone re-bind clear failed, trying delete:', clearErr.message);
+            await supabase
+              .from('profiles')
+              .delete()
+              .neq('id', userId)
+              .or(`phone.eq.${normalizedPhone},phone.eq.${digitsOnly},phone.eq.${from}`);
+          }
+
           // Fetch existing profile so we never reset a one-time trial.
           // If the query errors (e.g., trial_started_at column missing in this
           // project), we treat the profile as unknown and skip trial anchoring.
           const { data: existingProfile, error: profileErr } = await supabase
             .from('profiles')
             .select('id, trial_started_at')
-            .eq('id', connectMatch[1])
+            .eq('id', userId)
             .maybeSingle();
 
           const upsertPayload: Record<string, any> = {
-            id: connectMatch[1],
-            phone: from,
+            id: userId,
+            phone: normalizedPhone,
             gbp_connected: true,
             updated_at: new Date().toISOString(),
           };
@@ -221,33 +263,32 @@ export async function POST(req: Request) {
           // anchor the trial to the auth account's creation date instead of
           // NOW(), so an old account doesn't get a fresh 30-day trial.
           if (!profileErr && !existingProfile) {
-            try {
-              const { data: authUser } = await (supabase.auth.admin as any).getUserById(connectMatch[1]);
-              upsertPayload.trial_started_at = authUser?.user?.created_at || new Date().toISOString();
-            } catch (authErr) {
-              upsertPayload.trial_started_at = new Date().toISOString();
-            }
+            upsertPayload.trial_started_at = authUserData.created_at || new Date().toISOString();
           }
 
           const { error: linkErr } = await supabase.from('profiles').upsert(upsertPayload, { onConflict: 'id' });
           if (linkErr) {
-            console.error('❌ connect upsert failed:', linkErr.message);
+            console.error('❌ connect upsert failed:', linkErr.code, linkErr.message);
             // Retry with a minimal payload (no trial columns) so the WhatsApp
             // number still gets linked even if the schema is missing columns.
-            const minimalPayload: Record<string, any> = {
-              id: connectMatch[1],
-              phone: from,
-              gbp_connected: true,
-              updated_at: new Date().toISOString(),
-            };
-            const { error: retryErr } = await supabase.from('profiles').upsert(minimalPayload, { onConflict: 'id' });
+            const { error: retryErr } = await supabase
+              .from('profiles')
+              .upsert(
+                { id: userId, phone: normalizedPhone, gbp_connected: true, updated_at: new Date().toISOString() },
+                { onConflict: 'id' }
+              );
             if (retryErr) {
-              console.error('❌ connect minimal upsert failed:', retryErr.message);
-              return await sendWhatsappText(from, '⚠️ Could not link your WhatsApp number to your account. Please try again or contact support.', undefined);
+              console.error('❌ connect minimal upsert failed:', retryErr.code, retryErr.message);
+              const errTag = retryErr.code ? ` (DB error ${retryErr.code})` : '';
+              return await sendWhatsappText(
+                from,
+                `⚠️ Could not link your WhatsApp number to your account.${errTag} Please try again or contact support.`,
+                undefined
+              );
             }
           }
           userIdCache.delete(from);
-          console.log(`✅ Linked WhatsApp number ${from} to user ${connectMatch[1]}`);
+          console.log(`✅ Linked WhatsApp number ${from} to user ${userId}`);
           return await sendWhatsappText(from, '✅ *WhatsApp connected to your Neerzy account!*', undefined);
         } catch (connectErr) {
           console.error('❌ Failed to link WhatsApp number:', connectErr);
