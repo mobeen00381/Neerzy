@@ -23,7 +23,10 @@ export async function POST(req: Request) {
     }
 
     if (!targetPhone) {
-      targetPhone = '+923006291617';
+      return NextResponse.json(
+        { error: 'No phone number linked yet. Connect your WhatsApp number first.' },
+        { status: 400 }
+      );
     }
 
     console.log(`🔗 Connecting business listing: "${data.businessName}" to phone: "${targetPhone}"`);

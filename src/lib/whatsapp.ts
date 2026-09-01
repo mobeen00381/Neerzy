@@ -121,7 +121,7 @@ export async function sendMetaText({ to, body }: SendTextParams): Promise<MetaRe
  * 
  * For review request template, pass components like:
  * { type: "body", parameters: [
- *   { type: "text", text: "Amjad" },
+ *   { type: "text", text: "Mike" },
  *   { type: "text", text: "Neerzy" },
  *   { type: "text", text: "https://..." }
  * ]}

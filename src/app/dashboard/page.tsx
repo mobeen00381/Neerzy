@@ -256,52 +256,9 @@ export default function Dashboard() {
       // Get phone number from DB profile, auth phone, or auth user metadata
       let phone = profileData?.phone || user?.phone || user?.user_metadata?.phone || user?.user_metadata?.phone_number;
 
-      // HEAL / AUTO-LINK: Link to the default/sandbox profile if user phone is not set
-      if (!phone) {
-        const { data: defaultBProfile } = await supabase
-          .from('business_profiles')
-          .select('*')
-          .eq('user_phone', '+923006291617')
-          .maybeSingle();
-
-        if (defaultBProfile) {
-          phone = '+923006291617';
-          // Update user metadata (always works client-side)
-          try {
-            const { data: updateRes } = await supabase.auth.updateUser({
-              data: {
-                phone: '+923006291617',
-                business_name: defaultBProfile.business_name,
-                gbp_connected: true
-              }
-            });
-            if (updateRes?.user) {
-              setUser(updateRes.user);
-            }
-            console.log("🩹 Healed user metadata with fallback business phone link.");
-          } catch (metaErr) {
-            console.error('❌ Failed to update user metadata in healing:', metaErr);
-          }
-
-          // Try updating profiles table, but catch errors to prevent dashboard crash
-          try {
-            const { data: updatedProfile } = await supabase
-              .from('profiles')
-              .update({
-                phone: '+923006291617',
-                business_name: defaultBProfile.business_name
-              })
-              .eq('id', user.id)
-              .select()
-              .single();
-            if (updatedProfile) {
-              profileData = updatedProfile;
-            }
-          } catch (dbErr) {
-            console.warn('⚠️ profiles table update skipped in healing:', dbErr);
-          }
-        }
-      }
+      // No sandbox auto-link: a phone-less user stays phone-less (quota/trial
+      // checks handle a missing phone gracefully) instead of being silently
+      // bound to a developer test account's business profile.
 
       setProfile(profileData);
 

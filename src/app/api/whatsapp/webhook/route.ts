@@ -314,7 +314,7 @@ export async function POST(req: Request) {
         }
       }
 
-      // Check if message matches customer name and phone details: e.g. "John Doe +1234567890"
+      // Check if message matches customer name and phone details: e.g. "Mike +15552221617"
       const phoneMatch = body.match(/(\+?\d{10,15})/);
 
       if (phoneMatch) {
@@ -884,9 +884,7 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
 
     const postTextMessage = `✅ *Post Ready — copy the text below:*
 
-${cleanPost}
-
-(Then open Google below, paste & publish)`;
+${cleanPost}`;
 
     await sendWhatsappText(phone, postTextMessage, fromNumber);
 
@@ -919,20 +917,16 @@ ${gbpLink}
     await sendWhatsappText(phone, gbpMessage, fromNumber);
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Quick links: download images + open Google (no "Copy Post" link —
-    // the full post text was already sent above for direct copy).
+    // Quick steps: images are already saved in the phone gallery + open Google.
+    // (No web image link — the trader keeps the photos sent in the chat.)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const appUrl = 'https://www.neerzy.com';
-
-    const actionMessage = `🖼️ *Download Images (save to your phone):*
-
-${appUrl}/images/${draft.id}
+    const actionMessage = `🖼️ *Images:* your photos are already saved in your phone's gallery — select them when publishing on Google.
 
 🌐 *Open Google to publish:*
 
 ${gbpLink}
 
-📌 *Steps:* copy the text above → paste on Google → add the saved photos → publish.
+📌 *Steps:* copy the text above → paste on Google → add your saved photos → publish.
 Type *DONE* when published.`;
 
     return await sendWhatsappText(phone, actionMessage, fromNumber);
@@ -1003,7 +997,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       console.warn(`⚠️ Post ${post.id} has no customer_phone. Trader phone: ${phone}. NOT sending review to trader.`);
       return await sendWhatsappText(
         phone,
-        "⚠️ *No customer phone number found.*\n\nPlease send the customer's name and phone number first.\n\nExample: _Amjad +923711291617_",
+        "⚠️ *No customer phone number found.*\n\nPlease send the customer's name and phone number first.\n\nExample: _Mike +15552221617_",
         fromNumber
       );
     }
@@ -1131,7 +1125,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       console.warn(`⚠️ Customer phone ${targetCustomerPhone} matches trader phone ${phone}. Blocking self-send.`);
       return await sendWhatsappText(
         phone,
-        "⚠️ *The customer phone number matches your own number.*\n\nPlease send the correct customer's name and phone number.\n\nExample: _Amjad +923711291617_",
+        "⚠️ *The customer phone number matches your own number.*\n\nPlease send the correct customer's name and phone number.\n\nExample: _Mike +15552221617_",
         fromNumber
       );
     }

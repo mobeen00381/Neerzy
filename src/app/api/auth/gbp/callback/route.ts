@@ -118,13 +118,18 @@ async function handleMockOAuthBypass(userId: string | null) {
       .eq("id", userId)
       .maybeSingle();
 
-    // 2. Fetch the user's business profile
-    const phone = profile?.phone || "+923006291617";
-    const { data: bProfile } = await supabase
-      .from("business_profiles")
-      .select("*")
-      .eq("user_phone", phone)
-      .maybeSingle();
+    // 2. Fetch the user's business profile (only if a phone is linked — never
+    // fall back to a developer sandbox account)
+    const phone = profile?.phone || null;
+    let bProfile: any = null;
+    if (phone) {
+      const { data } = await supabase
+        .from("business_profiles")
+        .select("*")
+        .eq("user_phone", phone)
+        .maybeSingle();
+      bProfile = data;
+    }
 
     const businessName = bProfile?.business_name || profile?.business_name || "My Business Listing";
     const placeId = bProfile?.google_place_id || "ChIJ8y8v-B0zjoARkY2-e_Vb1g0";
