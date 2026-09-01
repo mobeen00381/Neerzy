@@ -385,7 +385,11 @@ export default function Dashboard() {
             ? `⭐ *Review received from ${customerName}!*`
             : isManual
               ? `📱 *Review request sent via Device Link to ${customerName}!*\n\n📱 Sent to: ${customerPhone}\n🔗 ${r.review_link}\n\n_Open WhatsApp or SMS to send directly._`
-              : `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${r.review_link}\n\n_Done! Workflow complete._ ✅`,
+              : r.status === 'delivered'
+                ? `✅ *Review request delivered to ${customerName}!*\n\n📱 WhatsApp confirmed delivery.\n🔗 ${r.review_link}`
+                : r.status === 'failed'
+                  ? `⚠️ *Review request NOT delivered to ${customerName}.*${r.last_error ? `\n\n_Reason: ${r.last_error}_` : ''}\n\n_WhatsApp reported the message could not be delivered._`
+                  : `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${r.review_link}\n\n_You'll get a delivery confirmation once WhatsApp confirms delivery._`,
           sender: 'bot' as const,
           timestamp: new Date(r.sent_at || r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           date: new Date(r.sent_at || r.created_at).toLocaleDateString(),

@@ -227,7 +227,7 @@ export async function POST(req: Request) {
         const result = await sendMetaTemplate({
           to: e164Phone,
           templateName,
-          languageCode: "en_US",
+          languageCode: "en",
           components,
         });
         whatsappSent = true;
@@ -238,6 +238,7 @@ export async function POST(req: Request) {
           await supabaseAdmin.from('review_requests').update({
             status: 'sent',
             sent_via: 'whatsapp_template',
+            meta_message_id: result.messages?.[0]?.id || null,
             sent_at: new Date().toISOString()
           }).eq('id', reviewRequest.id);
         }
@@ -266,7 +267,8 @@ export async function POST(req: Request) {
             await supabaseAdmin.from('review_requests').update({ 
               status: 'sent',
               sent_at: new Date().toISOString(),
-              sent_via: 'whatsapp_fallback'
+              sent_via: 'whatsapp_fallback',
+              meta_message_id: fallbackResult.messages?.[0]?.id || null
             }).eq('id', reviewRequest.id);
           }
         } catch (fallbackError: any) {

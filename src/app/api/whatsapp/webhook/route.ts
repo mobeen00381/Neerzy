@@ -112,8 +112,26 @@ export async function POST(req: Request) {
     const change = entry?.changes?.[0];
     const value = change?.value;
     const messages = value?.messages;
+    const statuses = value?.statuses;
 
-    // Ignore non-message events (status updates, etc.)
+    // Delivery status updates (sent / delivered / read / failed) arrive as
+    // value.statuses[]. Correlate them to review_requests via meta_message_id
+    // and reflect real delivery state (previously these were silently dropped,
+    // so traders were told requests were "received" even when they failed).
+    if (statuses && statuses.length) {
+      console.log(`📥 [${requestId}] Received ${statuses.length} delivery status update(s)`);
+      try {
+        for (const status of statuses) {
+          await handleMetaDeliveryStatus(status, requestId);
+        }
+      } catch (statusErr) {
+        // Never throw on status processing — Meta expects 200 to stop retries.
+        console.error(`❌ [${requestId}] Delivery status handler error:`, statusErr);
+      }
+      return NextResponse.json({ status: 'ok' });
+    }
+
+    // Ignore other non-message events (anything without messages or statuses)
     if (!messages || !messages.length) {
       console.log(`📥 [${requestId}] Non-message webhook event, ignoring`);
       return NextResponse.json({ status: 'ok' });
@@ -1151,6 +1169,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
 
     let messageSentVia = 'whatsapp';
     let messageSuccess = false;
+    let metaMessageId: string | null = null;
 
     try {
       // Step 1: Try approved template first
@@ -1158,7 +1177,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       const templateResult = await sendMetaTemplate({
         to: targetCustomerPhone,
         templateName,
-        languageCode: "en_US",
+        languageCode: "en",
         components: [{
           type: "body",
           parameters: [
@@ -1168,7 +1187,8 @@ async function handleSendReview(phone: string, fromNumber?: string) {
           ]
         }],
       });
-      console.log('✅ Review request TEMPLATE sent! Message ID:', templateResult.messages?.[0]?.id);
+      metaMessageId = templateResult.messages?.[0]?.id || null;
+      console.log('✅ Review request TEMPLATE sent! Message ID:', metaMessageId);
       messageSentVia = 'whatsapp_template';
       messageSuccess = true;
 
@@ -1186,7 +1206,9 @@ async function handleSendReview(phone: string, fromNumber?: string) {
           body: fallbackText
         });
 
-        console.log('✅ FALLBACK MESSAGE SENT successfully! Message ID:', fallbackResult.messages?.[0]?.id);
+        const fallbackMsgId = fallbackResult.messages?.[0]?.id;
+        if (fallbackMsgId) metaMessageId = fallbackMsgId;
+        console.log('✅ FALLBACK MESSAGE SENT successfully! Message ID:', fallbackMsgId);
         console.log(`💡 Note: Free-form messages work when customers contacted you within last 24 hours.`);
         messageSentVia = 'whatsapp_fallback';
         messageSuccess = true;
@@ -1217,6 +1239,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
         review_link: reviewLink,
         status: 'sent',
         sent_via: messageSentVia,
+        meta_message_id: metaMessageId,
         sent_at: new Date().toISOString(),
       });
       if (insertErr) {
@@ -1237,7 +1260,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     // Always send confirmation to the trader since we verified it's a real customer
     const customerCC = extractCountryCode(targetCustomerPhone);
     const customerFlag = getCountryFlag(customerCC);
-    const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n📱 Sent to: ${customerFlag} ${targetCustomerPhone}\n🔗 Here is the review link:\n\n${reviewLink}\n\n_Your customer received the review request via WhatsApp._\n_Done! Workflow complete._ ✅`;
+    const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n📱 Sent to: ${customerFlag} ${targetCustomerPhone}\n🔗 Here is the review link:\n\n${reviewLink}\n\n_You'll get a delivery confirmation once WhatsApp confirms delivery._\n_Done! Workflow complete._ ✅`;
     await sendWhatsappText(phone, confirmMessage, fromNumber);
 
     return NextResponse.json({ success: true });
@@ -1291,7 +1314,7 @@ async function sendWhatsappTemplate(to: string, templateName: string, vars: any,
     const result = await sendMetaTemplate({
       to,
       templateName,
-      languageCode: "en_US",
+      languageCode: "en",
       components: parameters.length > 0 ? [{ type: "body", parameters }] : [],
     });
     console.log('✅ Meta WhatsApp template sent! ID:', result.messages?.[0]?.id);
@@ -1308,6 +1331,130 @@ async function sendWhatsappMedia(to: string, url: string, caption: string, _from
   } catch (error: any) {
     console.error('❌ sendWhatsappMedia error:', error.message);
     throw error;
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Meta delivery status callbacks (value.statuses[])
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function handleMetaDeliveryStatus(status: any, requestId: string) {
+  const wamid = status?.id;
+  const statusName = status?.status; // "sent" | "delivered" | "read" | "failed"
+  const recipientId = status?.recipient_id || '';
+
+  if (!wamid || !statusName) {
+    console.log(`📭 [${requestId}] Status update without id/status, skipping`);
+    return;
+  }
+  // Only reflect terminal outcomes we track. "sent"/"read" are informational.
+  if (statusName !== 'delivered' && statusName !== 'failed') {
+    console.log(`📥 [${requestId}] Status ${statusName} (wamid ${wamid}) is informational, no state change`);
+    return;
+  }
+
+  // 1) Primary match: the wamid we saved when sending the request
+  const { data: rows } = await supabase
+    .from('review_requests')
+    .select('id, user_id, customer_name, customer_phone, status')
+    .eq('meta_message_id', wamid)
+    .limit(1);
+  let row = rows?.[0] || null;
+
+  // 2) Legacy fallback: rows sent before meta_message_id existed — match by
+  //    recipient phone (only the newest still-"sent" request for that customer).
+  if (!row && recipientId) {
+    const digits = recipientId.replace(/\D/g, '');
+    const withPlus = `+${digits}`;
+    const { data: legacyRows } = await supabase
+      .from('review_requests')
+      .select('id, user_id, customer_name, customer_phone, status')
+      .or(`customer_phone.eq.${recipientId},customer_phone.eq.${withPlus},customer_phone.eq.${digits}`)
+      .eq('status', 'sent')
+      .order('sent_at', { ascending: false })
+      .limit(1);
+    row = legacyRows?.[0] || null;
+    if (row) {
+      // Backfill the wamid so any later statuses (read) match reliably too.
+      await supabase.from('review_requests').update({ meta_message_id: wamid }).eq('id', row.id);
+    }
+  }
+
+  if (!row) {
+    console.log(`📭 [${requestId}] No review_requests row for wamid ${wamid}, skipping`);
+    return;
+  }
+
+  if (statusName === 'delivered') {
+    const { error: updErr } = await supabase
+      .from('review_requests')
+      .update({ status: 'delivered', last_error: null })
+      .eq('id', row.id);
+    if (updErr) console.error(`❌ [${requestId}] Failed to mark review request ${row.id} delivered:`, updErr.message);
+    else console.log(`✅ [${requestId}] Review request ${row.id} marked DELIVERED`);
+    await notifyTraderOfDelivery(row, 'delivered', wamid);
+  } else {
+    const err = status?.errors?.[0];
+    const errDetail =
+      err?.error_data?.details ||
+      err?.message ||
+      err?.title ||
+      'Unknown delivery error';
+    const errCode = err?.code ? ` [${err.code}]` : '';
+    const fullDetail = `${errDetail}${errCode}`;
+    const { error: updErr } = await supabase
+      .from('review_requests')
+      .update({ status: 'failed', last_error: fullDetail })
+      .eq('id', row.id);
+    if (updErr) console.error(`❌ [${requestId}] Failed to mark review request ${row.id} failed:`, updErr.message);
+    else console.log(`❌ [${requestId}] Review request ${row.id} marked FAILED (${errDetail})`);
+    await notifyTraderOfDelivery(row, 'failed', wamid, fullDetail);
+  }
+}
+
+/** Resolve the trader's WhatsApp phone from a review_requests.user_id. */
+async function getPhoneByUserId(userId: string): Promise<string | null> {
+  if (!userId) return null;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('phone')
+    .eq('id', userId)
+    .maybeSingle();
+  if (profile?.phone) return profile.phone;
+  // Legacy public users table fallback
+  const { data: legacy } = await supabase
+    .from('users')
+    .select('phone')
+    .eq('id', userId)
+    .maybeSingle();
+  return legacy?.phone || null;
+}
+
+/** Notifies the trader when WhatsApp confirms (or fails) delivery. */
+async function notifyTraderOfDelivery(row: any, outcome: 'delivered' | 'failed', wamid: string, detail?: string) {
+  if (!row?.user_id) return;
+  try {
+    const traderPhone = await getPhoneByUserId(row.user_id);
+    if (!traderPhone) {
+      console.log(`⚠️ No trader phone found for user ${row.user_id} — cannot notify delivery status (wamid ${wamid})`);
+      return;
+    }
+    const customerName = (row.customer_name || 'your customer').replace(/[\n\r]+/g, ' ').trim();
+    if (outcome === 'delivered') {
+      await sendWhatsappText(
+        traderPhone,
+        `✅ *Review request delivered to ${customerName}!*\n\n_WhatsApp confirmed the review request was delivered._`,
+        undefined
+      );
+    } else {
+      const reason = detail ? `\n\n_Reason: ${detail}_` : '';
+      await sendWhatsappText(
+        traderPhone,
+        `⚠️ *Review request NOT delivered to ${customerName}.*\n\nWhatsApp reported the message could not be delivered.${reason}\n\nThey may not be on WhatsApp. Ask them to send you a WhatsApp message first, then resend the request.`,
+        undefined
+      );
+    }
+  } catch (err: any) {
+    console.error('⚠️ Failed to notify trader of delivery status:', err?.message || err);
   }
 }
 

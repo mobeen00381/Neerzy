@@ -127,7 +127,7 @@ export async function sendMetaText({ to, body }: SendTextParams): Promise<MetaRe
  * ]}
  */
 export async function sendMetaTemplate(params: SendTemplateParams): Promise<MetaResponse> {
-  const { to, templateName, languageCode = "en_US", components = [] } = params;
+  const { to, templateName, languageCode = "en", components = [] } = params;
   const body: Record<string, unknown> = {
     messaging_product: "whatsapp",
     recipient_type: "individual",

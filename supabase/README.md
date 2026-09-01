@@ -19,12 +19,14 @@ supabase db push
 Open the Supabase dashboard for the target project, go to **SQL Editor**, paste
 the contents of the migration file, and run it.
 
-## Latest migration: manual fallback review status
+## Latest migration: Meta message ID + delivery statuses
 
-File: `supabase/migrations/20260830_add_manual_fallback_status.sql`
+File: `supabase/migrations/20260902_add_meta_message_id.sql`
 
-This adds `manual_fallback` to the allowed `review_requests.status` values. It is
-idempotent and safe to re-run.
+Adds `meta_message_id` (the Meta WhatsApp `wamid`) and `last_error` (delivery
+failure details) to `review_requests`, and adds `delivered` / `failed` to the
+allowed `status` values so the WhatsApp webhook can record real delivery state
+from Meta `statuses[]` callbacks. Idempotent and safe to re-run.
 
 To verify it applied correctly:
 
@@ -35,4 +37,5 @@ WHERE conrelid = 'public.review_requests'::regclass
   AND contype = 'c';
 ```
 
-The `review_requests_status_check` row should include `'manual_fallback'::text`.
+The `review_requests_status_check` row should include `'delivered'::text` and
+`'failed'::text`.

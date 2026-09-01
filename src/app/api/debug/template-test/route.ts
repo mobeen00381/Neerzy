@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       const result = await sendMetaTemplate({
         to: e164,
         templateName: process.env.META_TEMPLATE_REVIEW_REQUEST || 'review_request',
-        languageCode: 'en_US',
+        languageCode: 'en',
         components: [{
           type: 'body',
           parameters: [
