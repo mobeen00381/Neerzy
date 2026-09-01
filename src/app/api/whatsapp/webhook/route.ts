@@ -201,12 +201,37 @@ export async function POST(req: Request) {
       const connectMatch = body.match(/CONNECT[:=]\s*([0-9a-fA-F-]{36})/);
       if (connectMatch && connectMatch[1]) {
         try {
-          await supabase.from('profiles').upsert({
+          // Fetch existing profile so we never reset a one-time trial.
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id, trial_started_at')
+            .eq('id', connectMatch[1])
+            .maybeSingle();
+
+          const upsertPayload: Record<string, any> = {
             id: connectMatch[1],
             phone: from,
             gbp_connected: true,
             updated_at: new Date().toISOString(),
-          }, { onConflict: 'id' });
+          };
+
+          // If no profile row exists yet (Google/email signups have none),
+          // anchor the trial to the auth account's creation date instead of
+          // NOW(), so an old account doesn't get a fresh 30-day trial.
+          if (!existingProfile) {
+            try {
+              const { data: authUser } = await (supabase.auth.admin as any).getUserById(connectMatch[1]);
+              upsertPayload.trial_started_at = authUser?.user?.created_at || new Date().toISOString();
+            } catch (authErr) {
+              upsertPayload.trial_started_at = new Date().toISOString();
+            }
+          }
+
+          const { error: linkErr } = await supabase.from('profiles').upsert(upsertPayload, { onConflict: 'id' });
+          if (linkErr) {
+            console.error('❌ connect upsert failed:', linkErr.message);
+            return await sendWhatsappText(from, '⚠️ Could not link your WhatsApp number to your account. Please try again or contact support.', undefined);
+          }
           userIdCache.delete(from);
           console.log(`✅ Linked WhatsApp number ${from} to user ${connectMatch[1]}`);
           return await sendWhatsappText(from, '✅ *WhatsApp connected to your Neerzy account!*', undefined);

@@ -197,8 +197,18 @@ async function syncProfileForGoogleConnect(userId: string) {
     };
     if (phone) payload.phone = phone;
     if (!existing) {
-      payload.trial_started_at = new Date().toISOString();
-      payload.created_at = new Date().toISOString();
+      // Anchor the one-time trial to the auth account's creation date so an
+      // existing account doesn't get a fresh trial just because it never had a
+      // profile row yet (common for Google/email signups).
+      let accountCreatedAt = new Date().toISOString();
+      try {
+        const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+        accountCreatedAt = authUser?.user?.created_at || accountCreatedAt;
+      } catch (authErr) {
+        // Fall back to now if the auth lookup fails.
+      }
+      payload.trial_started_at = accountCreatedAt;
+      payload.created_at = accountCreatedAt;
       payload.selected_plan = 'free';
     }
 
