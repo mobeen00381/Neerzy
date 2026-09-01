@@ -1,7 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
-
-const openai = getOpenAIClient();
+import { chatWithFallback } from '@/lib/openai';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -36,8 +34,7 @@ export async function generateAndSavePost(session: any) {
   - Customer: ${session.customer_name || 'A customer'}
   Return JSON EXACTLY in this format: { "title": "...", "description": "...", "hashtags": ["#..."], "call_to_action": "..." }`;
 
-  const aiResponse = await openai.chat.completions.create({
-    model: DEFAULT_OPENAI_MODEL,
+  const aiResponse = await chatWithFallback({
     messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
   });

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
+import { chatWithFallback } from "@/lib/openai";
 
 export interface NeerzyInput {
   trader_id: string;
@@ -269,15 +269,17 @@ export class NeerzyEngine {
     let source: 'ai' | 'fallback' = 'ai';
 
     try {
-      const openai = getOpenAIClient();
-      const response = await openai.chat.completions.create({
-        model: DEFAULT_OPENAI_MODEL,
-        messages: [
-          { role: "system", content: "You are the Neerzy Engine v2. Output only JSON." },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" }
-      }, { timeout: 8000 }); // timeout as second argument
+      const response = await chatWithFallback(
+        {
+          messages: [
+            { role: "system", content: "You are the Neerzy Engine v2. Output only JSON." },
+            { role: "user", content: prompt }
+          ],
+          response_format: { type: "json_object" }
+        },
+        undefined,
+        { timeout: 8000 } // timeout as request option
+      );
 
       raw = JSON.parse(response.choices[0].message.content || "{}");
     } catch (error) {

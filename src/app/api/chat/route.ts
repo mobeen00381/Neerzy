@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
+import { chatWithFallback } from "@/lib/openai";
 import { matchFAQ, isNeerzyRelated, OFF_TOPIC_RESPONSE } from "@/lib/neerzy-faq";
-
-const openai = getOpenAIClient();
 
 // The Master Prompt turning the AI into a powerful sales agent
 // STRICT: Neerzy-only, sales-focused, no off-topic answers
@@ -102,8 +100,7 @@ export async function POST(req: Request) {
     // Attempt AI completion — gracefully handle models that don't support tool calling
     let replyMessage;
     try {
-      const completion = await openai.chat.completions.create({
-        model: DEFAULT_OPENAI_MODEL,
+      const completion = await chatWithFallback({
         messages: conversation,
         tools: tools,
         tool_choice: "auto",
@@ -111,9 +108,8 @@ export async function POST(req: Request) {
       replyMessage = completion.choices[0].message;
     } catch (toolError: any) {
       // If tool calling fails (e.g., model doesn't support it), retry without tools
-      console.warn(`⚠️ Tool calling failed for model ${DEFAULT_OPENAI_MODEL}, retrying without tools:`, toolError.message);
-      const fallbackCompletion = await openai.chat.completions.create({
-        model: DEFAULT_OPENAI_MODEL,
+      console.warn(`⚠️ Tool calling failed, retrying without tools:`, toolError.message);
+      const fallbackCompletion = await chatWithFallback({
         messages: conversation,
       });
       const fallbackReply = fallbackCompletion.choices[0].message.content || "I didn't quite catch that.";
@@ -151,8 +147,7 @@ export async function POST(req: Request) {
         });
 
         // Run the AI again with the fed-back data
-        const secondCompletion = await openai.chat.completions.create({
-          model: DEFAULT_OPENAI_MODEL,
+        const secondCompletion = await chatWithFallback({
           messages: conversation,
         });
 

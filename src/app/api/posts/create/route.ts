@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
+import { chatWithFallback } from "@/lib/openai";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co",
   process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy"
 );
-
-function getOpenAI() {
-  return getOpenAIClient();
-}
 
 // DB-backed rate limiter (safe for serverless — state persists across invocations)
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
@@ -124,16 +120,14 @@ export async function POST(req: Request) {
       rawContentToProcess = `[Text Input]: ${content}`;
     }
 
-    // 3. Generate Post with OpenAI
-    const openai = getOpenAI();
+    // 3. Generate Post with AI
     let title = "Recent Update";
     let htmlContent = `<p>${rawContentToProcess}</p>`;
     let gmbOutput = rawContentToProcess;
 
     try {
-      console.log("Asking OpenAI to generate content...");
-      const seoContent = await openai.chat.completions.create({
-        model: DEFAULT_OPENAI_MODEL,
+      console.log("Asking AI to generate content...");
+      const seoContent = await chatWithFallback({
         response_format: { type: "json_object" },
         messages: [
           { 
@@ -149,10 +143,10 @@ export async function POST(req: Request) {
       htmlContent = parsed.websiteHtml || htmlContent;
       gmbOutput = parsed.gmbPost || gmbOutput;
       
-      console.log("✅ OpenAI successfully generated content!");
+      console.log("✅ AI successfully generated content!");
     } catch (openaiError) {
-      console.error("OpenAI Error (ensure API key is valid):", openaiError);
-      // Fallback to raw content if OpenAI fails (e.g. no funds)
+      console.error("AI Error (ensure API key is valid):", openaiError);
+      // Fallback to raw content if AI fails (e.g. no funds)
       title = "New Job Completed";
       htmlContent = `<p>${rawContentToProcess}</p>`;
     }

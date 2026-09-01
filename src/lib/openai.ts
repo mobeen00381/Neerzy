@@ -3,56 +3,115 @@ import OpenAI from 'openai';
 /**
  * Centralized AI model selection.
  *
- * Primary:   DeepSeek API (deepseek-chat) — OpenAI-compatible, used for ALL text generation.
- * Fallback:  OpenAI API (gpt-4o) — used only when no DeepSeek key is present.
- * Voice:     OpenAI `whisper-1` — DeepSeek has no audio-transcription endpoint, so voice
- *            notes always go through OpenAI (see getTranscriptionClient below).
+ * Primary:   GLM (Z.AI) — `glm-5.3-flash`, OpenAI-compatible, natively multimodal (text + vision).
+ * Backup:    DeepSeek API (`deepseek-chat` / `deepseek-v4-flash-vision-exp`) — OpenAI-compatible,
+ *            used automatically when GLM fails or no ZAI_API_KEY is present.
+ * Voice:     GLM-ASR-2512 (Z.AI) — the ONLY speech-to-text provider. Voice notes are locked to
+ *            ≤ ASR_MAX_SECONDS (30s), so no audio fallback is needed.
+ *
+ * OpenAI (ChatGPT / Whisper) is no longer used anywhere in the app.
  *
  * Model auto-selects based on available API keys:
- * - If DEEPSEEK_API_KEY is set → DeepSeek (DEEPSEEK_MODEL, default deepseek-chat)
- * - Else if OPENAI_API_KEY is set → OpenAI (OPENAI_MODEL, default gpt-4o)
+ * - If ZAI_API_KEY is set     → GLM primary (ZAI_MODEL, default glm-5.3-flash)
+ * - Else if DEEPSEEK_API_KEY  → DeepSeek (DEEPSEEK_MODEL, default deepseek-chat)
  */
 
+export const GLM_BASE_URL = 'https://api.z.ai/api/paas/v4';
 export const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1';
-export const OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
-export const DEFAULT_OPENAI_MODEL =
-  process.env.DEEPSEEK_API_KEY
-    ? process.env.DEEPSEEK_MODEL || 'deepseek-chat'
-    : process.env.OPENAI_API_KEY
-      ? process.env.OPENAI_MODEL || 'gpt-4o'
-      : process.env.OPENAI_MODEL || process.env.DEEPSEEK_MODEL || 'gpt-4o';
+/** Hard cap for GLM-ASR-2512 — voice notes longer than this are rejected everywhere. */
+export const ASR_MAX_SECONDS = 30;
 
-// Vision (image input) is not supported by DeepSeek — keep it on OpenAI.
-export const VISION_OPENAI_MODEL = process.env.OPENAI_VISION_MODEL || 'gpt-4o';
+const glmKey = process.env.ZAI_API_KEY;
+const deepseekKey = process.env.DEEPSEEK_API_KEY;
 
-/** Text/chat generation client — DeepSeek when configured, else OpenAI. */
-export function getOpenAIClient() {
-  const deepseekKey = process.env.DEEPSEEK_API_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
+/** Text/chat model of the currently-selected primary provider. */
+export const DEFAULT_OPENAI_MODEL = glmKey
+  ? process.env.ZAI_MODEL || 'glm-5.3-flash'
+  : process.env.DEEPSEEK_MODEL || 'deepseek-chat';
 
-  // Primary: DeepSeek (OpenAI-compatible API)
-  if (deepseekKey) {
-    console.log(`🤖 AI Client: DeepSeek primary (model: ${DEFAULT_OPENAI_MODEL})`);
-    return new OpenAI({ apiKey: deepseekKey, baseURL: DEEPSEEK_BASE_URL });
-  }
+/** Vision model of the currently-selected provider (GLM is natively multimodal). */
+export const DEFAULT_VISION_MODEL = glmKey
+  ? process.env.ZAI_VISION_MODEL || 'glm-5.3-flash'
+  : process.env.DEEPSEEK_VISION_MODEL || 'deepseek-v4-flash-vision-exp';
 
-  // Fallback: OpenAI
-  if (openaiKey) {
-    const baseURL = process.env.OPENAI_BASE_URL || OPENAI_BASE_URL;
-    console.log(`🤖 AI Client: OpenAI fallback (model: ${DEFAULT_OPENAI_MODEL})`);
-    return new OpenAI({ apiKey: openaiKey, baseURL });
-  }
+/** Speech-to-text model (GLM-ASR only). */
+export const DEFAULT_ASR_MODEL = process.env.ZAI_ASR_MODEL || 'glm-asr-2512';
 
-  console.warn('⚠️ No AI API keys configured (DEEPSEEK_API_KEY or OPENAI_API_KEY)');
-  return new OpenAI({ apiKey: '', baseURL: OPENAI_BASE_URL });
+type NonStreamParams = OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming;
+type ChatCompletion = OpenAI.Chat.Completions.ChatCompletion;
+
+function makeClient(apiKey: string, baseURL: string) {
+  return new OpenAI({ apiKey, baseURL });
 }
 
-/** Voice-note transcription client — always OpenAI (DeepSeek has no audio endpoint). */
-export function getTranscriptionClient() {
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (!openaiKey) {
-    throw new Error('OPENAI_API_KEY is required for voice-note transcription (whisper-1).');
+/** Text/chat client — GLM when configured, else DeepSeek. */
+export function getOpenAIClient() {
+  if (glmKey) {
+    console.log(`🤖 AI Client: GLM primary (model: ${DEFAULT_OPENAI_MODEL})`);
+    return makeClient(glmKey, GLM_BASE_URL);
   }
-  return new OpenAI({ apiKey: openaiKey, baseURL: OPENAI_BASE_URL });
+  if (deepseekKey) {
+    console.log(`🤖 AI Client: DeepSeek fallback (model: ${DEFAULT_OPENAI_MODEL})`);
+    return makeClient(deepseekKey, DEEPSEEK_BASE_URL);
+  }
+  console.warn('⚠️ No AI API keys configured (ZAI_API_KEY or DEEPSEEK_API_KEY)');
+  return makeClient('', GLM_BASE_URL);
+}
+
+/** Vision-capable client — same providers as text (both support image input). */
+export function getVisionClient() {
+  return getOpenAIClient();
+}
+
+/**
+ * Voice-note transcription client — GLM-ASR only (no OpenAI Whisper).
+ * Voice notes are capped at ASR_MAX_SECONDS upstream, so no audio fallback is needed.
+ */
+export function getTranscriptionClient() {
+  if (!glmKey) {
+    throw new Error('ZAI_API_KEY is required for voice-note transcription (glm-asr-2512).');
+  }
+  return makeClient(glmKey, GLM_BASE_URL);
+}
+
+/**
+ * Chat completion with automatic runtime fallback: tries GLM first, then retries the
+ * same request via DeepSeek when GLM errors, is rate-limited, or times out.
+ * `opts.vision` selects the vision model of each provider instead of the text model.
+ */
+export async function chatWithFallback(
+  params: Omit<NonStreamParams, 'model'>,
+  opts?: { vision?: boolean },
+  requestOpts?: OpenAI.RequestOptions
+): Promise<ChatCompletion> {
+  if (glmKey) {
+    try {
+      const model = opts?.vision ? DEFAULT_VISION_MODEL : DEFAULT_OPENAI_MODEL;
+      return await makeClient(glmKey, GLM_BASE_URL).chat.completions.create(
+        { ...params, model },
+        requestOpts
+      );
+    } catch (glmErr: any) {
+      if (!deepseekKey) throw glmErr;
+      console.warn(`⚠️ GLM failed, retrying via DeepSeek fallback: ${glmErr?.message || glmErr}`);
+      const dsModel = opts?.vision
+        ? process.env.DEEPSEEK_VISION_MODEL || 'deepseek-v4-flash-vision-exp'
+        : process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+      return await makeClient(deepseekKey, DEEPSEEK_BASE_URL).chat.completions.create(
+        { ...params, model: dsModel },
+        requestOpts
+      );
+    }
+  }
+  if (deepseekKey) {
+    const dsModel = opts?.vision
+      ? process.env.DEEPSEEK_VISION_MODEL || 'deepseek-v4-flash-vision-exp'
+      : process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+    return await makeClient(deepseekKey, DEEPSEEK_BASE_URL).chat.completions.create(
+      { ...params, model: dsModel },
+      requestOpts
+    );
+  }
+  throw new Error('No AI API keys configured (ZAI_API_KEY or DEEPSEEK_API_KEY).');
 }

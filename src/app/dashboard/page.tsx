@@ -181,6 +181,7 @@ export default function Dashboard() {
   const recordingTimerRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordSecondsRef = useRef(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   
   // PWA install prompt state
@@ -587,13 +588,16 @@ Try sending a photo or typing a description of a job you completed!`,
     }
   };
 
-  // Mic voice recording logic
+  // Mic voice recording logic — 🔒 hard 30s lock (GLM-ASR accepts max 30s audio)
+  const MAX_RECORD_SECONDS = 30;
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
+      recordSecondsRef.current = 0;
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -605,7 +609,12 @@ Try sending a photo or typing a description of a job you completed!`,
       setIsRecording(true);
       setRecordDuration(0);
       recordingTimerRef.current = setInterval(() => {
-        setRecordDuration(prev => prev + 1);
+        recordSecondsRef.current += 1;
+        setRecordDuration(recordSecondsRef.current);
+        if (recordSecondsRef.current >= MAX_RECORD_SECONDS) {
+          // Hard 30s limit reached — auto-stop and send the voice note
+          stopRecording(true);
+        }
       }, 1000);
     } catch (err) {
       console.error("Microphone access denied:", err);
@@ -621,25 +630,29 @@ Try sending a photo or typing a description of a job you completed!`,
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       const recorder = mediaRecorderRef.current;
-      
+
       recorder.onstop = async () => {
         if (shouldSend) {
           setIsTranscribing(true);
-          const durationString = `${Math.floor(recordDuration / 60)}:${(recordDuration % 60).toString().padStart(2, '0')}`;
-          
+          const seconds = recordSecondsRef.current;
+          const durationString = `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+
           try {
             const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
             const formData = new FormData();
             formData.append('audio', audioBlob, 'voicenote.webm');
-            
+            formData.append('duration', String(seconds));
+
             const response = await fetch('/api/transcribe', {
               method: 'POST',
               body: formData,
             });
             const data = await response.json();
-            
+
             if (data.text) {
               handleSendMessage(`🎙️ [Voice Note]: ${data.text}`, undefined, true);
+            } else if (!response.ok && data.error) {
+              handleSendMessage(`⚠️ ${data.error}`, undefined, true);
             } else {
               handleSendMessage(`🎙️ Voice Message (${durationString})`, undefined, true);
             }
@@ -651,12 +664,13 @@ Try sending a photo or typing a description of a job you completed!`,
           }
         }
       };
-      
+
       recorder.stop();
       recorder.stream.getTracks().forEach(track => track.stop());
     } else {
       if (shouldSend) {
-        const durationString = `${Math.floor(recordDuration / 60)}:${(recordDuration % 60).toString().padStart(2, '0')}`;
+        const seconds = recordSecondsRef.current;
+        const durationString = `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
         handleSendMessage(`🎙️ Voice Message (${durationString})`, undefined, true);
       }
     }
@@ -828,7 +842,22 @@ Try sending a photo or typing a description of a job you completed!`,
           gbpLink,
           generatedText: aiData.fullText,
         };
-        return [...filtered, readyMsg];
+        const withReady = [...filtered, readyMsg];
+
+        // Optional guidance (kept OUTSIDE the copyable block): GBP post type + bonus Q&A
+        const extraBits: string[] = [];
+        if (aiData.postType) extraBits.push(`📂 *On Google, select post type:* ${aiData.postType}`);
+        if (aiData.qaQuestion && aiData.qaAnswer) extraBits.push(`💬 *Bonus — answer this Q&A on your Google listing:*\n\nQ: ${aiData.qaQuestion}\nA: ${aiData.qaAnswer}`);
+        if (extraBits.length) {
+          const guidanceMsg: Message = {
+            id: `guidance-${Date.now()}`,
+            text: extraBits.join('\n\n'),
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          return [...withReady, guidanceMsg];
+        }
+        return withReady;
       });
 
       // Refresh dashboard data to update counts from DB
@@ -1592,7 +1621,12 @@ Try sending a photo or typing a description of a job you completed!`,
                   {isRecording ? (
                     <div className="flex items-center gap-2 bg-[#d9fdd3] px-4 py-2 rounded-full border border-emerald-200 shadow-sm shrink-0">
                       <span className="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping" />
-                      <span className="text-xs font-black text-slate-800">{Math.floor(recordDuration / 60)}:{(recordDuration % 60).toString().padStart(2, '0')}</span>
+                      <span className="text-xs font-black text-slate-800">
+                        {Math.max(MAX_RECORD_SECONDS - recordDuration, 0) <= 0
+                          ? '0:00'
+                          : `${Math.floor((MAX_RECORD_SECONDS - recordDuration) / 60)}:${((MAX_RECORD_SECONDS - recordDuration) % 60).toString().padStart(2, '0')}`}
+                        left
+                      </span>
                       <button 
                         onClick={() => stopRecording(false)} 
                         className="p-1 hover:bg-red-50 text-red-500 rounded-full transition-colors ml-1"

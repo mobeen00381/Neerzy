@@ -14,6 +14,9 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
   const [isDone, setIsDone] = useState(false);
   
   const [isRecording, setIsRecording] = useState(false);
+  const [recordDuration, setRecordDuration] = useState(0);
+  const recordingTimerRef = useRef<any>(null);
+  const recordSecondsRef = useRef(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -36,12 +39,16 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
     validateToken();
   }, [token]);
 
+  // 🔒 Voice notes are locked to 30 seconds (GLM-ASR accepts max 30s audio)
+  const MAX_RECORD_SECONDS = 30;
+
   const startVoiceRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
+      recordSecondsRef.current = 0;
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -51,6 +58,15 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
 
       recorder.start();
       setIsRecording(true);
+      setRecordDuration(0);
+      recordingTimerRef.current = setInterval(() => {
+        recordSecondsRef.current += 1;
+        setRecordDuration(recordSecondsRef.current);
+        if (recordSecondsRef.current >= MAX_RECORD_SECONDS) {
+          // Hard 30s limit reached — auto-stop and send the voice note
+          stopVoiceRecording();
+        }
+      }, 1000);
     } catch (err) {
       console.error("Microphone access denied:", err);
       alert("Could not access microphone.");
@@ -58,6 +74,9 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
   };
 
   const stopVoiceRecording = () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+    }
     setIsRecording(false);
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       const recorder = mediaRecorderRef.current;
@@ -67,12 +86,13 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
         try {
           const formData = new FormData();
           formData.append('audio', audioBlob, 'voicenote.webm');
+          formData.append('duration', String(recordSecondsRef.current));
           const transcribeRes = await fetch('/api/transcribe', {
             method: 'POST',
             body: formData,
           });
           const data = await transcribeRes.json();
-          const transcribedText = data.text || "Voice message update";
+          const transcribedText = data.text || (data.error ? `Voice note too long — max ${MAX_RECORD_SECONDS}s` : "Voice message update");
           await handleSubmit('voice', transcribedText);
         } catch (e) {
           console.error("Failed to transcribe:", e);
@@ -178,7 +198,8 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
               onClick={stopVoiceRecording} 
               className="flex items-center justify-center gap-4 bg-red-500 hover:bg-red-600 text-white h-20 rounded-2xl font-bold text-lg shadow-xl shadow-red-500/20 transition-transform active:scale-95 animate-pulse"
             >
-              <Square className="w-7 h-7 fill-current" /> Stop Recording
+              <Square className="w-7 h-7 fill-current" />
+              Stop ({Math.max(MAX_RECORD_SECONDS - recordDuration, 0)}s left)
             </button>
           ) : (
             <button 
@@ -199,6 +220,9 @@ export default function QuickPostPage({ params }: { params: Promise<{ token: str
         
         <p className="text-xs font-semibold text-slate-400 mt-8 uppercase tracking-widest">
           Secure connection • acmeplumbing.com
+        </p>
+        <p className="text-[11px] text-slate-400 mt-2">
+          🎙️ Voice notes are limited to 30 seconds.
         </p>
       </div>
     </div>

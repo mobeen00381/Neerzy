@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendMetaText } from '@/lib/whatsapp';
-import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
+import { chatWithFallback } from '@/lib/openai';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-const openai = getOpenAIClient();
 
 export async function POST(req: Request) {
   try {
@@ -39,8 +37,7 @@ export async function POST(req: Request) {
     let aiMessage = '';
     
     if (action === 'generate_post') {
-      const completion = await openai.chat.completions.create({
-        model: DEFAULT_OPENAI_MODEL,
+      const completion = await chatWithFallback({
         messages: [
           { role: "system", content: "You are a local SEO expert. Write a short, punchy WhatsApp message for a business to share their recent success." },
           { role: "user", content: `Write a WhatsApp post for ${businessName} in ${city}. They just completed a high-quality job. Keep it under 40 words and include relevant local hashtags.` }
@@ -48,8 +45,7 @@ export async function POST(req: Request) {
       });
       aiMessage = completion.choices[0].message.content || '';
     } else if (action === 'send_review') {
-      const completion = await openai.chat.completions.create({
-        model: DEFAULT_OPENAI_MODEL,
+      const completion = await chatWithFallback({
         messages: [
           { role: "system", content: "You are a customer success manager. Write a polite WhatsApp message asking for a Google review." },
           { role: "user", content: `Write a polite review request for ${businessName}. Mention that the customer's feedback helps other locals in ${city}. Keep it very friendly and short.` }

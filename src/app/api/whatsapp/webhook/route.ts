@@ -2,17 +2,17 @@ import { NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { createClient } from '@supabase/supabase-js';
 import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
-import { getOpenAIClient, getTranscriptionClient, DEFAULT_OPENAI_MODEL } from '@/lib/openai';
+import { getTranscriptionClient, DEFAULT_ASR_MODEL, ASR_MAX_SECONDS, chatWithFallback } from '@/lib/openai';
+import { estimateAudioSeconds } from '@/lib/audio-duration';
 import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
+import { buildPostPrompt, type PostPromptContext } from '@/lib/post-prompt';
 import { countUserPosts } from '@/lib/post-usage';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-const openai = getOpenAIClient();
 
 const META_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '1256240127573258';
 const META_VERIFY_TOKEN = process.env.META_WHATSAPP_VERIFY_TOKEN || 'neerzy_webhook_verify_2024';
@@ -351,18 +351,23 @@ export async function POST(req: Request) {
           }
           const buffer = await audioResponse.arrayBuffer();
 
-          let voiceText = '';
-          if (!process.env.OPENAI_API_KEY) {
-            console.warn("No OPENAI_API_KEY for whisper-1, mocking voice note transcription");
-            voiceText = "[Voice Note] Update recorded via WhatsApp";
-          } else {
-            const transcription = await getTranscriptionClient().audio.transcriptions.create({
-              file: new File([buffer], "audio.ogg", { type: mimeType || 'audio/ogg' }),
-              model: "whisper-1",
-            });
-            console.log('✅ Transcribed:', transcription.text);
-            voiceText = transcription.text;
+          // 🔒 GLM-ASR hard 30s lock — reject longer voice notes before calling the API
+          const estSeconds = estimateAudioSeconds(buffer, mimeType);
+          if (estSeconds !== null && estSeconds > ASR_MAX_SECONDS) {
+            console.warn(`🎙️ Voice note too long (${estSeconds.toFixed(1)}s > ${ASR_MAX_SECONDS}s), rejected`);
+            return await sendWhatsappText(
+              from,
+              `🎙️ *Voice notes must be ${ASR_MAX_SECONDS} seconds or less.*\n\nPlease send a shorter voice note, or type your description as a text message.`,
+              to
+            );
           }
+
+          const transcription = await getTranscriptionClient().audio.transcriptions.create({
+            file: new File([buffer], "audio.ogg", { type: mimeType || 'audio/ogg' }),
+            model: DEFAULT_ASR_MODEL,
+          });
+          console.log('✅ Transcribed:', transcription.text);
+          const voiceText = transcription.text;
 
           await saveDraft(from, { voice_note: voiceText });
           return await sendWhatsappText(
@@ -371,9 +376,9 @@ export async function POST(req: Request) {
             to
           );
         } catch (err) {
-          console.error("❌ Whisper Transcription Failed:", err);
+          console.error("❌ GLM-ASR Transcription Failed:", err);
           await saveDraft(from, { voice_note: "[Voice note transcription failed]" });
-          return await sendWhatsappText(from, `⚠️ *Voice note saved but couldn't transcribe.*\n\nPlease send a short text description instead, then type *POST*.`, to);
+          return await sendWhatsappText(from, `⚠️ *Voice note saved but couldn't transcribe.*\n\nPlease make sure it's ${ASR_MAX_SECONDS} seconds or less, then try again — or send a short text description instead.`, to);
         }
       } else {
         // Image/Document/Video received — resolve the actual download URL from Meta
@@ -777,18 +782,41 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
 
     console.log('📊 Found draft with', draft.images.length, 'images. Generating post...');
 
-    // AI Generation — strict prompt to prevent hallucination
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Business context (real name, category, location) for SEO/AEO/GEO enrichment
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const businessCtx: PostPromptContext = { businessName: 'Local Business' };
+    let gbpLink = 'https://business.google.com/';
+    try {
+      const { data: business } = await supabase
+        .from('business_profiles')
+        .select('business_name, google_place_id, address, category')
+        .eq('user_phone', phone)
+        .maybeSingle();
+
+      if (business) {
+        businessCtx.businessName = business.business_name || 'Local Business';
+        businessCtx.category = business.category || null;
+        businessCtx.locationHint = business.address || null;
+
+        if (business.business_name) {
+          gbpLink = `https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`;
+        } else if (business.google_place_id) {
+          gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
+        }
+      }
+    } catch (dbErr) {
+      console.warn('⚠️ Could not fetch business context:', dbErr);
+    }
+
+    // AI Generation — grounded, SEO/AEO/GEO-enriched prompt (still anti-hallucination)
     const jobDescription = draft.voice_note || 'Completed successfully';
-    const aiResponse = await openai.chat.completions.create({
-      model: DEFAULT_OPENAI_MODEL,
-      messages: [{
-        role: "system",
-        content: "You are a Google Business Profile post writer. Write a short, factual post based ONLY on the job details provided. NEVER invent products, services, locations, or business names that are not mentioned in the input. If you don't know a detail, leave it out. Do not make up prices, materials, or product descriptions. Only describe what was actually done."
-      },
-      {
-        role: "user",
-        content: `Business: ${draft.customer_name || 'Local Business'}\nJob completed: ${jobDescription}\n\nCreate a Google Business Profile post about this specific job. Format:\nHEADLINE: (max 40 chars, based on the actual job)\nBODY: (max 250 chars, describe only what was done)\nCTA: (short call to action)\nHASHTAGS: (3 max, relevant to the trade)`
-      }]
+    const { system, user } = buildPostPrompt(businessCtx, { jobDescription, hasImage: true });
+    const aiResponse = await chatWithFallback({
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
     });
 
     const postContent = aiResponse.choices[0].message.content || '';
@@ -878,6 +906,9 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     const bodyText = parsed.body || draft.voice_note || '';
     const cta = parsed.cta || '';
     const hashtags = parsed.hashtags || '';
+    const postType = parsed.postType || '';
+    const qaQuestion = parsed.qaQuestion || '';
+    const qaAnswer = parsed.qaAnswer || '';
 
     // One clean, copy-paste-ready block (no labels, no markdown noise)
     const cleanPost = buildCleanPost(headline, bodyText, cta, hashtags);
@@ -888,26 +919,12 @@ ${cleanPost}`;
 
     await sendWhatsappText(phone, postTextMessage, fromNumber);
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Resolve & Send GBP Link directly on WhatsApp
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    let gbpLink = 'https://business.google.com/';
-    try {
-      const { data: business } = await supabase
-        .from('business_profiles')
-        .select('business_name, google_place_id')
-        .eq('user_phone', phone)
-        .maybeSingle();
-
-      if (business) {
-        if (business.business_name) {
-          gbpLink = `https://www.google.com/search?q=${encodeURIComponent(business.business_name)}`;
-        } else if (business.google_place_id) {
-          gbpLink = `https://www.google.com/maps/place/?q=place_id:${business.google_place_id}`;
-        }
-      }
-    } catch (dbErr) {
-      console.warn('⚠️ Could not fetch GBP link:', dbErr);
+    // Optional guidance (kept OUTSIDE the copyable block): GBP post type + bonus Q&A
+    const guidanceBits: string[] = [];
+    if (postType) guidanceBits.push(`📂 *On Google, select post type:* ${postType}`);
+    if (qaQuestion && qaAnswer) guidanceBits.push(`💬 *Bonus — answer this Q&A on your Google listing:*\n\nQ: ${qaQuestion}\nA: ${qaAnswer}`);
+    if (guidanceBits.length) {
+      await sendWhatsappText(phone, guidanceBits.join('\n\n'), fromNumber);
     }
 
     const gbpMessage = `🌐 *Open GBP directly to paste & publish:*

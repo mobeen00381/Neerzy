@@ -18,18 +18,52 @@ export interface ParsedPost {
   body: string;
   cta: string;
   hashtags: string;
+  /** GBP post type: STANDARD | OFFER | EVENT ('' when the AI didn't provide one). */
+  postType: string;
+  /** Bonus Q&A suggestion for the GBP Q&A section (drives answer-engine activity). */
+  qaQuestion: string;
+  qaAnswer: string;
 }
 
-const POST_LABELS = ['HEADLINE:', 'BODY:', 'CTA:', 'HASHTAGS:'];
+const POST_LABELS = ['HEADLINE:', 'BODY:', 'CTA:', 'HASHTAGS:', 'POST_TYPE:', 'Q_A:'];
+
+export const POST_TYPES = ['STANDARD', 'OFFER', 'EVENT'] as const;
 
 export function parsePostContent(content: string): ParsedPost {
   const lines = content.split('\n');
+  const rawType = extractLine(lines, 'POST_TYPE:').toUpperCase().trim().split(/\s+/)[0];
+  const [qaQuestion, qaAnswer] = splitQA(extractLine(lines, 'Q_A:'));
   return {
     headline: extractLine(lines, 'HEADLINE:'),
     body: extractLine(lines, 'BODY:'),
     cta: extractLine(lines, 'CTA:'),
     hashtags: extractLine(lines, 'HASHTAGS:'),
+    postType: (POST_TYPES as readonly string[]).includes(rawType) ? rawType : '',
+    qaQuestion,
+    qaAnswer,
   };
+}
+
+/**
+ * Splits a "Question -> Answer" string into its two parts.
+ * Accepts "none" / empty input (returns empty strings) and falls back to
+ * splitting at the first question mark when no arrow separator is present.
+ */
+function splitQA(raw: string): [string, string] {
+  const value = (raw || '').trim();
+  if (!value || value.toLowerCase() === 'none') return ['', ''];
+
+  const arrow = value.match(/\s*(.+?)\s*->\s*([\s\S]+)/);
+  if (arrow) return [arrow[1].trim(), arrow[2].trim()];
+
+  const qi = value.indexOf('?');
+  if (qi !== -1) {
+    const question = value.slice(0, qi + 1).trim();
+    const answer = value.slice(qi + 1).replace(/^[\s\-:>]+/, '').trim();
+    return [question, answer];
+  }
+
+  return [value, ''];
 }
 
 /**

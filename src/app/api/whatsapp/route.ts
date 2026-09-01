@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 import { postToGMB } from "@/lib/gmb";
 import { createClient } from "@supabase/supabase-js";
-import { getOpenAIClient, getTranscriptionClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
+import { chatWithFallback, getTranscriptionClient, DEFAULT_ASR_MODEL, ASR_MAX_SECONDS } from "@/lib/openai";
+import { estimateAudioSeconds } from "@/lib/audio-duration";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
-
-// Lazy OpenAI init — safe for Vercel builds without env vars
-function getOpenAI() {
-  return getOpenAIClient();
-}
 
 export async function POST(req: Request) {
   try {
@@ -74,13 +70,12 @@ export async function POST(req: Request) {
     let rawContent = bodyText || "";
 
     // STEP 1: Process Audio (Voice Notes) or Images
-    const openai = getOpenAI();
 
     if (numMedia > 0) {
       console.log(`Processing media: ${mediaType} from ${mediaUrl}`);
 
       if (mediaType.includes("audio")) {
-        // --- VOICE NOTE LOGIC (Whisper) ---
+        // --- VOICE NOTE LOGIC (GLM-ASR) ---
         try {
           // Download audio from Meta
           const headers: HeadersInit = {};
@@ -90,27 +85,28 @@ export async function POST(req: Request) {
           const audioResponse = await fetch(mediaUrl, { headers });
           const buffer = await audioResponse.arrayBuffer();
           
-          // Whisper expects a file. We can use a File object in recent OpenAI Node SDKs
-          const transcription = await getTranscriptionClient().audio.transcriptions.create({
-            file: await (async () => {
-              const f = new File([buffer], "audio.ogg", { type: mediaType });
-              return f;
-            })(),
-            model: "whisper-1",
-          });
-          
-          rawContent = `[Transcribed Voice Note]: ${transcription.text}`;
-          console.log("✅ Voice Note Transcribed:", transcription.text);
+          // 🔒 GLM-ASR hard 30s lock — reject longer voice notes before calling the API
+          const estSeconds = estimateAudioSeconds(buffer, mediaType);
+          if (estSeconds !== null && estSeconds > ASR_MAX_SECONDS) {
+            console.warn(`🎙️ Voice note too long (${estSeconds.toFixed(1)}s > ${ASR_MAX_SECONDS}s), rejected`);
+            rawContent = `[Voice note too long — max ${ASR_MAX_SECONDS}s]`;
+          } else {
+            const transcription = await getTranscriptionClient().audio.transcriptions.create({
+              file: new File([buffer], "audio.ogg", { type: mediaType }),
+              model: DEFAULT_ASR_MODEL,
+            });
+            rawContent = `[Transcribed Voice Note]: ${transcription.text}`;
+            console.log("✅ Voice Note Transcribed:", transcription.text);
+          }
         } catch (err) {
-          console.error("❌ Whisper Transcription Failed:", err);
+          console.error("❌ GLM-ASR Transcription Failed:", err);
           rawContent = `[Voice Note received but failed to transcribe]`;
         }
         
       } else if (mediaType.includes("image")) {
         // --- IMAGE RECOGNITION LOGIC (Vision) ---
         try {
-          const response = await openai.chat.completions.create({
-            model: DEFAULT_OPENAI_MODEL,
+          const response = await chatWithFallback({
             messages: [
               { role: "user", content: [
                   { type: "text", text: "Describe this image in detail. What local service job is being performed? Focus on technical details of the work done." },
@@ -118,7 +114,7 @@ export async function POST(req: Request) {
                 ]
               }
             ]
-          });
+          }, { vision: true });
           rawContent = `[Image Analysis]: ${response.choices[0].message.content || ""}`;
           console.log("✅ Image Analyzed by Vision AI.");
         } catch (err) {
@@ -135,8 +131,7 @@ export async function POST(req: Request) {
     // STEP 2: Generate SEO & GMB Optimized Content
     console.log("🤖 Generating SEO & GMB content...");
     
-    const seoContent = await openai.chat.completions.create({
-      model: DEFAULT_OPENAI_MODEL,
+    const seoContent = await chatWithFallback({
       response_format: { type: "json_object" },
       messages: [
         { 

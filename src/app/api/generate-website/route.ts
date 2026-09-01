@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server";
-import { getOpenAIClient, DEFAULT_OPENAI_MODEL } from "@/lib/openai";
-
-// Lazy init — only runs when an API call is made, not during build
-function getOpenAI() {
-  return getOpenAIClient();
-}
+import { chatWithFallback } from "@/lib/openai";
 
 export async function POST(req: Request) {
   try {
@@ -17,10 +12,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const openai = getOpenAI();
-    const response = await openai.chat.completions.create({
-      model: DEFAULT_OPENAI_MODEL,
-      response_format: { type: "json_object" }, // Forces OpenAI to return valid JSON
+    const response = await chatWithFallback({
+      response_format: { type: "json_object" }, // Forces the AI to return valid JSON
       messages: [
         {
           role: "system",
