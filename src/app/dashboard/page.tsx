@@ -1192,27 +1192,11 @@ export default function Dashboard() {
   const whatsAppConnected = !!phone;
   const showSetupCard = !gbpConnected || !whatsAppConnected;
 
-  // Connect Google Business Profile (OAuth with mock bypass when no client ID configured)
+  // Connect Google Profile — sends the user to the search-and-select flow where
+  // they type their business name and pick their exact Google listing. No OAuth
+  // permission screens, keeping onboarding simple for non-technical users.
   const handleConnectGBP = () => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-    const isMock = !clientId || clientId.includes("your_google_client");
-
-    if (isMock) {
-      console.log("Mocking Google OAuth redirect client-side.");
-      window.location.href = `/api/auth/gbp/callback?code=mock_oauth_code_bypass&state=${user?.id || ""}`;
-      return;
-    }
-
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: `${window.location.origin}/api/auth/gbp/callback`,
-      response_type: 'code',
-      scope: 'https://www.googleapis.com/auth/business.manage https://www.googleapis.com/auth/userinfo.profile',
-      access_type: 'offline',
-      prompt: 'consent',
-      state: user?.id || ""
-    })}`;
-    window.location.href = authUrl;
+    router.push('/onboarding');
   };
 
   return (

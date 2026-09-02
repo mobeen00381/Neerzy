@@ -18,30 +18,30 @@ function OnboardingContent() {
   
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Check if already onboarded
+  // Check if already onboarded. Only redirect to the dashboard when a listing is
+  // actually linked (business_profiles.google_place_id exists) — a user who is
+  // merely marked gbp_connected in metadata but has no listing yet can still
+  // connect one here.
   useEffect(() => {
     const checkStatus = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user && user.user_metadata?.gbp_connected) {
+      if (!user) return;
+
+      const phone = user.phone || user.user_metadata?.phone_number || user.user_metadata?.phone;
+      if (!phone) return;
+
+      const { data } = await supabase
+        .from('business_profiles')
+        .select('google_place_id')
+        .eq('user_phone', phone)
+        .maybeSingle();
+
+      if (data?.google_place_id) {
+        // Update metadata so we don't have to check DB next time
+        await supabase.auth.updateUser({
+          data: { gbp_connected: true }
+        });
         router.push('/dashboard');
-      } else if (user) {
-        // Fallback check: look up in business_profiles directly
-        const phone = user.phone || user.user_metadata?.phone_number || user.user_metadata?.phone;
-        if (phone) {
-          const { data } = await supabase
-            .from('business_profiles')
-            .select('google_place_id')
-            .eq('user_phone', phone)
-            .maybeSingle();
-            
-          if (data?.google_place_id) {
-            // Update metadata so we don't have to check DB next time
-            await supabase.auth.updateUser({
-              data: { gbp_connected: true }
-            });
-            router.push('/dashboard');
-          }
-        }
       }
     };
     checkStatus();
@@ -114,10 +114,11 @@ function OnboardingContent() {
     if (!selectedBusiness) return;
 
     setLoading(true);
+    setError('');
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      await fetch('/api/gbp/connect', {
+      const res = await fetch('/api/gbp/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,8 +133,14 @@ function OnboardingContent() {
         })
       });
 
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to connect your business. Please try again.');
+      }
+
       router.push('/dashboard');
     } catch (err: any) {
+      console.error('Connect business error:', err);
       setError(err.message || 'Failed to connect business');
     } finally {
       setLoading(false);
@@ -155,12 +162,12 @@ function OnboardingContent() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
         <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">Connect Your Business</h1>
-        <p className="text-center text-gray-600 mb-6">Search and select your Google Business Profile</p>
+        <p className="text-center text-gray-600 mb-6">Find your business on Google — start typing its name, the way your customers would search for it.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Search Input */}
           <div className="relative" ref={dropdownRef}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search Business Profile *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Your business name</label>
             <input
               type="text"
               value={searchQuery}
@@ -171,7 +178,7 @@ function OnboardingContent() {
               }}
               onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-              placeholder="e.g. plumbing repair"
+              placeholder="e.g. Joe's Plumbing & Heating, Leeds"
               autoComplete="off"
               required
             />
@@ -227,7 +234,7 @@ function OnboardingContent() {
             disabled={loading || !selectedBusiness}
             className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Connecting...' : 'Complete Setup →'}
+            {loading ? 'Connecting...' : 'Connect My Business →'}
           </button>
         </form>
       </div>
