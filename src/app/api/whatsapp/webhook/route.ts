@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
 import { getTranscriptionClient, DEFAULT_ASR_MODEL, ASR_MAX_SECONDS, chatWithFallback } from '@/lib/openai';
 import { estimateAudioSeconds } from '@/lib/audio-duration';
+import { convertOggOpusToWav } from '@/lib/audio-convert';
 import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { buildPostPrompt, type PostPromptContext } from '@/lib/post-prompt';
@@ -380,8 +381,22 @@ export async function POST(req: Request) {
             );
           }
 
+          // 🎙️ GLM-ASR only accepts .wav/.mp3 — WhatsApp voice notes are OGG/Opus,
+          // so decode to WAV first (pure WASM, no ffmpeg needed on serverless).
+          // If conversion fails, pass the original buffer through as before.
+          let asrFile: File = new File([buffer], 'audio.ogg', { type: mimeType || 'audio/ogg' });
+          try {
+            const wav = await convertOggOpusToWav(buffer, mimeType);
+            if (wav) {
+              asrFile = new File([wav.wav], 'audio.wav', { type: 'audio/wav' });
+              console.log(`🎙️ OGG/Opus → WAV converted (${wav.seconds.toFixed(1)}s, ${wav.wav.byteLength} bytes)`);
+            }
+          } catch (convErr) {
+            console.warn('⚠️ OGG→WAV conversion threw (sending original audio):', convErr);
+          }
+
           const transcription = await getTranscriptionClient().audio.transcriptions.create({
-            file: new File([buffer], "audio.ogg", { type: mimeType || 'audio/ogg' }),
+            file: asrFile,
             model: DEFAULT_ASR_MODEL,
           });
           console.log('✅ Transcribed:', transcription.text);
@@ -393,10 +408,34 @@ export async function POST(req: Request) {
             `✅ *Voice note received & saved!* 🎙️\n\n_Transcribed: ${voiceText.length > 80 ? voiceText.substring(0, 80) + '...' : voiceText}_\n\nNow type *POST* to generate your GMB post.`,
             to
           );
-        } catch (err) {
+        } catch (err: any) {
           console.error("❌ GLM-ASR Transcription Failed:", err);
-          await saveDraft(from, { voice_note: "[Voice note transcription failed]" });
-          return await sendWhatsappText(from, `⚠️ *Voice note saved but couldn't transcribe.*\n\nPlease make sure it's ${ASR_MAX_SECONDS} seconds or less, then try again — or send a short text description instead.`, to);
+          console.error('   Status:', err?.status, '| Error body:', JSON.stringify(err?.error || err?.message || err).substring(0, 300));
+          // Don't clobber a description the trader already saved — only flag the
+          // failure when the draft has nothing usable yet.
+          try {
+            const { data: existingDraft } = await supabase
+              .from('pending_posts')
+              .select('voice_note')
+              .eq('user_phone', from)
+              .eq('status', 'draft')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            const currentNote = (existingDraft?.voice_note || '').trim();
+            const hasRealDescription =
+              !!currentNote && currentNote !== '[Voice note transcription failed]';
+            if (!hasRealDescription) {
+              await saveDraft(from, { voice_note: '[Voice note transcription failed]' });
+            }
+          } catch (dbErr) {
+            console.warn('⚠️ Could not inspect draft before transcription-failure save:', dbErr);
+          }
+          return await sendWhatsappText(
+            from,
+            `⚠️ *Voice note received but couldn't be transcribed.*\n\nPlease send a shorter voice note (${ASR_MAX_SECONDS}s or less), or type your description as a text message.`,
+            to
+          );
         }
       } else {
         // Image/Document/Video received — resolve the actual download URL from Meta
@@ -828,7 +867,24 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     }
 
     // AI Generation — grounded, SEO/AEO/GEO-enriched prompt (still anti-hallucination)
-    const jobDescription = draft.voice_note || 'Completed successfully';
+    // A voice note that failed to transcribe (or a stray one-word ack like "yes")
+    // must NOT become the "job description" — otherwise the model produces a
+    // generic post unrelated to the actual work. Treat those as no description and
+    // let the prompt ground itself in the business category/location only.
+    const rawDescription = (draft.voice_note || '').trim();
+    const VOID_DESCRIPTIONS = new Set([
+      '',
+      '[voice note transcription failed]',
+      '[Voice note transcription failed]',
+      'yes',
+      'no',
+      'ok',
+      'okay',
+      'done',
+      'post',
+    ]);
+    const hasUsableDescription = !VOID_DESCRIPTIONS.has(rawDescription.toLowerCase());
+    const jobDescription = hasUsableDescription ? rawDescription : '';
     const { system, user } = buildPostPrompt(businessCtx, { jobDescription, hasImage: true });
     const aiResponse = await chatWithFallback({
       messages: [
@@ -964,7 +1020,20 @@ ${gbpLink}
 📌 *Steps:* copy the text above → paste on Google → add your saved photos → publish.
 Type *DONE* when published.`;
 
-    return await sendWhatsappText(phone, actionMessage, fromNumber);
+    await sendWhatsappText(phone, actionMessage, fromNumber);
+
+    // When no usable job description was available, tell the trader the post was
+    // grounded only in their business profile — a generic post shouldn't silently
+    // look like it described the job.
+    if (!hasUsableDescription) {
+      await sendWhatsappText(
+        phone,
+        `ℹ️ *Post was generated without your job description.*\n\nYour voice note or description wasn't readable, so this post only references your business. Send your description as a text message, then type *POST* to regenerate it with the real job details.`,
+        fromNumber
+      );
+    }
+
+    return;
 
   } catch (error: any) {
     console.error('❌ handleGeneratePost error:', error);

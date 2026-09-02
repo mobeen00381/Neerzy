@@ -31,7 +31,7 @@ STRICT RULES (never break these):
 1. Write ONLY about the specific job described by the user. Do NOT invent products, materials, prices, services, or locations.
 2. Do NOT use the business name or category to guess what the business sells. The job description is the ONLY source of what was actually done.
 3. Keep the post factual — describe what was actually done, not what the business might do.
-4. If the job description is very short (1-3 words), write a brief, neutral post about completing a job without inventing details.
+4. If the job description is MISSING or very short (1-3 words), DO NOT invent any job details (no customer, no materials, no outcome). Instead write a brief factual post that says only that a job was completed for this business, using the business category and city when provided — e.g. headline "Plumbing Job Done" + "A plumbing job was completed in Houston." If no category is provided, write the same minimal "job completed" post WITHOUT guessing the trade.
 
 SEO RULES:
 5. Use the primary service keyword naturally in the HEADLINE and once in the BODY. When a business category is provided (e.g. "Plumber"), derive the keyword from it (e.g. "plumbing") and use it once in the BODY.
@@ -62,7 +62,9 @@ export function buildPostPrompt(ctx: PostPromptContext, input: PostPromptInput):
 
   const user = [
     ...facts,
-    `Job completed: ${input.jobDescription}`,
+    input.jobDescription
+      ? `Job completed: ${input.jobDescription}`
+      : 'Job completed: (no description was provided — write the minimal job-completed post described in rule 4, grounded only in the business facts above)',
     input.hasImage ? 'An image of the work is attached.' : '',
     '',
     'Create a Google Business Profile post about this specific job. Format exactly:',
