@@ -17,7 +17,9 @@ import { createClient } from '@supabase/supabase-js';
  * rows start life as `status = 'draft'` the moment a photo/description/customer
  * is received — counting those would block a brand-new user's very first POST
  * (the draft being generated is not a used post). A row only counts once it has
- * been generated (`generated`) or published (`published`).
+ * been generated (`generated`) or published (`published`). Rows must also
+ * carry generated content (`google_post`) — review-request-only rows that were
+ * completed via the DONE workflow have no post content and are excluded.
  */
 const COMPLETED_POST_STATUSES = ['generated', 'published'];
 export async function countUserPosts(
@@ -63,6 +65,9 @@ export async function countUserPosts(
       .select('*', { count: 'exact', head: true })
       .eq('user_phone', phone)
       .in('status', COMPLETED_POST_STATUSES)
+      // A completed post always carries generated content. Review-request-only
+      // rows (customer details, no google_post) must never count toward quota.
+      .not('google_post', 'is', null)
       .gte('created_at', totalSince);
 
     const { count: dailyCount, error: dailyErr } = await supabase
@@ -70,6 +75,7 @@ export async function countUserPosts(
       .select('*', { count: 'exact', head: true })
       .eq('user_phone', phone)
       .in('status', COMPLETED_POST_STATUSES)
+      .not('google_post', 'is', null)
       .gte('created_at', todayIso);
 
     if (!totalErr && totalCount !== null) total += totalCount;

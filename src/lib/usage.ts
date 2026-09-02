@@ -29,7 +29,9 @@ export async function getUserUsage(
   // `posts` (web dashboard) + `pending_posts` (WhatsApp) — both count toward the plan
   const [postsRes, pendingRes] = await Promise.all([
     supabase.from('posts').select('id, created_at').eq('user_id', userId).gte('created_at', cycleStartIso),
-    supabase.from('pending_posts').select('id, created_at').eq('user_id', userId).gte('created_at', cycleStartIso),
+    supabase.from('pending_posts').select('id, created_at').eq('user_id', userId)
+      .in('status', ['generated', 'published']).not('google_post', 'is', null)
+      .gte('created_at', cycleStartIso),
   ]);
 
   if (postsRes.error) console.error('Error fetching daily posts:', postsRes.error);

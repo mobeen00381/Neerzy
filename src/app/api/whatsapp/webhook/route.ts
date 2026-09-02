@@ -1251,9 +1251,20 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       console.error('⚠️ Failed to insert review_requests row:', insertErr);
     }
 
-    // Now mark post as published — only after successful send + logging
+    // Mark the row after successful send + logging.
+    // BUG FIX: only mark 'published' when this row is an actual GMB post (has
+    // generated content or images). A review-request-only row (customer details
+    // with no photos/post content) must NOT count toward the post quota —
+    // marking it 'published' previously blocked the trader's very first POST
+    // with "Daily post limit reached" on the free plan. 'review_sent' is a
+    // terminal status: not counted as a post, not reusable as a draft, and not
+    // matched again by the 'generated'/'draft' lookups above (no duplicate sends).
+    const isActualPost = Boolean(
+      (post.google_post && String(post.google_post).trim()) ||
+      (Array.isArray(post.images) && post.images.length > 0)
+    );
     await supabase.from('pending_posts').update({
-      status: 'published',
+      status: isActualPost ? 'published' : 'review_sent',
       user_id: userIdForPublish
     }).eq('id', post.id);
 

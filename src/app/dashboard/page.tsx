@@ -408,13 +408,18 @@ export default function Dashboard() {
       // Calculate post counts directly from posts DB (web posts) + pending_posts (WhatsApp),
       // filtered to the current 30-day billing cycle so WhatsApp + dashboard usage count
       // together against the plan's per-month quota.
+      // Only COMPLETED posts count toward quota — same semantics as lib/post-usage.ts:
+      // drafts and review-request-only rows (no generated google_post content) are excluded.
+      const isCompletedWhatsappPost = (p: any) =>
+        (p.status === 'generated' || p.status === 'published') &&
+        Boolean(p.google_post && String(p.google_post).trim());
       const cycleStart = new Date(cycleStartIso);
       const totalPostCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= cycleStart).length
-        + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= cycleStart).length;
+        + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= cycleStart && isCompletedWhatsappPost(p)).length;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const dailyPostCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= today).length
-        + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= today).length;
+        + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= today && isCompletedWhatsappPost(p)).length;
       const reviewCount = (reviewRequests || []).filter((r: any) => new Date(r.sent_at || r.created_at) >= cycleStart).length;
 
       setStats({ total: totalPostCount, daily: dailyPostCount, reviewCount });
