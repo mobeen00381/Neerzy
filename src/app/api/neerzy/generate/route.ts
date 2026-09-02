@@ -17,7 +17,7 @@ async function getTraderPerformance(trader_id: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { trader_id, trade, service, intent, address, target_region } = body;
+    const { trader_id, trade, service, jobDescription, intent, address, target_region, location, category } = body;
 
     if (!trader_id || !trade || !service || !intent || !address || !target_region) {
       return NextResponse.json({ error: "Missing required fields for Layer 4" }, { status: 400 });
@@ -31,8 +31,13 @@ export async function POST(req: Request) {
       trader_id,
       trade,
       service,
+      // Trader's actual job text is the source of truth; when absent the prompt
+      // degrades to a grounded minimal "job completed" post (never generic copy).
+      jobDescription,
       intent,
       address,
+      location,
+      category,
       target_region,
       past_performance: pastData,
       geo_signals: await getGeoContext(address)

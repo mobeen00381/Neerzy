@@ -25,6 +25,31 @@ export interface PostPrompt {
   user: string;
 }
 
+/**
+ * Description strings that carry no usable job detail. Empty text, voice notes
+ * that failed to transcribe, and stray one-word acks ("yes"/"post"/"done")
+ * must NOT become the "job description" — otherwise the model invents a generic
+ * post unrelated to the actual work. Treat them as "no description" and let the
+ * prompt ground itself in the business category/location only.
+ */
+export const VOID_DESCRIPTIONS: ReadonlySet<string> = new Set([
+  '',
+  '[voice note transcription failed]',
+  '[Voice note transcription failed]',
+  'yes',
+  'no',
+  'ok',
+  'okay',
+  'done',
+  'post',
+]);
+
+/** True when a description string carries real job details worth posting about. */
+export function isUsableJobDescription(raw: string | null | undefined): boolean {
+  const value = (raw || '').trim().toLowerCase();
+  return value.length > 0 && !VOID_DESCRIPTIONS.has(value);
+}
+
 const SYSTEM_PROMPT = `You are a Google Business Profile (GBP) post writer for a local service business.
 
 STRICT RULES (never break these):
@@ -42,15 +67,16 @@ AEO RULES (answer-engine friendly):
 
 GEO RULES (generative-engine attribution):
 8. When a service keyword and a city are both used, phrase them together once as "service in City" (e.g. "plumbing in Austin") so AI engines can attribute the post to the right local business.
+9. When a city is known, make ONE of the 3 hashtags a hyper-local tag that combines the city with the service keyword (e.g. #AustinPlumbing or #HoustonRoofRepair). Never invent a city when none is provided.
 
 CTA RULES:
-9. The CTA must be short, natural, and specific to the job (e.g. "Need the same fix? Send us a message."). Do not invent phone numbers, websites, or booking links.
+10. The CTA must be short, natural, and specific to the job (e.g. "Need the same fix? Send us a message."). Do not invent phone numbers, websites, or booking links.
 
 FORMATTING (your ENTIRE reply must be exactly these labelled lines):
 HEADLINE: (max 40 chars, includes the service keyword where natural)
 BODY: (max 250 chars, answer-first first sentence)
 CTA: (short call to action)
-HASHTAGS: (3 max, trade-relevant)
+HASHTAGS: (3 max, trade-relevant — when a city is known include one local tag like #AustinPlumbing)
 POST_TYPE: (one of STANDARD, OFFER, EVENT — STANDARD unless the job clearly involves a special offer or an event)
 Q_A: (one question a customer might ask about this job/service and a one-line factual answer, formatted as "Question -> Answer"; output "Q_A: none" if you cannot answer factually from the job details)`;
 

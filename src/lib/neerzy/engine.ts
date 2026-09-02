@@ -5,6 +5,7 @@ export interface NeerzyInput {
   trader_id: string;
   trade: 'plumber' | 'electrician' | 'roofer' | 'mechanic' | string;
   service: string; // e.g., "burst pipe", "EV charger install", "storm damage", "brake replacement"
+  jobDescription?: string; // Trader's actual job text — the source of truth for the post (falls back to `service`)."
   intent: 'emergency' | 'routine' | 'inspection' | 'upgrade' | string;
   address: string;
   target_region: 'US' | 'UK' | 'CA' | 'AU' | string;
@@ -95,6 +96,7 @@ export class NeerzyEngine {
       trade: (params.trade?.toLowerCase() || params.category?.toLowerCase() || "general") as string,
       location: params.location || params.address.split(',').slice(-2, -1)[0]?.trim() || "Local Area",
       jobType: params.service,
+      jobDescription: (params.jobDescription || params.service || "").trim(),
       intent: params.intent || "routine",
       region: params.target_region?.toUpperCase() || "US",
       traderProfile: { 
@@ -140,38 +142,45 @@ export class NeerzyEngine {
    * Constructs the optimal prompt based on intent and region.
    */
   private static routePrompt(context: any, rules: any) {
-    return `
-      Act as the Neerzy AI local marketing expert for the ${context.trade} industry in the ${context.region} region.
-      Generate a GBP post for a ${context.jobType} job in ${context.location}.
-      
-      UNIVERSAL PERFORMANCE RULES:
-      - Title/Headline: Max 50 characters (optimized for mobile preview).
-      - Body Content: 100-300 characters for maximum engagement.
-      - AEO Integration: Include exactly one conversational Q&A block answering a common customer intent.
-      - Local Signals: Include 2-3 hyper-local hashtags.
-      - Call to Action: Use one of (BOOK, CALL_NOW, LEARN_MORE).
-      
-      TRADE RULES:
-      - SEO Keywords: ${rules.seo.join(", ")}
-      - AEO Questions: ${rules.aeo.join(", ")}
-      - GEO Signals: ${rules.geo.join(", ")}
-      - Seasonal Context: ${rules.seasonalFlags.join(", ") || "None"}
-      - Trust Signals: ${rules.trustSignals.join(", ")}
-      - Local Currency: ${rules.currency}
-      - Urgency Modifiers: ${rules.urgency.join(", ")}
-      - PRO TIPS: ${rules.pro_tips?.join(", ") || "N/A"}
-      
-      INTENT: ${context.intent}
-      GEO CONTEXT: ${context.geoContext}
+    const tradeLabel =
+      context.trade && context.trade !== "general" ? context.trade : "local service";
+    const hasRealCity = !!context.location && context.location !== "Local Area";
+    const cityLabel = hasRealCity ? context.location : "your area";
 
-      Return a JSON object with:
+    return `
+      Local GBP post for a ${tradeLabel} business serving ${cityLabel} (${context.region}).
+
+      JOB (source of truth — write ONLY about this):
+      ${context.jobDescription || "(no job description was provided)"}
+
+      GROUNDING RULES (never break):
+      - Describe ONLY the job above. Do NOT invent customer names, materials, brands, prices, outcomes, guarantees, licenses, or locations.
+      - If the job description is MISSING or just a one-word ack (yes/no/ok/okay/done/post), write a brief factual post that says only that a ${tradeLabel} job was completed ${hasRealCity ? `in ${context.location}` : "for this business"} — with no invented details.
+      - Never claim urgency, emergencies, seasonal work, or trust credentials (licensed/insured/BBB etc.) unless the job description itself supports them.
+
+      SEO:
+      - Headline/Title: max 50 characters.
+      - Use ONE natural service keyword in the headline and once in the body. Prefer the job's own wording. You MAY use at most 1-2 of these trade keywords ONLY where they accurately describe this job: ${rules.seo.join(", ")}. Never force an irrelevant keyword.
+
+      AEO (answer-engine optimization):
+      - Make the BODY's first sentence a short, direct, declarative "what was done" statement that an AI answer engine could quote verbatim.
+      - faq_ai: exactly ONE "Q: ... A: ..." pair answering a real question a customer would ask about THIS job/service. Prefer a fitting option from: ${rules.aeo.join(" | ")}. When the job details cannot support a factual answer, output "Q: How can I get this done? A: Contact us — we'll confirm availability and pricing."
+
+      GEO (generative-engine attribution):
+      - Mention the real city exactly once in the BODY using "in <city>" phrasing (e.g. "panel upgrade in Houston") so AI engines attribute the post to the right local business. If no real city is known, do NOT mention any place name.
+
+      CTA: use exactly one of (BOOK, CALL_NOW, LEARN_MORE).
+      Local currency: ${rules.currency}
+
+      INTENT: ${context.intent}
+      GEO CONTEXT: ${context.geoContext || "None"}
+
+      Return ONLY a JSON object with EXACTLY these keys:
       {
         "title": "50-char headline",
         "body": "100-300 char body content",
-        "cta": "The CTA keyword",
-        "ctaUrl": "The link",
-        "hashtags": ["#local1", "#local2"],
-        "faq_ai": "The Q&A block"
+        "cta": "BOOK | CALL_NOW | LEARN_MORE",
+        "faq_ai": "Q: ... A: ..."
       }
     `;
   }
@@ -186,6 +195,13 @@ export class NeerzyEngine {
       title_max: 50
     };
 
+    // 0. Normalize partial / malformed AI output before touching fields.
+    raw = raw && typeof raw === "object" ? raw : {};
+    raw.title = typeof raw.title === "string" ? raw.title : "";
+    raw.body = typeof raw.body === "string" ? raw.body : "";
+    raw.cta = typeof raw.cta === "string" ? raw.cta : "";
+    raw.faq_ai = typeof raw.faq_ai === "string" ? raw.faq_ai : "";
+
     // 1. Length checks
     if (raw.title && raw.title.length > limits.title_max) {
       raw.title = raw.title.substring(0, 47) + "...";
@@ -194,20 +210,24 @@ export class NeerzyEngine {
       raw.body = raw.body.substring(0, 297) + "...";
     }
 
-    // 2. Prohibited terms (GBP policy)
+    // 2. Prohibited terms (GBP policy). Strip the offending claim entirely —
+    // never substitute placeholder text like "[trusted]" into the published post.
     const banned = ['guaranteed', 'cheapest', '#1', 'free', '100%'];
     const bannedRegex = new RegExp(banned.join('|'), 'gi');
-    if (raw.body) raw.body = raw.body.replace(bannedRegex, '[trusted]');
-    if (raw.title) raw.title = raw.title.replace(bannedRegex, '[trusted]');
+    const scrub = (value: string) =>
+      value.replace(bannedRegex, '').replace(/[ \t]{2,}/g, ' ').trim();
+    if (raw.body) raw.body = scrub(raw.body);
+    if (raw.title) raw.title = scrub(raw.title);
 
-    // 3. Format hashtags (Hyper-local)
-    const citySafe = context.location.replace(/\s/g, '');
-    const tradeSafe = context.trade.replace(/\s/g, '');
-    raw.hashtags = [
-      `#${citySafe}${tradeSafe}`,
-      `#${tradeSafe}NearMe`,
-      `#${citySafe}Service`
-    ].slice(0, 3);
+    // 3. Format hashtags (Hyper-local) — city + capitalized trade, e.g. #HoustonPlumber
+    const cityRaw =
+      context.location && context.location !== "Local Area"
+        ? String(context.location).replace(/\s/g, "")
+        : "";
+    const tradeCap = capitalizeFirst(String(context.trade).replace(/\s/g, ""));
+    raw.hashtags = cityRaw
+      ? [`#${cityRaw}${tradeCap}`, `#${tradeCap}NearMe`, `#${cityRaw}Service`]
+      : [`#${tradeCap}Services`, `#${tradeCap}NearMe`];
 
     // 4. CTA mapping (GBP only allows specific actions)
     const validCTAs = ['BOOK', 'CALL_NOW', 'LEARN_MORE', 'ORDER_ONLINE'];
@@ -227,11 +247,25 @@ export class NeerzyEngine {
    * Layer 6: Fallback Template Engine
    * Generates a high-quality post using rule-based logic if the LLM fails.
    */
-  private static generateFallback(context: any, rules: any) {
-    const title = `🚨 Professional ${context.trade} in ${context.location}`;
-    const body = `Need a reliable ${context.trade}? Our team specializes in ${context.jobType} in the ${context.location} area. ${rules.trustSignals[0]} and ${rules.urgency[0]} service.`;
-    const faq_ai = `Q: Do you offer ${context.jobType} in ${context.location}? A: Yes, we are fully ${rules.trustSignals[0].toLowerCase()} and ready to help.`;
-    
+  private static generateFallback(context: any, _rules: any) {
+    const tradeLabel =
+      context.trade && context.trade !== "general" ? context.trade : "local service";
+    const hasRealCity = !!context.location && context.location !== "Local Area";
+    const cityPhrase = hasRealCity ? ` in ${context.location}` : "";
+
+    // Only a genuine description (not the empty default / one-word ack) grounds the post.
+    const jobRaw = (context.jobDescription || context.jobType || "").trim();
+    const isVoid = !jobRaw || /^(done|yes|no|ok|okay|post)$/i.test(jobRaw);
+    const job = isVoid ? "" : jobRaw;
+
+    // Minimal, factual, anti-hallucination copy — never invents credentials,
+    // materials, outcomes, or generic marketing claims.
+    const title = truncate(capitalizeFirst(job || `${tradeLabel} job completed`), 50);
+    const body = job
+      ? `${capitalizeFirst(job)}${cityPhrase}. For ${tradeLabel} help${hasRealCity ? ` in ${context.location}` : ""}, send us a message.`
+      : `${capitalizeFirst(tradeLabel)} job completed${cityPhrase}. Send us a message for ${tradeLabel} help.`;
+    const faq_ai = `Q: Need ${job ? "this service" : `${tradeLabel} services`}${hasRealCity ? ` in ${context.location}` : ""}? A: Yes — send us a message for details.`;
+
     return {
       title,
       body,
@@ -278,7 +312,7 @@ export class NeerzyEngine {
           response_format: { type: "json_object" }
         },
         undefined,
-        { timeout: 8000 } // timeout as request option
+        { timeout: 30000 } // 30s (8s previously fired the generic fallback constantly)
       );
 
       raw = JSON.parse(response.choices[0].message.content || "{}");
@@ -296,6 +330,16 @@ export class NeerzyEngine {
 
     return validated;
   }
+}
+
+/** Capitalize the first letter of a phrase (sentence case, not title case). */
+function capitalizeFirst(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+/** Truncate to `max` characters with a "..." suffix when needed. */
+function truncate(text: string, max: number): string {
+  return text.length <= max ? text : text.slice(0, max - 3).trimEnd() + "...";
 }
 
 /**

@@ -7,7 +7,7 @@ import { estimateAudioSeconds } from '@/lib/audio-duration';
 import { convertOggOpusToWav } from '@/lib/audio-convert';
 import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
-import { buildPostPrompt, type PostPromptContext } from '@/lib/post-prompt';
+import { buildPostPrompt, isUsableJobDescription, type PostPromptContext } from '@/lib/post-prompt';
 import { countUserPosts } from '@/lib/post-usage';
 
 const supabase = createClient(
@@ -872,18 +872,7 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     // generic post unrelated to the actual work. Treat those as no description and
     // let the prompt ground itself in the business category/location only.
     const rawDescription = (draft.voice_note || '').trim();
-    const VOID_DESCRIPTIONS = new Set([
-      '',
-      '[voice note transcription failed]',
-      '[Voice note transcription failed]',
-      'yes',
-      'no',
-      'ok',
-      'okay',
-      'done',
-      'post',
-    ]);
-    const hasUsableDescription = !VOID_DESCRIPTIONS.has(rawDescription.toLowerCase());
+    const hasUsableDescription = isUsableJobDescription(rawDescription);
     const jobDescription = hasUsableDescription ? rawDescription : '';
     const { system, user } = buildPostPrompt(businessCtx, { jobDescription, hasImage: true });
     const aiResponse = await chatWithFallback({

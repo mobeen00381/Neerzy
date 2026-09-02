@@ -21,6 +21,29 @@ async function getTraderIdFromPhone(phone: string): Promise<string> {
   return data.id;
 }
 
+/**
+ * Maps a loose Google category string (e.g. "Plumbing", "Home Services") to a
+ * NeerzyEngine TRADE_RULES key (plumber / electrician / roofer / mechanic).
+ */
+const CATEGORY_TRADE_MAP: Record<string, string> = {
+  plumbing: 'plumber',
+  plumber: 'plumber',
+  pipes: 'plumber',
+  electrical: 'electrician',
+  electrician: 'electrician',
+  roofing: 'roofer',
+  roofer: 'roofer',
+  mechanic: 'mechanic',
+  automotive: 'mechanic',
+  auto: 'mechanic',
+  'home services': 'general',
+};
+
+function mapCategoryToTrade(category: string | null | undefined): string {
+  const key = (category || '').toLowerCase().trim();
+  return CATEGORY_TRADE_MAP[key] || 'general';
+}
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -69,12 +92,17 @@ export async function POST(req: Request) {
     const neerzyRes = await fetch(`${appUrl}/api/neerzy/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        service, 
-        location: geo.city, 
-        category: geo.category, 
-        address: geo.address, 
-        trader_id: traderId 
+      body: JSON.stringify({
+        trader_id: traderId,
+        trade: mapCategoryToTrade(geo.category),
+        service,
+        // Trader's actual job text — the source of truth so the engine never
+        // falls back to generic trade copy for this specific job.
+        jobDescription: service,
+        intent: 'routine',
+        address: geo.address,
+        location: geo.city,
+        target_region: 'US'
       })
     });
     
