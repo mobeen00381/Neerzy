@@ -1517,7 +1517,7 @@ async function handleMetaDeliveryStatus(status: any, requestId: string) {
   // 1) Primary match: the wamid we saved when sending the request
   const { data: rows } = await supabase
     .from('review_requests')
-    .select('id, user_id, customer_name, customer_phone, status')
+    .select('id, user_id, customer_name, customer_phone, status, review_link, last_error')
     .eq('meta_message_id', wamid)
     .limit(1);
   let row = rows?.[0] || null;
@@ -1529,7 +1529,7 @@ async function handleMetaDeliveryStatus(status: any, requestId: string) {
     const withPlus = `+${digits}`;
     const { data: legacyRows } = await supabase
       .from('review_requests')
-      .select('id, user_id, customer_name, customer_phone, status')
+      .select('id, user_id, customer_name, customer_phone, status, review_link, last_error')
       .or(`customer_phone.eq.${recipientId},customer_phone.eq.${withPlus},customer_phone.eq.${digits}`)
       .eq('status', 'sent')
       .order('sent_at', { ascending: false })
@@ -1563,12 +1563,15 @@ async function handleMetaDeliveryStatus(status: any, requestId: string) {
       'Unknown delivery error';
     const errCode = err?.code ? ` [${err.code}]` : '';
     const fullDetail = `${errDetail}${errCode}`;
+    // A WhatsApp delivery failure means this request still needs to go out —
+    // mirror the dashboard device-link fallback so chat history and analytics
+    // show the manual_link state, while keeping the real reason in last_error.
     const { error: updErr } = await supabase
       .from('review_requests')
-      .update({ status: 'failed', last_error: fullDetail })
+      .update({ status: 'manual_fallback', sent_via: 'manual_link', last_error: fullDetail })
       .eq('id', row.id);
-    if (updErr) console.error(`❌ [${requestId}] Failed to mark review request ${row.id} failed:`, updErr.message);
-    else console.log(`❌ [${requestId}] Review request ${row.id} marked FAILED (${errDetail})`);
+    if (updErr) console.error(`❌ [${requestId}] Failed to mark review request ${row.id} manual_fallback:`, updErr.message);
+    else console.log(`❌ [${requestId}] Review request ${row.id} marked MANUAL FALLBACK (${errDetail})`);
     await notifyTraderOfDelivery(row, 'failed', wamid, fullDetail);
   }
 }
@@ -1609,11 +1612,33 @@ async function notifyTraderOfDelivery(row: any, outcome: 'delivered' | 'failed',
       );
     } else {
       const reason = detail ? `\n\n_Reason: ${detail}_` : '';
-      await sendWhatsappText(
-        traderPhone,
-        `⚠️ *Review request NOT delivered to ${customerName}.*\n\nWhatsApp reported the message could not be delivered.${reason}\n\nThey may not be on WhatsApp. Ask them to send you a WhatsApp message first, then resend the request.`,
-        undefined
-      );
+      if (row.review_link) {
+        // The trader has a review link — hand them the exact copy-paste message
+        // to send via SMS/WhatsApp from their own phone instead of relying on Meta.
+        let businessName = '';
+        try {
+          const { data: biz } = await supabase
+            .from('business_profiles')
+            .select('business_name')
+            .eq('user_phone', traderPhone)
+            .maybeSingle();
+          businessName = biz?.business_name || '';
+        } catch (bizErr: any) {
+          console.warn('⚠️ Failed to load business name for manual-fallback message:', bizErr?.message || bizErr);
+        }
+        await sendWhatsappText(
+          traderPhone,
+          `⚠️ *Review request NOT delivered to ${customerName}.*${reason}\n\nThey may not be on WhatsApp.\n\n📋 *Copy this message and send it to ${customerName} via SMS from your phone:*\n\nHi ${customerName}, thanks for choosing ${businessName || 'us'} today! Could you take 30 seconds to leave us a Google review? ${row.review_link}`,
+          undefined
+        );
+      } else {
+        // Legacy rows may predate the review_link column — keep the older guidance.
+        await sendWhatsappText(
+          traderPhone,
+          `⚠️ *Review request NOT delivered to ${customerName}.*\n\nWhatsApp reported the message could not be delivered.${reason}\n\nThey may not be on WhatsApp. Ask them to send you a WhatsApp message first, then resend the request.`,
+          undefined
+        );
+      }
     }
   } catch (err: any) {
     console.error('⚠️ Failed to notify trader of delivery status:', err?.message || err);

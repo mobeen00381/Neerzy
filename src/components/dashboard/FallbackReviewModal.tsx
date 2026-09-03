@@ -10,6 +10,8 @@ interface FallbackReviewModalProps {
   customerName: string;
   customerPhone: string;
   reviewLink: string;
+  /** Optional business name used to personalize the copy-paste fallback message. */
+  businessName?: string;
 }
 
 // Strip everything except digits and a leading "+", and normalize a "00"
@@ -27,9 +29,10 @@ function phoneForWhatsApp(raw: string): string {
   return normalizePhone(raw).replace(/\+/g, '');
 }
 
-function buildMessage(customerName: string, reviewLink: string): string {
+function buildMessage(customerName: string, reviewLink: string, businessName?: string): string {
   const name = (customerName || '').trim() || 'Customer';
-  return `Hi ${name}, thanks for choosing us today! Could you take 30 seconds to leave us a Google review? ${reviewLink}`;
+  const biz = (businessName || '').trim() || 'us';
+  return `Hi ${name}, thanks for choosing ${biz} today! Could you take 30 seconds to leave us a Google review? ${reviewLink}`;
 }
 
 export function FallbackReviewModal({
@@ -38,12 +41,13 @@ export function FallbackReviewModal({
   customerName,
   customerPhone,
   reviewLink,
+  businessName,
 }: FallbackReviewModalProps) {
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
-  const message = buildMessage(customerName, reviewLink);
+  const message = buildMessage(customerName, reviewLink, businessName);
   const encodedText = encodeURIComponent(message);
   const waPhone = phoneForWhatsApp(customerPhone);
   const smsPhone = normalizePhone(customerPhone);
