@@ -201,6 +201,7 @@ export async function POST(req: Request) {
 
     // Try to send via Meta WhatsApp if configured
     let whatsappSent = false;
+    let deliveryError: string | null = null;
     if (process.env.META_WHATSAPP_ACCESS_TOKEN && process.env.META_WHATSAPP_PHONE_NUMBER_ID) {
       // Normalize phone to E.164 format (+92XXXXXXXXXX) - required by Meta API
       const e164Phone = customerPhone.replace(/[^\d+]/g, '').startsWith('+')
@@ -235,12 +236,16 @@ export async function POST(req: Request) {
         
         // Update record to reflect success
         if (reviewRequest?.id) {
-          await supabaseAdmin.from('review_requests').update({
+          const { error: updateErr } = await supabaseAdmin.from('review_requests').update({
             status: 'sent',
             sent_via: 'whatsapp_template',
             meta_message_id: result.messages?.[0]?.id || null,
             sent_at: new Date().toISOString()
           }).eq('id', reviewRequest.id);
+          if (updateErr) {
+            console.warn('⚠️ Failed to save meta_message_id on review_requests row:', updateErr.message);
+            console.warn('   If the error mentions an unknown column, the 20260902_add_meta_message_id migration has not been applied.');
+          }
         }
 
       } catch (templateError: any) {
@@ -264,16 +269,21 @@ export async function POST(req: Request) {
           
           // Update record to reflect success
           if (reviewRequest?.id) {
-            await supabaseAdmin.from('review_requests').update({ 
+            const { error: updateErr } = await supabaseAdmin.from('review_requests').update({
               status: 'sent',
               sent_at: new Date().toISOString(),
               sent_via: 'whatsapp_fallback',
               meta_message_id: fallbackResult.messages?.[0]?.id || null
             }).eq('id', reviewRequest.id);
+            if (updateErr) {
+              console.warn('⚠️ Failed to save meta_message_id on review_requests row:', updateErr.message);
+              console.warn('   If the error mentions an unknown column, the 20260902_add_meta_message_id migration has not been applied.');
+            }
           }
         } catch (fallbackError: any) {
           console.error('❌ Fallback message also failed:', fallbackError.message);
           console.error('   Both template and fallback delivery attempts failed.');
+          deliveryError = fallbackError?.message || 'Unknown WhatsApp error';
           // Don't throw - we still want to save the record to Supabase
         }
       }
@@ -283,21 +293,35 @@ export async function POST(req: Request) {
     }
 
     // If Meta WhatsApp could not deliver, record the request as needing a manual
-    // fallback (device link) so history/analytics reflect what actually happened.
+    // fallback (device link) so history/analytics reflect what actually happened,
+    // and persist the real reason so the failure is never hidden from the trader.
     if (!whatsappSent && reviewRequest?.id) {
-      await supabaseAdmin.from('review_requests').update({
+      const patch: Record<string, any> = {
         status: 'manual_fallback',
         sent_via: 'manual_link',
-      }).eq('id', reviewRequest.id);
+      };
+      if (deliveryError) patch.last_error = deliveryError;
+      const { error: updateErr } = await supabaseAdmin.from('review_requests').update(patch).eq('id', reviewRequest.id);
+      if (updateErr) {
+        console.warn('⚠️ Failed to mark review request manual_fallback:', updateErr.message);
+        console.warn('   If the error mentions last_error, the 20260902_add_meta_message_id migration has not been applied.');
+      }
     }
+
+    const whatsappConfigured = Boolean(
+      process.env.META_WHATSAPP_ACCESS_TOKEN && process.env.META_WHATSAPP_PHONE_NUMBER_ID
+    );
 
     return NextResponse.json({
       success: true,
       data: reviewRequest,
       whatsapp_sent: whatsappSent,
+      delivery_error: deliveryError,
       message: whatsappSent
         ? 'Review request sent successfully!'
-        : 'Review request logged. WhatsApp sending not configured.',
+        : whatsappConfigured
+          ? `Review request saved, but WhatsApp delivery failed.${deliveryError ? ` Reason: ${deliveryError}` : ''} Use the manual fallback link to send it directly.`
+          : 'Review request logged. WhatsApp sending not configured.',
     });
   } catch (error: any) {
     console.error('send-request Error:', error);

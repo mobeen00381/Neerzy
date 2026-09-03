@@ -90,9 +90,13 @@ async function callMetaAPI(endpoint: string, body: Record<string, unknown>): Pro
   const data: MetaResponse = await response.json();
 
   if (!response.ok || data.error) {
+    const errCode = data.error?.code || response.status;
     const errMsg = data.error?.message || `HTTP ${response.status}`;
-    console.error(`❌ [Meta WhatsApp] Error (${data.error?.code || response.status}):`, errMsg);
-    throw new Error(`Meta WhatsApp API Error: ${errMsg}`);
+    console.error(`❌ [Meta WhatsApp] Error (${errCode}):`, errMsg);
+    // Include the numeric Meta error code in the thrown message (e.g.
+    // 131026 = number not registered on WhatsApp) so callers can detect and
+    // surface the real delivery failure instead of a generic "send failed".
+    throw new Error(`Meta WhatsApp API Error (${errCode}): ${errMsg}`);
   }
 
   console.log(`✅ [Meta WhatsApp] Message sent! ID: ${data.messages?.[0]?.id}`);

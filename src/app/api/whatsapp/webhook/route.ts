@@ -1033,6 +1033,70 @@ Type *DONE* when published.`;
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Review-request workflow
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** Insert a review_requests row for delivery tracking.
+ *
+ * Returns the new row's id, or null if it could not be saved. Uses
+ * `.select('id')` so a failed insert is DETECTED instead of silently passing —
+ * a bare `.insert()` reports success even when the row never lands.
+ *
+ * If the insert fails because the 20260902 migration columns
+ * (`meta_message_id` / `last_error`) are missing on this database, the row is
+ * retried with a legacy payload so tracking still works: Meta's async
+ * delivery-status callbacks then match the row by phone number (status
+ * 'sent') instead of the wamid, and the "NOT delivered" notification still
+ * fires. Logs loudly and returns null if the row genuinely can't be saved.
+ */
+async function insertReviewTrackingRow(payload: Record<string, any>): Promise<string | null> {
+  try {
+    const { data: inserted, error: insertErr } = await supabase
+      .from('review_requests')
+      .insert(payload)
+      .select('id')
+      .maybeSingle();
+
+    if (!insertErr && inserted?.id) {
+      return inserted.id as string;
+    }
+
+    const errMsg = insertErr?.message || String(insertErr || '');
+    console.error('⚠️ Failed to insert review_requests row:', insertErr);
+
+    const missingMigrationColumns =
+      /PGRST204|could not find|does not exist|unknown column/i.test(errMsg) &&
+      /meta_message_id|last_error/i.test(errMsg);
+
+    if (!missingMigrationColumns) {
+      return null;
+    }
+
+    console.warn(
+      '⚠️ meta_message_id/last_error columns missing on this database (20260902 migration not applied). ' +
+      'Retrying insert without them so delivery-status callbacks can still match the row by phone.'
+    );
+    const legacyPayload: Record<string, any> = {};
+    for (const [key, value] of Object.entries(payload)) {
+      if (key === 'meta_message_id' || key === 'last_error') continue;
+      legacyPayload[key] = value;
+    }
+
+    const { data: retried, error: retryErr } = await supabase
+      .from('review_requests')
+      .insert(legacyPayload)
+      .select('id')
+      .maybeSingle();
+
+    if (retryErr) {
+      console.error('⚠️ Legacy retry insert also failed:', retryErr);
+      return null;
+    }
+    return retried?.id ? (retried.id as string) : null;
+  } catch (err) {
+    console.error('⚠️ Failed to insert review_requests row:', err);
+    return null;
+  }
+}
+
 async function handleSendReview(phone: string, fromNumber?: string) {
   try {
     // 1. Try to find the last generated post WITH customer_phone
@@ -1228,6 +1292,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     let messageSentVia = 'whatsapp';
     let messageSuccess = false;
     let metaMessageId: string | null = null;
+    let lastSendError: string | null = null;
 
     try {
       // Step 1: Try approved template first
@@ -1253,6 +1318,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     } catch (templateError: any) {
       console.error('❌ Template failed:', templateError.message);
       console.error('   This usually means template is not approved yet in Meta Business Manager.');
+      lastSendError = templateError?.message || 'Template send failed';
 
       // Step 2: FALLBACK - Send free-form text within 24h window
       console.log('📩 FALLBACK: Attempting free-form WhatsApp message...');
@@ -1274,39 +1340,58 @@ async function handleSendReview(phone: string, fromNumber?: string) {
       } catch (fallbackError: any) {
         console.error('❌ Fallback also failed:', fallbackError.message);
         console.error('   Both delivery methods failed. Check your Meta access token and phone number.');
+        lastSendError = fallbackError?.message || 'Free-form fallback send failed';
         messageSuccess = false;
       }
     }
 
     if (!messageSuccess) {
-      throw new Error('Failed to send WhatsApp review request via any method');
+      // Both the approved template AND the free-form fallback failed at the
+      // API level. Surface the real reason to the trader (the outer catch
+      // sends it as an error message) instead of a generic one-liner, and
+      // leave the pending post in 'generated'/'draft' so the trader can retry
+      // with DONE. We deliberately don't log a review_requests row here: a
+      // 'failed' row would consume the trader's review quota and block retries.
+      const failureReason = (lastSendError || 'Unknown error')
+        .replace(/^Meta WhatsApp API Error(?: \(\d+\))?:\s*/, '')
+        .trim();
+      throw new Error(
+        `WhatsApp could not deliver the review request to ${customerName}. ` +
+        (failureReason && failureReason !== 'Unknown error' ? `Reason: ${failureReason} ` : '') +
+        'The customer may not be on WhatsApp, or has not messaged you recently. ' +
+        'Ask them to send you a WhatsApp message first, then type *DONE* to resend.'
+      );
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Insert review_requests row for dashboard tracking/stats
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    try {
-      const messageText = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${reviewLink}`;
-      const businessId = business?.id || null;
-      const { error: insertErr } = await supabase.from('review_requests').insert({
-        user_id: userIdForPublish || null,
-        business_id: businessId,
-        customer_name: customerName,
-        customer_phone: targetCustomerPhone,
-        message_text: messageText,
-        review_link: reviewLink,
-        status: 'sent',
-        sent_via: messageSentVia,
-        meta_message_id: metaMessageId,
-        sent_at: new Date().toISOString(),
-      });
-      if (insertErr) {
-        console.error('⚠️ Failed to insert review_requests row:', insertErr);
-      } else {
-        console.log(`📝 Inserted review_requests row for ${customerName} (user: ${userIdForPublish || 'unknown'}) via ${messageSentVia}`);
-      }
-    } catch (insertErr) {
-      console.error('⚠️ Failed to insert review_requests row:', insertErr);
+    // This row is what lets Meta's async delivery-status callbacks reach the
+    // trader later — e.g. a *failed* status for a customer who is NOT on
+    // WhatsApp triggers the "NOT delivered" notification. If this insert ever
+    // silently failed (the old code never confirmed the row landed), no record
+    // existed to correlate the wamid, so the failure was never surfaced.
+    // insertReviewTrackingRow() detects insert failures and falls back to a
+    // legacy payload if the migration columns are missing on this database.
+    const messageText = `Hi ${customerName}! 👋\n\nThank you for choosing ${businessName}! We'd really appreciate it if you could leave us a quick review. It helps us grow!\n\n🔗 Review link: ${reviewLink}`;
+    const businessId = business?.id || null;
+    const trackingRowId = await insertReviewTrackingRow({
+      user_id: userIdForPublish || null,
+      business_id: businessId,
+      customer_name: customerName,
+      customer_phone: targetCustomerPhone,
+      message_text: messageText,
+      review_link: reviewLink,
+      status: 'sent',
+      sent_via: messageSentVia,
+      meta_message_id: metaMessageId,
+      sent_at: new Date().toISOString(),
+    });
+
+    if (trackingRowId) {
+      console.log(`📝 Inserted review_requests row ${trackingRowId} for ${customerName} (user: ${userIdForPublish || 'unknown'}) via ${messageSentVia}`);
+    } else {
+      console.error('⚠️ review_requests row could NOT be saved — delivery status callbacks will not be able to notify the trader for this request.');
     }
 
     // Mark the row after successful send + logging.
@@ -1331,6 +1416,14 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     const customerFlag = getCountryFlag(customerCC);
     const confirmMessage = `✅ *Review request sent to ${customerName}!*\n\n📱 Sent to: ${customerFlag} ${targetCustomerPhone}\n🔗 Here is the review link:\n\n${reviewLink}\n\n_You'll get a delivery confirmation once WhatsApp confirms delivery._\n_Done! Workflow complete._ ✅`;
     await sendWhatsappText(phone, confirmMessage, fromNumber);
+
+    if (!trackingRowId) {
+      await sendWhatsappText(
+        phone,
+        `⚠️ *Heads up:* the review request was sent to WhatsApp, but Neerzy couldn't save the delivery-tracking record (database error), so delivery confirmations may not arrive. Please try again or check that migration 20260902 was applied.`,
+        fromNumber
+      );
+    }
 
     return NextResponse.json({ success: true });
 
