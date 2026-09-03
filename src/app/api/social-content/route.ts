@@ -22,9 +22,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-// DB-backed rate limiter (same pattern as posts/create — safe for serverless)
+// DB-backed rate limiter (same pattern as posts/create — safe for serverless).
+// This endpoint is growth/agency-gated, so the limit is raised for "priority".
 const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_MAX = 30;
 const ENDPOINT = 'social-content';
 
 async function checkRateLimit(ip: string): Promise<{ allowed: boolean; resetAt: number }> {
@@ -170,6 +171,7 @@ export async function POST(req: Request) {
         contentType: String(contentType || 'showcase'),
         businessName: String(businessName || 'My Business').slice(0, 120),
         businessCategory: String(businessCategory || 'Local Service').slice(0, 120),
+        priority: true, // growth/agency → priority processing
       });
       return NextResponse.json(result);
     }

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { PLAN_LIMITS, getPlan, getRemainingDays, getCycleStartIso } from '@/lib/plans';
 import { FallbackReviewModal } from '@/components/dashboard/FallbackReviewModal';
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
+import { AgencyClientsPanel } from '@/components/dashboard/AgencyClientsPanel';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { 
   Sparkles, 
@@ -1800,6 +1801,13 @@ export default function Dashboard() {
                   <h2 className="text-3xl font-black text-slate-900 tracking-tight">Account & Listing</h2>
                   <p className="text-sm text-slate-500 font-semibold mt-1">Configure your listing metadata, connected keys, and subscription plan</p>
                 </div>
+
+                {/* Agency: My Traders (only for accounts on the Agency plan) */}
+                {(plan === 'agency') && (
+                  <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/60 shadow-sm">
+                    <AgencyClientsPanel />
+                  </div>
+                )}
 
                 {/* Listing Details Card */}
                 <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm space-y-6">

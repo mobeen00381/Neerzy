@@ -18,6 +18,7 @@ export interface SocialContentInput {
   contentType?: string;
   businessName?: string;
   businessCategory?: string;
+  priority?: boolean;
 }
 
 export interface SocialContentResult {
@@ -81,7 +82,7 @@ ${jobTopic || '(no details given — write a short general post about the busine
     ],
     temperature: 0.8,
     max_tokens: 1000,
-  });
+  }, { priority: !!input.priority });
 
   const raw = aiResponse.choices[0]?.message?.content || '';
   const parsed = extractSocialJson(raw);

@@ -45,13 +45,16 @@ export const PRICING_PLANS = {
     id: "agency",
     name: "Agency",
     priceMonthly: 199,
-    postsPerMonth: 250,
+    postsPerMonth: 300,
     features: [
-      "250 posts per month + review requests",
-      "250 review requests-extra",
-      "White-label options",
-      "Dedicated account manager",
-      "API access"
+      "Up to 10 traders — each connects their own WhatsApp",
+      "300 posts per month (30 per trader)",
+      "300 review requests per month (30 per trader)",
+      "3 posts/day per trader",
+      "Google + Facebook + Instagram posts for every trader",
+      "Agency overview dashboard",
+      "Priority processing",
+      "Priority support"
     ]
   }
 };

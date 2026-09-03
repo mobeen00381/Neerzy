@@ -10,6 +10,7 @@ import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { generateSocialContent } from '@/lib/social-content';
 import { buildPostPrompt, isUsableJobDescription, type PostPromptContext } from '@/lib/post-prompt';
 import { countUserPosts } from '@/lib/post-usage';
+import { getAgencyByClientPhone, getAgencyClientPhones, countAgencyTraderPosts, countAgencyPoolPosts, countAgencyTraderReviews, countAgencyPoolReviews, AGENCY_TRADER, AGENCY_POOL } from '@/lib/agency';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -809,13 +810,65 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     // Plan Quota Check: posts from WhatsApp + web dashboard count together
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Growth/Agency users get Google + Facebook + Instagram. Free/Pro stay on
-    // Google-only. Tracked here (inside the quota block) then read later.
+    // Google-only. Agency traders are detected by phone and get the same 3-post
+    // flow with per-trader (30/month, 3/day) + agency pool (300/month, 30/day) caps.
     let growthTier = false;
     const userIdForQuota = await getUserIdByPhone(phone);
-    if (!userIdForQuota) {
+    const agencyCtx = await getAgencyByClientPhone(phone);
+    if (!userIdForQuota && !agencyCtx) {
       console.warn(`⚠️ [trial-check post] Could not resolve user for phone ${phone} — skipping quota/trial check`);
     }
-    if (userIdForQuota) {
+
+    // ── Agency trader path: per-trader + agency-pool caps ──
+    if (agencyCtx) {
+      growthTier = true; // traders always get the GMB + FB + IG 3-post flow
+      try {
+        // Mark connected on the first successful POST so the agency dashboard
+        // shows the trader's live status.
+        await supabase.from('agency_clients').update({ status: 'connected' }).eq('id', agencyCtx.clientId);
+
+        const cycleStartIso = getCycleStartIso(agencyCtx.agencyAnchor);
+
+        // 1) Per-trader caps: 30 posts/month, 3/day
+        const traderUsage = await countAgencyTraderPosts(phone, cycleStartIso);
+        if (traderUsage.total >= AGENCY_TRADER.posts) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Trader post limit reached.*\n\nThis trader has used ${traderUsage.total}/30 posts this month. Please contact your agency.`,
+            fromNumber
+          );
+        }
+        if (traderUsage.daily >= AGENCY_TRADER.postsDaily) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Daily post limit reached.*\n\nThis trader has used ${traderUsage.daily}/3 posts today. Try again tomorrow.`,
+            fromNumber
+          );
+        }
+
+        // 2) Agency pool caps: 300 posts/month, 30/day across all traders
+        const pool = await countAgencyPoolPosts(agencyCtx.agencyUserId, cycleStartIso);
+        if (pool.total >= AGENCY_POOL.posts) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Agency post pool reached.*\n\nYour agency has used ${pool.total}/300 posts this month. Please contact your agency.`,
+            fromNumber
+          );
+        }
+        if (pool.daily >= AGENCY_POOL.postsDaily) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Agency daily pool reached.*\n\nYour agency has used ${pool.daily}/30 posts today. Try again tomorrow.`,
+            fromNumber
+          );
+        }
+      } catch (agencyErr) {
+        console.warn('⚠️ Could not check agency post quota:', agencyErr);
+      }
+    }
+
+    // ── Standard user path ──
+    if (!agencyCtx && userIdForQuota) {
       try {
         const { data: profileData } = await supabase
           .from('profiles')
@@ -906,7 +959,7 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-    });
+    }, { priority: growthTier });
 
     const postContent = aiResponse.choices[0].message.content || '';
     const parsed = parsePostContent(postContent);
@@ -1048,6 +1101,7 @@ Type *DONE* when published.`;
           jobTopic: jobDescription || parsed.headline || draft.customer_name || 'a recently completed job',
           businessName: businessCtx.businessName || 'My Business',
           businessCategory: businessCtx.category || 'Local Service',
+          priority: growthTier,
         });
 
         const fbText = `${social.facebook.postText}\n\n${social.facebook.hashtags}`.trim();
@@ -1268,11 +1322,58 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Soft Plan-Quota Check: block sending if trader has hit their plan limits
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const agencyCtxReview = await getAgencyByClientPhone(phone);
     const userIdForPublish = await getUserIdByPhone(phone);
-    if (!userIdForPublish) {
+    if (!userIdForPublish && !agencyCtxReview) {
       console.warn(`⚠️ [trial-check review] Could not resolve user for phone ${phone} — skipping quota/trial check`);
     }
-    if (userIdForPublish) {
+
+    // ── Agency trader review caps: 30/month + 3/day per trader, plus the agency
+    //    pool (300/month, 30/day) shared across all traders. ──
+    if (agencyCtxReview) {
+      try {
+        await supabase.from('agency_clients').update({ status: 'connected' }).eq('id', agencyCtxReview.clientId);
+
+        const cycleStartIso = getCycleStartIso(agencyCtxReview.agencyAnchor);
+        const traderReviews = await countAgencyTraderReviews(phone, cycleStartIso);
+        if (traderReviews.total >= AGENCY_TRADER.reviews) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Trader review limit reached.*\n\nThis trader has used ${traderReviews.total}/30 review requests this month. Please contact your agency.`,
+            fromNumber
+          );
+        }
+        if (traderReviews.daily >= AGENCY_TRADER.reviewsDaily) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Daily review limit reached.*\n\nThis trader has used ${traderReviews.daily}/3 review requests today. Try again tomorrow.`,
+            fromNumber
+          );
+        }
+
+        const phonesPool = await getAgencyClientPhones(agencyCtxReview.agencyUserId);
+        const poolReviews = await countAgencyPoolReviews(agencyCtxReview.agencyUserId, phonesPool, cycleStartIso);
+        if (poolReviews.total >= AGENCY_POOL.reviews) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Agency review pool reached.*\n\nYour agency has used ${poolReviews.total}/300 review requests this month. Please contact your agency.`,
+            fromNumber
+          );
+        }
+        if (poolReviews.daily >= AGENCY_POOL.reviewsDaily) {
+          return await sendWhatsappText(
+            phone,
+            `⚠️ *Agency daily review pool reached.*\n\nYour agency has used ${poolReviews.daily}/30 review requests today. Try again tomorrow.`,
+            fromNumber
+          );
+        }
+      } catch (agencyRevErr) {
+        console.warn('⚠️ Could not check agency review quota:', agencyRevErr);
+      }
+    }
+
+    // ── Standard user path ──
+    if (!agencyCtxReview && userIdForPublish) {
       try {
         const { data: profileData } = await supabase
           .from('profiles')
@@ -1447,6 +1548,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     const businessId = business?.id || null;
     const trackingRowId = await insertReviewTrackingRow({
       user_id: userIdForPublish || null,
+      agency_client_phone: agencyCtxReview ? phone : null,
       business_id: businessId,
       customer_name: customerName,
       customer_phone: targetCustomerPhone,

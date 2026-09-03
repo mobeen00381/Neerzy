@@ -63,26 +63,24 @@ const PLANS = [
       { text: 'Facebook + Instagram content', included: true },
       { text: 'Priority processing', included: true },
       { text: 'Advanced analytics', included: true },
-      { text: 'Multi-location support', included: true },
       { text: 'Review tracking dashboard', included: true },
     ]
   },
   {
     name: 'Agency',
     price: '199',
-    bestFor: 'Marketing agencies & multi-client',
+    bestFor: 'Marketing agencies managing up to 10 traders',
     cta: 'Contact Sales',
     href: 'mailto:sales@neerzy.com',
     highlight: false,
     features: [
-      { text: '250 posts per month + review requests', included: true },
-      { text: '250 review requests-extra', included: true },
-      { text: 'Up to 10 clients', included: true },
-      { text: 'Client management dashboard', included: true },
-      { text: 'White-label workflow', included: true },
-      { text: 'Bulk workflow tools', included: true },
-      { text: 'Shared team access', included: true },
-      { text: 'Priority support', included: true },
+      { text: 'Up to 10 traders — each connects their own WhatsApp', included: true },
+      { text: '300 posts per month + review requests (30 per trader)', included: true },
+      { text: '3 posts/day per trader', included: true },
+      { text: 'Google + Facebook + Instagram posts for every trader', included: true },
+      { text: 'Agency overview dashboard', included: true },
+      { text: 'Everything in Growth', included: true },
+      { text: 'Priority processing & priority support', included: true },
     ]
   }
 ];
@@ -95,7 +93,7 @@ const COMPARISON = [
   { feature: 'Voice notes', free: '—', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Social content', free: '—', pro: '—', growth: '✓', agency: '✓' },
   { feature: 'Analytics', free: 'Basic', pro: 'Basic', growth: 'Advanced', agency: 'Advanced' },
-  { feature: 'Multi-client', free: '—', pro: '—', growth: '—', agency: '✓' },
+  { feature: 'Manage 10 traders', free: '—', pro: '—', growth: '—', agency: '✓' },
 ];
 
 const FAQS = [

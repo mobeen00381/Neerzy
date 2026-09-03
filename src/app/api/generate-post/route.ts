@@ -127,7 +127,7 @@ export async function POST(req: Request) {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-    });
+    }, { priority: growthTier });
 
     const postContent = aiResponse.choices[0].message.content || '';
     const parsed = parsePostContent(postContent);
@@ -155,6 +155,7 @@ export async function POST(req: Request) {
           jobTopic: jobDescription,
           businessName: postCtx.businessName || bizName,
           businessCategory: postCtx.category || 'Local Service',
+          priority: growthTier,
         });
       } catch (socialErr: any) {
         console.warn('⚠️ generate-post social content failed (Google post still returned):', socialErr?.message || socialErr);

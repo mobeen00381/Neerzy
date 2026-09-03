@@ -79,12 +79,18 @@ export function getTranscriptionClient() {
  * Chat completion with automatic runtime fallback: tries GLM first, then retries the
  * same request via DeepSeek when GLM errors, is rate-limited, or times out.
  * `opts.vision` selects the vision model of each provider instead of the text model.
+ * `opts.priority` (Growth/Agency "priority processing"): when GLM is busy or
+ * rate-limited, retry GLM once after a short backoff BEFORE falling back to
+ * DeepSeek — priority users get the best model first, standard users fall back
+ * immediately.
  */
 export async function chatWithFallback(
   params: Omit<NonStreamParams, 'model'>,
-  opts?: { vision?: boolean },
+  opts?: { vision?: boolean; priority?: boolean },
   requestOpts?: OpenAI.RequestOptions
 ): Promise<ChatCompletion> {
+  const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
   if (glmKey) {
     try {
       const model = opts?.vision ? DEFAULT_VISION_MODEL : DEFAULT_OPENAI_MODEL;
@@ -93,6 +99,21 @@ export async function chatWithFallback(
         requestOpts
       );
     } catch (glmErr: any) {
+      // Priority users: give GLM one more chance after a short backoff before
+      // accepting a DeepSeek fallback (or failing when no fallback is set).
+      if (opts?.priority) {
+        try {
+          await delay(700);
+          const model = opts?.vision ? DEFAULT_VISION_MODEL : DEFAULT_OPENAI_MODEL;
+          return await makeClient(glmKey, GLM_BASE_URL).chat.completions.create(
+            { ...params, model },
+            requestOpts
+          );
+        } catch (glmRetryErr: any) {
+          console.warn(`⚠️ [priority] GLM retry failed, falling back: ${glmRetryErr?.message || glmRetryErr}`);
+          if (!deepseekKey) throw glmRetryErr;
+        }
+      }
       if (!deepseekKey) throw glmErr;
       console.warn(`⚠️ GLM failed, retrying via DeepSeek fallback: ${glmErr?.message || glmErr}`);
       const dsModel = opts?.vision

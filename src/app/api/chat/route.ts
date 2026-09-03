@@ -14,8 +14,8 @@ Here is what you know about Neerzy:
 - Pricing structure:
    1. Free Plan: $0/month. Includes 5 posts total, 1 post/day, Google post generation, website updates, review requests, and a 30-day free trial.
    2. Pro Plan: $39/month. Includes 25 posts/month, 2 posts/day, WhatsApp workflow, custom domain support, AI captions & voice notes, basic analytics.
-   3. Growth Plan: $79/month. Includes 60 posts/month, 4 posts/day, social content (Facebook + Instagram), priority processing, advanced analytics, multi-location support.
-   4. Agency Plan: $199/month. Includes 250 posts/month, up to 10 clients, white-label workflow, team access, bulk tools, priority support.
+   3. Growth Plan: $79/month. Includes 60 posts/month, 4 posts/day, social content (Facebook + Instagram), priority processing, advanced analytics, review tracking dashboard.
+   4. Agency Plan: $199/month. Includes up to 10 traders (each connects their own WhatsApp), 300 posts + 300 review requests/month (30 per trader), 3 posts/day per trader, Google + Facebook + Instagram posts for every trader, agency overview dashboard, priority processing & support.
 - Free Trial: The Free Plan comes with a 30-Day Free Trial.
 - Domain Fee: There is a one-time $19 fee at signup to register their custom domain name.
 - Cancellation: Users can cancel anytime, no contracts.

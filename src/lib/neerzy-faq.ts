@@ -63,13 +63,15 @@ You can also send your customer's name and phone number, and Neerzy will automat
 • Social content (Facebook + Instagram)
 • Priority processing
 • Advanced analytics
-• Multi-location support
+• Review tracking dashboard
 
 🏢 **Agency Plan** — $199/mo
-• 250 posts/month
-• Up to 10 clients
-• White-label workflow
-• Team access & bulk tools
+• Up to 10 traders — each connects their own WhatsApp
+• 300 posts + 300 review requests/month (30 per trader)
+• 3 posts/day per trader
+• Google + Facebook + Instagram posts for every trader
+• Agency overview dashboard
+• Priority processing & support
 
 💡 One-time $19 domain registration fee applies at signup.
 👉 Start here: /onboarding`
@@ -110,25 +112,22 @@ Perfect for individual contractors and small businesses! 👉 /onboarding`
 • Social content generation (Facebook + Instagram)
 • Priority processing
 • Advanced analytics
-• Multi-location support
 • Review tracking dashboard
 
 Ideal for growing businesses that want to dominate local search. 👉 /onboarding`
   },
   {
-    patterns: ['agency plan', 'agency tier', '$199', 'multiple clients', 'white label'],
-    answer: `The **Agency Plan** is $199/month — built for marketing agencies:
+    patterns: ['agency plan', 'agency tier', '$199', 'multiple clients', '10 traders'],
+    answer: `The **Agency Plan** is $199/month — built for marketing agencies managing up to 10 traders:
 
-• 250 posts per month
-• Up to 10 clients
-• 2 posts/day per client
-• Client management dashboard
-• White-label workflow
-• Bulk workflow tools
-• Shared team access
-• Priority support
+• Up to 10 traders — each connects their own WhatsApp
+• 300 posts + 300 review requests per month (30 per trader)
+• 3 posts/day per trader
+• Google + Facebook + Instagram posts for every trader
+• Agency overview dashboard
+• Priority processing & priority support
 
-Manage all your clients from one place. 👉 /onboarding`
+Every trader uses the exact same simple WhatsApp flow — you just watch it all from your agency overview. 👉 /onboarding`
   },
 
   // ── Domain ──
