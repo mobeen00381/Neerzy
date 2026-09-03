@@ -4,6 +4,7 @@ import { chatWithFallback } from '@/lib/openai';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { buildPostPrompt, type PostPromptContext } from '@/lib/post-prompt';
 import { countUserPosts } from '@/lib/post-usage';
+import { generateSocialContent } from '@/lib/social-content';
 import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 
 const supabase = createClient(
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
     // Plan quota check — posts from WhatsApp + web dashboard count together
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     let profilePhone: string | null = null;
+    let growthTier = false;
     if (userId) {
       try {
         const { data: profileData } = await supabase
@@ -62,6 +64,9 @@ export async function POST(req: Request) {
         const planTier = profileData?.selected_plan || 'free';
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
         const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
+
+        // Growth/Agency → also write Facebook + Instagram posts (same as WhatsApp flow).
+        if (planTier === 'growth' || planTier === 'agency') growthTier = true;
 
         if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
           return NextResponse.json(
@@ -139,6 +144,23 @@ export async function POST(req: Request) {
 
     const fullText = buildCleanPost(headline, bodyText, cta, hashtags);
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Growth/Agency: also generate Facebook + Instagram content (same as WhatsApp
+    // tier-based flow). Best-effort — if it fails the Google post still returns.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    let social = null;
+    if (growthTier) {
+      try {
+        social = await generateSocialContent({
+          jobTopic: jobDescription,
+          businessName: postCtx.businessName || bizName,
+          businessCategory: postCtx.category || 'Local Service',
+        });
+      } catch (socialErr: any) {
+        console.warn('⚠️ generate-post social content failed (Google post still returned):', socialErr?.message || socialErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       headline,
@@ -148,7 +170,9 @@ export async function POST(req: Request) {
       postType,
       qaQuestion,
       qaAnswer,
-      fullText
+      fullText,
+      social,
+      growthTier
     });
   } catch (error: any) {
     console.error('❌ generate-post error:', error);

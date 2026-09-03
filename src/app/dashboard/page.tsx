@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabase";
 import { PLAN_LIMITS, getPlan, getRemainingDays, getCycleStartIso } from '@/lib/plans';
 import { FallbackReviewModal } from '@/components/dashboard/FallbackReviewModal';
-import { SocialContentStudio } from '@/components/dashboard/SocialContentStudio';
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { 
@@ -30,7 +29,6 @@ import {
   Activity,
   ChevronRight,
   Copy,
-  Share2,
   Cpu,
   Store
 } from 'lucide-react';
@@ -48,6 +46,8 @@ interface Message {
   postReady?: boolean;
   gbpLink?: string;
   generatedText?: string;
+  platform?: 'google' | 'facebook' | 'instagram';
+  openLink?: string;
 }
 
 // Helper function to render message content with clickable links
@@ -142,7 +142,7 @@ function renderMessageContent(text: string) {
 export default function Dashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'post' | 'analytics' | 'account' | 'social'>('post');
+  const [activeTab, setActiveTab] = useState<'post' | 'analytics' | 'account'>('post');
   
   // User & Business Profiles
   const [user, setUser] = useState<any>(null);
@@ -321,6 +321,30 @@ export default function Dashboard() {
         ? `https://www.google.com/maps/place/?q=place_id:${bData.google_place_id}`
         : 'https://business.google.com/';
 
+      // Helper: build a bot "social post" chat message (Facebook / Instagram) for
+      // history — same shape as the live dashboard generation messages.
+      const socialBotMessage = (
+        id: string,
+        platform: 'facebook' | 'instagram',
+        copyText: string,
+        baseDate: Date
+      ) => ({
+        id,
+        text:
+          platform === 'facebook'
+            ? `✅ *Post 2 of 3 — FACEBOOK*\nCopy the text below:\n\n${copyText}\n\n📌 *Steps:* copy above → open Facebook → paste → tap Post.`
+            : `✅ *Post 3 of 3 — INSTAGRAM*\nCopy the caption below:\n\n${copyText}\n\n📌 *Steps:* copy above → open Instagram → add your photo → paste → tap Share.`,
+        sender: 'bot' as const,
+        timestamp: new Date(baseDate.getTime() + (platform === 'facebook' ? 2000 : 3000)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date(baseDate).toLocaleDateString(),
+        created_at: new Date(baseDate.getTime() + (platform === 'facebook' ? 2000 : 3000)),
+        status: 'published',
+        platform,
+        openLink: platform === 'facebook' ? 'https://www.facebook.com/' : 'https://www.instagram.com/',
+        generatedText: copyText,
+        source: 'webapp' as const,
+      });
+
       const mappedWebMessages: any[] = [];
       (postsData || []).forEach((p: any) => {
         // User message (original description)
@@ -350,9 +374,19 @@ export default function Dashboard() {
             generatedText: p.ai_reply,
           });
         }
+
+        // Growth: restored Facebook + Instagram posts (persist across refreshes)
+        const rowDate = new Date(p.created_at);
+        if (p.social_facebook) {
+          mappedWebMessages.push(socialBotMessage(`bot-fb-${p.id}`, 'facebook', p.social_facebook, rowDate));
+        }
+        if (p.social_instagram) {
+          mappedWebMessages.push(socialBotMessage(`bot-ig-${p.id}`, 'instagram', p.social_instagram, rowDate));
+        }
       });
 
-      const mappedWAMessages = whatsappPosts.map((p: any) => {
+      const mappedWAMessages: any[] = [];
+      (whatsappPosts || []).forEach((p: any) => {
         const googlePost = p.google_post || '';
         const parsed = parsePostContent(googlePost);
         const headline = parsed.headline || p.customer_name || 'New Post';
@@ -361,7 +395,7 @@ export default function Dashboard() {
         const hashtags = parsed.hashtags || '';
         const fullText = buildCleanPost(headline, body, cta, hashtags);
 
-        return {
+        mappedWAMessages.push({
           id: p.id,
           text: p.google_post ? fullText : `[Draft] Voice note: ${p.voice_note || 'Photo upload'}`,
           image: p.images?.[0] || null,
@@ -371,7 +405,16 @@ export default function Dashboard() {
           created_at: new Date(p.created_at),
           status: p.status || 'draft', // Preserve generated/published/draft
           source: 'whatsapp' as const
-        };
+        });
+
+        // Growth: restored Facebook + Instagram posts from WhatsApp flow
+        const waDate = new Date(p.created_at);
+        if (p.social_facebook) {
+          mappedWAMessages.push(socialBotMessage(`wa-fb-${p.id}`, 'facebook', p.social_facebook, waDate));
+        }
+        if (p.social_instagram) {
+          mappedWAMessages.push(socialBotMessage(`wa-ig-${p.id}`, 'instagram', p.social_instagram, waDate));
+        }
       });
 
       // Map review requests as chat messages (they already persist in DB)
@@ -807,6 +850,14 @@ export default function Dashboard() {
 
       const aiData = await aiRes.json();
 
+      // Growth/Agency: build the clean FB + IG copy blocks returned by the API.
+      const socialFb = aiData.social?.facebook
+        ? `${aiData.social.facebook.postText}\n\n${aiData.social.facebook.hashtags}`.trim()
+        : null;
+      const socialIg = aiData.social?.instagram
+        ? `${aiData.social.instagram.caption}\n\n${aiData.social.instagram.hashtags}`.trim()
+        : null;
+
       // Save generated post ONLY after successful generation (blocked/failed attempts don't count)
       const { error } = await supabase
         .from('posts')
@@ -816,6 +867,8 @@ export default function Dashboard() {
           image_url: draftImages[0] || null,
           status: 'published',
           ai_reply: aiData.fullText,
+          social_facebook: socialFb,
+          social_instagram: socialIg,
         });
 
       if (error) {
@@ -844,16 +897,50 @@ export default function Dashboard() {
         const extraBits: string[] = [];
         if (aiData.postType) extraBits.push(`📂 *On Google, select post type:* ${aiData.postType}`);
         if (aiData.qaQuestion && aiData.qaAnswer) extraBits.push(`💬 *Bonus — answer this Q&A on your Google listing:*\n\nQ: ${aiData.qaQuestion}\nA: ${aiData.qaAnswer}`);
-        if (extraBits.length) {
-          const guidanceMsg: Message = {
-            id: `guidance-${Date.now()}`,
-            text: extraBits.join('\n\n'),
+        const guidanceMsgs: Message[] = extraBits.length
+          ? [{
+              id: `guidance-${Date.now()}`,
+              text: extraBits.join('\n\n'),
+              sender: 'bot',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            }]
+          : [];
+
+        // Growth: Facebook + Instagram follow as separate copy-ready messages
+        const socialMsgs: Message[] = [];
+        if (socialFb) {
+          socialMsgs.push({
+            id: `social-fb-${Date.now()}`,
+            text: `✅ *Post 2 of 3 — FACEBOOK*\nCopy the text below:\n\n${socialFb}\n\n📌 *Steps:* copy above → open Facebook → paste → tap Post.`,
             sender: 'bot',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          };
-          return [...withReady, guidanceMsg];
+            platform: 'facebook',
+            openLink: 'https://www.facebook.com/',
+            generatedText: socialFb,
+          });
         }
-        return withReady;
+        if (socialIg) {
+          socialMsgs.push({
+            id: `social-ig-${Date.now()}`,
+            text: `✅ *Post 3 of 3 — INSTAGRAM*\nCopy the caption below:\n\n${socialIg}\n\n📌 *Steps:* copy above → open Instagram → add your photo → paste → tap Share.`,
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            platform: 'instagram',
+            openLink: 'https://www.instagram.com/',
+            generatedText: socialIg,
+          });
+        }
+        if (!socialFb && !socialIg && plan !== 'growth' && plan !== 'agency') {
+          // Free/Pro: one-line upsell so traders know Growth adds FB + IG posts.
+          socialMsgs.push({
+            id: `growth-hint-${Date.now()}`,
+            text: `🚀 *Growth plan tip:* with the Growth plan, every post also comes ready for *Facebook* and *Instagram* — 3 posts from one job.\n\nSee plans: https://www.neerzy.com/pricing`,
+            sender: 'bot',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          });
+        }
+
+        return [...withReady, ...guidanceMsgs, ...socialMsgs];
       });
 
       // Refresh dashboard data to update counts from DB
@@ -1235,17 +1322,6 @@ export default function Dashboard() {
                 Post
               </button>
               <button
-                onClick={() => setActiveTab('social')}
-                className={`px-4 py-2 text-xs font-black rounded-lg transition-all flex items-center gap-1.5 ${
-                  activeTab === 'social' 
-                    ? 'bg-white text-purple-700 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                <span>Social</span>
-                <span className="text-[9px] font-black bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full uppercase">Growth</span>
-              </button>
-              <button
                 onClick={() => setActiveTab('analytics')}
                 className={`px-4 py-2 text-xs font-black rounded-lg transition-all ${
                   activeTab === 'analytics' 
@@ -1386,26 +1462,6 @@ export default function Dashboard() {
             </button>
 
             <button
-              onClick={() => setActiveTab('social')}
-              className={`w-full flex items-center gap-4 px-4 py-3.5 border-b border-slate-100/50 transition-all ${
-                activeTab === 'social' 
-                  ? 'bg-purple-50/55 border-l-4 border-purple-600' 
-                  : 'hover:bg-slate-50'
-              }`}
-            >
-              <div className="w-11 h-11 bg-purple-600 rounded-full flex items-center justify-center text-white shrink-0 shadow-sm">
-                <Share2 className="w-5 h-5" />
-              </div>
-              <div className="flex-1 text-left min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-sm text-slate-900">Social Content</span>
-                  <span className="text-[9px] font-black bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full uppercase">Growth</span>
-                </div>
-                <p className="text-xs text-slate-500 font-medium truncate mt-0.5">Facebook & Instagram posts</p>
-              </div>
-            </button>
-
-            <button
               onClick={() => setActiveTab('account')}
               className={`w-full flex items-center gap-4 px-4 py-3.5 border-b border-slate-100/50 transition-all ${
                 activeTab === 'account' 
@@ -1537,6 +1593,34 @@ export default function Dashboard() {
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm active:scale-95"
                             >
                               🌐 Open GBP
+                            </a>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Inline action buttons for Facebook / Instagram post bubbles */}
+                      {(msg.platform === 'facebook' || msg.platform === 'instagram') && (
+                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-200/60">
+                          <button
+                            onClick={() => {
+                              const textToCopy = msg.generatedText || msg.text;
+                              navigator.clipboard.writeText(textToCopy);
+                              alert(`${msg.platform === 'facebook' ? 'Facebook' : 'Instagram'} post copied to clipboard!`);
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-bold rounded-lg transition-colors shadow-sm active:scale-95 ${
+                              msg.platform === 'facebook' ? 'bg-[#1877F2] hover:bg-[#0f6ae0]' : 'bg-[#E1306C] hover:bg-[#c22e61]'
+                            }`}
+                          >
+                            <Copy className="w-3.5 h-3.5" /> Copy {msg.platform === 'facebook' ? 'Facebook' : 'Instagram'} Post
+                          </button>
+                          {msg.openLink && (
+                            <a
+                              href={msg.openLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg hover:bg-slate-900 transition-colors shadow-sm active:scale-95"
+                            >
+                              Open {msg.platform === 'facebook' ? 'Facebook' : 'Instagram'}
                             </a>
                           )}
                         </div>
@@ -1701,19 +1785,6 @@ export default function Dashboard() {
                   userId={user?.id || ''} 
                   userPlan={plan} 
                   reviewStats={reviewStats} 
-                />
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: SOCIAL CONTENT STUDIO */}
-          {activeTab === 'social' && (
-            <div className="flex-1 bg-slate-50 p-6 md:p-10 overflow-y-auto max-h-[calc(100vh-80px)]">
-              <div className="max-w-5xl mx-auto">
-                <SocialContentStudio
-                  userPlan={plan}
-                  businessName={bName}
-                  businessCategory={businessProfile?.category || 'Local Service'}
                 />
               </div>
             </div>

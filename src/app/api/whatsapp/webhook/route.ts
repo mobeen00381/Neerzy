@@ -7,6 +7,7 @@ import { estimateAudioSeconds } from '@/lib/audio-duration';
 import { convertOggOpusToWav } from '@/lib/audio-convert';
 import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
+import { generateSocialContent } from '@/lib/social-content';
 import { buildPostPrompt, isUsableJobDescription, type PostPromptContext } from '@/lib/post-prompt';
 import { countUserPosts } from '@/lib/post-usage';
 
@@ -807,6 +808,9 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Plan Quota Check: posts from WhatsApp + web dashboard count together
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Growth/Agency users get Google + Facebook + Instagram. Free/Pro stay on
+    // Google-only. Tracked here (inside the quota block) then read later.
+    let growthTier = false;
     const userIdForQuota = await getUserIdByPhone(phone);
     if (!userIdForQuota) {
       console.warn(`⚠️ [trial-check post] Could not resolve user for phone ${phone} — skipping quota/trial check`);
@@ -823,6 +827,9 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
         const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
         console.log(`[trial-check post] phone=${phone} user=${userIdForQuota} plan=${planTier} trialStart=${trialStart} daysLeft=${trialStart ? getRemainingDays(trialStart, quota.trialDays) : 'n/a'}`);
+
+        // Tier-based reply: Growth/Agency → send FB + IG posts after the Google post.
+        if (planTier === 'growth' || planTier === 'agency') growthTier = true;
 
         if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
           return await sendWhatsappText(
@@ -1029,6 +1036,50 @@ ${gbpLink}
 Type *DONE* when published.`;
 
     await sendWhatsappText(phone, actionMessage, fromNumber);
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // GROWTH / AGENCY (tier-based): send Facebook + Instagram posts so the
+    // trader receives 3 clearly-separated posts — 1 Google (above),
+    // 2 Facebook, 3 Instagram. Free/Pro flow is untouched.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    if (growthTier) {
+      try {
+        const social = await generateSocialContent({
+          jobTopic: jobDescription || parsed.headline || draft.customer_name || 'a recently completed job',
+          businessName: businessCtx.businessName || 'My Business',
+          businessCategory: businessCtx.category || 'Local Service',
+        });
+
+        const fbText = `${social.facebook.postText}\n\n${social.facebook.hashtags}`.trim();
+        const igText = `${social.instagram.caption}\n\n${social.instagram.hashtags}`.trim();
+
+        // Persist FB + IG content so dashboard history + analytics can show them.
+        try {
+          const { error: saveErr } = await supabase
+            .from('pending_posts')
+            .update({ social_facebook: fbText, social_instagram: igText })
+            .eq('id', draft.id);
+          if (saveErr) console.warn('⚠️ Could not save social content to pending_posts:', saveErr.message);
+        } catch (saveErr) {
+          console.warn('⚠️ Could not save social content to pending_posts:', saveErr);
+        }
+
+        const fbMessage = `✅ *Post 2 of 3 — FACEBOOK*\nCopy the text below:\n\n${fbText}\n\n📌 *Steps:* copy above → open Facebook → paste → tap Post.\n(Use the photos already saved in your gallery above.)`;
+        await sendWhatsappText(phone, fbMessage, fromNumber);
+
+        const igMessage = `✅ *Post 3 of 3 — INSTAGRAM*\nCopy the caption below:\n\n${igText}\n\n📌 *Steps:* copy above → open Instagram → add your photo → paste → tap Share.\n(Use the photos already saved in your gallery above.)`;
+        await sendWhatsappText(phone, igMessage, fromNumber);
+
+        console.log('🎉 Growth user received all 3 posts (Google + Facebook + Instagram):', phone);
+      } catch (socialErr: any) {
+        console.warn('⚠️ Growth social content failed (Google post already sent):', socialErr?.message || socialErr);
+        await sendWhatsappText(
+          phone,
+          `ℹ️ *Facebook & Instagram posts couldn't be generated this time.*\n\nYour Google post above is ready ✅ — you can regenerate all 3 posts anytime by sending the job again and typing *POST*.`,
+          fromNumber
+        );
+      }
+    }
 
     // When no usable job description was available, tell the trader the post was
     // grounded only in their business profile — a generic post shouldn't silently

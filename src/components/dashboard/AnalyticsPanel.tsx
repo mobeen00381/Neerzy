@@ -17,7 +17,7 @@ import {
 import { Line, Bar } from 'react-chartjs-2';
 import { supabase } from '@/lib/supabase';
 import { PLAN_LIMITS } from '@/lib/plans';
-import { Send, Clock, CheckCircle, Smartphone, QrCode, TrendingUp, BarChart3 } from 'lucide-react';
+import { Globe2, Share2, Camera, Send, Star, TrendingUp, CheckCircle, Loader2 } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -32,316 +32,344 @@ ChartJS.register(
 );
 
 interface AnalyticsStats {
-  total_reviews?: number;
-  review_growth?: number;
-  posts_published?: number;
-  post_growth?: number;
-  avg_ctr?: number;
-  ctr_change?: number;
-  review_conversion?: number;
-  conversion_change?: number;
-  reviews_timeline?: { date: string; count: number }[];
-  post_performance?: { label: string; views: number; clicks: number }[];
+  plan?: { tier: string; name: string; daysLeft: number };
+  quota?: {
+    postsLimit: number; postsUsed: number; postsDailyLimit: number; postsDailyUsed: number;
+    reviewsLimit: number; reviewsUsed: number; reviewsDailyLimit: number; reviewsDailyUsed: number;
+  };
+  counts?: {
+    googlePosts: number; facebookPosts: number; instagramPosts: number; postsToday: number;
+    reviewsSent: number; reviewsReceived: number; reviewsSentToday: number; reviewsReceivedToday: number;
+    conversionRate: number;
+  };
+  channels?: { whatsapp: number; manual: number };
+  timeline?: {
+    reviews: { date: string; count: number }[];
+    posts: { date: string; google: number; facebook: number; instagram: number }[];
+  };
 }
 
 interface AnalyticsPanelProps {
   userId: string;
   userPlan?: string;
-  reviewStats?: {
-    total_sent: number;
-    total_received: number;
-    sent_today: number;
-    sent_this_month: number;
-    received_this_month: number;
-    conversion_rate: number;
-  } | null;
+  reviewStats?: any;
 }
 
-const MetricCard = ({ 
-  title, 
-  value, 
+const fmt = (n: number | undefined) => (n ?? 0).toLocaleString();
+const limitLabel = (n: number | undefined) => (n === -1 || n === undefined ? 'Unlimited' : `${n}`);
+
+function MetricCard({
+  title,
+  value,
   subtitle,
-  trend, 
-  icon 
-}: { 
-  title: string; 
-  value: string | number; 
-  subtitle?: string;
-  trend?: number; 
-  icon: React.ReactNode 
-}) => (
-  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-    <div className="flex justify-between items-start mb-3">
-      <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-700 font-bold border border-slate-100">
-        {icon}
+  accent,
+  icon,
+}: {
+  title: string;
+  value: React.ReactNode;
+  subtitle?: React.ReactNode;
+  accent: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <span className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-sm ${accent}`}>
+          {icon}
+        </span>
       </div>
-      {trend !== undefined && (
-        <div className={`text-[10px] font-black px-2.5 py-1 rounded-full ${trend >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-          {trend >= 0 ? '+' : ''}{trend}%
-        </div>
-      )}
+      <div>
+        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest block">{title}</span>
+        <div className="text-3xl font-black text-slate-900 mt-1 tracking-tight">{value}</div>
+        {subtitle && <span className="text-[10px] font-bold text-slate-500 mt-1 block">{subtitle}</span>}
+      </div>
     </div>
+  );
+}
+
+function QuotaBar({
+  label,
+  used,
+  limit,
+  color = 'bg-emerald-600',
+}: {
+  label: string;
+  used: number;
+  limit: number;
+  color?: string;
+}) {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  return (
     <div>
-      <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest block">{title}</span>
-      <div className="text-3xl font-black text-slate-900 mt-1 tracking-tight">{value}</div>
-      {subtitle && <span className="text-[10px] font-bold text-slate-500 mt-1 block">{subtitle}</span>}
+      <div className="flex justify-between text-xs font-bold mb-1.5">
+        <span className="text-slate-500 uppercase tracking-widest text-[10px]">{label}</span>
+        <span className="text-slate-800">
+          {fmt(used)} / {limitLabel(limit)} used
+        </span>
+      </div>
+      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${Math.max(4, pct)}%` }} />
+      </div>
     </div>
+  );
+}
+
+const EmptyState = ({ text }: { text: string }) => (
+  <div className="w-full h-48 flex items-center justify-center text-xs font-semibold text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+    {text}
   </div>
 );
 
-const LineChart = ({ data }: { data?: any[] }) => {
-  const chartData = {
-    labels: data && data.length > 0 ? data.map(d => d.date) : ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-    datasets: [
-      {
-        label: 'Reviews Received',
-        data: data && data.length > 0 ? data.map(d => d.count) : [2, 5, 8, 12],
-        borderColor: '#0F5C4D',
-        backgroundColor: 'rgba(15, 92, 77, 0.1)',
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
+// ── Real data charts (no fake numbers — empty state when there is no data yet)
 
-  return <Line data={chartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />;
+const ReviewsLine = ({ data }: { data?: { date: string; count: number }[] }) => {
+  const hasData = (data || []).some(d => d.count > 0);
+  if (!hasData) return <EmptyState text="No reviews received yet. Send your first review request to start your growth curve!" />;
+  return (
+    <Line
+      data={{
+        labels: data!.map(d => d.date.slice(5)),
+        datasets: [
+          {
+            label: 'Reviews Received',
+            data: data!.map(d => d.count),
+            borderColor: '#0F5C4D',
+            backgroundColor: 'rgba(15, 92, 77, 0.1)',
+            fill: true,
+            tension: 0.4,
+          },
+        ],
+      }}
+      options={{ responsive: true, plugins: { legend: { display: false } } }}
+    />
+  );
 };
 
-const BarChart = ({ data }: { data?: any[] }) => {
-  const chartData = {
-    labels: data && data.length > 0 ? data.map(d => d.label) : ['Post 1', 'Post 2', 'Post 3', 'Post 4', 'Post 5'],
-    datasets: [
-      {
-        label: 'Views',
-        data: data && data.length > 0 ? data.map(d => d.views) : [120, 240, 180, 310, 290],
-        backgroundColor: '#0F5C4D',
-        borderRadius: 8,
-      },
-      {
-        label: 'Clicks',
-        data: data && data.length > 0 ? data.map(d => d.clicks) : [25, 45, 30, 60, 55],
-        backgroundColor: '#25D366',
-        borderRadius: 8,
-      },
-    ],
-  };
-
-  return <Bar data={chartData} options={{ responsive: true, scales: { x: { stacked: true }, y: { stacked: true } } }} />;
+const PostsBar = ({ data }: { data?: { date: string; google: number; facebook: number; instagram: number }[] }) => {
+  const hasData = (data || []).some(d => d.google > 0 || d.facebook > 0 || d.instagram > 0);
+  if (!hasData) return <EmptyState text="No posts yet. Send a job photo on WhatsApp or type in the dashboard to create your first post!" />;
+  return (
+    <Bar
+      data={{
+        labels: data!.map(d => d.date.slice(5)),
+        datasets: [
+          { label: 'Google', data: data!.map(d => d.google), backgroundColor: '#0F5C4D', borderRadius: 4 },
+          { label: 'Facebook', data: data!.map(d => d.facebook), backgroundColor: '#1877F2', borderRadius: 4 },
+          { label: 'Instagram', data: data!.map(d => d.instagram), backgroundColor: '#E1306C', borderRadius: 4 },
+        ],
+      }}
+      options={{
+        responsive: true,
+        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
+      }}
+    />
+  );
 };
 
-export function AnalyticsPanel({ userId, userPlan = 'free', reviewStats }: AnalyticsPanelProps) {
+export function AnalyticsPanel({ userId, userPlan = 'free', reviewStats: _reviewStats }: AnalyticsPanelProps) {
   const planInfo = PLAN_LIMITS[userPlan.toLowerCase() as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
+  const isGrowth = userPlan.toLowerCase() === 'growth' || userPlan.toLowerCase() === 'agency';
 
   const { data: stats, isLoading } = useQuery<AnalyticsStats>({
     queryKey: ['analytics', userId],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.rpc('get_trader_analytics', { trader_id: userId });
-        if (error) return {};
-        return data || {};
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`/api/analytics/stats?user_id=${userId}`, {
+          headers: { 'Authorization': `Bearer ${session?.access_token || ''}` },
+        });
+        if (!res.ok) return {};
+        const json = await res.json();
+        return json.data || {};
       } catch (err) {
+        console.error('Failed to load analytics:', err);
         return {};
       }
     },
     enabled: !!userId,
   });
 
-  const totalSent = reviewStats?.total_sent || 0;
-  const totalReceived = reviewStats?.total_received || 0;
-  const conversionRate = reviewStats?.conversion_rate || (totalSent > 0 ? Math.round((totalReceived / totalSent) * 100) : 0);
+  const c: Partial<NonNullable<AnalyticsStats['counts']>> = stats?.counts || {};
+  const q: Partial<NonNullable<AnalyticsStats['quota']>> = stats?.quota || {};
+  const planTier = stats?.plan?.tier || userPlan.toLowerCase();
 
-  const reviewQuotaMax = planInfo.totalReviewRequests === -1 ? 100 : planInfo.totalReviewRequests;
-  const reviewQuotaPercent = Math.min(100, Math.round((totalSent / reviewQuotaMax) * 100));
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24 text-slate-400">
+        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading your real numbers...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
-      {/* Top Section Header */}
+      {/* Header */}
       <div>
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Performance & Review Analytics</h2>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Performance & Analytics</h2>
         <p className="text-xs text-slate-500 font-bold mt-1">
-          Detailed metrics tracking review request conversions, customer response channels, and post engagement under your <span className="uppercase text-emerald-700 font-extrabold">{planInfo.name}</span> plan.
+          Everything you&apos;ve done this billing cycle — posts on{' '}
+          <span className="text-[#0F5C4D] font-extrabold">Google</span>,{' '}
+          <span className="text-[#1877F2] font-extrabold">Facebook</span>,{' '}
+          <span className="text-[#E1306C] font-extrabold">Instagram</span> and{' '}
+          <span className="text-blue-600 font-extrabold">review requests</span> — all counted together from WhatsApp + dashboard.
+          Current plan: <span className="uppercase text-emerald-700 font-extrabold">{planInfo.name}</span>
+          {stats?.plan?.daysLeft ? ` · ${stats.plan.daysLeft} days left` : ''}
         </p>
       </div>
 
-      {/* Metric Cards Grid */}
+      {/* Metric Cards — row 1: posts by platform + review requests */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard 
-          title="Review Requests Sent" 
-          value={totalSent} 
-          subtitle={`${reviewQuotaMax === 100 && planInfo.totalReviewRequests === -1 ? 'Unlimited quota' : `${totalSent}/${reviewQuotaMax} plan limit`}`}
-          trend={12} 
-          icon={<Send className="w-5 h-5 text-blue-600" />}
+        <MetricCard
+          title="Google Posts"
+          value={fmt(c.googlePosts)}
+          subtitle={`${fmt(c.postsToday)} today · ${fmt(q.postsUsed)}/${limitLabel(q.postsLimit)} this month`}
+          accent="bg-[#0F5C4D]"
+          icon={<Globe2 className="w-5 h-5" />}
         />
-        <MetricCard 
-          title="Reviews Received" 
-          value={totalReceived} 
-          subtitle="Confirmed customer Google reviews"
-          trend={18} 
-          icon={<CheckCircle className="w-5 h-5 text-emerald-600" />}
+        <MetricCard
+          title={isGrowth ? 'Facebook Posts' : 'Facebook Posts — Growth'}
+          value={fmt(c.facebookPosts)}
+          subtitle={isGrowth ? `${fmt(c.facebookPosts)} this month` : 'Unlock with Growth plan'}
+          accent={isGrowth ? 'bg-[#1877F2]' : 'bg-slate-300'}
+          icon={<Share2 className="w-5 h-5" />}
         />
-        <MetricCard 
-          title="Conversion Rate" 
-          value={`${conversionRate}%`} 
-          subtitle="Sent requests converted to reviews"
-          trend={5} 
-          icon={<TrendingUp className="w-5 h-5 text-indigo-600" />}
+        <MetricCard
+          title={isGrowth ? 'Instagram Posts' : 'Instagram Posts — Growth'}
+          value={fmt(c.instagramPosts)}
+          subtitle={isGrowth ? `${fmt(c.instagramPosts)} this month` : 'Unlock with Growth plan'}
+          accent={isGrowth ? 'bg-[#E1306C]' : 'bg-slate-300'}
+          icon={<Camera className="w-5 h-5" />}
         />
-        <MetricCard 
-          title="Total Published Posts" 
-          value={stats?.posts_published || 0} 
-          subtitle="Lifetime posts across GMB & Web"
-          trend={stats?.post_growth} 
-          icon={<BarChart3 className="w-5 h-5 text-amber-600" />}
+        <MetricCard
+          title="Review Requests Sent"
+          value={fmt(c.reviewsSent)}
+          subtitle={`${fmt(c.reviewsSentToday)} today · ${fmt(q.reviewsUsed)}/${limitLabel(q.reviewsLimit)} this month`}
+          accent="bg-blue-600"
+          icon={<Send className="w-5 h-5" />}
         />
       </div>
 
-      {/* Review Request Funnel & Channel Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Review Conversion Funnel */}
-        <div className="lg:col-span-7 bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
-          <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-            <div>
-              <h3 className="font-extrabold text-slate-900 text-base">Review Request Conversion Funnel</h3>
-              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Customer response progress</p>
-            </div>
-            <span className="text-[10px] font-extrabold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 uppercase tracking-wider">
-              {conversionRate}% Converted
-            </span>
-          </div>
+      {/* Metric Cards — row 2: results + today usage */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="Reviews Received"
+          value={fmt(c.reviewsReceived)}
+          subtitle={`${fmt(c.reviewsReceivedToday)} today`}
+          accent="bg-emerald-600"
+          icon={<Star className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Conversion Rate"
+          value={`${c.conversionRate ?? 0}%`}
+          subtitle="Sent requests turned into reviews"
+          accent="bg-indigo-600"
+          icon={<TrendingUp className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Posts Today"
+          value={fmt(c.postsToday)}
+          subtitle={`${fmt(q.postsDailyUsed)}/${limitLabel(q.postsDailyLimit)} daily limit`}
+          accent="bg-amber-600"
+          icon={<CheckCircle className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Review Requests Today"
+          value={fmt(c.reviewsSentToday)}
+          subtitle={`${fmt(q.reviewsDailyUsed)}/${limitLabel(q.reviewsDailyLimit)} daily limit`}
+          accent="bg-cyan-600"
+          icon={<Send className="w-5 h-5" />}
+        />
+      </div>
 
-          {/* Funnel Steps */}
-          <div className="space-y-4">
-            
-            {/* Step 1: Sent */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-bold">
-                <span className="text-slate-700 flex items-center gap-2">
-                  <Send className="w-4 h-4 text-blue-600" />
-                  1. Requests Dispatched (WhatsApp / Web Link)
-                </span>
-                <span className="text-slate-900 font-black">{totalSent} Sent</span>
-              </div>
-              <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: '100%' }} />
-              </div>
-            </div>
-
-            {/* Step 2: Delivered & Opened */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-bold">
-                <span className="text-slate-700 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-amber-600" />
-                  2. Delivered & Link Clicked
-                </span>
-                <span className="text-slate-900 font-black">{Math.round(totalSent * 0.85)} Estimated</span>
-              </div>
-              <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: '85%' }} />
-              </div>
-            </div>
-
-            {/* Step 3: Converted */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-bold">
-                <span className="text-slate-700 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  3. Verified Google Reviews Received
-                </span>
-                <span className="text-slate-900 font-black">{totalReceived} Converted</span>
-              </div>
-              <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-600 rounded-full transition-all" style={{ width: `${Math.max(8, conversionRate)}%` }} />
-              </div>
-            </div>
-
-          </div>
-
-          {/* Quota Bar */}
-          <div className="pt-4 border-t border-slate-100">
-            <div className="flex justify-between text-xs font-bold mb-2">
-              <span className="text-slate-500 uppercase tracking-widest text-[10px]">Monthly Review Request Limit</span>
-              <span className="text-slate-800">{totalSent} / {planInfo.totalReviewRequests === -1 ? 'Unlimited' : planInfo.totalReviewRequests} Used</span>
-            </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-slate-800 rounded-full transition-all"
-                style={{ width: `${reviewQuotaPercent}%` }}
-              />
-            </div>
-          </div>
+      {!isGrowth && (
+        <div className="bg-gradient-to-r from-[#0F5C4D] to-emerald-700 text-white rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-xs font-semibold text-emerald-50 leading-relaxed">
+            🚀 <span className="font-black">Growth plan ($79/mo):</span> every post also comes ready for{' '}
+            <span className="font-black">Facebook</span> and <span className="font-black">Instagram</span> — 3 posts from one job,
+            plus 60 posts & 60 review requests per month.
+          </p>
+          <a href="/pricing" className="shrink-0 inline-flex items-center justify-center px-5 py-2.5 bg-white text-emerald-900 text-xs font-black rounded-full hover:bg-emerald-50 transition-colors">
+            Upgrade to Growth
+          </a>
         </div>
+      )}
 
-        {/* Channel Breakdown: How They Got Reviews */}
-        <div className="lg:col-span-5 bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-6 flex flex-col justify-between">
+      {/* Plan quota — always visible, real usage bars */}
+      <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
+        <div className="flex justify-between items-center pb-4 border-b border-slate-100">
           <div>
-            <div className="pb-4 border-b border-slate-100">
-              <h3 className="font-extrabold text-slate-900 text-base">How Customers Got Reviews</h3>
-              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Channel distribution breakdown</p>
-            </div>
-
-            <div className="space-y-4 mt-6">
-              
-              {/* Channel 1: WhatsApp Direct */}
-              <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#25D366] text-white rounded-xl flex items-center justify-center shadow-sm">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="font-extrabold text-xs text-slate-900 block">WhatsApp Message</span>
-                    <span className="text-[10px] font-bold text-slate-500">Direct phone dispatch</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="font-black text-emerald-800 text-sm block">78%</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">Primary</span>
-                </div>
-              </div>
-
-              {/* Channel 2: Web & QR Code Link */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-sm">
-                    <QrCode className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="font-extrabold text-xs text-slate-900 block">QR Code & Direct Web Link</span>
-                    <span className="text-[10px] font-bold text-slate-500">Dashboard & poster scans</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="font-black text-slate-900 text-sm block">22%</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase">Secondary</span>
-                </div>
-              </div>
-
-            </div>
+            <h3 className="font-extrabold text-slate-900 text-base">Your Plan Usage — This Month</h3>
+            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Posts & review requests used this billing cycle</p>
           </div>
-
-          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-xs font-semibold text-blue-900 flex items-center gap-2">
-            <span>💡 Direct WhatsApp review requests have a 3x higher conversion rate than standard SMS links!</span>
+          <span className="text-[10px] font-extrabold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100 uppercase tracking-wider">
+            {planInfo.name} Plan
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <QuotaBar label="📝 Posts — monthly limit" used={q.postsUsed ?? 0} limit={q.postsLimit ?? 0} color="bg-[#0F5C4D]" />
+            <QuotaBar label="📝 Posts — daily limit" used={q.postsDailyUsed ?? 0} limit={q.postsDailyLimit ?? 0} color="bg-[#0F5C4D]" />
+          </div>
+          <div className="space-y-4">
+            <QuotaBar label="⭐ Review requests — monthly limit" used={q.reviewsUsed ?? 0} limit={q.reviewsLimit ?? 0} color="bg-blue-600" />
+            <QuotaBar label="⭐ Review requests — daily limit" used={q.reviewsDailyUsed ?? 0} limit={q.reviewsDailyLimit ?? 0} color="bg-blue-600" />
           </div>
         </div>
-
+        {(planTier === 'free' || planTier === 'pro') && (
+          <p className="text-xs font-semibold text-slate-400 pt-4 border-t border-slate-100">
+            Need more room? <a href="/pricing" className="text-emerald-700 underline font-black">See plans</a> — Growth gives 60 posts & 60 review requests per month.
+          </p>
+        )}
       </div>
 
-      {/* Interactive Charts Grid */}
+      {/* Real channels (replaces the old fake 78%/22% card) */}
+      <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm">
+        <h3 className="font-extrabold text-slate-900 text-base">How Review Requests Were Delivered</h3>
+        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-4">Real delivery counts this cycle</p>
+        {(c.reviewsSent ?? 0) > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#25D366] text-white rounded-xl flex items-center justify-center shadow-sm">
+                  <Send className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="font-extrabold text-xs text-slate-900 block">WhatsApp Delivery</span>
+                  <span className="text-[10px] font-bold text-slate-500">Sent directly by Neerzy</span>
+                </div>
+              </div>
+              <span className="font-black text-emerald-800 text-sm">{fmt(stats?.channels?.whatsapp ?? 0)}</span>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-800 text-white rounded-xl flex items-center justify-center shadow-sm">
+                  <Send className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="font-extrabold text-xs text-slate-900 block">Manual / Device Link</span>
+                  <span className="text-[10px] font-bold text-slate-500">Opened & sent from your phone</span>
+                </div>
+              </div>
+              <span className="font-black text-slate-900 text-sm">{fmt(stats?.channels?.manual ?? 0)}</span>
+            </div>
+          </div>
+        ) : (
+          <EmptyState text="No review requests sent this cycle yet. Send your first one and it will appear here." />
+        )}
+      </div>
+
+      {/* Charts — real 30-day data */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Chart 1: Reviews Growth Over Time */}
         <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-          <h3 className="font-extrabold text-slate-900 text-base">Reviews Received (30-Day Growth)</h3>
-          <LineChart data={stats?.reviews_timeline} />
+          <h3 className="font-extrabold text-slate-900 text-base">Reviews Received (Last 30 Days)</h3>
+          <ReviewsLine data={stats?.timeline?.reviews} />
         </div>
-
-        {/* Chart 2: Post Engagement (Views vs Clicks) */}
         <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-          <h3 className="font-extrabold text-slate-900 text-base">Post Engagement (Views & Clicks)</h3>
-          <BarChart data={stats?.post_performance} />
+          <h3 className="font-extrabold text-slate-900 text-base">Posts Published (Last 30 Days)</h3>
+          <PostsBar data={stats?.timeline?.posts} />
         </div>
-
       </div>
     </div>
   );
 }
+
