@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 import { countUserPosts } from '@/lib/post-usage';
+import { getAgencyClientPhones } from '@/lib/agency';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Real trader analytics — one source of truth for the dashboard Analytics tab.
@@ -120,6 +121,30 @@ export async function GET(req: Request) {
       else whatsappChannel += 1;
     }
 
+    // ── Recent review requests (per-customer tracking list, last 20)
+    //    Agency accounts also see requests their traders sent.
+    let recentRequests: any[] = [];
+    {
+      const base = supabaseAdmin
+        .from('review_requests')
+        .select('customer_name, customer_phone, status, sent_via, sent_at, converted_at, review_link')
+        .order('sent_at', { ascending: false })
+        .limit(20);
+      if (planTier === 'agency') {
+        const agencyPhones = await getAgencyClientPhones(userId);
+        if (agencyPhones.length > 0) {
+          const { data } = await base.or(`user_id.eq.${userId},agency_client_phone.in.(${agencyPhones.join(',')})`);
+          recentRequests = data || [];
+        } else {
+          const { data } = await base.eq('user_id', userId);
+          recentRequests = data || [];
+        }
+      } else {
+        const { data } = await base.eq('user_id', userId);
+        recentRequests = data || [];
+      }
+    }
+
     // ── Timelines (last 30 days)
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -213,6 +238,7 @@ export async function GET(req: Request) {
         },
         channels: { whatsapp: whatsappChannel, manual: manualChannel },
         timeline: { reviews: reviewsTimeline, posts: postsTimeline },
+        recent_requests: recentRequests,
       },
     });
   } catch (error: any) {

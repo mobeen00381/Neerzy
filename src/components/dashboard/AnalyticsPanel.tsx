@@ -47,6 +47,15 @@ interface AnalyticsStats {
     reviews: { date: string; count: number }[];
     posts: { date: string; google: number; facebook: number; instagram: number }[];
   };
+  recent_requests?: Array<{
+    customer_name?: string | null;
+    customer_phone?: string | null;
+    status?: string | null;
+    sent_via?: string | null;
+    sent_at?: string | null;
+    converted_at?: string | null;
+    review_link?: string | null;
+  }>;
 }
 
 interface AnalyticsPanelProps {
@@ -119,6 +128,14 @@ const EmptyState = ({ text }: { text: string }) => (
     {text}
   </div>
 );
+
+function reviewBadge(status?: string | null, sentVia?: string | null) {
+  if (status === 'review_received') return { label: '⭐ Review received', cls: 'bg-emerald-100 text-emerald-700' };
+  if (status === 'delivered') return { label: '✅ Delivered', cls: 'bg-blue-100 text-blue-700' };
+  if (status === 'failed') return { label: '⚠️ Not delivered', cls: 'bg-rose-100 text-rose-700' };
+  if (status === 'manual_fallback' || sentVia === 'manual_link') return { label: '📱 Sent via device link', cls: 'bg-slate-100 text-slate-700' };
+  return { label: '⏳ Sent', cls: 'bg-amber-100 text-amber-700' };
+}
 
 // ── Real data charts (no fake numbers — empty state when there is no data yet)
 
@@ -355,6 +372,45 @@ export function AnalyticsPanel({ userId, userPlan = 'free', reviewStats: _review
           </div>
         ) : (
           <EmptyState text="No review requests sent this cycle yet. Send your first one and it will appear here." />
+        )}
+      </div>
+
+      {/* Recent review requests — per-customer tracking list */}
+      <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm">
+        <h3 className="font-extrabold text-slate-900 text-base">Recent Review Requests</h3>
+        <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-4">Last 20 requests — who was asked and what happened</p>
+        {(stats?.recent_requests || []).length === 0 ? (
+          <EmptyState text="No review requests yet. After your first job, send a review request from WhatsApp or the dashboard and it will show up here." />
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {stats!.recent_requests!.map((r, i) => {
+              const badge = reviewBadge(r.status, r.sent_via);
+              const name = r.customer_name || 'Customer';
+              const when = r.status === 'review_received' && r.converted_at
+                ? new Date(r.converted_at).toLocaleDateString()
+                : r.sent_at
+                  ? new Date(r.sent_at).toLocaleDateString()
+                  : '';
+              return (
+                <div key={`${r.sent_at}-${name}-${i}`} className="flex flex-col sm:flex-row sm:items-center gap-2 py-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm shrink-0">
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-extrabold text-sm text-slate-900 truncate">{name}</p>
+                      <p className="text-[11px] text-slate-400 font-semibold">
+                        {r.customer_phone || '—'} · {when || 'date unknown'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full uppercase inline-flex self-start sm:self-auto ${badge.cls}`}>
+                    {badge.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
