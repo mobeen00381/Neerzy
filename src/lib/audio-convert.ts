@@ -7,9 +7,12 @@
 // runs on Vercel serverless) and re-encodes the audio as a 16 kHz
 // mono 16-bit PCM WAV that GLM-ASR accepts.
 //
-// Failure is non-fatal by design: callers fall back to sending the
-// original buffer, preserving today's behavior for formats we can't
-// decode (e.g. m4a) instead of breaking the flow.
+// GLM-ASR only accepts .wav/.mp3, so a failure here must NOT fall back to
+// uploading the original buffer (Z.AI rejects every other format with a 400,
+// code 1214). Callers treat a null return as a hard failure: they skip the
+// ASR call entirely and send the trader a friendly retry message instead.
+// Every null return below logs *why* so failures are diagnosable from the
+// server logs.
 // ─────────────────────────────────────────────────────────────
 import OggOpusDecoder from './vendor/audio/ogg-opus-decoder.js';
 
@@ -102,8 +105,9 @@ function encodeWavPcm16(samples: Float32Array, sampleRate: number): Uint8Array<A
 /**
  * Decode an OGG/Opus voice note into a GLM-ASR-ready 16 kHz mono WAV.
  *
- * Returns `null` when the input is not Ogg/Opus or decoding fails —
- * callers should then pass the original audio through unchanged.
+ * Returns `null` (with a `console.warn`/`console.error` explaining why) when the
+ * input is not Ogg/Opus or decoding fails. GLM-ASR only accepts .wav/.mp3, so
+ * callers must treat a null return as a hard failure and skip the ASR call.
  */
 export async function convertOggOpusToWav(
   buffer: ArrayBuffer | Buffer,
@@ -114,14 +118,27 @@ export async function convertOggOpusToWav(
       ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
       : new Uint8Array(buffer);
 
-  if (!isOggOpus(bytes, mimeType)) return null;
+  if (!isOggOpus(bytes, mimeType)) {
+    const preview = Array.from(bytes.slice(0, 12))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join(' ');
+    console.warn(
+      `⚠️ OGG/Opus → WAV skipped: input is not Ogg/Opus (mime: ${mimeType || 'unknown'}, size: ${bytes.byteLength} B, first bytes: ${preview})`
+    );
+    return null;
+  }
 
   let decoder: OggOpusDecoder | null = null;
   try {
     decoder = new OggOpusDecoder();
     await decoder.ready;
     const { channelData, samplesDecoded, sampleRate } = await decoder.decodeFile(bytes);
-    if (!samplesDecoded || !channelData?.length) return null;
+    if (!samplesDecoded || !channelData?.length) {
+      console.warn(
+        `⚠️ OGG/Opus → WAV decoded 0 samples (samplesDecoded=${samplesDecoded}, channels=${channelData?.length ?? 0}, input=${bytes.byteLength} B)`
+      );
+      return null;
+    }
 
     const mono = toMono(channelData, samplesDecoded);
     const pcm = resample(mono, sampleRate, WAV_SAMPLE_RATE);
@@ -131,7 +148,7 @@ export async function convertOggOpusToWav(
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error('❌ OGG/Opus → WAV conversion failed:', msg);
+    console.error(`❌ OGG/Opus → WAV conversion failed (input ${bytes.byteLength} B):`, msg);
     return null;
   } finally {
     try {

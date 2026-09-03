@@ -18,6 +18,16 @@ const supabase = createClient(
 const META_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '1256240127573258';
 const META_VERIFY_TOKEN = process.env.META_WHATSAPP_VERIFY_TOKEN || 'neerzy_webhook_verify_2024';
 
+// GLM-ASR (Z.AI) only accepts .wav/.mp3 — uploading anything else is a guaranteed
+// 400 (code 1214, "file format not supported"). When the OGG→WAV pre-decode fails
+// we throw this so the catch block logs the true cause instead of blaming GLM-ASR.
+class VoiceNoteConversionError extends Error {
+  constructor(detail: string) {
+    super(`OGG→WAV conversion failed (${detail}) — GLM-ASR upload skipped`);
+    this.name = 'VoiceNoteConversionError';
+  }
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Message-ID dedup cache: prevent double-processing from Meta retries
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -383,17 +393,20 @@ export async function POST(req: Request) {
 
           // 🎙️ GLM-ASR only accepts .wav/.mp3 — WhatsApp voice notes are OGG/Opus,
           // so decode to WAV first (pure WASM, no ffmpeg needed on serverless).
-          // If conversion fails, pass the original buffer through as before.
-          let asrFile: File = new File([buffer], 'audio.ogg', { type: mimeType || 'audio/ogg' });
-          try {
-            const wav = await convertOggOpusToWav(buffer, mimeType);
-            if (wav) {
-              asrFile = new File([wav.wav], 'audio.wav', { type: 'audio/wav' });
-              console.log(`🎙️ OGG/Opus → WAV converted (${wav.seconds.toFixed(1)}s, ${wav.wav.byteLength} bytes)`);
-            }
-          } catch (convErr) {
-            console.warn('⚠️ OGG→WAV conversion threw (sending original audio):', convErr);
+          // If conversion fails we fail fast: uploading the original OGG is a
+          // guaranteed 400 from Z.AI, so we skip the API call and let the catch
+          // block send the trader a friendly retry message instead.
+          const wav = await convertOggOpusToWav(buffer, mimeType);
+          if (!wav) {
+            throw new VoiceNoteConversionError(
+              `mime=${mimeType || 'unknown'}, size=${buffer.byteLength}B`
+            );
           }
+          const asrFile: File = new File([wav.wav], 'audio.wav', { type: 'audio/wav' });
+          console.log(
+            `🎙️ OGG/Opus → WAV converted (${wav.seconds.toFixed(1)}s, ${wav.wav.byteLength} bytes)`
+          );
+          console.log(`🎙️ ASR upload: ${asrFile.name} (${asrFile.type}, ${asrFile.size} bytes)`);
 
           const transcription = await getTranscriptionClient().audio.transcriptions.create({
             file: asrFile,
@@ -409,8 +422,14 @@ export async function POST(req: Request) {
             to
           );
         } catch (err: any) {
-          console.error("❌ GLM-ASR Transcription Failed:", err);
-          console.error('   Status:', err?.status, '| Error body:', JSON.stringify(err?.error || err?.message || err).substring(0, 300));
+          if (err instanceof VoiceNoteConversionError) {
+            // Conversion failed before any GLM-ASR call was made — log the real
+            // cause (mime/size are in the message) so the server log is accurate.
+            console.warn('⚠️', err.message);
+          } else {
+            console.error("❌ GLM-ASR Transcription Failed:", err);
+            console.error('   Status:', err?.status, '| Error body:', JSON.stringify(err?.error || err?.message || err).substring(0, 300));
+          }
           // Don't clobber a description the trader already saved — only flag the
           // failure when the draft has nothing usable yet.
           try {
