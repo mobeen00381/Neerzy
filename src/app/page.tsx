@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 import { CheckIcon, CameraIcon, FileTextIcon, StarIcon, ZapIcon, MessageSquareIcon, SearchIcon, SendIcon, GlobeIcon, SmartphoneIcon, MapPinIcon, EyeIcon, ClipboardListIcon, TrendingUpIcon } from '@/components/ui/Icons';
-import WhatsAppMockup from '@/components/landing/WhatsAppMockup';
 
 export const metadata: Metadata = {
   title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
@@ -52,7 +51,7 @@ export default function Page() {
               You finish the job. Neerzy helps the next customer find you.
             </h1>
             <p>
-              Take a photo after every job. Send it via <WhatsAppIcon size={16} className="inline-block align-middle text-[#22C55E]" /> WhatsApp or the web app. Neerzy prepares a Google Business Profile post, website update, and review request — all in about a minute. You review and publish with a few taps.
+              Take a photo after every job. Send it via <WhatsAppIcon size={16} className="inline-block align-middle text-[#22C55E]" /> WhatsApp or the web app. Neerzy prepares ready-to-copy posts for Google, Facebook and Instagram — plus a review request — in about a minute. Copy, paste, publish: Neerzy guides you through every step.
             </p>
             <div className="hero-ctas">
               <Link href="/pricing" className="btn btn-primary">
@@ -81,7 +80,18 @@ export default function Page() {
           </div>
 
           <div className="mockup-container">
-            <WhatsAppMockup />
+            <div className="wa-card">
+              <video
+                className="hero-reel-video"
+                src="/neerzy-whatsapp-reel.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                aria-label="Neerzy WhatsApp walkthrough: connect, send a job photo, publish to Google, Facebook and Instagram, then send a review request"
+              />
+            </div>
 
             {/* Floating Badge: Content Prepared */}
             <div
@@ -214,15 +224,15 @@ export default function Page() {
                 <FileTextIcon size={22} />
               </div>
               <h3>Neerzy prepares everything</h3>
-              <p>A Google post, a website update, and a review request are drafted based on the job photo and details.</p>
+              <p>Ready-to-copy posts for Google, Facebook and Instagram, plus a review request, are drafted from the job photo and details.</p>
             </div>
 
             <div className="step-card">
               <div className="step-icon">
                 <GlobeIcon size={22} />
               </div>
-              <h3>Publish in a few taps</h3>
-              <p>Review the draft, tap publish, and your visibility is updated. A review request goes to your customer automatically.</p>
+              <h3>Follow the step-by-step guide</h3>
+              <p>Copy the post, paste it into Google, Facebook or Instagram, and attach the saved photo. Then reply DONE and the review request goes to your customer.</p>
             </div>
           </div>
 
@@ -795,4 +805,5 @@ export default function Page() {
     </>
   );
 }
+
 

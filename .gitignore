@@ -43,3 +43,7 @@ next-env.d.ts
 
 # scratch / debug scripts
 scratch/
+
+# local video production output (not part of the app)
+/reel/
+
