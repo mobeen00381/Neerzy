@@ -82,75 +82,75 @@ export default function DemosTab() {
   };
 
   const statusOf = (l: DemoLink) => {
-    if (l.used) return { label: "Used", cls: "bg-slate-200 text-slate-600" };
-    if (new Date(l.expires_at).getTime() < Date.now()) return { label: "Expired", cls: "bg-red-100 text-red-600" };
-    return { label: "Active", cls: "bg-emerald-100 text-emerald-700" };
+    if (l.used) return { label: "Used", cls: "bg-[#D3E6DA] text-[#0F5132]" };
+    if (new Date(l.expires_at).getTime() < Date.now()) return { label: "Expired", cls: "bg-[#E6F2EA] text-[#0F5132]" };
+    return { label: "Active", cls: "bg-[#E6F2EA] text-[#0F5132]" };
   };
 
   return (
     <div className="space-y-5 max-w-3xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-slate-900">Demo Links</h1>
-          <p className="text-sm font-medium text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-[#0A2E22]">Demo Links</h1>
+          <p className="text-sm font-normal text-[#5B6B64] mt-0.5">
             Generate 7-day access links so prospects can try Neerzy before paying.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => load()}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border border-[#E1E8E4] bg-white hover:bg-[#F7F9F8]"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </button>
           <button
             onClick={generate}
             disabled={generating}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-[#22C55E] text-white hover:bg-[#0F5132] disabled:opacity-50"
           >
             <Plus className="w-3.5 h-3.5" /> {generating ? "Creating…" : "New link"}
           </button>
         </div>
       </div>
 
-      {error && <p className="text-xs font-bold text-red-600">{error}</p>}
+      {error && <p className="text-xs font-bold text-[#0F5132]">{error}</p>}
 
-      <Card className="border-slate-200 shadow-sm bg-white overflow-hidden">
+      <Card className="border-[#E1E8E4] rounded-2xl shadow-[0_2px_8px_rgba(11,61,46,0.06)] bg-white overflow-hidden">
         <CardContent className="p-0">
           {loading && !links.length ? (
             <Spinner label="Loading demo links…" />
           ) : links.length === 0 ? (
             <EmptyState message="No demo links yet. Create one to share with a prospect." />
           ) : (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-[#E1E8E4]">
               {links.map((l) => {
                 const st = statusOf(l);
                 return (
                   <li key={l.id} className="px-5 py-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-[#E6F2EA] text-[#0F5132] flex items-center justify-center shrink-0">
                         <Link2 className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-black text-slate-800 font-mono truncate">/demo/{l.code}</p>
-                        <p className="text-[11px] font-semibold text-slate-400">
+                        <p className="text-sm font-bold text-[#0A2E22] font-mono truncate">/demo/{l.code}</p>
+                        <p className="text-[11px] font-normal text-[#5B6B64]">
                           Created {fmtDateTime(l.created_at)} · Expires {fmtDateTime(l.expires_at)}
                           {l.used_by && ` · Used by ${l.used_by}`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${st.cls}`}>{st.label}</span>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${st.cls}`}>{st.label}</span>
                       <button
                         onClick={() => copy(l)}
-                        className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500"
+                        className="p-2 rounded-lg border border-[#E1E8E4] hover:bg-[#F7F9F8] text-[#5B6B64]"
                         title="Copy link"
                       >
-                        {copiedId === l.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                        {copiedId === l.id ? <Check className="w-4 h-4 text-[#16A34A]" /> : <Copy className="w-4 h-4" />}
                       </button>
                       <button
                         onClick={() => remove(l.id)}
-                        className="p-2 rounded-lg border border-slate-200 hover:bg-red-50 text-red-500"
+                        className="p-2 rounded-lg border border-[#E1E8E4] hover:bg-[#E6F2EA] text-[#0B3D2E]"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />

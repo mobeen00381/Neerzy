@@ -10,7 +10,7 @@ import TransactionsTab from "@/components/admin/TransactionsTab";
 import LeadsTab from "@/components/admin/LeadsTab";
 import ActivityTab from "@/components/admin/ActivityTab";
 import DemosTab from "@/components/admin/DemosTab";
-import { clearAdminSession, getAdminToken } from "@/components/admin/api";
+import { clearAdminSession } from "@/components/admin/api";
 
 const NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -69,61 +69,64 @@ export default function AdminDashboard() {
     setIsAuthed(false);
   };
 
-  if (!authChecked) return <div className="min-h-screen bg-slate-950" />;
+  if (!authChecked) return <div className="min-h-screen bg-[#E6F2EA]" />;
 
   // ── Login screen ─────────────────────────────────────────────
   if (!isAuthed) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-slate-100">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-          <div className="flex justify-center mb-6">
-            <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
-              <Lock className="w-8 h-8" />
+      <div className="min-h-screen bg-[#E6F2EA] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-[#E1E8E4]">
+          <div className="p-10">
+            <div className="flex items-center justify-center mb-8">
+              <img src="/images/logo.svg" alt="Neerzy Logo" className="h-20 w-auto object-contain" />
             </div>
-          </div>
-          <h1 className="text-2xl font-black text-center mb-1">Neerzy Admin</h1>
-          <p className="text-slate-400 text-sm text-center mb-8">Private operations dashboard</p>
-          <form onSubmit={handleLogin} className="space-y-4">
+            <h1 className="text-3xl font-bold text-[#0A2E22] text-center mb-1">Admin Portal</h1>
+            <p className="text-[#5B6B64] font-normal text-center mb-8">Sign in with your administrator credentials</p>
+
             {loginError && (
-              <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-3 rounded-xl text-center font-bold">
+              <div className="bg-[#F7F9F8] border border-[#D3E6DA] text-[#0B3D2E] text-sm p-4 rounded-2xl mb-6 font-bold text-center">
                 {loginError}
               </div>
             )}
-            <div>
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email</label>
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full mt-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-emerald-500 transition-colors"
-                required
-                autoComplete="username"
-              />
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div>
+                <label className="text-xs font-bold text-[#0F5132] uppercase tracking-widest ml-1">Email</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full mt-1.5 px-4 py-3 bg-[#F7F9F8] border border-[#E1E8E4] rounded-2xl outline-none focus:border-[#22C55E] transition-colors text-[#0A2E22]"
+                  placeholder="you@neerzy.com"
+                  required
+                  autoComplete="username"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#0F5132] uppercase tracking-widest ml-1">Password</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full mt-1.5 px-4 py-3 bg-[#F7F9F8] border border-[#E1E8E4] rounded-2xl outline-none focus:border-[#22C55E] transition-colors text-[#0A2E22]"
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full bg-[#22C55E] hover:bg-[#16A34A] text-white font-bold py-3.5 rounded-full text-base mt-2 disabled:opacity-60 transition-colors"
+              >
+                {loginLoading ? "Signing in…" : "Authenticate"}
+              </button>
+            </form>
+            <div className="flex items-center justify-center gap-2 mt-7 text-[#5B6B64]">
+              <Lock className="w-3.5 h-3.5" />
+              <p className="text-xs font-normal">Private · authorised staff only</p>
             </div>
-            <div>
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Password</label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full mt-1 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-emerald-500 transition-colors"
-                required
-                autoComplete="current-password"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loginLoading}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black h-12 rounded-xl mt-4 disabled:opacity-60"
-            >
-              {loginLoading ? "Signing in…" : "Authenticate"}
-            </button>
-          </form>
-          {!getAdminToken() && (
-            <p className="text-center text-[11px] text-slate-500 mt-5">
-              Tip: ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_JWT_SECRET must be set in the environment.
-            </p>
-          )}
+          </div>
         </div>
       </div>
     );
@@ -131,24 +134,24 @@ export default function AdminDashboard() {
 
   // ── Dashboard shell ──────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900">
+    <div className="min-h-screen bg-[#F7F9F8] flex font-sans text-[#0A2E22]">
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 z-30 bg-[#0B3D2E]/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-slate-950 text-slate-300 transform transition-transform duration-300 lg:translate-x-0 lg:static lg:block ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#0B3D2E] text-white transform transition-transform duration-300 lg:translate-x-0 lg:static lg:block ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="h-full flex flex-col">
-          <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-            <span className="text-xl font-black text-white tracking-tight">
-              Neerzy<span className="text-emerald-400">Admin</span>
+          <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
+            <span className="text-xl font-bold text-white tracking-tight">
+              Neerzy<span className="text-[#22C55E]">Admin</span>
             </span>
-            <button className="lg:hidden text-slate-400" onClick={() => setSidebarOpen(false)}>
+            <button className="lg:hidden text-white/60 hover:text-white" onClick={() => setSidebarOpen(false)}>
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -166,8 +169,8 @@ export default function AdminDashboard() {
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-colors ${
                     active
-                      ? "bg-emerald-500/15 text-emerald-300"
-                      : "hover:bg-slate-800/80 text-slate-400 hover:text-slate-200"
+                      ? "bg-white/10 text-white"
+                      : "text-white/60 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -177,10 +180,10 @@ export default function AdminDashboard() {
             })}
           </nav>
 
-          <div className="p-4 border-t border-slate-800">
+          <div className="p-4 border-t border-white/10">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-white/60 hover:bg-white/10 hover:text-[#22C55E] transition-colors"
             >
               <LogOut className="w-5 h-5" /> Sign out
             </button>
@@ -190,11 +193,13 @@ export default function AdminDashboard() {
 
       {/* Main */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 lg:hidden">
-          <button className="p-2 rounded-lg hover:bg-slate-100" onClick={() => setSidebarOpen(true)}>
-            <Menu className="w-5 h-5 text-slate-600" />
+        <header className="h-16 bg-[#0B3D2E] text-white border-b border-white/10 flex items-center justify-between px-4 sm:px-6 lg:hidden">
+          <button className="p-2 rounded-lg hover:bg-white/10" onClick={() => setSidebarOpen(true)}>
+            <Menu className="w-5 h-5" />
           </button>
-          <span className="font-black text-slate-900">Neerzy Admin</span>
+          <span className="font-bold text-white">
+            Neerzy<span className="text-[#22C55E]">Admin</span>
+          </span>
           <span className="w-9" />
         </header>
 

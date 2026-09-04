@@ -29,7 +29,8 @@ ChartJS.register(
 );
 
 const GRID = { display: false };
-const TICKS = { color: "#94a3b8", font: { size: 10, weight: 600 } as const };
+const TICKS = { color: "#5B6B64", font: { size: 10, weight: 600 } as const };
+const GRID_LINE = { color: "#E1E8E4" };
 
 export function SignupLineChart({ data }: { data: DayBucket[] }) {
   const labels = data.map((d) => {
@@ -45,12 +46,12 @@ export function SignupLineChart({ data }: { data: DayBucket[] }) {
             {
               label: "New signups",
               data: data.map((d) => d.count),
-              borderColor: "#2563eb",
-              backgroundColor: "rgba(37, 99, 235, 0.12)",
+              borderColor: "#22C55E",
+              backgroundColor: "rgba(34, 197, 94, 0.12)",
               fill: true,
               tension: 0.35,
               pointRadius: 3,
-              pointBackgroundColor: "#2563eb",
+              pointBackgroundColor: "#22C55E",
               borderWidth: 2,
             },
           ],
@@ -61,7 +62,7 @@ export function SignupLineChart({ data }: { data: DayBucket[] }) {
           plugins: { legend: { display: false } },
           scales: {
             x: { grid: GRID, ticks: { ...TICKS, maxRotation: 45, autoSkip: true } },
-            y: { grid: { color: "#f1f5f9" }, ticks: { ...TICKS, precision: 0 } },
+            y: { grid: GRID_LINE, ticks: { ...TICKS, precision: 0 } },
           },
         }}
       />
@@ -83,8 +84,8 @@ export function RevenueBarChart({ data }: { data: MonthBucket[] }) {
             {
               label: "Revenue",
               data: data.map((d) => d.revenue),
-              backgroundColor: "#0F5C4D",
-              hoverBackgroundColor: "#073a30",
+              backgroundColor: "#0F5132",
+              hoverBackgroundColor: "#0B3D2E",
               borderRadius: 6,
               maxBarThickness: 34,
             },
@@ -103,7 +104,7 @@ export function RevenueBarChart({ data }: { data: MonthBucket[] }) {
           },
           scales: {
             x: { grid: GRID, ticks: TICKS },
-            y: { grid: { color: "#f1f5f9" }, ticks: { ...TICKS, callback: (v) => `$${v}` } },
+            y: { grid: GRID_LINE, ticks: { ...TICKS, callback: (v) => `$${v}` } },
           },
         }}
       />
@@ -115,10 +116,10 @@ export function PlanDoughnutChart({ breakdown }: { breakdown: PlanBucket[] }) {
   const order = ["free", "pro", "growth", "agency"];
   const sorted = [...breakdown].sort((a, b) => order.indexOf(a.plan) - order.indexOf(b.plan));
   const colors: Record<string, string> = {
-    free: "#94a3b8",
-    pro: "#2563eb",
-    growth: "#7c3aed",
-    agency: "#10b981",
+    free: "#D3E6DA",
+    pro: "#22C55E",
+    growth: "#0F5132",
+    agency: "#0B3D2E",
   };
   return (
     <div className="h-56 relative flex items-center justify-center">
@@ -128,7 +129,7 @@ export function PlanDoughnutChart({ breakdown }: { breakdown: PlanBucket[] }) {
           datasets: [
             {
               data: sorted.map((s) => s.count),
-              backgroundColor: sorted.map((s) => colors[s.plan] || "#94a3b8"),
+              backgroundColor: sorted.map((s) => colors[s.plan] || "#D3E6DA"),
               borderWidth: 2,
               borderColor: "#ffffff",
             },
@@ -141,7 +142,7 @@ export function PlanDoughnutChart({ breakdown }: { breakdown: PlanBucket[] }) {
           plugins: {
             legend: {
               position: "bottom",
-              labels: { boxWidth: 10, boxHeight: 10, font: { size: 11, weight: 600 }, color: "#475569" },
+              labels: { boxWidth: 10, boxHeight: 10, font: { size: 11, weight: 700 }, color: "#5B6B64" },
             },
           },
         }}

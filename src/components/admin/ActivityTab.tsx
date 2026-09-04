@@ -35,22 +35,22 @@ export default function ActivityTab() {
     <div className="space-y-5 max-w-4xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-slate-900">Activity</h1>
-          <p className="text-sm font-medium text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-bold text-[#0A2E22]">Activity</h1>
+          <p className="text-sm font-normal text-[#5B6B64] mt-0.5">
             Latest AI-generated posts across every trader (WhatsApp + dashboard).
           </p>
         </div>
         <button
           onClick={load}
-          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800"
+          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-[#0B3D2E] text-white hover:bg-[#0F5132]"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
         </button>
       </div>
 
-      <Card className="border-slate-200 shadow-sm bg-white">
+      <Card className="border-[#E1E8E4] rounded-2xl shadow-[0_2px_8px_rgba(11,61,46,0.06)] bg-white">
         <CardContent className="p-4 sm:p-5">
-          {error && <p className="text-xs font-bold text-red-600 mb-3">{error}</p>}
+          {error && <p className="text-xs font-bold text-[#0F5132] mb-3">{error}</p>}
           {loading && !posts.length ? (
             <Spinner label="Loading feed…" />
           ) : posts.length === 0 ? (
@@ -58,12 +58,12 @@ export default function ActivityTab() {
           ) : (
             <div className="space-y-4">
               {posts.map((post) => (
-                <div key={post.id} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 sm:p-5 flex gap-4 items-start">
+                <div key={post.id} className="bg-[#F7F9F8] border border-[#E1E8E4] rounded-2xl p-4 sm:p-5 flex gap-4 items-start">
                   <div
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
+                    className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 rounded-2xl shadow-[0_2px_8px_rgba(11,61,46,0.06)] ${
                       post.source === "whatsapp"
                         ? "bg-gradient-to-br from-[#25D366] to-[#128C7E] text-white"
-                        : "bg-gradient-to-br from-blue-500 to-blue-700 text-white"
+                        : "bg-[#0F5132] text-white"
                     }`}
                   >
                     {post.source === "whatsapp" ? <MessageSquare className="w-5 h-5" /> : <Smartphone className="w-5 h-5" />}
@@ -71,26 +71,26 @@ export default function ActivityTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                       <div>
-                        <span className="font-black text-slate-900 text-sm">{post.author}</span>
-                        <span className="text-[11px] font-bold text-slate-400 ml-2 uppercase tracking-wider">
+                        <span className="font-bold text-[#0A2E22] text-sm">{post.author}</span>
+                        <span className="text-[11px] font-bold text-[#5B6B64] ml-2 uppercase tracking-wider">
                           Via {post.source === "whatsapp" ? "WhatsApp" : "Web dashboard"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-slate-400">{post.date} · {post.time}</span>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          post.status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                        <span className="text-[11px] font-bold text-[#5B6B64]">{post.date} · {post.time}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          post.status === "published" ? "bg-[#E6F2EA] text-[#0F5132]" : "bg-[#E6F2EA] text-[#0F5132]"
                         }`}>
                           {post.status}
                         </span>
                       </div>
                     </div>
-                    <div className="bg-white rounded-xl p-3 sm:p-4 border border-slate-100">
-                      <p className="text-sm font-semibold text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    <div className="bg-white rounded-xl p-3 sm:p-4 border border-[#E1E8E4]">
+                      <p className="text-sm font-normal text-[#0A2E22] whitespace-pre-wrap leading-relaxed">
                         {post.text || "Media attachment only"}
                       </p>
                       {post.image && (
-                        <img src={post.image} alt="Post" className="mt-3 max-w-[260px] rounded-xl border border-slate-200" />
+                        <img src={post.image} alt="Post" className="mt-3 max-w-[260px] rounded-xl border border-[#E1E8E4]" />
                       )}
                     </div>
                   </div>
