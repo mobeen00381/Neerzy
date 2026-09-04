@@ -91,6 +91,17 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   },
 };
 
+/**
+ * Canonical monthly price (USD) per plan — single source of truth for MRR and
+ * admin revenue figures. Mirrors PLAN_LIMITS[].price strings.
+ */
+export const PLAN_MONTHLY_PRICE: Record<PlanType, number> = {
+  free: 0,
+  pro: 39,
+  growth: 79,
+  agency: 199,
+};
+
 export function getRemainingDays(startDate: string, trialDays: number): number {
   if (!startDate || trialDays <= 0) return 0;
   try {

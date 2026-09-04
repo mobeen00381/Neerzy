@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
-
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'mobeen0381@gmail.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mobeenadmin';
-const JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'fallback-secret-neerzy-2026-xyz';
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  ADMIN_JWT_SECRET,
+  IS_ADMIN_CONFIGURED,
+} from '@/lib/admin-server';
 
 export async function POST(req: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -22,9 +24,15 @@ export async function POST(req: Request) {
 
     // --- Authentication: Login Action ---
     if (action === 'login') {
+      if (!IS_ADMIN_CONFIGURED) {
+        return NextResponse.json(
+          { error: 'Admin portal not configured: ADMIN_EMAIL, ADMIN_PASSWORD and ADMIN_JWT_SECRET env vars are required' },
+          { status: 500 }
+        );
+      }
       const { email, password } = body;
       if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '8h' });
+        const token = jwt.sign({ role: 'admin' }, ADMIN_JWT_SECRET, { expiresIn: '8h' });
         return NextResponse.json({ success: true, token });
       }
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
@@ -36,14 +44,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
     }
     const token = authHeader.split(' ')[1];
-    
+
+    if (!ADMIN_JWT_SECRET) {
+      return NextResponse.json(
+        { error: 'Admin portal not configured: ADMIN_JWT_SECRET env var is required' },
+        { status: 500 }
+      );
+    }
     try {
-      jwt.verify(token, JWT_SECRET);
+      jwt.verify(token, ADMIN_JWT_SECRET);
     } catch (err) {
       return NextResponse.json({ error: 'Unauthorized: Invalid or expired token' }, { status: 401 });
     }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
 
     if (action === 'loadData') {
       const { data: dLinks } = await supabase.from("demo_links").select("*").order("created_at", { ascending: false });
@@ -94,3 +109,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+// GET /api/admin → demo links list (used by the admin Demos tab).
+export async function GET(req: Request) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json({ error: 'Missing Supabase Config' }, { status: 500 });
+  }
+  const authHeader = req.headers.get('authorization') || '';
+  if (!authHeader.startsWith('Bearer ') || !ADMIN_JWT_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  try {
+    jwt.verify(authHeader.slice(7), ADMIN_JWT_SECRET);
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized: Invalid or expired token' }, { status: 401 });
+  }
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const { data: dLinks } = await supabase
+    .from("demo_links")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return NextResponse.json({ dLinks: dLinks || [] });
+}
+

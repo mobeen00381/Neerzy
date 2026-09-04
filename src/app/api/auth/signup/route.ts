@@ -10,9 +10,23 @@ function generateJWT(user: any) {
   );
 }
 
+const clamp = (v: unknown, max: number) => (v ? String(v).slice(0, max) : null);
+
+/** Maps a UTM source to a Neerzy channel bucket for admin signup attribution. */
+function inferSignupSource(utmSource: string | null | undefined): string | null {
+  const s = (utmSource || "").toLowerCase();
+  if (!s) return null;
+  if (s.includes("facebook") || s.includes("fb") || s.includes("meta")) return "facebook";
+  if (s.includes("instagram") || s.includes("ig")) return "instagram";
+  if (s.includes("google") || s.includes("gads")) return "google_ads";
+  if (s.includes("referral")) return "referral";
+  if (s.includes("organic") || s.includes("search")) return "organic";
+  return s;
+}
+
 export async function POST(request: Request) {
   try {
-    const { phoneNumber, otpCode, plan } = await request.json();
+    const { phoneNumber, otpCode, plan, utm_source, utm_medium, utm_campaign, signup_source } = await request.json();
     
     if (!phoneNumber || !otpCode) {
       return Response.json({ error: 'Phone and OTP required' }, { status: 400 });
@@ -118,13 +132,59 @@ export async function POST(request: Request) {
       throw authError;
     }
 
+    // Attribution captured from the landing URL (UTM params sent by the login page).
+    const attribution = {
+      utm_source: clamp(utm_source, 120),
+      utm_medium: clamp(utm_medium, 120),
+      utm_campaign: clamp(utm_campaign, 160),
+      signup_source: clamp(signup_source, 60) || inferSignupSource(clamp(utm_source, 120)),
+    };
+
     // Create public profile
-    await supabaseAdmin.from('profiles').upsert({
+    const profilePayload: any = {
       id: authUser.user.id,
       phone: phoneNumber,
       selected_plan: plan || 'free',
       created_at: new Date().toISOString(),
-    });
+    };
+    if (attribution.signup_source) profilePayload.signup_source = attribution.signup_source;
+    if (attribution.utm_source) profilePayload.utm_source = attribution.utm_source;
+    if (attribution.utm_medium) profilePayload.utm_medium = attribution.utm_medium;
+    if (attribution.utm_campaign) profilePayload.utm_campaign = attribution.utm_campaign;
+
+    const { error: profileError } = await supabaseAdmin.from('profiles').upsert(profilePayload);
+    if (profileError) {
+      // Fallback for databases that haven't run the admin-dashboard migration yet:
+      // retry with only the legacy columns so signup still works.
+      console.warn('⚠️ Profile upsert with attribution failed, retrying without UTM columns:', profileError.message);
+      const legacyPayload: any = {
+        id: authUser.user.id,
+        phone: phoneNumber,
+        selected_plan: plan || 'free',
+        created_at: new Date().toISOString(),
+      };
+      await supabaseAdmin.from('profiles').upsert(legacyPayload);
+    }
+
+    // If this phone was an inbound ad lead, mark it converted and link the user.
+    try {
+      const { data: matchedLead } = await supabaseAdmin
+        .from('leads')
+        .select('id')
+        .eq('phone', phoneNumber)
+        .in('status', ['new', 'contacted', 'trial_started'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (matchedLead) {
+        await supabaseAdmin
+          .from('leads')
+          .update({ status: 'converted', converted_user_id: authUser.user.id })
+          .eq('id', matchedLead.id);
+      }
+    } catch (leadErr) {
+      console.warn('⚠️ Lead conversion link skipped:', leadErr);
+    }
 
     const newUser = {
       id: authUser.user.id,

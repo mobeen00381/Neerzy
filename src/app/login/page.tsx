@@ -26,6 +26,18 @@ function LoginContent() {
    const router = useRouter();
    const searchParams = useSearchParams();
    const plan = searchParams.get("plan");
+   // Attribution for the admin dashboard (ad channels: facebook / instagram / google_ads / organic).
+   const ssGet = (k: string) => (typeof window !== "undefined" ? sessionStorage.getItem(k) : null);
+   const utm_source = searchParams.get("utm_source") || ssGet("utm_source") || undefined;
+   const utm_medium = searchParams.get("utm_medium") || ssGet("utm_medium") || undefined;
+   const utm_campaign = searchParams.get("utm_campaign") || ssGet("utm_campaign") || undefined;
+
+  // Remember attribution if the user navigates internally before finishing signup.
+  useEffect(() => {
+    if (utm_source) sessionStorage.setItem("utm_source", utm_source);
+    if (utm_medium) sessionStorage.setItem("utm_medium", utm_medium);
+    if (utm_campaign) sessionStorage.setItem("utm_campaign", utm_campaign);
+  }, [utm_source, utm_medium, utm_campaign]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +100,7 @@ function LoginContent() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: phone, otpCode: otp, plan })
+        body: JSON.stringify({ phoneNumber: phone, otpCode: otp, plan, utm_source, utm_medium, utm_campaign })
       });
       const data = await res.json();
       if (res.ok && data.success) {
