@@ -10,7 +10,8 @@ export default function Footer() {
                      pathname?.startsWith('/onboarding') || 
                      pathname?.startsWith('/login') || 
                      pathname?.startsWith('/signup') ||
-                     pathname?.startsWith('/checkout');
+                     pathname?.startsWith('/checkout') ||
+                     pathname?.startsWith('/admin');
 
   if (hideFooter) return null;
   return (

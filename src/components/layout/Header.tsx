@@ -33,7 +33,8 @@ export default function Header() {
                      pathname?.startsWith('/onboarding') || 
                      pathname?.startsWith('/login') || 
                      pathname?.startsWith('/signup') ||
-                     pathname?.startsWith('/checkout');
+                     pathname?.startsWith('/checkout') ||
+                     pathname?.startsWith('/admin');
 
   if (hideHeader) return null;
 
