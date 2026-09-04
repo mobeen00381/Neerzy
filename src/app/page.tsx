@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 import { CheckIcon, CameraIcon, FileTextIcon, StarIcon, ZapIcon, MessageSquareIcon, SearchIcon, SendIcon, GlobeIcon, SmartphoneIcon, MapPinIcon, EyeIcon, ClipboardListIcon, TrendingUpIcon } from '@/components/ui/Icons';
@@ -92,8 +92,8 @@ export default function Page() {
                 <FileTextIcon size={16} />
               </div>
               <div>
-                <div className="floating-badge-text">Content prepared</div>
-                <div className="floating-badge-sub">Google post + website</div>
+                <div className="floating-badge-text">Post ready</div>
+                <div className="floating-badge-sub">Google + Facebook + Instagram</div>
               </div>
             </div>
 
@@ -107,7 +107,7 @@ export default function Page() {
               </div>
               <div>
                 <div className="floating-badge-text">Review request sent</div>
-                <div className="floating-badge-sub">To your customer</div>
+                <div className="floating-badge-sub">After you reply DONE</div>
               </div>
             </div>
           </div>
@@ -795,3 +795,4 @@ export default function Page() {
     </>
   );
 }
+

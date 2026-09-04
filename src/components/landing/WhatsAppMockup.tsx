@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from 'react';
 
@@ -9,9 +9,13 @@ interface ChatMessage {
   text?: string;
   imageUrl?: string;
   cardContent?: {
-    headline: string;
-    body: string;
-    gbpLink: string;
+    variant: 'google' | 'social';
+    headline?: string;
+    body?: string;
+    cta?: string;
+    hashtags?: string;
+    fbText?: string;
+    igText?: string;
   };
 }
 
@@ -30,13 +34,14 @@ export default function WhatsAppMockup() {
   const bodyRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Story mirrors the real Neerzy WhatsApp workflow:
+  // 1) Trader sends the job photo + short description
+  // 2) Trader types POST -> Neerzy generates the content
+  // 3) Neerzy replies with the ready-to-copy Google post (+ Facebook/Instagram captions)
+  // 4) Trader posts it, replies DONE -> review request goes to the customer
   const steps: AnimationStep[] = [
-    // 1. Trader sends job photo
-    {
-      type: 'typing',
-      who: 'trader',
-      delay: 1800
-    },
+    // 1. Trader sends the job photo with a short description
+    { type: 'typing', who: 'trader', delay: 1600 },
     {
       type: 'message',
       message: {
@@ -46,68 +51,64 @@ export default function WhatsAppMockup() {
         imageUrl: '/images/plumber_job_photo.png',
         text: 'Kitchen sink fixed for Mrs Smith. Clean finish.'
       },
-      delay: 1500
+      delay: 1800
     },
-    // 2. Neerzy confirms photo received, content prepared
-    {
-      type: 'typing',
-      who: 'neerzy',
-      delay: 2000
-    },
+    // 2. Trader types POST to generate the content
+    { type: 'typing', who: 'trader', delay: 1000 },
     {
       type: 'message',
-      message: {
-        id: 'm2',
-        sender: 'neerzy',
-        type: 'text',
-        text: 'Photo received. I\'ve prepared a Google post and website update based on this job.\n\nReview the draft below — tap "Publish" when you\'re happy with it.'
-      },
-      delay: 1500
+      message: { id: 'm2', sender: 'trader', type: 'text', text: 'POST' },
+      delay: 1000
     },
-    // 3. Neerzy shows the prepared content card
-    {
-      type: 'message',
-      message: {
-        id: 'm2b',
-        sender: 'neerzy',
-        type: 'card',
-        cardContent: {
-          headline: 'Kitchen Sink Replacement — Mrs Smith',
-          body: 'Just finished replacing the kitchen sink for Mrs Smith in Austin. New faucet installed, drainage checked, everything running smoothly. If you need plumbing work done right, give us a call.',
-          gbpLink: 'https://www.google.com/search?q=Your+Business'
-        }
-      },
-      delay: 2500
-    },
-    // 4. Trader reviews and types "Looks good, publish it"
-    {
-      type: 'typing',
-      who: 'trader',
-      delay: 2200
-    },
+    // 3. Neerzy sends the ready-to-copy Google post
+    { type: 'typing', who: 'neerzy', delay: 2200 },
     {
       type: 'message',
       message: {
         id: 'm3',
-        sender: 'trader',
-        type: 'text',
-        text: 'Looks good, publish it'
+        sender: 'neerzy',
+        type: 'card',
+        cardContent: {
+          variant: 'google',
+          headline: 'Kitchen Sink Replacement - Mrs Smith',
+          body: 'Just finished replacing the kitchen sink for Mrs Smith in Austin. New faucet installed, drainage checked, everything running smoothly.',
+          cta: 'Need plumbing done right? Give us a call today.',
+          hashtags: '#Plumber #Austin #KitchenRepair'
+        }
       },
-      delay: 1500
+      delay: 2800
     },
-    // 5. Neerzy confirms published + review request sent
-    {
-      type: 'typing',
-      who: 'neerzy',
-      delay: 2500
-    },
+    // 4. Bonus: Facebook + Instagram captions (Post 2 & 3 of the 3-post flow)
     {
       type: 'message',
       message: {
         id: 'm4',
         sender: 'neerzy',
+        type: 'card',
+        cardContent: {
+          variant: 'social',
+          fbText: 'Another sink saved in Austin! Call us for fast, clean plumbing work.',
+          igText: 'Kitchen sink replaced & leak-free. #PlumberLife #AustinTX'
+        }
+      },
+      delay: 2600
+    },
+    // 5. Trader copies, posts to Google, and replies DONE
+    { type: 'typing', who: 'trader', delay: 1500 },
+    {
+      type: 'message',
+      message: { id: 'm5', sender: 'trader', type: 'text', text: 'Posted on Google \u2705 DONE' },
+      delay: 1700
+    },
+    // 6. Neerzy sends the review request to the customer
+    { type: 'typing', who: 'neerzy', delay: 2200 },
+    {
+      type: 'message',
+      message: {
+        id: 'm6',
+        sender: 'neerzy',
         type: 'text',
-        text: 'Published to your Google profile and website.\n\nReview request sent to Mrs Smith.\n\nAll done! Just a few taps from your side.'
+        text: '\u2B50 Review request sent to Mrs Smith.\n\nOne job \u2192 Google post + Facebook + Instagram + a review on the way. All done!'
       },
       delay: 6000
     }
@@ -128,7 +129,7 @@ export default function WhatsAppMockup() {
 
       if (step.type === 'typing') {
         setTypingFor(step.who || null);
-        
+
         // If trader is typing, animate the text input
         if (step.who === 'trader') {
           const nextMsgStep = steps[currentStepIndex + 1];
@@ -158,9 +159,9 @@ export default function WhatsAppMockup() {
         if (step.message.sender === 'trader') {
           setInputValue('');
         }
-        
+
         setMessages((prev) => [...prev, step.message!]);
-        
+
         typingTimerRef.current = setTimeout(() => {
           if (currentStepIndex === steps.length - 1) {
             setMessages([]);
@@ -192,7 +193,7 @@ export default function WhatsAppMockup() {
           <div>
             <div className="text-[14px] font-bold leading-none text-white">Neerzy</div>
             <div className="text-[10px] text-emerald-300 font-semibold mt-0.5">
-              {typingFor === 'neerzy' ? 'Preparing your content...' : 'Online'}
+              {typingFor === 'neerzy' ? 'Generating your post...' : 'Online'}
             </div>
           </div>
         </div>
@@ -214,23 +215,49 @@ export default function WhatsAppMockup() {
             {msg.type === 'image' && msg.imageUrl && (
               <img src={msg.imageUrl} alt="Job photo" className="wa-image-preview max-h-32 object-cover" />
             )}
-            
+
             {msg.type === 'card' && msg.cardContent ? (
-              <div className="bg-white rounded-lg p-3 border border-[#E1E8E4] shadow-sm" style={{ minWidth: '200px' }}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span className="text-[10px] font-bold text-[#0F5132] tracking-wider uppercase">Draft Ready</span>
-                </div>
-                <div className="text-[11px] text-[#0A2E22] space-y-1 leading-normal">
-                  <div className="font-bold">{msg.cardContent.headline}</div>
-                  <div className="text-[10px] text-[#5B6B64] leading-relaxed">{msg.cardContent.body}</div>
-                  <div className="mt-2 pt-2 border-t border-[#E1E8E4]">
-                    <div className="text-[9px] text-[#5B6B64]">Tap to publish or edit before posting.</div>
+              msg.cardContent.variant === 'social' ? (
+                <div className="bg-white rounded-lg p-3 border border-[#E1E8E4] shadow-sm" style={{ minWidth: '200px' }}>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span className="text-[10px] font-bold text-[#0F5132] tracking-wider uppercase">Posts 2 &amp; 3 of 3 &mdash; Facebook + Instagram</span>
+                  </div>
+                  <div className="text-[11px] text-[#0A2E22] space-y-1.5 leading-normal">
+                    <div>
+                      <div className="text-[9px] font-bold text-[#5B6B64] uppercase">Facebook</div>
+                      <div className="text-[10px] text-[#5B6B64] leading-relaxed">{msg.cardContent.fbText}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-bold text-[#5B6B64] uppercase">Instagram</div>
+                      <div className="text-[10px] text-[#5B6B64] leading-relaxed">{msg.cardContent.igText}</div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-[#E1E8E4]">
+                      <div className="text-[9px] text-[#5B6B64]">Copy each caption &rarr; paste with your saved photo &rarr; Share.</div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white rounded-lg p-3 border border-[#E1E8E4] shadow-sm" style={{ minWidth: '200px' }}>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span className="text-[10px] font-bold text-[#0F5132] tracking-wider uppercase">Post ready &mdash; copy the text</span>
+                  </div>
+                  <div className="bg-[#F4F7F5] rounded-md p-2 border border-[#E1E8E4]">
+                    <div className="text-[11px] font-bold text-[#0A2E22]">{msg.cardContent.headline}</div>
+                    <div className="text-[10px] text-[#5B6B64] leading-relaxed mt-1">{msg.cardContent.body}</div>
+                    <div className="text-[10px] text-[#5B6B64] leading-relaxed mt-1">{msg.cardContent.cta}</div>
+                    <div className="text-[10px] text-[#1877F2] mt-1">{msg.cardContent.hashtags}</div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-[#E1E8E4]">
+                    <div className="text-[9px] text-[#5B6B64]">Copy &rarr; paste into your Google profile &rarr; attach the photo &rarr; Post.</div>
+                  </div>
+                </div>
+              )
             ) : (
               <div className="whitespace-pre-line text-[13px] leading-snug font-medium text-slate-800">
                 {msg.text}
