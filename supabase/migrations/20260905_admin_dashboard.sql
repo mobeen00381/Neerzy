@@ -7,6 +7,21 @@
 -- ============================================================
 
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- 0. SAFETY: make this file SELF-CONTAINED
+-- The leads trigger below uses update_modified_column(). That helper is
+-- normally created by the very first core migration, but if it is missing in
+-- your database the whole batch would fail and roll back. Recreating it here
+-- (idempotent) guarantees this migration can never fail on a missing helper.
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CREATE OR REPLACE FUNCTION public.update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -- 1. TRANSACTIONS
 -- Every Paddle webhook event (transaction.completed,
 -- subscription.created, subscription.canceled, refunds...) is
@@ -37,6 +52,15 @@ CREATE INDEX IF NOT EXISTS idx_transactions_type ON public.transactions(event_ty
 
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'transactions' AND policyname = 'transactions service access'
+  ) THEN
+    DROP POLICY "transactions service access" ON public.transactions;
+  END IF;
+END $$;
 CREATE POLICY "transactions service access" ON public.transactions
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -71,11 +95,21 @@ CREATE INDEX IF NOT EXISTS idx_leads_converted_user ON public.leads(converted_us
 
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'leads' AND policyname = 'leads service access'
+  ) THEN
+    DROP POLICY "leads service access" ON public.leads;
+  END IF;
+END $$;
 CREATE POLICY "leads service access" ON public.leads
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
+DROP TRIGGER IF EXISTS update_leads_modtime ON public.leads;
 CREATE TRIGGER update_leads_modtime BEFORE UPDATE ON public.leads
-  FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+  FOR EACH ROW EXECUTE FUNCTION public.update_modified_column();
 
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -- 3. SIGNUP ATTRIBUTION on profiles
