@@ -2,6 +2,33 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// ────────────────────────────────────────────────────────────────
+// Story copy — MIRRORS the real WhatsApp guide sent by the connect
+// webhook (src/app/api/whatsapp/webhook/route.ts → WA_CONNECTED_MSG,
+// WA_WELCOME_GUIDE_MSG, WA_PHOTO_GUIDE_MSG). Keep these strings
+// identical so the mockup always shows the true conversation.
+// ────────────────────────────────────────────────────────────────
+const CONNECT_TEXT = 'Hi Neerzy! I want to connect my WhatsApp profile. CONNECT';
+const CONNECTED_TEXT = '✅ WhatsApp connected to your Neerzy account!';
+const WELCOME_TEXT = `🎉 Welcome to Neerzy! You're connected. ✅
+
+I'm here to make posting easy for you.
+
+Here's all you do:
+1️⃣ Finish the job
+2️⃣ Send me the photos 📸
+3️⃣ Tell me what you did — text or voice note 🎙️
+4️⃣ Type POST — I write your post for you
+
+I'll guide you at every step. 👍`;
+const PHOTO_GUIDE_TEXT = `📸 Photo guide (before your 1st job):
+
+1️⃣ When you arrive → take 1-2 BEFORE photos
+2️⃣ When you finish → take AFTER photos from ALL angles (show the whole job)
+3️⃣ Save them in your phone gallery
+
+Then send me the photos here + a short text or a voice note about the job. That's all you need! 😊`;
+
 interface ChatMessage {
   id: string;
   sender: 'trader' | 'neerzy';
@@ -22,6 +49,7 @@ interface ChatMessage {
 interface AnimationStep {
   type: 'typing' | 'message';
   who?: 'trader' | 'neerzy';
+  label?: string; // header subtitle shown while Neerzy is "typing"
   message?: ChatMessage;
   delay: number;
 }
@@ -31,41 +59,72 @@ export default function WhatsAppMockup() {
   const [typingFor, setTypingFor] = useState<'trader' | 'neerzy' | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [typingLabel, setTypingLabel] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Story mirrors the real Neerzy WhatsApp workflow:
-  // 1) Trader sends the job photo + short description
-  // 2) Trader types POST -> Neerzy generates the content
-  // 3) Neerzy replies with the ready-to-copy Google post (+ Facebook/Instagram captions)
-  // 4) Trader posts it, replies DONE -> review request goes to the customer
+  // 1) Trader connects WhatsApp from the dashboard (CONNECT link)
+  // 2) Neerzy sends: connected confirmation + Welcome guide + Photo guide
+  // 3) Trader sends the job photo + short description
+  // 4) Trader types POST -> Neerzy generates the content
+  // 5) Neerzy replies with the ready-to-copy Google post (+ Facebook/Instagram captions)
+  // 6) Trader posts it, replies DONE -> review request goes to the customer
   const steps: AnimationStep[] = [
-    // 1. Trader sends the job photo with a short description
-    { type: 'typing', who: 'trader', delay: 1600 },
+    // Step 1: trader connects WhatsApp (dashboard "Connect with WhatsApp" button)
+    { type: 'typing', who: 'trader', delay: 1500 },
+    {
+      type: 'message',
+      message: { id: 'm0', sender: 'trader', type: 'text', text: CONNECT_TEXT },
+      delay: 1500
+    },
+    // Step 2: connected confirmation (same bubble the real webhook sends)
+    { type: 'typing', who: 'neerzy', label: 'Connecting you...', delay: 1600 },
+    {
+      type: 'message',
+      message: { id: 'm1', sender: 'neerzy', type: 'text', text: CONNECTED_TEXT },
+      delay: 1800
+    },
+    // Step 3: welcome guide
+    { type: 'typing', who: 'neerzy', label: 'Sending your welcome guide...', delay: 1400 },
+    {
+      type: 'message',
+      message: { id: 'm2', sender: 'neerzy', type: 'text', text: WELCOME_TEXT },
+      delay: 3400
+    },
+    // Step 4: photo guide - how to capture and send the job photos
+    { type: 'typing', who: 'neerzy', label: 'Sending your photo guide...', delay: 1200 },
+    {
+      type: 'message',
+      message: { id: 'm3', sender: 'neerzy', type: 'text', text: PHOTO_GUIDE_TEXT },
+      delay: 4600
+    },
+    // Step 5: trader sends the job photo with a short description
+    { type: 'typing', who: 'trader', delay: 1500 },
     {
       type: 'message',
       message: {
-        id: 'm1',
+        id: 'm4',
         sender: 'trader',
         type: 'image',
         imageUrl: '/images/plumber_job_photo.png',
         text: 'Kitchen sink fixed for Mrs Smith. Clean finish.'
       },
-      delay: 1800
+      delay: 1900
     },
-    // 2. Trader types POST to generate the content
+    // Step 6: trader types POST to generate the content
     { type: 'typing', who: 'trader', delay: 1000 },
     {
       type: 'message',
-      message: { id: 'm2', sender: 'trader', type: 'text', text: 'POST' },
+      message: { id: 'm5', sender: 'trader', type: 'text', text: 'POST' },
       delay: 1000
     },
-    // 3. Neerzy sends the ready-to-copy Google post
-    { type: 'typing', who: 'neerzy', delay: 2200 },
+    // Step 7: Neerzy sends the ready-to-copy Google post
+    { type: 'typing', who: 'neerzy', label: 'Generating your post...', delay: 2200 },
     {
       type: 'message',
       message: {
-        id: 'm3',
+        id: 'm6',
         sender: 'neerzy',
         type: 'card',
         cardContent: {
@@ -78,11 +137,11 @@ export default function WhatsAppMockup() {
       },
       delay: 2800
     },
-    // 4. Bonus: Facebook + Instagram captions (Post 2 & 3 of the 3-post flow)
+    // Step 8: Facebook + Instagram captions (Post 2 & 3 of the 3-post flow)
     {
       type: 'message',
       message: {
-        id: 'm4',
+        id: 'm7',
         sender: 'neerzy',
         type: 'card',
         cardContent: {
@@ -93,24 +152,24 @@ export default function WhatsAppMockup() {
       },
       delay: 2600
     },
-    // 5. Trader copies, posts to Google, and replies DONE
+    // Step 9: trader copies, posts to Google, and replies DONE
     { type: 'typing', who: 'trader', delay: 1500 },
     {
       type: 'message',
-      message: { id: 'm5', sender: 'trader', type: 'text', text: 'Posted on Google \u2705 DONE' },
+      message: { id: 'm8', sender: 'trader', type: 'text', text: 'Posted on Google \u2705 DONE' },
       delay: 1700
     },
-    // 6. Neerzy sends the review request to the customer
-    { type: 'typing', who: 'neerzy', delay: 2200 },
+    // Step 10: Neerzy sends the review request to the customer
+    { type: 'typing', who: 'neerzy', label: 'Sending review request...', delay: 2000 },
     {
       type: 'message',
       message: {
-        id: 'm6',
+        id: 'm9',
         sender: 'neerzy',
         type: 'text',
         text: '\u2B50 Review request sent to Mrs Smith.\n\nOne job \u2192 Google post + Facebook + Instagram + a review on the way. All done!'
       },
-      delay: 6000
+      delay: 7000
     }
   ];
 
@@ -129,6 +188,7 @@ export default function WhatsAppMockup() {
 
       if (step.type === 'typing') {
         setTypingFor(step.who || null);
+        setTypingLabel(step.who === 'neerzy' ? (step.label || null) : null);
 
         // If trader is typing, animate the text input
         if (step.who === 'trader') {
@@ -151,6 +211,7 @@ export default function WhatsAppMockup() {
 
         typingTimerRef.current = setTimeout(() => {
           setTypingFor(null);
+          setTypingLabel(null);
           setCurrentStepIndex((prev) => (prev + 1) % steps.length);
         }, step.delay);
 
@@ -193,7 +254,7 @@ export default function WhatsAppMockup() {
           <div>
             <div className="text-[14px] font-bold leading-none text-white">Neerzy</div>
             <div className="text-[10px] text-emerald-300 font-semibold mt-0.5">
-              {typingFor === 'neerzy' ? 'Generating your post...' : 'Online'}
+              {typingFor === 'neerzy' ? typingLabel || 'Generating your post...' : 'Online'}
             </div>
           </div>
         </div>

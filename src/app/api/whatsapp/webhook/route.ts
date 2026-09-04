@@ -39,6 +39,52 @@ const DEDUP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 // Cache user_id lookups by phone to avoid repeated DB queries
 const userIdCache = new Map<string, string | null>();
 
+// ────────────────────────────────────────────────────────────────
+// First-contact guide copy
+// Kept intentionally child-simple: one numbered instruction per line,
+// no jargon. The copy below is mirrored 1:1 by the home-page WhatsApp
+// mockup story (src/components/landing/WhatsAppMockup.tsx) — if you
+// change it here, update the mockup constants so the story stays real.
+// ────────────────────────────────────────────────────────────────
+
+// Same connected confirmation text used before this refactor.
+const WA_CONNECTED_MSG = '✅ *WhatsApp connected to your Neerzy account!*';
+
+const WA_WELCOME_GUIDE_MSG = `🎉 Welcome to Neerzy! You're connected. ✅
+
+I'm here to make posting easy for you.
+
+Here's all you do:
+1️⃣ Finish the job
+2️⃣ Send me the photos 📸
+3️⃣ Tell me what you did — text or voice note 🎙️
+4️⃣ Type POST — I write your post for you
+
+I'll guide you at every step. 👍`;
+
+const WA_PHOTO_GUIDE_MSG = `📸 Photo guide (before your 1st job):
+
+1️⃣ When you arrive → take 1-2 BEFORE photos
+2️⃣ When you finish → take AFTER photos from ALL angles (show the whole job)
+3️⃣ Save them in your phone gallery
+
+Then send me the photos here + a short text or a voice note about the job. That's all you need! 😊`;
+
+// Sent when a completely unknown number messages Neerzy before connecting —
+// instead of silently processing (or replying "not registered"), guide them
+// to the dashboard's "Connect with WhatsApp" button in plain steps.
+let connectAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
+if (connectAppUrl.includes('vercel.app')) connectAppUrl = 'https://www.neerzy.com';
+const WA_CONNECT_FIRST_MSG = `👋 Hi! It looks like this number isn't connected to a Neerzy account yet.
+
+Don't worry — it takes 1 minute:
+
+1️⃣ Open Neerzy on your phone: ${connectAppUrl.replace(/\/$/, '')}/login
+2️⃣ Log in (or create your free account)
+3️⃣ Open the Dashboard and tap "Connect with WhatsApp"
+
+That brings you right back here — then I'll guide you step by step. 😊`;
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET - Meta Webhook Verification
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -191,6 +237,28 @@ export async function POST(req: Request) {
     const to = undefined;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Unknown-sender guard: a number that isn't linked to any Neerzy
+    // account (and isn't an agency trader) gets a friendly connect-first
+    // guide instead of having its photos/texts silently processed.
+    // The CONNECT:<userId> handshake itself is allowed through — that IS
+    // the act of linking the number (handled further down).
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const isConnectHandshake = /^CONNECT[:=]\s*[0-9a-fA-F-]{36}/.test((body || '').trim());
+    if (!isConnectHandshake) {
+      const linkedUserId = await getUserIdByPhone(from);
+      const linkedAgency = linkedUserId ? null : await getAgencyByClientPhone(from);
+      if (!linkedUserId && !linkedAgency) {
+        console.warn(`📥 [${requestId}] Unknown sender ${from} — replying with connect-first guide`);
+        try {
+          await sendWhatsappText(from, WA_CONNECT_FIRST_MSG, undefined);
+        } catch (guideErr: any) {
+          console.error(`📥 [${requestId}] Connect-first guide send failed:`, guideErr?.message || guideErr);
+        }
+        return NextResponse.json({ status: 'ok' });
+      }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Commands first (POST / RESET / DONE)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     if (body) {
@@ -293,7 +361,8 @@ export async function POST(req: Request) {
           // If no profile row exists yet (Google/email signups have none),
           // anchor the trial to the auth account's creation date instead of
           // NOW(), so an old account doesn't get a fresh 30-day trial.
-          if (!profileErr && !existingProfile) {
+          const isFirstPhoneLink = !profileErr && !existingProfile;
+          if (isFirstPhoneLink) {
             upsertPayload.trial_started_at = authUserData.created_at || new Date().toISOString();
           }
 
@@ -339,7 +408,22 @@ export async function POST(req: Request) {
 
           userIdCache.delete(from);
           console.log(`✅ Linked WhatsApp number ${from} to user ${userId}`);
-          return await sendWhatsappText(from, '✅ *WhatsApp connected to your Neerzy account!*', undefined);
+
+          // First-contact guide: brand-new links get the short confirmation
+          // plus the Welcome + Photo guide messages (kept child-simple for
+          // non-technical users). Re-linking an existing number on a new
+          // phone only gets the confirmation, not the full onboarding again.
+          const connectReplies = isFirstPhoneLink
+            ? [WA_CONNECTED_MSG, WA_WELCOME_GUIDE_MSG, WA_PHOTO_GUIDE_MSG]
+            : [WA_CONNECTED_MSG];
+          for (const reply of connectReplies) {
+            try {
+              await sendWhatsappText(from, reply, undefined);
+            } catch (replyErr: any) {
+              console.error('❌ connect guide message send failed:', replyErr?.message || replyErr);
+            }
+          }
+          return NextResponse.json({ status: 'ok' });
         } catch (connectErr) {
           console.error('❌ Failed to link WhatsApp number:', connectErr);
         }
