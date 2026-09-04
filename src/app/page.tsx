@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next";
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
+import WhatsAppMockup from '@/components/landing/WhatsAppMockup';
 import { CheckIcon, CameraIcon, FileTextIcon, StarIcon, ZapIcon, MessageSquareIcon, SearchIcon, SendIcon, GlobeIcon, SmartphoneIcon, MapPinIcon, EyeIcon, ClipboardListIcon, TrendingUpIcon } from '@/components/ui/Icons';
 
 export const metadata: Metadata = {
@@ -80,18 +81,7 @@ export default function Page() {
           </div>
 
           <div className="mockup-container">
-            <div className="wa-card">
-              <video
-                className="hero-reel-video"
-                src="/neerzy-whatsapp-reel.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
-                aria-label="Neerzy WhatsApp walkthrough: connect, send a job photo, publish to Google, Facebook and Instagram, then send a review request"
-              />
-            </div>
+            <WhatsAppMockup />
 
             {/* Floating Badge: Content Prepared */}
             <div
