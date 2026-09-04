@@ -881,8 +881,8 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
         const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
         console.log(`[trial-check post] phone=${phone} user=${userIdForQuota} plan=${planTier} trialStart=${trialStart} daysLeft=${trialStart ? getRemainingDays(trialStart, quota.trialDays) : 'n/a'}`);
 
-        // Tier-based reply: Growth/Agency → send FB + IG posts after the Google post.
-        if (planTier === 'growth' || planTier === 'agency') growthTier = true;
+        // Tier-based reply: Growth/Agency/Unlimited → send FB + IG posts after the Google post.
+        if (planTier === 'growth' || planTier === 'agency' || planTier === 'unlimited') growthTier = true;
 
         if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
           return await sendWhatsappText(

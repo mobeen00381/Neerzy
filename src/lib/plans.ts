@@ -1,5 +1,5 @@
 // lib/plans.ts
-export type PlanType = 'free' | 'pro' | 'growth' | 'agency';
+export type PlanType = 'free' | 'pro' | 'growth' | 'agency' | 'unlimited';
 
 export interface PlanLimits {
   name: string;
@@ -89,6 +89,29 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     ],
     color: '#10B981', // Emerald
   },
+  // Internal test / full-power plan — bypasses every quota check.
+  // `-1` means "unlimited" everywhere in the enforcement engine:
+  //   totalPosts !== -1        (monthly posts gate in generate-post/webhook)
+  //   dailyPosts > 0           (daily posts gate in generate-post/webhook)
+  //   dailyReviewRequests !== -1 (daily review gate in send-request/webhook)
+  //   trialDays: 0             → no trial window → never "trial ended"
+  unlimited: {
+    name: 'Unlimited',
+    price: '$0/mo',
+    trialDays: 0,
+    totalPosts: -1,
+    dailyPosts: -1,
+    totalReviewRequests: -1,
+    dailyReviewRequests: -1,
+    features: [
+      'Unlimited posts — no daily or monthly limit',
+      'Unlimited review requests — no daily or monthly limit',
+      'Google + Facebook + Instagram content',
+      'WhatsApp workflow',
+      'All features unlocked',
+    ],
+    color: '#0F5C4D', // Teal
+  },
 };
 
 /**
@@ -100,6 +123,7 @@ export const PLAN_MONTHLY_PRICE: Record<PlanType, number> = {
   pro: 39,
   growth: 79,
   agency: 199,
+  unlimited: 0, // Internal test tier — never counted as paying revenue
 };
 
 export function getRemainingDays(startDate: string, trialDays: number): number {

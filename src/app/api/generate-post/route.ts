@@ -65,8 +65,8 @@ export async function POST(req: Request) {
         const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
         const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
 
-        // Growth/Agency → also write Facebook + Instagram posts (same as WhatsApp flow).
-        if (planTier === 'growth' || planTier === 'agency') growthTier = true;
+        // Growth/Agency/Unlimited → also write Facebook + Instagram posts (same as WhatsApp flow).
+        if (planTier === 'growth' || planTier === 'agency' || planTier === 'unlimited') growthTier = true;
 
         if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
           return NextResponse.json(

@@ -150,7 +150,7 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     const planTier = (profile?.selected_plan || 'free').toLowerCase();
-    if (planTier !== 'growth' && planTier !== 'agency') {
+    if (planTier !== 'growth' && planTier !== 'agency' && planTier !== 'unlimited') {
       return NextResponse.json(
         { error: 'This feature is part of the Growth plan. Upgrade to generate Facebook & Instagram content.' },
         { status: 403 }

@@ -41,7 +41,9 @@ export async function getUserUsage(
   const dailyPostsUsed = cycleRows.filter((p: any) => new Date(p.created_at) >= today).length;
   const totalPostsUsed = cycleRows.length;
 
-  const remainingToday = Math.max(0, limits.dailyPosts - dailyPostsUsed);
+  const remainingToday = limits.dailyPosts === -1
+    ? Infinity
+    : Math.max(0, limits.dailyPosts - dailyPostsUsed);
   const remainingTotal = limits.totalPosts === -1 
     ? Infinity 
     : Math.max(0, limits.totalPosts - totalPostsUsed);

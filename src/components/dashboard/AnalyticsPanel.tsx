@@ -185,7 +185,7 @@ const PostsBar = ({ data }: { data?: { date: string; google: number; facebook: n
 
 export function AnalyticsPanel({ userId, userPlan = 'free', reviewStats: _reviewStats }: AnalyticsPanelProps) {
   const planInfo = PLAN_LIMITS[userPlan.toLowerCase() as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
-  const isGrowth = userPlan.toLowerCase() === 'growth' || userPlan.toLowerCase() === 'agency';
+  const isGrowth = userPlan.toLowerCase() === 'growth' || userPlan.toLowerCase() === 'agency' || userPlan.toLowerCase() === 'unlimited';
 
   const { data: stats, isLoading } = useQuery<AnalyticsStats>({
     queryKey: ['analytics', userId],

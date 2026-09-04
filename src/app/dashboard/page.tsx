@@ -931,7 +931,7 @@ export default function Dashboard() {
             generatedText: socialIg,
           });
         }
-        if (!socialFb && !socialIg && plan !== 'growth' && plan !== 'agency') {
+        if (!socialFb && !socialIg && plan !== 'growth' && plan !== 'agency' && plan !== 'unlimited') {
           // Free/Pro: one-line upsell so traders know Growth adds FB + IG posts.
           socialMsgs.push({
             id: `growth-hint-${Date.now()}`,
@@ -1271,8 +1271,8 @@ export default function Dashboard() {
   const totalRemaining = planLimits.totalPosts === -1 ? 'Unlimited' : Math.max(0, planLimits.totalPosts - stats.total);
   const totalCountdown = planLimits.totalPosts === -1 ? 'Unlimited' : `${totalRemaining}/${planLimits.totalPosts} remaining`;
   
-  const dailyRemaining = Math.max(0, planLimits.dailyPosts - stats.daily);
-  const dailyCountdown = `${dailyRemaining}/${planLimits.dailyPosts} left`;
+  const dailyRemaining = planLimits.dailyPosts === -1 ? 'Unlimited' : Math.max(0, planLimits.dailyPosts - stats.daily);
+  const dailyCountdown = planLimits.dailyPosts === -1 ? 'Unlimited' : `${dailyRemaining}/${planLimits.dailyPosts} left`;
 
   if (loading) {
     return (
