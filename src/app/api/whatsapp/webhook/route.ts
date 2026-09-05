@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { createClient } from '@supabase/supabase-js';
-import { sendMetaText, sendMetaTemplate, sendMetaMedia, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
+import { sendMetaText, sendMetaTemplate, sendMetaMedia, sendMetaInteractiveUrlButton, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
 import { getTranscriptionClient, DEFAULT_ASR_MODEL, ASR_MAX_SECONDS, chatWithFallback } from '@/lib/openai';
 import { estimateAudioSeconds } from '@/lib/audio-duration';
 import { convertOggOpusToWav } from '@/lib/audio-convert';
@@ -75,6 +75,9 @@ Then send me the photos here + a short text or a voice note about the job. That'
 // to the dashboard's "Connect with WhatsApp" button in plain steps.
 let connectAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.neerzy.com';
 if (connectAppUrl.includes('vercel.app')) connectAppUrl = 'https://www.neerzy.com';
+
+// Base URL for deep links sent inside WhatsApp messages (e.g. the SMS fallback page).
+const appBaseUrl = connectAppUrl.replace(/\/$/, '');
 const WA_CONNECT_FIRST_MSG = `👋 Hi! It looks like this number isn't connected to a Neerzy account yet.
 
 Don't worry — it takes 1 minute:
@@ -1892,8 +1895,9 @@ async function notifyTraderOfDelivery(row: any, outcome: 'delivered' | 'failed',
     } else {
       const reason = detail ? `\n\n_Reason: ${detail}_` : '';
       if (row.review_link) {
-        // The trader has a review link — hand them the exact copy-paste message
-        // to send via SMS/WhatsApp from their own phone instead of relying on Meta.
+        // The trader has a review link - send a short warning plus a one-tap
+        // CTA button that opens the SMS fallback page (/sms/[id]) with the
+        // message pre-filled, instead of a long copy-paste block in chat.
         let businessName = '';
         try {
           const { data: biz } = await supabase
@@ -1905,11 +1909,30 @@ async function notifyTraderOfDelivery(row: any, outcome: 'delivered' | 'failed',
         } catch (bizErr: any) {
           console.warn('⚠️ Failed to load business name for manual-fallback message:', bizErr?.message || bizErr);
         }
+        // Shortened warning text first (no copy-paste block in chat).
         await sendWhatsappText(
           traderPhone,
-          `⚠️ *Review request NOT delivered to ${customerName}.*${reason}\n\nThey may not be on WhatsApp.\n\n📋 *Copy this message and send it to ${customerName} via SMS from your phone:*\n\nHi ${customerName}, thanks for choosing ${businessName || 'us'} today! Could you take 30 seconds to leave us a Google review? ${row.review_link}`,
+          `⚠️ *Review request NOT delivered to ${customerName}.*${reason}\n\nThey may not be on WhatsApp.`,
           undefined
         );
+        // Then the interactive CTA button pointing at the SMS fallback page.
+        try {
+          await sendMetaInteractiveUrlButton({
+            to: traderPhone,
+            bodyText: 'Tap below to copy the SMS message, or open your SMS app with everything pre-filled.',
+            displayText: '📲 Copy & Send via SMS',
+            url: `${appBaseUrl}/sms/${row.id}`,
+          });
+        } catch (ctaErr: any) {
+          // Never leave the trader with nothing - fall back to the old full
+          // plain-text copy-paste message if the interactive send fails.
+          console.warn('⚠️ Failed to send SMS fallback CTA button, sending plain text instead:', ctaErr?.message || ctaErr);
+          await sendWhatsappText(
+            traderPhone,
+            `⚠️ *Review request NOT delivered to ${customerName}.*${reason}\n\nThey may not be on WhatsApp.\n\n📋 *Copy this message and send it to ${customerName} via SMS from your phone:*\n\nHi ${customerName}, thanks for choosing ${businessName || 'us'} today! Could you take 30 seconds to leave us a Google review? ${row.review_link}`,
+            undefined
+          );
+        }
       } else {
         // Legacy rows may predate the review_link column — keep the older guidance.
         await sendWhatsappText(

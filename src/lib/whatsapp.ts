@@ -190,3 +190,31 @@ export async function sendMetaReadReceipt(messageId: string): Promise<void> {
     message_id: messageId,
   });
 }
+
+interface SendInteractiveUrlParams {
+  to: string;
+  bodyText: string;
+  displayText: string;
+  url: string;
+}
+
+/**
+ * Sends an interactive cta_url button message (one-tap URL button).
+ * cta_url is allowed in-session - no template approval needed.
+ */
+export async function sendMetaInteractiveUrlButton({ to, bodyText, displayText, url }: SendInteractiveUrlParams): Promise<MetaResponse> {
+  return callMetaAPI("messages", {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: normalizeTo(to),
+    type: "interactive",
+    interactive: {
+      type: "cta_url",
+      body: { text: bodyText },
+      action: {
+        name: "cta_url",
+        parameters: { display_text: displayText, url },
+      },
+    },
+  });
+}
