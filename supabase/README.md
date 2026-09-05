@@ -19,7 +19,18 @@ supabase db push
 Open the Supabase dashboard for the target project, go to **SQL Editor**, paste
 the contents of the migration file, and run it.
 
-## Latest migration: Meta message ID + delivery statuses
+## Latest migration: Agency clients + pooled quotas
+
+File: `supabase/migrations/20260904_agency_clients.sql`
+
+Adds the `agency_clients` table and the `agency_client_phone` column on
+`review_requests`. **The WhatsApp webhook's tracking insert writes
+`agency_client_phone`, so this migration must be applied** — without it every
+review request shows the "couldn't save the delivery-tracking record" warning
+(column `review_requests.agency_client_phone does not exist`, code 42703).
+Idempotent and safe to re-run.
+
+## Earlier: Meta message ID + delivery statuses
 
 File: `supabase/migrations/20260902_add_meta_message_id.sql`
 

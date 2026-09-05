@@ -345,9 +345,11 @@ export async function POST(req: Request) {
           // Fetch existing profile so we never reset a one-time trial.
           // If the query errors (e.g., trial_started_at column missing in this
           // project), we treat the profile as unknown and skip trial anchoring.
+          // `phone` is read too so the guide logic below can tell whether THIS
+          // number is already bound to the account.
           const { data: existingProfile, error: profileErr } = await supabase
             .from('profiles')
-            .select('id, trial_started_at')
+            .select('id, phone, trial_started_at')
             .eq('id', userId)
             .maybeSingle();
 
@@ -411,11 +413,22 @@ export async function POST(req: Request) {
 
           // First-contact guide: brand-new links get the short confirmation
           // plus the Welcome + Photo guide messages (kept child-simple for
-          // non-technical users). Re-linking an existing number on a new
-          // phone only gets the confirmation, not the full onboarding again.
-          const connectReplies = isFirstPhoneLink
-            ? [WA_CONNECTED_MSG, WA_WELCOME_GUIDE_MSG, WA_PHOTO_GUIDE_MSG]
-            : [WA_CONNECTED_MSG];
+          // non-technical users). A profile row almost always exists (accounts
+          // get one at signup / when their first business is connected), so
+          // row existence can't be the guide signal — instead, send the guide
+          // whenever THIS number is not already bound to the account:
+          //   • no profile row, or
+          //   • profile row with no phone linked yet, or
+          //   • profile row currently bound to a DIFFERENT number.
+          // Re-linking the exact same number (same WhatsApp, new phone) only
+          // gets the confirmation, not the full onboarding again.
+          const existingPhoneDigits = existingProfile?.phone
+            ? existingProfile.phone.replace(/\D/g, '').replace(/^00/, '')
+            : null;
+          const sameNumberAlreadyLinked = !profileErr && existingPhoneDigits !== null && existingPhoneDigits === digitsOnly;
+          const connectReplies = sameNumberAlreadyLinked
+            ? [WA_CONNECTED_MSG]
+            : [WA_CONNECTED_MSG, WA_WELCOME_GUIDE_MSG, WA_PHOTO_GUIDE_MSG];
           for (const reply of connectReplies) {
             try {
               await sendWhatsappText(from, reply, undefined);
@@ -1242,63 +1255,73 @@ Type *DONE* when published.`;
 // Review-request workflow
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+/** Extract the DB column name(s) that a failed insert says are missing.
+ *
+ * Handles the two error shapes seen from Postgres/PostgREST when a payload
+ * column doesn't exist on the live database:
+ *   - Postgres 42703:     column review_requests.agency_client_phone does not exist
+ *   - PostgREST PGRST204: Could not find the 'meta_message_id' column of 'review_requests' in the schema cache
+ */
+function extractMissingColumnNames(errMsg: string): string[] {
+  const names = new Set<string>();
+  const pgCol =
+    /column\s+(?:"?[A-Za-z_][A-Za-z0-9_]*"?\.)*"?([A-Za-z_][A-Za-z0-9_]*)?"?\s+does not exist/i.exec(errMsg);
+  if (pgCol?.[1]) names.add(pgCol[1]);
+  const cacheCol = /could not find the '([A-Za-z_][A-Za-z0-9_]*)' column/i.exec(errMsg);
+  if (cacheCol?.[1]) names.add(cacheCol[1]);
+  return Array.from(names);
+}
+
 /** Insert a review_requests row for delivery tracking.
  *
  * Returns the new row's id, or null if it could not be saved. Uses
  * `.select('id')` so a failed insert is DETECTED instead of silently passing —
  * a bare `.insert()` reports success even when the row never lands.
  *
- * If the insert fails because the 20260902 migration columns
- * (`meta_message_id` / `last_error`) are missing on this database, the row is
- * retried with a legacy payload so tracking still works: Meta's async
- * delivery-status callbacks then match the row by phone number (status
- * 'sent') instead of the wamid, and the "NOT delivered" notification still
- * fires. Logs loudly and returns null if the row genuinely can't be saved.
+ * If the insert fails because a column this build writes is missing on the
+ * database (a migration such as 20260902's `meta_message_id` / `last_error`
+ * or 20260904's `agency_client_phone` hasn't been applied), the missing
+ * column name is parsed out of the error and the row is retried WITHOUT it.
+ * Tracking then still works: Meta's async delivery-status callbacks match the
+ * row by phone number (status 'sent') instead of the missing field, so the
+ * "NOT delivered" notification still fires. Logs loudly and returns null only
+ * if the row genuinely can't be saved.
  */
 async function insertReviewTrackingRow(payload: Record<string, any>): Promise<string | null> {
+  const currentPayload: Record<string, any> = { ...payload };
   try {
-    const { data: inserted, error: insertErr } = await supabase
-      .from('review_requests')
-      .insert(payload)
-      .select('id')
-      .maybeSingle();
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const { data: inserted, error: insertErr } = await supabase
+        .from('review_requests')
+        .insert(currentPayload)
+        .select('id')
+        .maybeSingle();
 
-    if (!insertErr && inserted?.id) {
-      return inserted.id as string;
+      if (!insertErr && inserted?.id) {
+        return inserted.id as string;
+      }
+
+      const errMsg = insertErr?.message || String(insertErr || '');
+      console.error('⚠️ Failed to insert review_requests row:', insertErr);
+
+      const missingCols = extractMissingColumnNames(errMsg);
+      if (missingCols.length === 0) {
+        // Not a "column is missing" failure — can't be fixed by shrinking the
+        // payload, so surface it to the caller.
+        return null;
+      }
+
+      console.warn(
+        `⚠️ Column(s) missing on this database (migration not applied): ${missingCols.join(', ')}. ` +
+        `Retrying insert without them (attempt ${attempt + 1}/3) so delivery-status callbacks can still match the row by phone.`
+      );
+      for (const col of missingCols) {
+        delete currentPayload[col];
+      }
     }
 
-    const errMsg = insertErr?.message || String(insertErr || '');
-    console.error('⚠️ Failed to insert review_requests row:', insertErr);
-
-    const missingMigrationColumns =
-      /PGRST204|could not find|does not exist|unknown column/i.test(errMsg) &&
-      /meta_message_id|last_error/i.test(errMsg);
-
-    if (!missingMigrationColumns) {
-      return null;
-    }
-
-    console.warn(
-      '⚠️ meta_message_id/last_error columns missing on this database (20260902 migration not applied). ' +
-      'Retrying insert without them so delivery-status callbacks can still match the row by phone.'
-    );
-    const legacyPayload: Record<string, any> = {};
-    for (const [key, value] of Object.entries(payload)) {
-      if (key === 'meta_message_id' || key === 'last_error') continue;
-      legacyPayload[key] = value;
-    }
-
-    const { data: retried, error: retryErr } = await supabase
-      .from('review_requests')
-      .insert(legacyPayload)
-      .select('id')
-      .maybeSingle();
-
-    if (retryErr) {
-      console.error('⚠️ Legacy retry insert also failed:', retryErr);
-      return null;
-    }
-    return retried?.id ? (retried.id as string) : null;
+    console.error('⚠️ review_requests insert still failing after retries without the missing columns.');
+    return null;
   } catch (err) {
     console.error('⚠️ Failed to insert review_requests row:', err);
     return null;
@@ -1676,7 +1699,7 @@ async function handleSendReview(phone: string, fromNumber?: string) {
     if (!trackingRowId) {
       await sendWhatsappText(
         phone,
-        `⚠️ *Heads up:* the review request was sent to WhatsApp, but Neerzy couldn't save the delivery-tracking record (database error), so delivery confirmations may not arrive. Please try again or check that migration 20260902 was applied.`,
+        `⚠️ *Heads up:* the review request was sent to WhatsApp, but Neerzy couldn't save the delivery-tracking record (database error), so delivery confirmations may not arrive. Please try again or check that all migrations in the supabase/migrations/ folder have been applied to your database.`,
         fromNumber
       );
     }
