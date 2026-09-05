@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Loader2, Sparkles, Bot } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, Sparkles, Bot, Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 type Message = {
@@ -56,6 +56,8 @@ export function SupportChat({
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom
@@ -63,8 +65,29 @@ export function SupportChat({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
+  // Live countdown ticker while the user is rate-locked
+  useEffect(() => {
+    if (!lockedUntil) return;
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [lockedUntil]);
+
+  useEffect(() => {
+    if (lockedUntil && Date.now() >= lockedUntil) setLockedUntil(null);
+  }, [nowTick, lockedUntil]);
+
+  const remainingLockSeconds = lockedUntil ? Math.max(0, Math.ceil((lockedUntil - nowTick) / 1000)) : 0;
+  const isLocked = remainingLockSeconds > 0;
+
+  function formatLock(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
   const handleSend = async () => {
     if (!input.trim()) return;
+    if (lockedUntil && Date.now() < lockedUntil) return;
 
     const userMessage = { role: "user" as const, content: input.trim() };
     setMessages(prev => [...prev, userMessage]);
@@ -79,6 +102,18 @@ export function SupportChat({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content }))
         })
       });
+
+      if (res.status === 429) {
+        let lockInfo: { error?: string; retryAfterSeconds?: number } = {};
+        try { lockInfo = await res.json(); } catch { /* ignore body */ }
+
+        const waitSec = Math.max(5, lockInfo.retryAfterSeconds || 60);
+        const lockMsg = lockInfo.error || "You've sent too many messages - please try again in a few minutes.";
+        setLockedUntil(Date.now() + waitSec * 1000);
+        setNowTick(Date.now());
+        setMessages(prev => [...prev, { role: "assistant", content: lockMsg }]);
+        return;
+      }
 
       if (!res.ok) throw new Error("Failed to get response");
       
@@ -165,6 +200,14 @@ export function SupportChat({
 
       {/* Input */}
       <div className="p-3 bg-white border-t border-slate-100">
+        {isLocked && (
+          <div className="mb-2 flex items-start gap-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>
+              Message limit reached. Try again in <span className="font-bold tabular-nums">{formatLock(remainingLockSeconds)}</span>. For urgent help, email support@neerzy.com.
+            </span>
+          </div>
+        )}
         <form 
           className="relative flex items-center"
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
@@ -173,13 +216,13 @@ export function SupportChat({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your question..."
-            className="w-full bg-slate-100 border-none rounded-full pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-slate-800 placeholder:text-slate-400"
-            disabled={isTyping}
+            placeholder={isLocked ? `Paused - try again in ${formatLock(remainingLockSeconds)}` : "Type your question..."}
+            className="w-full bg-slate-100 border-none rounded-full pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-slate-800 placeholder:text-slate-400 disabled:opacity-60"
+            disabled={isTyping || isLocked}
           />
           <button 
             type="submit"
-            disabled={!input.trim() || isTyping}
+            disabled={!input.trim() || isTyping || isLocked}
             className="absolute right-1.5 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 shadow-sm"
           >
             <Send className="h-4 w-4" />

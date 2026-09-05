@@ -42,11 +42,11 @@ You can also send your customer's name and phone number, and Neerzy will automat
 
   // ── Pricing ──
   {
-    patterns: ['pricing', 'how much', 'cost', 'price', 'plan', 'plans', 'subscription', 'what plans'],
+    patterns: ['pricing', 'how much', 'cost', 'price', 'subscription', 'what plans', 'plan options', 'packages'],
     answer: `Here are our plans:
 
 🆓 **Free Plan** — $0/mo
-• 5 posts total, 1/day
+• 5 posts/month (1/day) • 5 review requests/month (1/day)
 • 30-day free trial
 • Google post & website generation
 • Review requests
@@ -81,8 +81,8 @@ You can also send your customer's name and phone number, and Neerzy will automat
     answer: `Yes! Our **Free Plan** is completely free — $0/month! 🎉
 
 It includes:
-• 5 WhatsApp posts total
-• 1 post per day
+• 5 posts per month (1/day)
+• 5 review requests per month (1/day)
 • Google post generation
 • Website update generation
 • Review request generation
@@ -95,6 +95,7 @@ No credit card required to start. 👉 Get started at /onboarding`
     answer: `The **Pro Plan** is $39/month and includes:
 
 • 25 posts per month (2 per day)
+• 25 review requests per month (2 per day)
 • WhatsApp workflow
 • Google post generation
 • Custom domain support
@@ -109,6 +110,7 @@ Perfect for individual contractors and small businesses! 👉 /onboarding`
     answer: `The **Growth Plan** is $79/month — our most popular! 🚀
 
 • 60 posts per month (4 per day)
+• 60 review requests per month (4 per day)
 • Social content generation (Facebook + Instagram)
 • Priority processing
 • Advanced analytics
@@ -144,7 +146,8 @@ Your website is auto-generated and auto-updated every time you post. No website 
     answer: `The **Free Plan** comes with a **30-day free trial** — no credit card required! 🎉
 
 During the trial you get:
-• 5 WhatsApp posts
+• 5 posts per month
+• 5 review requests per month
 • Google post generation
 • Website updates
 • Review request sending
@@ -154,7 +157,7 @@ After the trial, you can upgrade to Pro ($39/mo), Growth ($79/mo), or Agency ($1
 
   // ── Cancellation ──
   {
-    patterns: ['cancel', 'cancellation', 'cancel anytime', 'refund', 'stop subscription'],
+    patterns: ['cancel', 'cancellation', 'cancel anytime', 'refund', 'stop subscription', 'unsubscribe'],
     answer: `You can **cancel anytime** — no contracts, no lock-in. 🙌
 
 Simply go to your Dashboard → Settings → Subscription and cancel. Your account will remain active until the end of your billing period.
@@ -269,6 +272,77 @@ Your website builds itself as you work! `
 Pro tip: Growth and Agency plans get priority support! 🚀`
   },
 
+  {
+    patterns: ['compare', 'compare plans', 'which plan', 'what plan should', 'best plan for me', 'recommend a plan', 'recommend', 'difference between', 'free vs', 'vs pro', 'vs growth', 'vs agency', 'upgrade', 'downgrade', 'switch plan', 'change plan'],
+    answer: `Here's a quick comparison to help you choose:
+
+🆓 **Free** - $0/mo: 5 posts + 5 review requests per month. Great for trying Neerzy (includes the 30-day trial).
+💼 **Pro** - $39/mo: 25 posts + 25 review requests per month, WhatsApp workflow, custom domain, basic analytics. Best for a single contractor posting every day.
+🚀 **Growth** - $79/mo: 60 posts + 60 review requests per month, Facebook & Instagram posts, priority processing, advanced analytics, review dashboard. Best for growing businesses.
+🏢 **Agency** - $199/mo: up to 10 traders, 300 posts + 300 review requests per month (30 per trader), Google + Facebook + Instagram for every trader, agency dashboard. Best for marketing agencies.
+
+Starting out? The **Free Plan** with its 30-day trial is the safest pick - you can upgrade anytime. 👉 /onboarding`
+  },
+  {
+    patterns: ['how many posts', 'post limit', 'posts per day', 'posts per month', 'max posts', 'how many reviews', 'review limit', 'daily limit', 'monthly limit', 'posting limit'],
+    answer: `Here are your posting and review limits per plan:
+
+🆓 **Free** - 5 posts/month (1/day) • 5 review requests/month (1/day)
+💼 **Pro** - 25 posts/month (2/day) • 25 review requests/month (2/day)
+🚀 **Growth** - 60 posts/month (4/day) • 60 review requests/month (4/day)
+🏢 **Agency** - 300 posts + 300 review requests/month across up to 10 traders (30 per trader, 3 posts/day per trader)
+
+Limits refresh each month. 👉 /onboarding`
+  },
+  {
+    patterns: ['analytics', 'dashboard', 'report', 'reports', 'review tracking', 'see my posts', 'view my posts', 'track my posts', 'stats'],
+    answer: `Analytics depend on your plan:
+
+• **Free / Pro** - basic analytics in your dashboard
+• **Growth** - advanced analytics + a review tracking dashboard
+• **Agency** - an agency overview dashboard showing every trader's activity in one place
+
+You can always see your generated posts and review activity from your Neerzy dashboard. 📊`
+  },
+  {
+    patterns: ['connect whatsapp', 'link whatsapp', 'add whatsapp', 'setup whatsapp', 'set up whatsapp', 'connect to whatsapp'],
+    answer: `Connecting WhatsApp is part of onboarding:
+
+1. Sign up at /onboarding and pick your plan
+2. Follow the "Connect WhatsApp" step - you'll receive a QR code / invite on your phone
+3. Accept it and you're connected: send photos + voice notes to the Neerzy number and type POST
+
+If you get stuck at any step, email support@neerzy.com and we'll walk you through it.`
+  },
+  {
+    patterns: ['no photo', 'without a photo', 'without photo', 'text only', 'just text', 'no pictures', 'can i type', 'need a photo', 'do i need', 'need photos', 'photo required', 'photos required'],
+    answer: `Yes, you can post without a photo! ✅ Just send a text or voice note describing the job and type POST.
+
+Photos help your posts stand out (posts with photos usually perform better), but a clear description is enough to generate your post.`
+  },
+  {
+    patterns: ['facebook', 'instagram', 'social media', 'social content', 'social posts', 'fb', 'ig', 'linkedin', 'twitter', 'tiktok'],
+    answer: `Social posting depends on your plan:
+
+• **Free & Pro** - Google posts + your Neerzy website updates
+• **Growth & Agency** - you also get **Facebook + Instagram** posts for the same job
+
+If you want every job shared to Facebook & Instagram automatically, Growth (or Agency) is the plan for you. 👉 /onboarding`
+  },
+  {
+    patterns: ['publish', 'auto post', 'automatically post', 'does neerzy post', 'does it post', 'who writes the post', 'post for me', 'automatic posting'],
+    answer: `Neerzy does the writing for you.
+
+You send a photo or voice note → Neerzy's AI writes the SEO-optimised post → it's published to your Google Business Profile and your auto-generated Neerzy website. On Growth/Agency it also creates your Facebook + Instagram posts from the same job.`
+  },
+
+  {
+    patterns: ['where are you based', 'where is neerzy based', 'where are you located', 'where is neerzy located', 'what country are you in', 'which country are you in', 'are you in the uk', 'uk based', 'are you a uk company'],
+    answer: `We're a real software company - **Neerzy AI Ltd** - and you can find our business address on the Contact page of our website. 🌍
+
+We build and support Neerzy for local businesses (plumbers, HVAC, electricians, roofers, dentists, and more), and the chat assistant is available right here whenever you need us. For anything else, support@neerzy.com is fastest.`
+  },
+
   // ── Greetings ──
   {
     patterns: ['hello', 'hi', 'hey', 'good morning', 'good evening', 'good afternoon', 'howdy'],
@@ -282,6 +356,54 @@ I can help you with:
 • 📱 WhatsApp posting
 
 What would you like to know?`
+  },
+
+  {
+    patterns: ['existing website', 'keep my website', 'already have a website', 'already have website', 'own website', 'old website', 'my own domain', 'already have a domain', 'own domain'],
+    answer: `You don't need to switch or remove anything you already have. ✅
+
+Neerzy builds its own auto-updated site on a custom domain (one-time $19 fee) and keeps your Google Business Profile fresh. It works alongside any website you already own - most customers use Neerzy as their main marketing engine while keeping their old site live.`
+  },
+  {
+    patterns: ['booking', 'appointment', 'schedule jobs', 'send quotes', 'send an estimate', 'estimates', 'quotes', 'invoices', 'invoice customers', 'job management', 'crm'],
+    answer: `Great question! Neerzy focuses on **marketing** - turning your finished jobs into Google posts, social posts, and website content, plus automating review requests.
+
+It doesn't schedule jobs, send quotes, or manage invoices. If you need those too, pair Neerzy with your existing scheduling / invoicing app - Neerzy handles the online presence side. 😊`
+  },
+  {
+    patterns: ['customize', 'customise', 'branding', 'my logo', 'logo', 'colors', 'edit my website', 'change the design', 'template', 'themes'],
+    answer: `Your Neerzy website is automatically generated from your business info and every post you publish - mobile-responsive and SEO-ready out of the box.
+
+For questions about customising colours, logos, or specific branding, email support@neerzy.com and the team will advise what's possible for your plan. 🎨`
+  },
+  {
+    patterns: ['legit', 'legitimate', 'trust', 'trustworthy', 'scam', 'is neerzy real', 'real company', 'safe', 'secure', 'reliable', 'genuine'],
+    answer: `Neerzy is a real SaaS company - you'll find our business details on the Contact page. 💙
+
+• Transparent pricing with no hidden fees
+• Cancel anytime - no contracts
+• 30-day free trial so you can see results before paying
+• Real support at support@neerzy.com
+
+Happy to answer any specific concern - just ask!`
+  },
+  {
+    patterns: ['what countries', 'which countries', 'outside the uk', 'another country', 'other countries', 'languages', 'another language', 'non-english', 'in french', 'in spanish'],
+    answer: `Neerzy is built for local businesses and currently serves English-language content. ✈️
+
+If you're based somewhere we don't cover yet or need content in another language, email support@neerzy.com and we'll confirm what's possible for your situation.`
+  },
+  {
+    patterns: ['get started', 'how do i sign up', 'signing up', 'start now', 'set up my account', 'what happens after signup', 'first step'],
+    answer: `Getting started takes about 2 minutes:
+
+1. 👉 Head to /onboarding
+2. Pick a plan (Free includes a 30-day trial - no credit card needed)
+3. Pay the one-time $19 domain fee to claim your custom domain
+4. Connect WhatsApp and your Google Business Profile
+5. Finish your first job → send a photo → type POST 🎉
+
+If you hit any snag, support@neerzy.com is here to help.`
   },
 
   // ── Thanks ──
@@ -324,6 +446,17 @@ const NEERZY_KEYWORDS = [
   'facebook', 'instagram', 'social media', 'social content',
   // Greetings (always allow)
   'hello', 'hi', 'hey', 'thanks', 'thank',
+  // Extended coverage phrases (Neerzy product conversations)
+  'how many posts', 'post limit', 'posts per day', 'posts per month', 'max posts',
+  'review request', 'review requests', 'star rating', 'google reviews',
+  'connect whatsapp', 'link whatsapp', 'publish', 'auto post', 'automatically post',
+  'facebook', 'instagram', 'social media', 'social content',
+  'billing', 'payment', 'invoice', 'unsubscribe', 'upgrade', 'downgrade',
+  'compare plans', 'which plan', 'best plan', 'recommend a plan', 'difference between',
+  'what plan', 'features', 'included', 'what do i get',
+  'logo', 'branding', 'customis', 'customiz', 'edit my website',
+  'legit', 'legitimate', 'trustworthy', 'scam', 'secure', 'reliable', 'real company',
+  'languages', 'another country', 'booking', 'appointment', 'send quotes', 'estimates', 'invoices',
 ];
 
 // ─────────────────────────────────────────────────────
