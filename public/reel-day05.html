@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Neerzy Day 5 Reel — One text. One review request. Done. (9:16)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #04170f; color: #fff;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif; }
+  #wrap { display: flex; flex-direction: column; align-items: center; padding: 18px 12px 30px; }
+  h1 { font-size: 16px; margin: 4px 0 2px; }
+  .sub { color: #9fc0b1; font-size: 12px; margin-bottom: 12px; text-align: center; }
+  canvas { width: min(42vw, 400px); aspect-ratio: 9 / 16; height: auto; border-radius: 18px;
+    background: #000; box-shadow: 0 18px 50px rgba(0,0,0,.55); display: block; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <h1>Neerzy — Day 5 reel · One text. One review request. Done.</h1>
+  <div class="sub">1080&times;1920 &bull; 9:16 &bull; 20.6s &mdash; rendered by reel/render-day05.mjs</div>
+  <canvas id="cv" width="1080" height="1920"></canvas>
+</div>
+<script>
+"use strict";
+/* Neerzy Day 5 reel — Feature Spotlight: automatic review request. */
+const W = 1080, H = 1920;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const C = {
+  bgTop: '#0B3D2E', bgBot: '#06251B',
+  bgScene: '#0A3426', bgDeep: '#06251B',
+  card: '#0F5132', cardLine: '#1b6a46',
+  accent: '#22C55E',
+  white: '#FFFFFF', mint: '#E6F2EA', ink: '#0A2E22',
+  sub: '#B7DEC7'
+};
+const TXT = "'Inter', 'Segoe UI', system-ui, sans-serif";
+
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function bgPaint() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, C.bgTop); g.addColorStop(1, C.bgBot);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+function bgScenePaint() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, C.bgScene); g.addColorStop(1, C.bgDeep);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+function setFont(px, weight) {
+  ctx.font = (weight || 800) + ' ' + px + 'px ' + TXT;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+}
+function fitSize(text, px, maxW, weight) {
+  let s = px;
+  while (s > 18) {
+    setFont(s, weight);
+    if (ctx.measureText(text).width <= maxW) break;
+    s -= 2;
+  }
+  return s;
+}
+function ctext(text, cy, maxW, px, weight, color) {
+  ctx.fillStyle = color;
+  const s = fitSize(text, px, maxW, weight);
+  setFont(s, weight);
+  ctx.fillText(text, W / 2, cy);
+  return s;
+}
+function alpha(tt, a0, a1, t0, t1) {
+  if (tt < t0) return 0;
+  if (tt > t1) return a1;
+  return a0 + (a1 - a0) * (tt - t0) / (t1 - t0);
+}
+function ease(t) { return t < 0 ? 0 : t > 1 ? 1 : 1 - (1 - t) * (1 - t); }
+function check(x, y, s, color) {
+  ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.moveTo(x - s * 0.5, y); ctx.lineTo(x - s * 0.12, y + s * 0.45); ctx.lineTo(x + s * 0.6, y - s * 0.5);
+  ctx.stroke();
+}
+function starAt(x, y, r, color) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const rad = i % 2 === 0 ? r : r * 0.42;
+    const a = -Math.PI / 2 + i * Math.PI / 5;
+    const px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+}
+function decorRings(dots) {
+  ctx.lineWidth = 3; ctx.strokeStyle = C.card;
+  for (const [cx, cy, r] of [[60, 260, 420], [40, 200, 300], [W - 40, H - 260, 430], [W - 90, H - 340, 290]]) {
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  }
+  if (dots) { ctx.fillStyle = C.accent; for (const [cx, cy, r] of dots) { ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); } }
+}
+/* =============================================================
+   SCENE 1 — HOOK (0.0 – 3.6s)
+   ============================================================= */
+function drawS1(t) {
+  bgPaint();
+  decorRings([[950, 330, 9], [120, 1560, 9], [935, 1740, 7]]);
+
+  const e = ease(alpha(t, 0, 1, 0.25, 0.85));
+  if (e > 0.01) {
+    ctx.globalAlpha = e;
+    ctx.letterSpacing = '7px';
+    ctx.font = '800 34px ' + TXT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const label = 'WATCH THIS';
+    const tw = ctx.measureText(label).width;
+    const py = 420, ph = 76;
+    rr(W / 2 - (tw + 96) / 2, py, tw + 96, ph, 40);
+    ctx.strokeStyle = C.accent; ctx.lineWidth = 4; ctx.stroke();
+    ctx.fillStyle = C.accent; ctx.fillText(label, W / 2, py + ph / 2 + 2);
+    ctx.letterSpacing = '0px';
+    ctx.globalAlpha = 1;
+  }
+
+  const a1 = ease(alpha(t, 0, 1, 0.9, 1.65));
+  if (a1 > 0.01) {
+    ctx.globalAlpha = a1;
+    const y = 760 + (1 - ease(Math.min(1, (t - 0.9) / 0.5))) * 40;
+    ctext('One text.', y, 880, 118, 900, C.white);
+  }
+  const a2 = ease(alpha(t, 0, 1, 1.7, 2.4));
+  if (a2 > 0.01) {
+    ctx.globalAlpha = a2;
+    const y = 930 + (1 - ease(Math.min(1, (t - 1.7) / 0.5))) * 40;
+    ctext('One review request.', y, 900, 118, 900, C.accent);
+  }
+  // Done + star pop
+  const a3 = ease(alpha(t, 0, 1, 2.55, 3.3));
+  if (a3 > 0.01) {
+    const s = ease(Math.min(1, (t - 2.55) / 0.6));
+    ctx.save();
+    ctx.translate(W / 2, 1140);
+    ctx.scale(0.7 + 0.3 * s, 0.7 + 0.3 * s);
+    ctx.globalAlpha = a3;
+    starAt(-16, 0, 60, C.accent);
+    setFont(118, 900);
+    ctx.fillStyle = C.white;
+    ctx.fillText('Done.', 150, 40);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  const a4 = ease(alpha(t, 0, 1, 3.05, 3.5));
+  if (a4 > 0.01) {
+    ctx.globalAlpha = a4;
+    ctext('Sent the second you finish.', 1360, 860, 42, 600, C.sub);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* =============================================================
+   SCENE 2 — WHATSAPP SCREEN RECORDING (3.6 – 14.6s)
+   ============================================================= */
+const CHAT = {
+  headerH: 190, inputY: 1720, chatTop: 190, chatLeft: 60, right: 1020
+};
+function bubble(x, y, maxW, lines, opts) {
+  const s = opts.size || 38;
+  ctx.font = (opts.weight || 600) + ' ' + s + 'px ' + TXT;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const pad = opts.pad || 28;
+  const lh = Math.round(s * 1.4);
+  const lns = Array.isArray(lines) ? lines : [lines];
+  let tw = 0;
+  lns.forEach(l => { tw = Math.max(tw, ctx.measureText(l).width); });
+  const bw = Math.min(maxW, tw + pad * 2);
+  const bh = lns.length * lh + pad * 2;
+  const x0 = opts.right ? x + maxW - bw : x;
+  rr(x0, y, bw, bh, 26);
+  ctx.fillStyle = opts.bg || C.white; ctx.fill();
+  ctx.fillStyle = opts.color || C.ink;
+  lns.forEach((l, i) => ctx.fillText(l, x0 + pad, y + pad + lh * (i + 1) - 8));
+  ctx.textAlign = 'center';
+  return { bh, x0, bw };
+}
+function recPill(t) {
+  const a = ease(alpha(t, 0, 1, 3.85, 4.15));
+  if (a <= 0.01) return;
+  ctx.globalAlpha = a;
+  rr(W / 2 - 170, 44, 340, 62, 31);
+  ctx.fillStyle = '#FFFFFF'; ctx.fill();
+  ctx.beginPath(); ctx.arc(W / 2 - 118, 75, 9, 0, Math.PI * 2); ctx.fillStyle = C.accent; ctx.fill();
+  setFont(30, 800);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = C.ink;
+  ctx.fillText('REC · 6:58 PM', W / 2 + 8, 75);
+  ctx.globalAlpha = 1;
+}
+function drawScreenBase(t) {
+  // full-canvas WhatsApp screen (chat background + header + input strip)
+  ctx.fillStyle = '#DCEFDF';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  for (let i = 0; i < 12; i++) {
+    ctx.beginPath(); ctx.arc(120 + i * 95, 620 + ((i * 97) % 700), 26, 0, Math.PI * 2); ctx.fill();
+  }
+  // header
+  const hh = CHAT.headerH;
+  ctx.fillStyle = C.card; ctx.fillRect(0, 0, W, hh);
+  ctx.strokeStyle = C.accent; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(92, 118, 42, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(92, 118, 24, 0, Math.PI * 2); ctx.fillStyle = C.accent; ctx.fill();
+  setFont(46, 900);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = C.white;
+  ctx.fillText('Neerzy', 165, 112);
+  setFont(28, 500);
+  ctx.fillStyle = C.sub;
+  ctx.fillText('automated review request', 165, 160);
+  ctx.strokeStyle = C.sub; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(958, 108, 16, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(996, 108, 16, 0, Math.PI * 2); ctx.stroke();
+  ctx.textAlign = 'center';
+  // input strip
+  ctx.fillStyle = '#FFFFFF';
+  rr(70, CHAT.inputY, W - 140, 110, 55);
+  ctx.fill();
+  setFont(33, 500);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#8AA397';
+  ctx.fillText('Message Neerzy…', 120, CHAT.inputY + 57);
+  ctx.beginPath(); ctx.arc(965, CHAT.inputY + 55, 44, 0, Math.PI * 2);
+  ctx.fillStyle = C.accent; ctx.fill();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(950, CHAT.inputY + 55); ctx.lineTo(976, CHAT.inputY + 34); ctx.lineTo(986, CHAT.inputY + 55); ctx.lineTo(976, CHAT.inputY + 76); ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(950, CHAT.inputY + 55); ctx.lineTo(982, CHAT.inputY + 55); ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  recPill(t);
+}
+function photoTile(x, y, w, h, pop) {
+  if (pop <= 0.01) return;
+  ctx.globalAlpha = Math.min(1, pop);
+  ctx.fillStyle = C.accent;
+  rr(x, y, w, h, 24);
+  ctx.fill();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(x + w / 2 - 26, y + h / 2 - 10, 40, -2.4, 0.2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x + w / 2 + 34, y + h / 2 + 22, 40, 1.6, 2.9); ctx.stroke();
+  ctx.fillStyle = C.ink;
+  ctx.font = '800 34px ' + TXT;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText('Finished ✓', x + w / 2, y + h - 46);
+  ctx.globalAlpha = 1;
+}
+function drawS2(t) {
+  drawScreenBase(t);
+  const maxBub = CHAT.right - CHAT.chatLeft;
+  const cx = (CHAT.chatLeft + CHAT.right) / 2;
+
+  const dc = ease(alpha(t, 0, 1, 3.95, 4.2));
+  if (dc > 0.01) {
+    ctx.globalAlpha = dc;
+    setFont(27, 700);
+    ctx.fillStyle = C.card;
+    ctx.fillText('TODAY · AFTER THE LAST JOB', cx, CHAT.chatTop + 78);
+    ctx.globalAlpha = 1;
+  }
+
+  let yCursor = CHAT.chatTop + 140;
+
+  const b0 = ease(alpha(t, 0, 1, 4.6, 5.05));
+  if (b0 > 0.01) {
+    ctx.globalAlpha = b0;
+    const r = bubble(CHAT.chatLeft, yCursor, maxBub, ['All done — job finished.', 'Thanks for today!'], { size: 38, weight: 600, right: true, bg: C.accent, color: C.ink });
+    yCursor += r.bh + 40;
+    if (t > 5.05) {
+      ctx.globalAlpha = b0;
+      // single tick then double tick (delivered) — palette-safe, no blue
+      const dt = ease(alpha(t, 0, 1, 5.1, 5.4));
+      if (dt > 0.01) {
+        ctx.globalAlpha = b0 * dt;
+        ctx.strokeStyle = C.accent; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(r.x0 + r.bw - 58, yCursor - 30); ctx.lineTo(r.x0 + r.bw - 46, yCursor - 20); ctx.lineTo(r.x0 + r.bw - 32, yCursor - 36); ctx.stroke();
+        ctx.strokeStyle = C.sub;
+        ctx.beginPath(); ctx.moveTo(r.x0 + r.bw - 84, yCursor - 30); ctx.lineTo(r.x0 + r.bw - 72, yCursor - 20); ctx.lineTo(r.x0 + r.bw - 58, yCursor - 36); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+  const ph = ease(alpha(t, 0, 1, 5.7, 6.2));
+  if (ph > 0.01) {
+    photoTile(CHAT.right - 360, yCursor, 360, 330, ph);
+    yCursor += 330 + 40;
+  }
+  const b1 = ease(alpha(t, 0, 1, 6.8, 7.25));
+  if (b1 > 0.01) {
+    ctx.globalAlpha = b1;
+    const r = bubble(CHAT.chatLeft, yCursor, maxBub, ['Nice! On it —', 'your review request is next.'], { size: 36, weight: 600, bg: C.white, color: C.ink });
+    yCursor += r.bh + 40;
+  }
+  const ty = ease(alpha(t, 0, 1, 7.9, 8.2));
+  if (ty > 0.01 && t < 9.4) {
+    ctx.globalAlpha = ty;
+    rr(CHAT.chatLeft, yCursor, 132, 76, 38);
+    ctx.fillStyle = C.white; ctx.fill();
+    for (let i = 0; i < 3; i++) {
+      ctx.globalAlpha = ty * (0.5 + 0.5 * Math.sin(t * 9 - i * 0.9));
+      ctx.beginPath(); ctx.arc(CHAT.chatLeft + 35 + i * 30, yCursor + 38, 9, 0, Math.PI * 2);
+      ctx.fillStyle = C.card; ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  const b2t = ease(alpha(t, 0, 1, 9.4, 10.0));
+  if (b2t > 0.01) {
+    const sc = 0.9 + 0.1 * ease(Math.min(1, (t - 9.4) / 0.5));
+    ctx.save();
+    ctx.translate(CHAT.chatLeft, yCursor);
+    ctx.scale(sc, sc);
+    ctx.globalAlpha = b2t;
+    const lines = ['Review request sent to your customer ✓', '“Thanks for choosing us! Would you mind', 'leaving a quick Google review?”'];
+    const s = 36;
+    ctx.font = '600 ' + s + 'px ' + TXT;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    let tw = 0;
+    lines.forEach(l => { tw = Math.max(tw, ctx.measureText(l).width); });
+    const pad = 30, lh = Math.round(s * 1.4);
+    const bw = Math.min(maxBub, tw + pad * 2);
+    const bh = lines.length * lh + pad * 2;
+    rr(0, 0, bw, bh, 26);
+    ctx.fillStyle = C.white; ctx.fill();
+    ctx.fillStyle = C.ink;
+    ctx.font = '800 ' + s + 'px ' + TXT;
+    ctx.fillText(lines[0], pad, pad + lh - 10);
+    ctx.font = '600 ' + s + 'px ' + TXT;
+    ctx.fillStyle = C.card;
+    ctx.fillText(lines[1], pad, pad + lh * 2 - 10);
+    ctx.fillText(lines[2], pad, pad + lh * 3 - 10);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    const st = ease(alpha(t, 0, 1, 10.2, 10.7));
+    if (st > 0.01) {
+      ctx.save();
+      ctx.translate(CHAT.right - 64, yCursor + 96);
+      ctx.scale(st, st);
+      ctx.globalAlpha = st;
+      starAt(0, 0, 52, C.accent);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+    yCursor += bh + 20;
+  }
+  const tt = ease(alpha(t, 0, 1, 11.2, 11.7));
+  if (tt > 0.01) {
+    ctx.globalAlpha = tt;
+    setFont(34, 900);
+    ctx.letterSpacing = '3px';
+    const label = 'AUTOMATIC · SENT AT 6:58 PM';
+    const tw = ctx.measureText(label).width;
+    ctx.letterSpacing = '0px';
+    rr(cx - (tw + 150) / 2, CHAT.inputY - 156, tw + 150, 96, 48);
+    ctx.fillStyle = C.accent; ctx.fill();
+    ctx.fillStyle = C.ink;
+    ctx.font = '900 34px ' + TXT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, cx, CHAT.inputY - 108);
+    ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalAlpha = 1;
+}
+/* =============================================================
+   SCENE 3 — NO MORE PAPERWORK (14.6 – 18.2s)
+   ============================================================= */
+function strikeLine(x0, x1, y, a) {
+  if (a <= 0.01) return;
+  ctx.globalAlpha = a;
+  ctx.strokeStyle = C.sub;
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + (x1 - x0) * a, y); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+function drawS3(t) {
+  bgScenePaint();
+  decorRings([[950, 330, 9], [120, 1560, 9]]);
+
+  const rows = [
+    ['No spreadsheets.', 700, 14.8, 15.4, 15.55, 16.05],
+    ['No sticky notes.', 880, 15.7, 16.25, 16.3, 16.8],
+    ['No remembering.', 1060, 16.5, 17.0, 17.05, 17.55]
+  ];
+  for (const [text, y, t0, t1, s0, s1] of rows) {
+    const a = ease(alpha(t, 0, 1, t0, t1));
+    if (a > 0.01) {
+      ctx.globalAlpha = a;
+      const yUp = y + (1 - ease(Math.min(1, (t - t0) / 0.4))) * 24;
+      const s = ctext(text, yUp, 920, 84, 800, C.white);
+      ctx.globalAlpha = 1;
+      const st = ease(alpha(t, 0, 1, s0, s1));
+      if (st > 0.01) {
+        setFont(s, 800);
+        const tw = ctx.measureText(text).width;
+        strikeLine(W / 2 - tw / 2 - 20, W / 2 + tw / 2 + 20, yUp - 18, st);
+      }
+    }
+  }
+  const fin = ease(alpha(t, 0, 1, 17.6, 18.1));
+  if (fin > 0.01) {
+    ctx.globalAlpha = fin;
+    const y = 1270 + (1 - ease(Math.min(1, (t - 17.6) / 0.4))) * 30;
+    ctext('Neerzy remembers for you.', y, 900, 66, 900, C.accent);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* =============================================================
+   SCENE 4 — OUTRO CTA (18.2 – 21.4s)
+   ============================================================= */
+function drawNeerzyWord(x, y, scale) {
+  ctx.strokeStyle = C.accent;
+  ctx.globalAlpha = 0.35;
+  ctx.lineWidth = 4 * scale;
+  ctx.beginPath(); ctx.arc(x, y, 72 * scale, 0, Math.PI * 2); ctx.stroke();
+  ctx.globalAlpha = 0.9;
+  ctx.beginPath(); ctx.arc(x, y, 48 * scale, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = C.accent;
+  ctx.beginPath(); ctx.arc(x, y, 26 * scale, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = C.white;
+  ctx.beginPath(); ctx.arc(x, y, 10 * scale, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.letterSpacing = '10px';
+  setFont(76 * scale, 900);
+  ctx.fillStyle = C.white;
+  ctx.fillText('NEERZY', x, y + 190 * scale);
+  ctx.letterSpacing = '0px';
+}
+function drawS4(t) {
+  bgPaint();
+  decorRings([[950, 330, 8], [110, 1560, 8]]);
+
+  const a0 = ease(alpha(t, 0, 1, 18.3, 18.9));
+  if (a0 > 0.01) {
+    ctx.globalAlpha = a0;
+    drawNeerzyWord(W / 2, 400, 1);
+  }
+  const a1 = ease(alpha(t, 0, 1, 18.6, 19.2));
+  if (a1 > 0.01) {
+    ctx.globalAlpha = a1;
+    ctext('One WhatsApp message → more reviews.', 780, 900, 48, 600, C.sub);
+  }
+  const a2 = ease(alpha(t, 0, 1, 19.0, 19.7));
+  if (a2 > 0.01) {
+    const scale = 0.88 + 0.12 * ease(Math.min(1, (t - 19.0) / 0.6));
+    ctx.save();
+    ctx.translate(W / 2, 1030);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = a2;
+    setFont(58, 900);
+    const label = 'Get Your First 5 Posts Free';
+    let tw = ctx.measureText(label).width;
+    while (tw > 820) { setFont(ctx.font.split(' ')[1] * 0.94 | 0, 900); tw = ctx.measureText(label).width; }
+    rr(-(tw + 170) / 2, -80, tw + 170, 160, 80);
+    ctx.fillStyle = C.accent; ctx.fill();
+    ctx.fillStyle = C.ink;
+    ctx.fillText(label, 0, 8);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  const a3 = ease(alpha(t, 0, 1, 20.1, 20.7));
+  if (a3 > 0.01) {
+    ctx.globalAlpha = a3;
+    ctx.font = '600 37px ' + TXT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = C.mint;
+    ctx.fillText('No card needed · neerzy.com — link in bio', W / 2, 1330);
+  }
+  ctx.globalAlpha = 1;
+}
+/* =============================================================
+   DISPATCH + transitions + public API
+   ============================================================= */
+const REEL = { DURATION: 21.4 };
+const BOUNDS = [3.6, 14.6, 18.2];
+
+function draw(t) {
+  ctx.clearRect(0, 0, W, H);
+  if (t < 3.6) drawS1(t);
+  else if (t < 14.6) drawS2(t);
+  else if (t < 18.2) drawS3(t);
+  else drawS4(t);
+  for (const b of BOUNDS) {
+    const d = Math.abs(t - b);
+    if (d < 0.38) {
+      ctx.globalAlpha = (1 - d / 0.38) * 0.97;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+let paused = false;
+function frameAt(t) {
+  paused = true;
+  draw(Math.max(0, Math.min(REEL.DURATION - 0.04, t)));
+}
+window.__reel = REEL;
+window.__frameAt = frameAt;
+window.__pausePreview = () => { paused = true; };
+window.__playPreview = () => { paused = false; };
+
+let t0 = null;
+function raf(now) {
+  if (!paused) {
+    if (t0 === null) t0 = now;
+    const t = ((now - t0) / 1000) % REEL.DURATION;
+    draw(t);
+  }
+  requestAnimationFrame(raf);
+}
+requestAnimationFrame(raf);
+
+document.fonts.ready.then(() => { window.__reelReady = true; });
+</script>
+</body>
+</html>
+
+
+
+
+
+</script>

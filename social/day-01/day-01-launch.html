@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Neerzy Day 1 — Launch (FB &amp; IG Feed 4:5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* Locked Neerzy palette — design.md. No off-palette hex, no gradients. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #0B3D2E; }
+  body {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #FFFFFF;
+    -webkit-font-smoothing: antialiased;
+  }
+  .post {
+    position: relative;
+    width: 1080px;
+    height: 1350px;
+    background: #0B3D2E;          /* --color-primary-dark */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 62px 72px 58px;
+  }
+  /* subtle geometry in allowed palette only (dark green panels + accent ring) */
+  .ring {
+    position: absolute;
+    border: 3px solid #0F5132;     /* --color-primary */
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .ring-tl { width: 560px; height: 560px; top: -300px; left: -190px; }
+  .ring-tl2 { width: 420px; height: 420px; top: -230px; left: -120px; }
+  .ring-br { width: 700px; height: 700px; bottom: -390px; right: -240px; }
+  .ring-br2 { width: 480px; height: 480px; bottom: -260px; right: -130px; }
+  .dot { position: absolute; background: #22C55E; border-radius: 50%; pointer-events: none; }
+  .dot1 { width: 16px; height: 16px; top: 190px; right: 120px; }
+  .dot2 { width: 10px; height: 10px; top: 150px; right: 205px; }
+  .dot3 { width: 12px; height: 12px; bottom: 470px; left: 96px; }
+
+  .inner { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+  /* Logo */
+  .logo { width: 340px; margin-bottom: 42px; }
+
+  /* "WE'RE LIVE!" badge */
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    background: #22C55E;           /* --color-accent */
+    color: #0A2E22;                /* --color-text-primary */
+    font-weight: 900;
+    font-size: 34px;
+    letter-spacing: 1.5px;
+    padding: 16px 46px;
+    border-radius: 999px;
+    text-transform: uppercase;
+  }
+
+  /* Hook headline */
+  h1 {
+    margin-top: 46px;
+    font-size: 54px;
+    font-weight: 900;
+    line-height: 1.14;
+    letter-spacing: -0.5px;
+    color: #FFFFFF;
+    max-width: 936px;
+  }
+  h1 .accent { color: #22C55E; }
+
+  /* Tagline */
+  .tagline {
+    margin-top: 28px;
+    font-size: 27px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: #E6F2EA;                /* --color-bg-soft mint */
+    max-width: 860px;
+  }
+  .tagline b { color: #FFFFFF; }
+
+  /* Feature cards */
+  .steps { margin-top: 46px; display: flex; flex-direction: column; gap: 24px; width: 100%; max-width: 936px; }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    background: #0F5132;           /* --color-primary card */
+    border: 2px solid #1b6a46;
+    border-radius: 28px;
+    padding: 24px 32px;
+    text-align: left;
+  }
+  .step .icon {
+    flex: 0 0 auto;
+    width: 80px;
+    height: 80px;
+    border-radius: 22px;
+    background: #22C55E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step .txt { font-size: 32px; font-weight: 800; line-height: 1.22; color: #FFFFFF; }
+  .step .txt .sub { display: block; font-size: 23px; font-weight: 500; color: #B7DEC7; margin-top: 3px; }
+
+  /* CTA */
+  .cta-pill {
+    margin-top: 48px;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: #22C55E;
+    color: #0A2E22;
+    font-weight: 900;
+    font-size: 40px;
+    letter-spacing: 0.2px;
+    padding: 22px 54px;
+    border-radius: 999px;
+    text-decoration: none;
+  }
+  .cta-note { margin-top: 26px; font-size: 24px; font-weight: 600; color: #E6F2EA; line-height: 1.5; }
+  .cta-note b { color: #22C55E; }
+</style>
+</head>
+<body>
+<div class="post" id="post">
+  <div class="ring ring-tl"></div><div class="ring ring-tl2"></div>
+  <div class="ring ring-br"></div><div class="ring ring-br2"></div>
+  <div class="dot dot1"></div><div class="dot dot2"></div><div class="dot dot3"></div>
+
+  <div class="inner">
+    <img class="logo" src="file:///C:/Neerzy/public/images/logo-white.svg" alt="Neerzy" />
+
+    <div class="live-badge">We're Live!</div>
+
+    <h1>We just launched something<br/>for <span class="accent">hardworking traders</span> 👷</h1>
+
+    <p class="tagline">Finish a job. Send <b style="color:#FFFFFF">one WhatsApp message</b>. That's it — Neerzy handles the rest.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="icon">
+          <svg viewBox="0 0 48 48" width="44" height="44" fill="none" stroke="#0A2E22" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M40 12 20 34l-12-12"/></svg>
+        </div>
+        <div class="txt">Your Google page gets updated
+          <span class="sub">Fresh posts, automatically, after every job</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="icon">
+          <svg viewBox="0 0 48 48" width="44" height="44" fill="#0A2E22"><path d="M24 4l6.2 12.6 13.8 2-10 9.8 2.4 13.8L24 35.6 11.6 42.2 14 28.4 4 18.6l13.8-2z"/></svg>
+        </div>
+        <div class="txt">We ask your customer for a review
+          <span class="sub">Friendly request sent the moment you finish</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="icon">
+          <svg viewBox="0 0 48 48" width="44" height="44" fill="none" stroke="#0A2E22" stroke-width="3.5" stroke-linecap="round"><circle cx="24" cy="24" r="18"/><ellipse cx="24" cy="24" rx="8.5" ry="18"/><path d="M6 24h36"/></svg>
+        </div>
+        <div class="txt">Your website gets refreshed
+          <span class="sub">New work shown — no new apps, no dashboards</span>
+        </div>
+      </div>
+    </div>
+
+    <a class="cta-pill" href="https://www.neerzy.com/pricing" style="text-decoration:none">Start Free Today →</a>
+    <p class="cta-note">No new app · No hard software · Just WhatsApp<br/>neerzy.com — <b>tap the link in bio</b></p>
+  </div>
+</div>
+</body>
+</html>
