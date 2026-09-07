@@ -434,7 +434,7 @@ export default function Dashboard() {
                 ? `✅ *Review request delivered to ${customerName}!*\n\n📱 WhatsApp confirmed delivery.\n🔗 ${r.review_link}`
                 : r.status === 'failed'
                   ? r.review_link
-                    ? `⚠️ *Review request NOT delivered to ${customerName}.*${r.last_error ? `\n\n_Reason: ${r.last_error}_` : ''}\n\nThey may not be on WhatsApp.\n\n📋 *Copy this message and send it to ${customerName} via SMS from your phone:*\n\nHi ${customerName}, thanks for choosing ${bizNameForCopy || 'us'} today! Could you take 30 seconds to leave us a Google review? ${r.review_link}`
+                    ? `⚠️ *Review request NOT delivered to ${customerName}.*${r.last_error ? `\n\n_Reason: ${r.last_error}_` : ''}\n\nThey may not be on WhatsApp.\n\n📋 *Copy this message and send it to ${customerName} via SMS from your phone:*\n\nHi ${customerName}, thanks for choosing ${bizNameForCopy || 'us'} today! Could you take 30 seconds to leave us a Google review? ${r.review_link}\n\n📱 One-tap send: ${process.env.NEXT_PUBLIC_APP_URL}/sms/${r.id}`
                     : `⚠️ *Review request NOT delivered to ${customerName}.*${r.last_error ? `\n\n_Reason: ${r.last_error}_` : ''}\n\n_WhatsApp reported the message could not be delivered._`
                   : `✅ *Review request sent to ${customerName}!* ⭐\n\n📱 Sent to: ${customerPhone}\n🔗 ${r.review_link}\n\n_You'll get a delivery confirmation once WhatsApp confirms delivery._`,
           sender: 'bot' as const,

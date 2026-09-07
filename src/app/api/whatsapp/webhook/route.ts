@@ -1854,7 +1854,10 @@ async function handleMetaDeliveryStatus(status: any, requestId: string) {
       .eq('id', row.id);
     if (updErr) console.error(`❌ [${requestId}] Failed to mark review request ${row.id} manual_fallback:`, updErr.message);
     else console.log(`❌ [${requestId}] Review request ${row.id} marked MANUAL FALLBACK (${errDetail})`);
-    await notifyTraderOfDelivery(row, 'failed', wamid, fullDetail);
+    // Meta can re-send the same failed-status webhook — only notify the trader once.
+    if (row.status !== 'manual_fallback') {
+      await notifyTraderOfDelivery(row, 'failed', wamid, fullDetail);
+    }
   }
 }
 
@@ -1920,7 +1923,7 @@ async function notifyTraderOfDelivery(row: any, outcome: 'delivered' | 'failed',
           await sendMetaInteractiveUrlButton({
             to: traderPhone,
             bodyText: 'Tap below to copy the SMS message, or open your SMS app with everything pre-filled.',
-            displayText: '📲 Copy & Send via SMS',
+            displayText: '📲 Send via SMS',
             url: `${appBaseUrl}/sms/${row.id}`,
           });
         } catch (ctaErr: any) {
