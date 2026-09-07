@@ -11,6 +11,9 @@
  *   node scripts/validate-cta-label.mjs --to 1XXXXXXXXXX --old    # ALSO proves old label is rejected
  *   node scripts/validate-cta-label.mjs --to 1XXXXXXXXXX --dry-run # print payload without sending
  *   node scripts/validate-cta-label.mjs --last-trader             # auto-target most recent manual_fallback trader
+ *   node scripts/validate-cta-label.mjs --to 1XXXXXXXXXX --id <uuid> # button URL → a specific review request
+ *   (The button URL always uses the real review request id when known, so clicking it
+ *    opens a working /sms/[id] page instead of "Could not load this request".)
  *
  * Reads META_WHATSAPP_ACCESS_TOKEN + META_WHATSAPP_PHONE_NUMBER_ID from .env.local.
  * Never logs the token or the full recipient number beyond the last 4 digits.
@@ -53,6 +56,7 @@ const getArg = (name) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : null;
 };
 const to = getArg('--to') || getArg('--self');
+const idArg = getArg('--id');
 const testOld = args.includes('--old');
 const dryRun = args.includes('--dry-run');
 const lastTrader = args.includes('--last-trader');
@@ -69,8 +73,9 @@ if (!TOKEN || !PHONE_NUMBER_ID) {
 }
 console.log(`🔌 Using phone number ID: ${PHONE_NUMBER_ID} (token present: ${TOKEN ? 'yes' : 'no'})`);
 
-// ── resolve recipient ───────────────────────────────────────────────────────
+// ── resolve recipient + review request ──────────────────────────────────────
 let recipient = to;
+let reviewId = idArg || null;
 if (!recipient && lastTrader) {
   // PostgREST: latest manual_fallback review request + trader phone from profiles/users
   const SUPABASE_URL = env.NEXT_PUBLIC_SUPABASE_URL;
@@ -90,6 +95,7 @@ if (!recipient && lastTrader) {
     console.error('❌ No manual_fallback review request found to target.');
     process.exit(1);
   }
+  reviewId = row.id; // real UUID → button URL opens a working page
   for (const table of ['profiles', 'users']) {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/${table}?select=phone,id&id=eq.${row.user_id}&limit=1`,
@@ -115,6 +121,7 @@ if (!recipient) {
 }
 const clean = recipient.replace(/[^\d+]/g, '');
 console.log(`📲 Sending to: ${clean.slice(0, -4)}${'*'.repeat(4)}`);
+console.log(`🔗 Button URL: https://neerzy.com/sms/${reviewId || 'NO_ID'}`);
 
 // ── payload builder (mirrors sendMetaInteractiveUrlButton in src/lib/whatsapp.ts) ──
 function buildBody(displayText) {
@@ -128,7 +135,7 @@ function buildBody(displayText) {
       body: { text: 'Tap below to copy the SMS message, or open your SMS app with everything pre-filled.' },
       action: {
         name: 'cta_url',
-        parameters: { display_text: displayText, url: 'https://neerzy.com/sms/validate-fix' },
+        parameters: { display_text: displayText, url: `https://neerzy.com/sms/${reviewId || 'validate-fix'}` },
       },
     },
   };

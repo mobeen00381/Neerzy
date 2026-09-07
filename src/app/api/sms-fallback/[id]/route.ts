@@ -16,6 +16,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params;
     console.log(`[SMS fallback] Looking up review request: ${id}`);
 
+    // Guard against non-UUID ids (e.g. a stale/placeholder button link or probe):
+    // comparing a uuid column to a plain string makes Postgres throw and would
+    // surface as a noisy 500 + Vercel function error, so short-circuit to 404.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      console.warn(`[SMS fallback] Invalid (non-UUID) id rejected: ${id}`);
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     const { data: row, error } = await supabase
       .from('review_requests')
       .select('id, user_id, customer_name, customer_phone, review_link')
@@ -23,6 +31,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       .maybeSingle();
 
     if (error) {
+      // Defensive: treat type-mismatch errors as "no such row" (404) too.
+      if (/invalid input syntax for type uuid/i.test(error.message)) {
+        console.warn(`[SMS fallback] UUID type error treated as not-found for id: ${id}`);
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
       console.error('[SMS fallback] DB error:', error.message);
       return NextResponse.json({ error: 'Database error' }, { status: 500 });
     }
