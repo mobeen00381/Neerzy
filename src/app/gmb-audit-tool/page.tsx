@@ -86,67 +86,58 @@ export default function GBMAuditTool() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Schema.org structured data
-  const structuredData = {
+  // Schema.org structured data - SoftwareApplication (the tool itself)
+  const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "Free Google Business Profile Audit Tool",
-    "applicationCategory": "BusinessApplication",
+    "name": "Neerzy GMB Audit Tool",
+    "applicationCategory": "SEO",
     "operatingSystem": "Web",
-    "description": "Free GBP audit tool to check your Google Business Profile SEO. Get instant analysis of your GMB listing with actionable recommendations to improve local search rankings.",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "ratingCount": "127"
-    }
+    "url": "https://www.neerzy.com/gmb-audit-tool",
+    "description": "Free GMB audit tool to check your Google Business Profile SEO. Run an instant local SEO audit of your GBP listing with actionable recommendations to improve local search rankings.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" }
   };
 
-  const faqData = {
+  // Schema.org structured data - BreadcrumbList: Home > GMB Checker
+  const breadcrumbSchema = {
     "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What is a Google Business Profile audit?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "A Google Business Profile (GBP) audit analyzes your GMB listing to identify optimization opportunities. It checks completeness, photos, reviews, SEO factors, and engagement to help you rank higher in local search results."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How much does a GBP audit cost?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Our Google Business Profile audit tool is 100% free. You can audit unlimited businesses at no cost. We also offer paid plans starting at $39/month if you want us to automatically fix the issues we find."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "How long does a GBP audit take?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "The audit takes less than 30 seconds. Simply search for your business, select it from the results, and click 'Run Audit' to get your instant score and recommendations."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What does the audit check?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Our audit evaluates 5 key areas: Profile Completeness (25%), Visual Content & Photos (20%), Reviews & Reputation (25%), Engagement & Activity (15%), and SEO Optimization (15%). You'll get a score out of 100 plus specific action items."
-        }
-      }
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.neerzy.com/" },
+      { "@type": "ListItem", "position": 2, "name": "GMB Checker", "item": "https://www.neerzy.com/gmb-audit-tool" }
     ]
   };
 
+  // FAQ content - single source of truth for the visible FAQ accordion and
+  // the FAQPage JSON-LD schema (Google requires the two to match exactly).
+  const faqs = [
+    { question: "What is a Google Business Profile audit?", answer: "A GMB audit (Google Business Profile audit) is a comprehensive analysis of your listing that identifies optimization opportunities and issues. It checks your profile completeness, photos, reviews, engagement, and SEO factors to help you rank higher in Google Maps and local search results. Our free audit tool evaluates 5 key areas and provides actionable recommendations." },
+    { question: "How much does a GBP audit cost?", answer: "Our GMB audit tool is free forever. You can audit unlimited businesses at no cost and receive detailed reports with scores and recommendations. We also offer paid plans starting at $39/month if you want Neerzy to automatically fix the issues we find through WhatsApp-based management." },
+    { question: "How long does a Google Business Profile audit take?", answer: "The audit takes less than 30 seconds from start to finish. Simply search for your business name, select it from the dropdown results, and click 'Run Free Audit Now.' You'll instantly receive your overall score out of 100 plus detailed breakdowns for each category." },
+    { question: "What does the audit check exactly?", answer: "Our audit evaluates 5 critical areas: Profile Completeness (25% weight) checks if all your business information is filled out; Visual Content (20%) analyzes your photo count and quality; Reviews & Reputation (25%) examines your rating and review count; Engagement (15%) looks at Google Posts and Q&A activity; and SEO Optimization (15%) checks keyword usage and local SEO factors. Think of it as a focused local SEO audit of your Google Business Profile, scored out of 100 with specific action items." },
+    { question: "Can I audit my competitor's Google Business Profile?", // TODO(seo): add contextual link to future competitor-comparison piece here
+      answer: "Yes! You can audit any business's Google Business Profile using our free tool. This is great for competitive analysis — see what your competitors are doing well and where they're weak. Use these insights to improve your own GBP and outrank them in local search results." },
+    { question: "How often should I audit my Google Business Profile?", answer: "We recommend auditing your GBP at least once per month to track improvements and catch new issues. If you're actively optimizing your profile, audit weekly to measure progress. After making major changes (new photos, posts, or business info), run an audit to see the impact on your score." },
+    { question: "Is this a free Google My Business audit tool?", answer: "Yes. Neerzy is a completely free google my business audit tool — no signup, no credit card, and no limit on how many profiles you can scan. Search for your business above, run the audit, and get your score and recommendations in under 30 seconds." }
+  ];
+
+  // Schema.org structured data - FAQPage (built from the same array rendered
+  // in the FAQ accordion below, so the markup always matches the page)
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map((faq) => ({ "@type": "Question", "name": faq.question, "acceptedAnswer": { "@type": "Answer", "text": faq.answer } }))
+  };
+
+
   return (
     <>
+      {/* SEO: JSON-LD structured data (SoftwareApplication, FAQPage, BreadcrumbList) */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+
       <div className="min-h-screen" style={{ background: 'var(--color-bg-soft)', padding: 'var(--space-7) var(--space-4)', fontFamily: 'var(--font-family)' }}>
         <div className="container" style={{ maxWidth: '800px', margin: '0 auto' }}>
           
@@ -157,10 +148,10 @@ export default function GBMAuditTool() {
               <span>Free Local SEO Optimizer</span>
             </div>
             <h1 style={{ fontSize: 'var(--text-hero-size)', lineHeight: 'var(--text-hero-line)', fontWeight: 'var(--text-hero-weight)', color: 'var(--color-primary)', marginBottom: 'var(--space-3)', letterSpacing: '-0.02em' }}>
-              Free Google Business Profile Audit Tool
+              Free Google Business Profile (GMB) Audit Tool
             </h1>
             <p style={{ fontSize: 'var(--text-h3-size)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-2)' }}>
-              Check Your GBP/GMB Listing SEO Score in 30 Seconds
+              Run a Free GBP Audit — Check Your GBP/GMB Listing SEO Score in 30 Seconds
             </p>
             <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
               Get a comprehensive analysis of your Google Business Profile with actionable recommendations to improve local search rankings — 100% free, no signup required.
@@ -263,6 +254,10 @@ export default function GBMAuditTool() {
             )}
           </div>
 
+          <p style={{ textAlign: 'center', marginTop: 'var(--space-2)', fontSize: 'var(--text-small-size)', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
+            Free GMB audit — no signup required
+          </p>
+
           {/* 🏆 Selected Business Card & Audit Trigger */}
           {selectedBusiness && (
             <div style={{ marginTop: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -325,7 +320,7 @@ export default function GBMAuditTool() {
           {/* ⚡ Features Grid */}
           <div style={{ marginTop: 'var(--space-8)' }}>
             <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', textAlign: 'center', marginBottom: 'var(--space-7)', letterSpacing: '-0.02em' }}>
-              Why Use Our Free Google Business Profile Audit Tool?
+              Why Use Our GMB Audit Tool
             </h2>
             <div className="card-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <FeatureCard 
@@ -454,36 +449,34 @@ export default function GBMAuditTool() {
             </div>
           </div>
 
+          {/* GMB Audit vs. Local SEO Audit section (targets: local seo audit, gbp audit for local seo) */}
+          <div style={{ marginTop: 'var(--space-8)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', textAlign: 'center', marginBottom: 'var(--space-3)', letterSpacing: '-0.02em' }}>
+              GMB Audit vs. Local SEO Audit: What&apos;s the Difference?
+            </h2>
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', textAlign: 'center', maxWidth: '650px', margin: '0 auto var(--space-6)' }}>
+              A GMB audit (a GBP audit for local SEO) scores the health of your Google Business Profile itself — completeness, photos, reviews, engagement, and local SEO optimization. A full local SEO audit goes further, also covering your website, citations, and overall local search presence, with your Google Business Profile as one piece of the puzzle.
+            </p>
+            <div className="card-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <FeatureCard title="GMB Audit (This Tool)" description="Scores your Google Business Profile across 5 weighted categories and returns a 0–100 score with prioritized fixes — in under 30 seconds." />
+              <FeatureCard title="Full Local SEO Audit" description="Looks beyond your GBP at your website, citations, and content. Start with your free GMB audit above, then widen the scope from there." />
+            </div>
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', textAlign: 'center', maxWidth: '650px', margin: 'var(--space-5) auto 0' }}>
+              Not sure where to start? Run the free GMB audit above — your Google Business Profile is the highest-impact asset in most local seo strategy work, and it&apos;s the fastest to improve.
+            </p>
+            {/* TODO(seo): Internal link per SEO brief - once the /gmb-seo pillar page is live,
+                add a contextual link here: <a href="/gmb-seo">gmb seo</a> (anchor text: "gmb seo" or "local seo strategy"). */}
+          </div>
+
           {/* ❓ FAQ Section */}
           <div className="card" style={{ marginTop: 'var(--space-8)', padding: 'var(--space-6)' }}>
             <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', textAlign: 'center', marginBottom: 'var(--space-7)', letterSpacing: '-0.02em' }}>
               Frequently Asked Questions About GBP Audits
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-              <FAQItem 
-                question="What is a Google Business Profile audit?"
-                answer="A Google Business Profile (GBP) audit is a comprehensive analysis of your GMB listing that identifies optimization opportunities and issues. It checks your profile completeness, photos, reviews, engagement, and SEO factors to help you rank higher in Google Maps and local search results. Our free audit tool evaluates 5 key areas and provides actionable recommendations."
-              />
-              <FAQItem 
-                question="How much does a GBP audit cost?"
-                answer="Our Google Business Profile audit tool is 100% free to use. You can audit unlimited businesses at no cost and receive detailed reports with scores and recommendations. We also offer paid plans starting at $39/month if you want Neerzy to automatically fix the issues we find through WhatsApp-based management."
-              />
-              <FAQItem 
-                question="How long does a Google Business Profile audit take?"
-                answer="The audit takes less than 30 seconds from start to finish. Simply search for your business name, select it from the dropdown results, and click 'Run Free Audit Now.' You'll instantly receive your overall score out of 100 plus detailed breakdowns for each category."
-              />
-              <FAQItem 
-                question="What does the audit check exactly?"
-                answer="Our audit evaluates 5 critical areas: Profile Completeness (25% weight) checks if all your business information is filled out; Visual Content (20%) analyzes your photo count and quality; Reviews & Reputation (25%) examines your rating and review count; Engagement (15%) looks at Google Posts and Q&A activity; and SEO Optimization (15%) checks keyword usage and local SEO factors."
-              />
-              <FAQItem 
-                question="Can I audit my competitor's Google Business Profile?"
-                answer="Yes! You can audit any business's Google Business Profile using our free tool. This is great for competitive analysis — see what your competitors are doing well and where they're weak. Use these insights to improve your own GBP and outrank them in local search results."
-              />
-              <FAQItem 
-                question="How often should I audit my Google Business Profile?"
-                answer="We recommend auditing your GBP at least once per month to track improvements and catch new issues. If you're actively optimizing your profile, audit weekly to measure progress. After making major changes (new photos, posts, or business info), run an audit to see the impact on your score."
-              />
+                            {faqs.map((faq, idx) => (
+                <FAQItem key={idx} question={faq.question} answer={faq.answer} />
+              ))}
             </div>
           </div>
 

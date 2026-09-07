@@ -1,15 +1,25 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Free Google Business Profile Audit Tool | GBP Checker 2026 - Neerzy",
+  // "absolute" bypasses the root layout "%s | Neerzy" title template so the
+  // brand isn't appended twice. Title is 60 chars with the primary keyword
+  // "GMB Audit Tool" leading (SEO brief, section 2).
+  title: {
+    absolute: "Free GMB Audit Tool | Google Business Profile Audit - Neerzy",
+  },
   description:
-    "Free Google Business Profile audit tool. Check your GBP/GMB listing SEO in 30 seconds. Get instant score, actionable recommendations & improve local search rankings. No signup required.",
+    "Run a free GMB audit tool scan on any Google Business Profile. Get an instant local SEO audit score, see what's hurting your rankings, and fix it in seconds. No signup required.",
   keywords: [
+    "gmb audit tool",
+    "gbp audit tool",
+    "gmb audit",
     "google business profile audit",
-    "GBP audit tool",
+    "google my business audit tool",
+    "local SEO audit",
+    "gbp audit for local seo",
+    "free gbp audit",
     "GMB audit free",
     "google my business checker",
-    "local SEO audit",
     "GBP checker",
     "Google Business Profile optimizer",
     "free GBP analysis",
@@ -26,24 +36,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "https://www.neerzy.com/gmb-audit-tool",
-    title: "Free Google Business Profile Audit Tool | Check Your GBP Score",
+    title: "Free GMB Audit Tool | Google Business Profile Audit in 30 Seconds",
     description:
-      "Free GBP audit tool. Analyze your Google Business Profile in seconds. Get actionable SEO recommendations to rank higher locally.",
+      "Run a free GMB audit tool scan on any Google Business Profile. Get an instant local SEO audit score and see what's hurting your rankings.",
     images: [
       {
         url: "https://www.neerzy.com/og-images/gbp-audit-tool.jpg",
         width: 1200,
         height: 630,
-        alt: "Neerzy Free GBP Audit Tool",
+        alt: "GMB audit tool dashboard showing GBP audit score",
       },
     ],
     siteName: "Neerzy",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Free Google Business Profile Audit Tool | GBP Checker",
+    title: "Free GMB Audit Tool | Google Business Profile Audit",
     description:
-      "Free GBP audit tool. Check your Google Business Profile SEO score in 30 seconds. Get instant recommendations.",
+      "Run a free GMB audit tool scan on any Google Business Profile. Instant local SEO audit score, no signup required.",
     images: ["https://www.neerzy.com/og-images/gbp-audit-tool.jpg"],
   },
 };
