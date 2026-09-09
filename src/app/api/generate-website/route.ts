@@ -22,7 +22,7 @@ export async function POST(req: Request) {
           
           You MUST reply with ONLY a JSON object exactly exactly matching this structure:
           {
-            "templateType": "A single exact string chosen from: ['plumber', 'electrician', 'hvac', 'mechanic', 'dentist', 'cleaning', 'roofing', 'landscaping', 'generic'] based on what this business is.",
+            "templateType": "A single exact string chosen from: ['plumber', 'electrician', 'hvac', 'mechanic', 'dentist', 'roofing', 'handyman', 'grocery', 'hardware', 'generic'] based on what this business is. Pick the trade/industry match; fall back to 'generic' only when nothing fits.",
             "hero": {
               "headline": "...",
               "subheadline": "..."

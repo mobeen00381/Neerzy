@@ -4,6 +4,12 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["sin1"],
+  "crons": [
+    {
+      "path": "/api/cron/domain-renewals",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://neerzy.com"
   }

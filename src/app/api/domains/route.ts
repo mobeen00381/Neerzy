@@ -1,72 +1,58 @@
 import { NextResponse } from "next/server";
-import dns from "dns/promises";
+import {
+  DOMAIN_TLDS,
+  DOMAIN_PRICE_USD,
+  checkDomainAvailability,
+  normalizeDomain,
+} from "@/lib/domain-registry";
 
+/**
+ * POST /api/domains  { action: "check", domain: string }
+ *
+ * Availability lookup for the dashboard DomainPanel. Uses the real Porkbun
+ * check API when keys are configured, otherwise a dev-only DNS probe.
+ *
+ * If `domain` is already a full domain (contains a dot), only that domain is
+ * checked. Otherwise suggestions are checked across the registerable TLDs.
+ * Only .com is purchasable at the flat $19 price today (see `buyable`).
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { domain, action } = body;
+    const { action, domain } = body || {};
 
-    if (action === "check") {
-      const baseName = domain.split('.')[0] || domain;
-      const tlds = [
-        ".com", ".net", ".org", ".co", 
-        ".us", ".ca", ".co.uk", ".uk", ".com.au"
-      ];
-      
-      const results = await Promise.all(tlds.map(async (tld) => {
-        const fullDomain = `${baseName}${tld}`;
-        let available = true;
+    if (action !== "check") {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
 
-        try {
-          // Check if domain responds to DNS (A records)
-          await dns.resolve4(fullDomain);
-          available = false; // Resolved, so it's taken
-        } catch (e: any) {
-          // If DNS fails, it MIGHT be available or just has no A records
-          // We check NS records as well for better accuracy
-          try {
-            await dns.resolveNs(fullDomain);
-            available = false; // Has name servers, definitely taken
-          } catch (nsError) {
-            // Probably available if both fail, but definitely not "definitely taken"
-            available = true;
-          }
-        }
+    const raw = normalizeDomain(domain || "");
+    if (!raw) {
+      return NextResponse.json({ error: "Please enter a business name or domain." }, { status: 400 });
+    }
 
-        // Hardcoded check for "coldhub" as requested by user
-        if (fullDomain.toLowerCase() === "coldhub.com") {
-          available = false;
-        }
+    // Full domain typed (contains a dot) → check exactly that one (plus .com if different).
+    const candidates = raw.includes(".")
+      ? Array.from(new Set([raw, `${raw.split(".")[0]}.com`]))
+      : DOMAIN_TLDS.map((tld) => `${raw}${tld}`);
 
+    const results = await Promise.all(
+      candidates.map(async (candidate) => {
+        const check = await checkDomainAvailability(candidate);
         return {
-          domain: fullDomain,
-          available: available,
-          price: tld === ".com" ? 25 : tld === ".co" ? 35 : 20
+          domain: check.domain,
+          available: check.available,
+          price: check.price ?? (candidate.endsWith(".com") ? DOMAIN_PRICE_USD : null),
+          currency: check.currency,
+          simulated: check.simulated,
+          buyable: candidate.endsWith(".com"),
+          verified: !check.simulated,
         };
-      }));
+      })
+    );
 
-      return NextResponse.json({ 
-        query: baseName, 
-        results 
-      });
-    }
-
-    if (action === "purchase") {
-      // Mock purchase
-      return NextResponse.json({ 
-        success: true, 
-        domain: {
-          id: "dom_123",
-          domainName: domain,
-          status: "active",
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      });
-    }
-
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-
-  } catch (error) {
+    return NextResponse.json({ query: raw, results });
+  } catch (error: any) {
+    console.error("❌ Domain check error:", error?.message || error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

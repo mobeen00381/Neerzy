@@ -7,6 +7,7 @@ import { PLAN_LIMITS, getPlan, getRemainingDays, getCycleStartIso } from '@/lib/
 import { FallbackReviewModal } from '@/components/dashboard/FallbackReviewModal';
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
 import { AgencyClientsPanel } from '@/components/dashboard/AgencyClientsPanel';
+import DomainPanel from '@/components/dashboard/DomainPanel';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { 
   Sparkles, 
@@ -1808,6 +1809,9 @@ export default function Dashboard() {
                     <AgencyClientsPanel />
                   </div>
                 )}
+
+                {/* Custom Domain (Pro · Growth · Agency) */}
+                <DomainPanel />
 
                 {/* Listing Details Card */}
                 <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm space-y-6">

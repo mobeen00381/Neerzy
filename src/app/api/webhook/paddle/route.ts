@@ -175,100 +175,164 @@ export async function POST(req: Request) {
       console.error("❌ Failed to record Paddle event in transactions ledger:", ledgerErr);
     }
 
-    const isSuccessEvent = 
-      event instanceof TransactionCompletedEvent || 
+    const isSuccessEvent =
+      event instanceof TransactionCompletedEvent ||
       event instanceof SubscriptionCreatedEvent ||
-      eventType === 'transaction.completed' || 
+      eventType === 'transaction.completed' ||
       eventType === 'subscription.created';
 
     if (isSuccessEvent) {
-      // In SDK v3, unmarshal returns specialized event classes
-      // event.data is the specific entity (Transaction or Subscription)
-      const data = event.data;
-      const customData = data?.customData || data?.custom_data;
-      
-      if (!customData) {
-         console.warn("⚠️ No custom data found in Paddle event. Skipping.");
-         return NextResponse.json({ received: true });
-      }
+      // v3 SDK events expose data as specialized classes; the plain JSON parse
+      // is the most reliable source for custom_data on both shapes.
+      const payloadData: any = rawPayload?.data || {};
+      const data: any = event.data;
+      const customData: any =
+        payloadData.custom_data ||
+        payloadData.customData ||
+        data?.customData ||
+        data?.custom_data ||
+        {};
 
-      console.log("💰 Payment Successful for:", customData.domainName);
-      
-      // 1. Register the Domain Programmatically
-      try {
-        await registerDomain(customData.domainName);
-      } catch (err) {
-        console.error("❌ Domain Registration Failed:", err);
-      }
-      
-      // 2. Add to Vercel project for live hosting + SSL
-      try {
-        await addDomainToVercel(customData.domainName);
-      } catch (err) {
-        console.error("❌ Vercel Domain Addition Failed:", err);
-      }
-      
-      // 3. Mark the subscription/user as active in your DB
-      // We use the customerId which is safe for both notification types
-      const customerId = (data as any).customerId;
-      
-      // Fetch customer details from our DB if needed (or use the payload if available)
-      const { data: userData } = await supabase
-        .from("users")
-        .select("email, name")
-        .eq("paddle_customer_id", customerId)
-        .single();
+      const domainName = String(customData.domainName || customData.domain_name || '')
+        .toString().toLowerCase().trim();
+      const userIdFromCustom = customData.userId || customData.user_id || null;
+      const planIdFromCustom = String(customData.planId || customData.plan_id || customData.plan || '')
+        .toString().toLowerCase();
+      const isDomainPayment = eventType === 'transaction.completed' || eventType === 'transaction.paid';
+      const isSubscriptionActivation = eventType === 'subscription.created' || eventType === 'subscription.activated';
 
-      let customerEmail = userData?.email || "";
-      let customerName = userData?.name || "";
+      const transactionId = payloadData.id || data?.id || null;
+      const customerId = data?.customer?.id || payloadData.customer?.id || data?.customerId || null;
+      const customerEmail = data?.customer?.email || payloadData.customer?.email || '';
+      const customerName = data?.customer?.name || payloadData.customer?.name || '';
 
-      // Safe access using our type guard
-      if (!customerEmail && isSubscriptionCreated(data)) {
-        // @ts-ignore - TODO: Properly narrow type
-        customerEmail = data.customer?.email || "";
-        // @ts-ignore - TODO: Properly narrow type
-        customerName = data.customer?.name || "";
-      }
+      // ── 1. DOMAIN PURCHASE → register on Porkbun + link Vercel (exactly once) ──
+      let domainExpiryIso: string | null = null;
+      let domainStatus: string | null = null;
+      let domainError: string | null = null;
+      let ownershipConflict = false; // second buyer raced the same domain
 
-      const { error } = await supabase.from("users").upsert([
-        {
-          paddle_customer_id: customerId,
-          email: customerEmail,
-          name: customerName,
-          plan: customData.planId,
-          business_name: customData.businessName,
-          service_type: customData.serviceType,
-          domain: customData.domainName,
-          status: "active"
+      if (domainName && isDomainPayment) {
+        // Idempotency: a re-delivered webhook must never double-register.
+        const { data: existingDomain } = await supabase
+          .from('domains')
+          .select('id, status, user_id, registered_at, expires_at')
+          .eq('domain_name', domainName)
+          .maybeSingle();
+
+        // Race guard: two users buying the same domain simultaneously must never
+        // re-attribute a domain that already belongs to someone else.
+        const existingOwnerId = existingDomain?.user_id || null;
+        ownershipConflict =
+          !!existingDomain &&
+          !!existingOwnerId &&
+          !!userIdFromCustom &&
+          String(existingOwnerId) !== String(userIdFromCustom);
+
+        if (ownershipConflict) {
+          console.warn(
+            `⚠️ Domain ${domainName} already belongs to user ${existingOwnerId} — ` +
+              'refusing to re-attribute (a refund may be required for this second purchase).'
+          );
+        } else if (existingDomain && existingDomain.status !== 'failed') {
+          console.log(`🔁 Domain ${domainName} already recorded (${existingDomain.status}) — skipping re-registration.`);
+          domainExpiryIso = existingDomain.expires_at;
+          domainStatus = existingDomain.status;
+        } else {
+          const reg = await registerDomain(domainName);
+          if (reg.success) {
+            domainExpiryIso = reg.expiresAt;
+            domainStatus = 'active';
+            // Link to the Vercel project for live hosting + SSL (best-effort).
+            const vercel = await addDomainToVercel(domainName);
+            if (!vercel.success) console.warn('⚠️ Vercel add-domain incomplete:', vercel.message || '');
+          } else {
+            domainStatus = 'failed';
+            domainError = reg.error || 'Registration failed';
+            console.error('❌ Domain Registration Failed:', domainError);
+          }
         }
-      ], { onConflict: "paddle_customer_id" });
 
-      if (error) {
-        console.error("❌ Failed to insert user into Supabase:", error);
-      } else {
-        console.log("✅ User inserted into Supabase:", customerEmail);
+        if (!ownershipConflict) {
+          const { error: domainWriteErr } = await supabase
+            .from('domains')
+            .upsert(
+              {
+                domain_name: domainName,
+                user_id: userIdFromCustom || null,
+                status: domainStatus,
+                client_label: customData.clientLabel || null,
+                registered_at: domainStatus === 'active' ? new Date().toISOString() : null,
+                expires_at:
+                  domainExpiryIso ||
+                  new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                auto_renew: true,
+                paddle_transaction_id: transactionId || null,
+                error: domainError,
+              },
+              { onConflict: 'domain_name' }
+            );
+
+          if (domainWriteErr) {
+            console.error('❌ Failed to write domains row:', domainWriteErr);
+          } else {
+            console.log(`🚀 Domain ${domainName} → ${domainStatus} for user ${userIdFromCustom || 'unlinked'}`);
+          }
+        }
       }
 
-      // 4. Sync plan + 30-day cycle anchor to the user's profile (quota engine)
-      const userIdFromCustom = (customData as any)?.userId;
-      const planIdFromCustom = (customData as any)?.planId;
-      if (userIdFromCustom) {
+      // ── 2. Sync the user row (domain purchase or subscription) ──
+      const userPayload: any = {
+        email: customerEmail || undefined,
+        name: customerName || undefined,
+        business_name: customData.businessName || customData.business_name || undefined,
+        service_type: customData.serviceType || customData.service_type || undefined,
+        status: 'active',
+      };
+      if (planIdFromCustom) userPayload.plan = planIdFromCustom;
+      if (domainName && !ownershipConflict) userPayload.domain = domainName;
+      if (domainName && domainExpiryIso && !ownershipConflict) userPayload.domain_expires_at = domainExpiryIso;
+
+      let userWrite: any;
+      const { data: existingByEmail } = customerEmail
+        ? await supabase.from('users').select('id').eq('email', customerEmail).limit(1).maybeSingle()
+        : { data: null };
+
+      if (existingByEmail?.id) {
+        userWrite = await supabase.from('users').update(userPayload).eq('id', existingByEmail.id);
+      } else if (userIdFromCustom) {
+        userWrite = await supabase.from('users').upsert({ id: userIdFromCustom, ...userPayload }, { onConflict: 'id' });
+      } else {
+        userWrite = await supabase.from('users').upsert({ paddle_customer_id: customerId, ...userPayload }, { onConflict: 'paddle_customer_id' });
+      }
+      if (userWrite?.error) {
+        console.error('❌ Failed to sync user row:', userWrite.error);
+      } else {
+        console.log('✅ User synced:', customerEmail || userIdFromCustom || customerId);
+      }
+
+      // ── 3. Sync plan + 30-day cycle anchor to the profile (quota engine).
+      // Only on NEW subscription activation — a one-time $19 domain purchase
+      // must never reset the user's billing cycle.
+      if (userIdFromCustom && isSubscriptionActivation) {
         const { error: profileErr } = await supabase
-          .from("profiles")
+          .from('profiles')
           .update({
-            selected_plan: planIdFromCustom || "pro",
+            selected_plan: planIdFromCustom || 'pro',
             plan_started_at: new Date().toISOString(),
           })
-          .eq("id", userIdFromCustom);
+          .eq('id', userIdFromCustom);
 
         if (profileErr) {
-          console.error("❌ Failed to sync plan to profiles:", profileErr);
+          console.error('❌ Failed to sync plan to profiles:', profileErr);
         } else {
-          console.log(`✅ Synced plan '${planIdFromCustom || "pro"}' + cycle start to profile ${userIdFromCustom}`);
+          console.log(`✅ Synced plan '${planIdFromCustom || 'pro'}' + cycle start to profile ${userIdFromCustom}`);
         }
       }
-      
-      console.log("🚀 Business is now LIVE on:", customData.domainName);
+
+      if (domainName && !ownershipConflict) {
+        console.log('🚀 Business is now LIVE on:', domainName);
+      }
     }
 
     return NextResponse.json({ received: true });
