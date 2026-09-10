@@ -56,10 +56,14 @@ async function porkbunPost<T>(
     body: JSON.stringify(payload),
     cache: "no-store",
   });
-  if (!res.ok) {
-    throw new Error(`Porkbun API ${res.status}: ${await res.text()}`);
+  // Porkbun returns JSON for both success and errors (400/429/…), so parse the
+  // body first and let callers inspect `status` / `code` / `message`.
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(`Porkbun API ${res.status}: ${text.slice(0, 200)}`);
   }
-  return (await res.json()) as T;
 }
 
 /** Normalizes a user-typed domain → "example.com". */
@@ -104,23 +108,28 @@ export async function checkDomainAvailability(
   try {
     const json = await porkbunPost<{
       status: string;
-      availability?: string;
-      price?: string;
-      currency?: string;
-    }>(`/domain/check/${encodeURIComponent(domain)}`, creds);
+      response?: {
+        avail?: string;
+        price?: string;
+        regularPrice?: string;
+        premium?: string;
+      };
+      code?: string;
+      message?: string;
+    }>(`/domain/checkDomain/${encodeURIComponent(domain)}`, creds);
 
-    const raw = json.availability || "";
-    const available =
-      json.status === "SUCCESS" &&
-      (raw === "AVAILABLE" || raw === "UNREGISTERED");
+    const r = (json.response || {}) as any;
+    const avail = String(r.avail || "").toLowerCase();
+    const available = json.status === "SUCCESS" && (avail === "yes" || avail === "true");
+    const price = r.price ? Number(r.price) : r.regularPrice ? Number(r.regularPrice) : null;
 
     return {
       domain,
       available,
-      price: json.price ? Number(json.price) : null,
-      currency: json.currency || "USD",
+      price,
+      currency: "USD",
       simulated: false,
-      rawStatus: raw || undefined,
+      rawStatus: avail || json.status,
     };
   } catch (err: any) {
     console.error("❌ Porkbun availability check failed:", err?.message || err);
@@ -197,14 +206,41 @@ export async function registerDomain(domainName: string): Promise<RegisterResult
   }
 
   try {
+    // 1) Price + availability (Porkbun rate-limits checks to ~1/10s — one call
+    //    per purchase is fine; we also need the price to pass `cost`).
+    let cost = Math.ceil(DOMAIN_PRICE_USD);
+    try {
+      const chk = await porkbunPost<{ status: string; response?: any }>(
+        `/domain/checkDomain/${encodeURIComponent(domain)}`,
+        creds
+      );
+      const r = chk.response || {};
+      const avail = String(r.avail || "").toLowerCase();
+      if (chk.status === "SUCCESS" && avail && avail !== "yes") {
+        return {
+          success: false, domain, expiresAt: null, price: null, simulated: false,
+          error: `${domain} is not available for registration`,
+        };
+      }
+      const p = Number(r.price || r.regularPrice || 0);
+      if (p > 0) cost = Math.ceil(p);
+    } catch (priceErr: any) {
+      console.warn("⚠️ [Domain Registry] Price lookup failed — using default cost:", priceErr?.message || priceErr);
+    }
+
+    // 2) Register (1 year, auto-renew on). Porkbun requires `cost` as a
+    //    confirmation integer; without it the API returns INVALID_INPUT.
     const res = await porkbunPost<{
       status: string;
+      code?: string;
+      message?: string;
+      response?: any;
       price?: string;
-      error?: string;
       requestId?: string;
-    }>(`/domain/register/${encodeURIComponent(domain)}`, {
+    }>(`/domain/create/${encodeURIComponent(domain)}`, {
       ...creds,
       years: 1,
+      cost,
       autoRenew: "yes",
     });
 
@@ -215,18 +251,8 @@ export async function registerDomain(domainName: string): Promise<RegisterResult
         expiresAt: null,
         price: null,
         simulated: false,
-        error: res.error || `Porkbun registration failed (${res.status})`,
+        error: res.message || res.code || `Porkbun registration failed (${res.status})`,
       };
-    }
-
-    // Best-effort: make sure auto-renew is on for year 2 (no surprise lapses).
-    try {
-      await porkbunPost(`/domain/update/${encodeURIComponent(domain)}`, {
-        ...creds,
-        autoRenew: "yes",
-      });
-    } catch (renewErr: any) {
-      console.warn("⚠️ Auto-renew toggle failed (non-fatal):", renewErr?.message || renewErr);
     }
 
     const expiresAt = new Date(Date.now() + YEAR_MS).toISOString();
@@ -234,7 +260,7 @@ export async function registerDomain(domainName: string): Promise<RegisterResult
       success: true,
       domain,
       expiresAt,
-      price: res.price ? Number(res.price) : DOMAIN_PRICE_USD,
+      price: res.price ? Number(res.price) : cost,
       simulated: false,
     };
   } catch (err: any) {

@@ -59,48 +59,78 @@ const EMPTY_ENRICHMENT: Enrichment = {
 };
 
 async function enrichFromPlaces(placeId: string | null): Promise<Enrichment> {
-  const key = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "";
+  // Prefer a dedicated server key; fall back to the existing ones.
+  // NOTE: this uses **Places API (New)** — the legacy /maps/api/place/* endpoints
+  // are disabled on the Neerzy Google Cloud project.
+  const key =
+    process.env.GOOGLE_PLACES_SERVER_KEY ||
+    process.env.GOOGLE_PLACES_API_KEY ||
+    process.env.GOOGLE_MAPS_API_KEY ||
+    "";
   if (!key || !placeId) return EMPTY_ENRICHMENT;
 
   try {
-    const fields = [
-      "formatted_phone_number", "formatted_address", "opening_hours",
-      "photos", "rating", "user_ratings_total", "reviews", "website", "geometry",
+    const fieldMask = [
+      "id",
+      "displayName",
+      "formattedAddress",
+      "internationalPhoneNumber",
+      "nationalPhoneNumber",
+      "regularOpeningHours.weekdayDescriptions",
+      "photos",
+      "rating",
+      "userRatingCount",
+      "reviews",
+      "location",
+      "googleMapsUri",
+      "websiteUri",
     ].join(",");
-    const url =
-      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}` +
-      `&fields=${fields}&key=${key}`;
 
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
+      {
+        headers: { "X-Goog-Api-Key": key, "X-Goog-FieldMask": fieldMask },
+        cache: "no-store",
+      }
+    );
     const json: any = await res.json();
-    const r = json?.result;
-    if (!r) return EMPTY_ENRICHMENT;
 
-    const photos: string[] = (r.photos || [])
+    if (!res.ok) {
+      console.warn(
+        `⚠️ [Website Builder] Places (New) error ${res.status}: ${json?.error?.message || "unknown"}`
+      );
+      return EMPTY_ENRICHMENT;
+    }
+
+    const hours: string[] = json.regularOpeningHours?.weekdayDescriptions || [];
+
+    const photos: string[] = (json.photos || [])
       .slice(0, 6)
-      .map((p: any) =>
-        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=${p.photo_reference}&key=${key}`
+      .filter((p: any) => p?.name)
+      .map(
+        (p: any) =>
+          `https://places.googleapis.com/v1/${p.name}/media?maxWidthPx=1200&key=${key}`
       );
 
-    const reviews = (r.reviews || []).slice(0, 5).map((rv: any) => ({
-      author: rv.author_name || "Customer",
+    const reviews = (json.reviews || []).slice(0, 5).map((rv: any) => ({
+      author: rv.authorAttribution?.displayName || "Customer",
       rating: rv.rating || 5,
-      text: rv.text || "",
-      time: rv.relative_time_description || "",
+      text: rv.text?.text || "",
+      time: rv.relativePublishTimeDescription || "",
     }));
 
     return {
-      hours: r.opening_hours?.weekday_text || [],
+      hours,
       photos,
-      rating: typeof r.rating === "number" ? r.rating : null,
-      userRatingsTotal: typeof r.user_ratings_total === "number" ? r.user_ratings_total : null,
+      rating: typeof json.rating === "number" ? json.rating : null,
+      userRatingsTotal: typeof json.userRatingCount === "number" ? json.userRatingCount : null,
       reviews,
-      phone: r.formatted_phone_number || null,
-      address: r.formatted_address || null,
-      website: r.website || null,
+      phone: json.internationalPhoneNumber || json.nationalPhoneNumber || null,
+      address: json.formattedAddress || null,
+      website: json.websiteUri || null,
       geo:
-        r.geometry?.location?.lat && r.geometry?.location?.lng
-          ? { lat: r.geometry.location.lat, lng: r.geometry.location.lng }
+        json.location?.latitude && json.location?.longitude
+          ? { lat: json.location.latitude, lng: json.location.longitude }
           : null,
     };
   } catch (err: any) {
@@ -141,6 +171,60 @@ function toHoursSpec(
     if (opens && closes) spec.push({ dayOfWeek: day, opens, closes });
   }
   return spec;
+}
+
+/** All the phone formats a profile/business row might use. */
+function phoneVariants(phone: string): string[] {
+  const digits = (phone || "").replace(/\D/g, "");
+  const set = new Set<string>();
+  if (phone) set.add(phone);
+  if (digits) {
+    set.add(digits);
+    set.add(`+${digits}`);
+  }
+  return [...set].filter(Boolean);
+}
+
+/**
+ * The WhatsApp connect flow stores `profiles.phone` without a "+", while the
+ * onboarding form stores `business_profiles.user_phone` with one — so we try
+ * every format before giving up. (This mismatch silently disabled enrichment.)
+ */
+async function findBusinessProfileByPhone(phone: string) {
+  for (const v of phoneVariants(phone)) {
+    const { data } = await supabaseAdmin
+      .from("business_profiles")
+      .select("*")
+      .eq("user_phone", v)
+      .maybeSingle();
+    if (data) return data;
+  }
+  return null;
+}
+
+/** Point the trader's legacy `users` row at their website (any phone format). */
+async function setUserWebsiteUrl(phone: string, url: string) {
+  const variants = phoneVariants(phone);
+  for (const v of variants) {
+    const { data } = await supabaseAdmin
+      .from("users")
+      .update({ website_url: url })
+      .eq("phone", v)
+      .select("id");
+    if (data && data.length > 0) return true;
+  }
+  // No row yet (e.g. a trader who never went through the WhatsApp flow) —
+  // create a minimal one so the auto-update pipeline can find them.
+  try {
+    const { error } = await supabaseAdmin
+      .from("users")
+      .insert({ phone: variants[0], website_url: url });
+    if (error) console.warn("⚠️ Could not create users row:", error.message);
+    return !error;
+  } catch (e: any) {
+    console.warn("⚠️ Could not create users row:", e?.message || e);
+    return false;
+  }
 }
 
 // ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -297,9 +381,7 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
       .maybeSingle();
     const phone = profile?.phone || "";
 
-    const { data: biz } = phone
-      ? await supabaseAdmin.from("business_profiles").select("*").eq("user_phone", phone).maybeSingle()
-      : { data: null as any };
+    const biz = phone ? await findBusinessProfileByPhone(phone) : null;
 
     const businessName = biz?.business_name || profile?.business_name || site.domain_name || "Your Business";
     const category = biz?.category || "";
@@ -379,11 +461,7 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
 
     // Wake up the existing auto-update pipeline (WhatsApp post → website_posts)
     if (phone && site.domain_name) {
-      const { error: userErr } = await supabaseAdmin
-        .from("users")
-        .update({ website_url: `https://${site.domain_name}` })
-        .eq("phone", phone);
-      if (userErr) console.warn("⚠️ Could not set users.website_url:", userErr.message);
+      await setUserWebsiteUrl(phone, `https://${site.domain_name}`);
     }
 
     // ── NOTIFY (best effort — never fails the build) ──
@@ -475,13 +553,7 @@ export async function syncWebsiteReviewsForUser(userId: string): Promise<{
       .maybeSingle();
     const phone = profile?.phone || "";
 
-    const { data: biz } = phone
-      ? await supabaseAdmin
-          .from("business_profiles")
-          .select("google_place_id")
-          .eq("user_phone", phone)
-          .maybeSingle()
-      : { data: null as any };
+    const biz = phone ? await findBusinessProfileByPhone(phone) : null;
     const placeId = biz?.google_place_id || null;
     if (!placeId) return { ok: false, updated: false, hasNewReview: false, error: "no place id" };
 

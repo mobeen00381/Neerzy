@@ -26,6 +26,7 @@ $$ LANGUAGE plpgsql;
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS domain TEXT;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS domain_expires_at TIMESTAMPTZ;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS website_url TEXT;
 
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -- 2. DOMAINS
@@ -57,6 +58,34 @@ CREATE TABLE IF NOT EXISTS public.domains (
 );
 
 CREATE INDEX IF NOT EXISTS idx_domains_user ON public.domains(user_id);
+
+-- NOTE: some databases already had an older `domains` table
+-- (id, user_id, domain_name, is_primary, status, dns_records, created_at).
+-- CREATE TABLE IF NOT EXISTS skips it, so make sure every column we rely on
+-- exists, plus the UNIQUE constraint the webhook's upsert(onConflict) needs.
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS client_label TEXT;
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS price_paid NUMERIC(10,2) DEFAULT 19.00;
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS provider TEXT DEFAULT 'porkbun';
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS registered_at TIMESTAMPTZ;
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS renewal_notified_at TIMESTAMPTZ;
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS paddle_transaction_id TEXT;
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS error TEXT;
+ALTER TABLE public.domains ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.domains'::regclass
+      AND conname = 'domains_domain_name_key'
+  ) THEN
+    ALTER TABLE public.domains ADD CONSTRAINT domains_domain_name_key UNIQUE (domain_name);
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_domains_due_renewal
   ON public.domains(expires_at)
   WHERE status = 'active' AND auto_renew = TRUE AND renewal_notified_at IS NULL;

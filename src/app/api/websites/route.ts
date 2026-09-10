@@ -68,6 +68,7 @@ function cleanPhotoUrl(v: unknown): string {
   if (!/^https:\/\/[^\s]+$/i.test(u)) return "";
   const storageBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL || ""}/storage/v1/object/public/`;
   if (storageBase && storageBase !== "/storage/v1/object/public/" && u.startsWith(storageBase)) return u.slice(0, LIMITS.url);
+  if (u.startsWith("https://places.googleapis.com/")) return u.slice(0, LIMITS.url);
   if (u.startsWith("https://maps.googleapis.com/")) return u.slice(0, LIMITS.url);
   return "";
 }

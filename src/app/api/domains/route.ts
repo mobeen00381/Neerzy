@@ -30,25 +30,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please enter a business name or domain." }, { status: 400 });
     }
 
-    // Full domain typed (contains a dot) → check exactly that one (plus .com if different).
-    const candidates = raw.includes(".")
-      ? Array.from(new Set([raw, `${raw.split(".")[0]}.com`]))
-      : DOMAIN_TLDS.map((tld) => `${raw}${tld}`);
+    // Porkbun rate-limits availability lookups (~1 per 10s per API key), so we
+    // check exactly ONE domain per request. `.com` is the purchasable offer.
+    const candidate = raw.includes(".") ? raw : `${raw}.com`;
+    const check = await checkDomainAvailability(candidate);
 
-    const results = await Promise.all(
-      candidates.map(async (candidate) => {
-        const check = await checkDomainAvailability(candidate);
-        return {
-          domain: check.domain,
-          available: check.available,
-          price: check.price ?? (candidate.endsWith(".com") ? DOMAIN_PRICE_USD : null),
-          currency: check.currency,
-          simulated: check.simulated,
-          buyable: candidate.endsWith(".com"),
-          verified: !check.simulated,
-        };
-      })
-    );
+    const results = [
+      {
+        domain: check.domain,
+        available: check.available,
+        price: check.price ?? (candidate.endsWith(".com") ? DOMAIN_PRICE_USD : null),
+        currency: check.currency,
+        simulated: check.simulated,
+        buyable: candidate.endsWith(".com"),
+        verified: !check.simulated,
+      },
+    ];
 
     return NextResponse.json({ query: raw, results });
   } catch (error: any) {
