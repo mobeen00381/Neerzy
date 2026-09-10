@@ -1,0 +1,418 @@
+/**
+ * Part 2 — Website builder engine.
+ *
+ * Turns a trader's existing data into a live website with ZERO input:
+ *   1. Collect  — business_profiles + Google Place Details (hours, photos,
+ *                 rating, reviews) when a place_id + Places API key exist
+ *   2. Write    — one AI call generates tagline, hero, about, services, SEO
+ *   3. Design   — template + palette auto-picked by trade (TEMPLATE_REGISTRY)
+ *   4. Publish  — content saved to websites.content, status → live,
+ *                 users.website_url set (this wakes up the existing
+ *                 WhatsApp → website_posts update pipeline)
+ *   5. Notify   — one WhatsApp message with the live link + sneak-peek link
+ *
+ * Cost: a single LLM call (~1,200 tokens) per build; everything else is
+ * plain REST + DB writes. Idempotent + retryable.
+ */
+
+import { createClient } from "@supabase/supabase-js";
+import { chatWithFallback } from "@/lib/openai";
+import { sendMetaText } from "@/lib/whatsapp";
+import { TEMPLATE_REGISTRY, type TemplateId } from "@/lib/templates";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+);
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.neerzy.com";
+
+/** Trade → template registry id (the registry is the single source of truth). */
+const TEMPLATE_IDS: TemplateId[] = [
+  "plumber", "hvac", "electrician", "roofing", "handyman",
+  "dentist", "grocery", "hardware", "mechanic", "generic",
+];
+
+function pickTemplate(templateType: string | undefined): TemplateId {
+  const t = (templateType || "").toLowerCase().trim() as TemplateId;
+  return TEMPLATE_IDS.includes(t) ? t : "generic";
+}
+
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  1. Google Places enrichment (optional — silent fallback)
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+type Enrichment = {
+  hours: string[];
+  photos: string[];
+  rating: number | null;
+  userRatingsTotal: number | null;
+  reviews: { author: string; rating: number; text: string; time: string }[];
+  phone: string | null;
+  address: string | null;
+  website: string | null;
+  geo: { lat: number; lng: number } | null;
+};
+
+const EMPTY_ENRICHMENT: Enrichment = {
+  hours: [], photos: [], rating: null, userRatingsTotal: null,
+  reviews: [], phone: null, address: null, website: null, geo: null,
+};
+
+async function enrichFromPlaces(placeId: string | null): Promise<Enrichment> {
+  const key = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || "";
+  if (!key || !placeId) return EMPTY_ENRICHMENT;
+
+  try {
+    const fields = [
+      "formatted_phone_number", "formatted_address", "opening_hours",
+      "photos", "rating", "user_ratings_total", "reviews", "website", "geometry",
+    ].join(",");
+    const url =
+      `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}` +
+      `&fields=${fields}&key=${key}`;
+
+    const res = await fetch(url, { cache: "no-store" });
+    const json: any = await res.json();
+    const r = json?.result;
+    if (!r) return EMPTY_ENRICHMENT;
+
+    const photos: string[] = (r.photos || [])
+      .slice(0, 6)
+      .map((p: any) =>
+        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=1200&photo_reference=${p.photo_reference}&key=${key}`
+      );
+
+    const reviews = (r.reviews || []).slice(0, 5).map((rv: any) => ({
+      author: rv.author_name || "Customer",
+      rating: rv.rating || 5,
+      text: rv.text || "",
+      time: rv.relative_time_description || "",
+    }));
+
+    return {
+      hours: r.opening_hours?.weekday_text || [],
+      photos,
+      rating: typeof r.rating === "number" ? r.rating : null,
+      userRatingsTotal: typeof r.user_ratings_total === "number" ? r.user_ratings_total : null,
+      reviews,
+      phone: r.formatted_phone_number || null,
+      address: r.formatted_address || null,
+      website: r.website || null,
+      geo:
+        r.geometry?.location?.lat && r.geometry?.location?.lng
+          ? { lat: r.geometry.location.lat, lng: r.geometry.location.lng }
+          : null,
+    };
+  } catch (err: any) {
+    console.warn("⚠️ [Website Builder] Places enrichment skipped:", err?.message || err);
+    return EMPTY_ENRICHMENT;
+  }
+}
+
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  GEO/AEO helpers — structured data from Places data
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function to24h(t: string): string | null {
+  const m = (t || "").trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  const ap = (m[3] || "").toLowerCase();
+  if (ap === "pm" && h < 12) h += 12;
+  if (ap === "am" && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+}
+
+/** Places "Monday: 9:00 AM – 5:00 PM" → schema.org openingHoursSpecification */
+function toHoursSpec(
+  lines: string[]
+): { dayOfWeek: string; opens: string; closes: string }[] {
+  const spec: { dayOfWeek: string; opens: string; closes: string }[] = [];
+  for (const line of lines) {
+    const m = line.match(/^([A-Za-z]+):\s*(.*)$/);
+    if (!m) continue;
+    const day = m[1];
+    const rest = m[2];
+    if (/closed/i.test(rest)) continue;
+    const parts = rest.split(/[–—]| - /).map((s) => s.trim());
+    if (parts.length < 2) continue;
+    const opens = to24h(parts[0]);
+    const closes = to24h(parts[1]);
+    if (opens && closes) spec.push({ dayOfWeek: day, opens, closes });
+  }
+  return spec;
+}
+
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  2. AI copywriter — the ONLY LLM call in the whole build
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+type SiteCopy = {
+  templateType: string;
+  tagline: string;
+  hero: { headline: string; subheadline: string };
+  about: string;
+  services: { title: string; description: string }[];
+  seo: { title: string; description: string };
+  /** AEO: visible Q&A that answer engines quote (also emitted as FAQPage schema). */
+  faqs: { q: string; a: string }[];
+  /** GEO: topical keywords for generative engines. */
+  keywords: string[];
+  /** GEO: area the business serves. */
+  areaServed: string;
+};
+
+const FALLBACK_COPY = (businessName: string, category: string): SiteCopy => ({
+  templateType: "generic",
+  tagline: `Trusted ${category} in your area`,
+  hero: {
+    headline: `${businessName} — fast, friendly, local`,
+    subheadline: `Quality ${category} work, done right the first time. Call us for a free quote.`,
+  },
+  about: `${businessName} is a local ${category} business. We show up on time, do the job properly, and stand behind our work. Every completed job is posted right here so you can see our workmanship.`,
+  services: [
+    { title: "General Repairs", description: "Quick, reliable fixes for everyday problems." },
+    { title: "Installations", description: "Professional installation done to code." },
+    { title: "Emergency Call-Outs", description: "Fast response when you need help now." },
+  ],
+  seo: {
+    title: `${businessName} | ${category} Services`,
+    description: `Local ${category} services from ${businessName}. Call today for a free quote.`,
+  },
+  faqs: [
+    { q: `Do you offer free quotes?`, a: `Yes — call ${businessName} and we'll give you a clear, no-obligation quote before any work starts.` },
+    { q: `How quickly can you come out?`, a: `We offer same-day and emergency call-outs wherever possible. Call us and we'll give you the earliest slot.` },
+    { q: `Which areas do you cover?`, a: `We serve our local area and surrounding neighbourhoods. Call us to confirm your address.` },
+    { q: `Is your work guaranteed?`, a: `Yes. We stand behind every job and will always put things right if you're not happy.` },
+  ],
+  keywords: [category, `local ${category}`, `${category} near me`, `emergency ${category}`],
+  areaServed: "",
+});
+
+async function writeSiteCopy(params: {
+  businessName: string;
+  category: string;
+  address: string;
+  hours: string[];
+}): Promise<SiteCopy> {
+  const { businessName, category, address, hours } = params;
+  try {
+    const response = await chatWithFallback({
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert SEO/AEO/GEO copywriter for local trade businesses.
+Reply with ONLY a JSON object matching exactly this structure:
+{
+  "templateType": "one of: ['plumber','hvac','electrician','roofing','handyman','dentist','grocery','hardware','mechanic','generic'] — the trade that fits best",
+  "tagline": "max 8 words",
+  "hero": { "headline": "max 12 words, benefit-led", "subheadline": "1-2 short sentences" },
+  "about": "3 short sentences, plain English, no buzzwords",
+  "services": [{ "title": "...", "description": "max 12 words" }, ...],
+  "seo": { "title": "max 60 characters, includes city if known", "description": "max 155 characters" },
+  "faqs": [{ "q": "short question a customer would ask", "a": "clear 1-2 sentence answer" }, ...],
+  "keywords": ["5-8 short local search phrases"],
+  "areaServed": "city/town/region served, or empty string"
+}
+Exactly 4 services and exactly 4 FAQs. The FAQs must be real questions local customers ask
+(pricing, emergency availability, service area, guarantees). Write for a local trade business
+a non-technical owner would be proud of. Answers must be quotable on their own by AI assistants.`,
+        },
+        {
+          role: "user",
+          content:
+            `Business: ${businessName}\nTrade/category: ${category || "local trade"}\n` +
+            `Address: ${address || "local area"}\n` +
+            (hours.length ? `Opening hours: ${hours.join("; ")}\n` : "") +
+            `Write the website copy.`,
+        },
+      ],
+    });
+
+    const raw = response.choices[0]?.message?.content || "";
+    const parsed = JSON.parse(raw);
+    return {
+      templateType: parsed.templateType || "generic",
+      tagline: parsed.tagline || "",
+      hero: {
+        headline: parsed.hero?.headline || businessName,
+        subheadline: parsed.hero?.subheadline || "",
+      },
+      about: parsed.about || "",
+      services: Array.isArray(parsed.services) && parsed.services.length
+        ? parsed.services.slice(0, 4)
+        : FALLBACK_COPY(businessName, category).services,
+      seo: {
+        title: parsed.seo?.title || `${businessName} | ${category}`,
+        description: parsed.seo?.description || "",
+      },
+      faqs:
+        Array.isArray(parsed.faqs) && parsed.faqs.length
+          ? parsed.faqs
+              .slice(0, 5)
+              .filter((f: any) => f && f.q && f.a)
+              .map((f: any) => ({ q: String(f.q), a: String(f.a) }))
+          : FALLBACK_COPY(businessName, category).faqs,
+      keywords: Array.isArray(parsed.keywords)
+        ? parsed.keywords.slice(0, 10).map((k: any) => String(k))
+        : [],
+      areaServed: typeof parsed.areaServed === "string" ? parsed.areaServed : "",
+    };
+  } catch (err: any) {
+    console.warn("⚠️ [Website Builder] AI copy fell back to template copy:", err?.message || err);
+    return FALLBACK_COPY(businessName, category);
+  }
+}
+
+
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  3. buildWebsite — the whole pipeline, idempotent
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data: site } = await supabaseAdmin
+      .from("websites")
+      .select("*")
+      .eq("id", websiteId)
+      .maybeSingle();
+    if (!site) return { ok: false, error: "Website not found" };
+
+    // Idempotent: already built + live → nothing to do (safe on retries)
+    const hasContent = site.content && typeof site.content === "object" && Object.keys(site.content).length > 0;
+    if (hasContent && site.status === "live") {
+      console.log(`⏭️ [Website Builder] ${site.domain_name} already built — skipping.`);
+      return { ok: true };
+    }
+
+    await supabaseAdmin
+      .from("websites")
+      .update({ status: "building", build_started_at: new Date().toISOString(), error: null })
+      .eq("id", websiteId);
+
+    // ── COLLECT ──
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("business_name, phone")
+      .eq("id", site.user_id)
+      .maybeSingle();
+    const phone = profile?.phone || "";
+
+    const { data: biz } = phone
+      ? await supabaseAdmin.from("business_profiles").select("*").eq("user_phone", phone).maybeSingle()
+      : { data: null as any };
+
+    const businessName = biz?.business_name || profile?.business_name || site.domain_name || "Your Business";
+    const category = biz?.category || "";
+    const address = biz?.address || "";
+    const placeId = biz?.google_place_id || null;
+
+    // Google Place Details enrichment (hours, photos, reviews) — silent fallback
+    const enrichment = await enrichFromPlaces(placeId);
+
+    // ── WRITE (single LLM call) ──
+    const copy = await writeSiteCopy({
+      businessName,
+      category,
+      address,
+      hours: enrichment.hours,
+    });
+
+    // ── DESIGN ──
+    const templateId = pickTemplate(copy.templateType);
+    const palette = TEMPLATE_REGISTRY[templateId].colorPalette;
+    const templateName = TEMPLATE_REGISTRY[templateId].name;
+
+    const sitePhone = enrichment.phone || phone || "";
+    const siteAddress = enrichment.address || address || "";
+
+    const content = {
+      businessName,
+      tagline: copy.tagline,
+      hero: copy.hero,
+      about: copy.about,
+      services: copy.services,
+      phone: sitePhone,
+      address: siteAddress,
+      mapUrl:
+        biz?.google_maps_url ||
+        (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : ""),
+      reviewLink: biz?.review_link || "",
+      hours: enrichment.hours,
+      photos: enrichment.photos,
+      rating: enrichment.rating,
+      userRatingsTotal: enrichment.userRatingsTotal,
+      reviews: enrichment.reviews,
+      seo: copy.seo,
+      // ── AEO / GEO (system-managed, never customer-editable) ──
+      faqs: copy.faqs,
+      keywords: copy.keywords,
+      areaServed: copy.areaServed,
+      hoursSpec: toHoursSpec(enrichment.hours),
+      geo: enrichment.geo,
+      sameAs:
+        biz?.google_maps_url ||
+        (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : ""),
+      seoLocked: true,
+      palette,
+      templateId,
+      templateName,
+      domain: site.domain_name || "",
+      generatedAt: new Date().toISOString(),
+    };
+
+    // ── PUBLISH ──
+    const { error: saveErr } = await supabaseAdmin
+      .from("websites")
+      .update({
+        content,
+        template_id: templateId,
+        reviews_cache: enrichment.reviews,
+        reviews_synced_at: enrichment.reviews.length ? new Date().toISOString() : null,
+        status: "live",
+        preview_ready: true,
+        build_finished_at: new Date().toISOString(),
+        error: null,
+      })
+      .eq("id", websiteId);
+
+    if (saveErr) throw saveErr;
+
+    // Wake up the existing auto-update pipeline (WhatsApp post → website_posts)
+    if (phone && site.domain_name) {
+      const { error: userErr } = await supabaseAdmin
+        .from("users")
+        .update({ website_url: `https://${site.domain_name}` })
+        .eq("phone", phone);
+      if (userErr) console.warn("⚠️ Could not set users.website_url:", userErr.message);
+    }
+
+    // ── NOTIFY (best effort — never fails the build) ──
+    if (phone) {
+      const to = phone.replace(/\D/g, "");
+      const previewUrl = `${APP_URL}/site/preview/${websiteId}`;
+      const liveUrl = site.domain_name ? `https://${site.domain_name}` : previewUrl;
+      try {
+        await sendMetaText({
+          to,
+          body:
+            `🎉 *Your website is LIVE!*\n\n` +
+            `🌐 ${liveUrl}\n` +
+            `👀 Sneak peek: ${previewUrl}\n\n` +
+            `Every job you post on WhatsApp now appears on your website automatically. ` +
+            `Share the link with your customers — that's it. 🚀`,
+        });
+      } catch (notifyErr: any) {
+        console.warn("⚠️ [Website Builder] WhatsApp notice failed:", notifyErr?.message || notifyErr);
+      }
+    }
+
+    console.log(`🌐 [Website Builder] ${site.domain_name} is live (template: ${templateId}, photos: ${enrichment.photos.length}, reviews: ${enrichment.reviews.length})`);
+    return { ok: true };
+  } catch (err: any) {
+    const message = err?.message || "Build failed";
+    console.error("❌ [Website Builder]", message);
+    await supabaseAdmin.from("websites").update({ error: message }).eq("id", websiteId);
+    return { ok: false, error: message };
+  }
+}
+

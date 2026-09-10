@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendMetaText } from "@/lib/whatsapp";
 import { HOSTING_NOTICE_DAYS_BEFORE, HOSTING_PRICE_USD, hostingDaysLeft } from "@/lib/website";
+import { buildWebsite } from "@/lib/website-builder";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -125,7 +126,41 @@ export async function POST(req: Request) {
     }
 
     console.log(`✅ [Cron] Websites: ${noticed} hosting notices · ${paused} paused · ${skippedNoPhone} no-phone skipped · ${failures.length} failed`);
-    return NextResponse.json({ ok: true, noticed, paused, skippedNoPhone, failures });
+
+    // ── Safety net: finish builds that got stuck (e.g. a function timeout) ──
+    let rebuilt = 0;
+    const rebuiltFailures: string[] = [];
+    try {
+      const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { data: stuck } = await supabaseAdmin
+        .from("websites")
+        .select("id, domain_name, build_started_at")
+        .eq("status", "building")
+        .eq("preview_ready", false)
+        .lt("build_started_at", staleBefore)
+        .limit(20);
+
+      for (const s of stuck || []) {
+        const res = await buildWebsite(s.id);
+        if (res.ok) rebuilt += 1;
+        else rebuiltFailures.push(s.domain_name || s.id);
+      }
+      if ((stuck || []).length) {
+        console.log(`🔁 [Cron] Rebuilt ${rebuilt} stuck website(s)`);
+      }
+    } catch (rebuildErr: any) {
+      console.error("❌ [Cron] Stuck-build retry failed:", rebuildErr?.message || rebuildErr);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      noticed,
+      paused,
+      skippedNoPhone,
+      failures,
+      rebuilt,
+      rebuiltFailures,
+    });
   } catch (err: any) {
     console.error("❌ [Cron] Website cron unexpected error:", err?.message || err);
     return NextResponse.json({ error: err?.message || "Cron failed" }, { status: 500 });

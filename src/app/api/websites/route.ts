@@ -11,6 +11,8 @@ import {
   isEarlyAdopterWindowOpen,
   isWebsiteEligiblePlan,
 } from "@/lib/website";
+import { buildWebsite } from "@/lib/website-builder";
+import { TEMPLATE_REGISTRY } from "@/lib/templates";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -23,6 +25,62 @@ async function authenticate(authHeader: string | null) {
   );
   if (error || !data?.user) return null;
   return data.user;
+}
+
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Editor whitelist — ONLY these fields are customer-writable.
+//  SEO / AEO / GEO fields (seo, faqs, keywords, areaServed, hoursSpec, geo,
+//  rating, reviews, palette) are system-managed and never accepted here.
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const LIMITS = {
+  tagline: 60,
+  headline: 90,
+  subheadline: 200,
+  about: 1000,
+  serviceTitle: 60,
+  serviceDesc: 140,
+  address: 150,
+  hour: 60,
+  url: 300,
+} as const;
+
+/** Plain single-line text (strips any HTML the client might send). */
+function cleanText(v: unknown, max: number): string {
+  if (typeof v !== "string") return "";
+  return v.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+/** Plain multi-line text (keeps line breaks, strips HTML). */
+function cleanMultiline(v: unknown, max: number): string {
+  if (typeof v !== "string") return "";
+  return v
+    .replace(/<[^>]*>/g, "")
+    .replace(/\r/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, max);
+}
+
+/** https URLs only, and only from trusted hosts (our storage or Google photos). */
+function cleanPhotoUrl(v: unknown): string {
+  if (typeof v !== "string") return "";
+  const u = v.trim();
+  if (!/^https:\/\/[^\s]+$/i.test(u)) return "";
+  const storageBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL || ""}/storage/v1/object/public/`;
+  if (storageBase && storageBase !== "/storage/v1/object/public/" && u.startsWith(storageBase)) return u.slice(0, LIMITS.url);
+  if (u.startsWith("https://maps.googleapis.com/")) return u.slice(0, LIMITS.url);
+  return "";
+}
+
+function cleanLink(v: unknown): string {
+  if (typeof v !== "string") return "";
+  const u = v.trim();
+  return /^https:\/\/[^\s]+$/i.test(u) ? u.slice(0, LIMITS.url) : "";
+}
+
+function cleanPhone(v: unknown): string {
+  const s = typeof v === "string" ? v.trim() : "";
+  return /^[+()\-\s\d]{5,20}$/.test(s) ? s : "";
 }
 
 type AccountContext = {
@@ -283,6 +341,128 @@ export async function POST(req: Request) {
         setupIncluded: needsSetup,
         hostingIncluded: needsHosting,
       });
+    }
+
+    // ── build: generate the website (collect → AI copy → template → live) ──
+    if (action === "build") {
+      const site = ctx.website;
+      if (!site) {
+        return NextResponse.json({ error: "Start your website build first." }, { status: 400 });
+      }
+      // Latecomers must pay before the build runs.
+      if (site.status === "pending" && !site.setup_waived && !site.setup_paid) {
+        return NextResponse.json(
+          { error: "Payment is required before we build your website.", needsPayment: true },
+          { status: 402 }
+        );
+      }
+
+      const result = await buildWebsite(site.id);
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error || "Build failed" }, { status: 500 });
+      }
+
+      const fresh = await loadAccountContext(user.id);
+      return NextResponse.json({ success: true, website: fresh.website });
+    }
+
+    // ── save_content: owner edits (whitelist only — SEO/AEO/GEO stay locked) ──
+    if (action === "save_content") {
+      const site = ctx.website;
+      if (!site) {
+        return NextResponse.json({ error: "Start your website build first." }, { status: 400 });
+      }
+
+      const patch: any = body.patch || {};
+      const prev: any = site.content || {};
+
+      // Services: 2–6, sanitized
+      let services = prev.services || [];
+      if (Array.isArray(patch.services)) {
+        const cleaned = patch.services
+          .slice(0, 6)
+          .map((s: any) => ({
+            title: cleanText(s?.title, LIMITS.serviceTitle),
+            description: cleanText(s?.description, LIMITS.serviceDesc),
+          }))
+          .filter((s: any) => s.title.length > 0);
+        if (cleaned.length >= 2) services = cleaned;
+      }
+
+      const content = {
+        // keep every system-managed field (seo, faqs, keywords, areaServed,
+        // hoursSpec, geo, rating, userRatingsTotal, reviews, palette, ...)
+        ...prev,
+        tagline: patch.tagline !== undefined ? cleanText(patch.tagline, LIMITS.tagline) : prev.tagline,
+        hero: {
+          headline:
+            patch?.hero?.headline !== undefined
+              ? cleanText(patch.hero.headline, LIMITS.headline)
+              : prev?.hero?.headline,
+          subheadline:
+            patch?.hero?.subheadline !== undefined
+              ? cleanText(patch.hero.subheadline, LIMITS.subheadline)
+              : prev?.hero?.subheadline,
+        },
+        about: patch.about !== undefined ? cleanMultiline(patch.about, LIMITS.about) : prev.about,
+        services,
+        phone: patch.phone !== undefined ? (cleanPhone(patch.phone) || prev.phone) : prev.phone,
+        address: patch.address !== undefined ? cleanText(patch.address, LIMITS.address) : prev.address,
+        hours: Array.isArray(patch.hours)
+          ? patch.hours.map((h: any) => cleanText(h, LIMITS.hour)).filter(Boolean).slice(0, 7)
+          : prev.hours,
+        photos: Array.isArray(patch.photos)
+          ? patch.photos.map(cleanPhotoUrl).filter(Boolean).slice(0, 8)
+          : prev.photos,
+        reviewLink: patch.reviewLink !== undefined ? (cleanLink(patch.reviewLink) || prev.reviewLink) : prev.reviewLink,
+        mapUrl: patch.mapUrl !== undefined ? (cleanLink(patch.mapUrl) || prev.mapUrl) : prev.mapUrl,
+        // section visibility toggles (cosmetic only — never SEO data)
+        showHours: patch.showHours !== undefined ? !!patch.showHours : prev.showHours,
+        showReviews: patch.showReviews !== undefined ? !!patch.showReviews : prev.showReviews,
+        showGallery: patch.showGallery !== undefined ? !!patch.showGallery : prev.showGallery,
+        updatedByOwnerAt: new Date().toISOString(),
+      };
+
+      const { error: saveErr } = await supabaseAdmin
+        .from("websites")
+        .update({ content })
+        .eq("id", site.id);
+
+      if (saveErr) {
+        console.error("❌ Failed to save website content:", saveErr);
+        return NextResponse.json({ error: saveErr.message }, { status: 500 });
+      }
+
+      console.log(`✏️ Website content updated by owner ${user.id} (SEO fields preserved)`);
+      return NextResponse.json({ success: true, content });
+    }
+
+    // ── set_template: change the look (palette) only ──
+    if (action === "set_template") {
+      const site = ctx.website;
+      if (!site) {
+        return NextResponse.json({ error: "Start your website build first." }, { status: 400 });
+      }
+      const templateId = String(body.templateId || "");
+      const def = (TEMPLATE_REGISTRY as any)[templateId];
+      if (!def) {
+        return NextResponse.json({ error: "Unknown template." }, { status: 400 });
+      }
+
+      const content = {
+        ...(site.content || {}),
+        templateId,
+        templateName: def.name,
+        palette: def.colorPalette,
+      };
+
+      const { error: tErr } = await supabaseAdmin
+        .from("websites")
+        .update({ content, template_id: templateId })
+        .eq("id", site.id);
+      if (tErr) return NextResponse.json({ error: tErr.message }, { status: 500 });
+
+      return NextResponse.json({ success: true, content, templateId });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

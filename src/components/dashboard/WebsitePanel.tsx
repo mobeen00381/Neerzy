@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import WebsiteEditor from "@/components/dashboard/WebsiteEditor";
 import {
   Globe,
   Loader2,
@@ -26,6 +27,10 @@ type WebsiteRow = {
   setup_paid: boolean;
   hosting_status: string;      // none | trial | active | canceled
   free_until: string | null;
+  preview_ready?: boolean;
+  template_id?: string | null;
+  content?: any;
+  error?: string | null;
   created_at?: string | null;
 };
 
@@ -52,7 +57,7 @@ async function fetchState(): Promise<WebsiteState | null> {
   return (await res.json()) as WebsiteState;
 }
 
-async function postAction(action: "start" | "checkout") {
+async function postAction(action: "start" | "checkout" | "build") {
   const { data: { session } } = await supabase.auth.getSession();
   const res = await fetch("/api/websites", {
     method: "POST",
@@ -162,6 +167,7 @@ export default function WebsitePanel() {
   const [state, setState] = useState<WebsiteState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -211,12 +217,44 @@ export default function WebsitePanel() {
 
       setNotice(
         json?.earlyAdopter
-          ? "🎉 Your website is building — $99 setup waived as an early adopter, hosting free for 90 days."
-          : "Your website is building."
+          ? "🚧 Building your website… this usually takes about a minute."
+          : "Building your website…"
       );
+      await load();
+
+      // Early adopters build immediately (no payment step). Latecomers were
+      // already routed to checkout above.
+      const built = await postAction("build");
+      if (!built.ok) {
+        setError(
+          built.json?.error ||
+            "We couldn't finish building your website. Tap “Try again” — nothing was lost."
+        );
+      } else {
+        setNotice("🎉 Your website is ready! Preview it below or open your live link.");
+      }
       await load();
     } catch {
       setError("Could not start your website. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rebuild = async () => {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const { ok, json } = await postAction("build");
+      if (!ok) {
+        setError(json?.error || "We couldn't build your website. Please try again.");
+      } else {
+        setNotice("🎉 Your website is ready! Preview it below or open your live link.");
+      }
+      await load();
+    } catch {
+      setError("We couldn't build your website. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -463,6 +501,60 @@ export default function WebsitePanel() {
             </div>
           </div>
 
+          {/* Actions: preview · live · rebuild */}
+          <div className="flex flex-wrap gap-3">
+            {site.preview_ready ? (
+              <a
+                href={`/site/preview/${site.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition-all active:scale-95"
+              >
+                👀 Preview
+              </a>
+            ) : (
+              <button
+                onClick={rebuild}
+                disabled={busy}
+                className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                {busy ? "Building…" : "Build my website"}
+              </button>
+            )}
+
+            {site.domain_name && site.status === "live" && (
+              <a
+                href={`https://${site.domain_name}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-3 border-2 border-slate-200 rounded-xl text-xs font-black text-slate-700 hover:border-emerald-300 hover:text-emerald-800 transition-all active:scale-95"
+              >
+                🌐 View live site
+              </a>
+            )}
+
+            {site.preview_ready && (
+              <button
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 transition-all active:scale-95"
+              >
+                ✏️ Edit website
+              </button>
+            )}
+
+            {site.preview_ready && (
+              <button
+                onClick={rebuild}
+                disabled={busy}
+                className="inline-flex items-center gap-2 px-5 py-3 border-2 border-slate-200 rounded-xl text-xs font-black text-slate-500 hover:text-slate-900 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                🔄 Try again
+              </button>
+            )}
+          </div>
+
           {/* Hosting ending soon (early adopter, 7 days left) */}
           {site.hosting_status === "trial" && freeEndingSoon && (
             <div className="p-4 bg-sky-50 rounded-2xl border border-sky-100 text-sm text-sky-900 font-semibold flex items-start gap-3">
@@ -522,6 +614,15 @@ export default function WebsitePanel() {
             </div>
           )}
         </div>
+      )}
+      {/* ── "Make it yours" editor modal ── */}
+      {editing && site && (
+        <WebsiteEditor
+          siteId={site.id}
+          initialContent={site.content || {}}
+          onClose={() => setEditing(false)}
+          onSaved={load}
+        />
       )}
     </div>
   );
