@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendMetaText } from "@/lib/whatsapp";
 import { HOSTING_NOTICE_DAYS_BEFORE, HOSTING_PRICE_USD, hostingDaysLeft } from "@/lib/website";
-import { buildWebsite } from "@/lib/website-builder";
+import { buildWebsite, isReviewSyncAllowed, syncWebsiteReviewsForUser, REVIEWS_SYNC_DAYS } from "@/lib/website-builder";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -152,6 +152,47 @@ export async function POST(req: Request) {
       console.error("❌ [Cron] Stuck-build retry failed:", rebuildErr?.message || rebuildErr);
     }
 
+    // ── Review sync: every REVIEWS_SYNC_DAYS, PAID + ACTIVE subscribers only.
+    // Canceled / past-due / non-paid plans are skipped → zero Google API calls.
+    let reviewsSynced = 0;
+    let reviewsUpdated = 0;
+    let reviewsSkippedUnpaid = 0;
+    try {
+      const dueBefore = new Date(
+        Date.now() - REVIEWS_SYNC_DAYS * 24 * 60 * 60 * 1000
+      ).toISOString();
+
+      const { data: dueSites } = await supabaseAdmin
+        .from("websites")
+        .select("id, user_id, domain_name, reviews_synced_at")
+        .eq("status", "live")
+        .or(`reviews_synced_at.is.null,reviews_synced_at.lt.${dueBefore}`)
+        .order("reviews_synced_at", { ascending: true, nullsFirst: true })
+        .limit(300);
+
+      for (const s of dueSites || []) {
+        const allowed = await isReviewSyncAllowed(s.user_id);
+        if (!allowed) {
+          reviewsSkippedUnpaid += 1;
+          continue;
+        }
+        const res = await syncWebsiteReviewsForUser(s.user_id);
+        if (res.ok) {
+          reviewsSynced += 1;
+          if (res.updated) reviewsUpdated += 1;
+        }
+      }
+
+      if ((dueSites || []).length) {
+        console.log(
+          `⭐ [Cron] Reviews: ${reviewsSynced} synced (${reviewsUpdated} updated) · ` +
+            `${reviewsSkippedUnpaid} unpaid skipped · cadence ${REVIEWS_SYNC_DAYS}d`
+        );
+      }
+    } catch (revErr: any) {
+      console.error("❌ [Cron] Review sync failed:", revErr?.message || revErr);
+    }
+
     return NextResponse.json({
       ok: true,
       noticed,
@@ -160,6 +201,10 @@ export async function POST(req: Request) {
       failures,
       rebuilt,
       rebuiltFailures,
+      reviewsSynced,
+      reviewsUpdated,
+      reviewsSkippedUnpaid,
+      reviewsCadenceDays: REVIEWS_SYNC_DAYS,
     });
   } catch (err: any) {
     console.error("❌ [Cron] Website cron unexpected error:", err?.message || err);

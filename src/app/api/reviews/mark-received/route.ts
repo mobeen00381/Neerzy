@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { syncWebsiteReviewsForUser } from '@/lib/website-builder';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -62,6 +63,12 @@ export async function POST(req: Request) {
     if (updateError) {
       console.error('Failed to mark review as received:', updateError);
       return NextResponse.json({ error: 'Failed to update review request' }, { status: 500 });
+    }
+
+    // Fire-and-forget: refresh this trader's website reviews immediately so a
+    // just-received Google review shows up on their site within seconds.
+    if (userId) {
+      void syncWebsiteReviewsForUser(userId).catch(() => {});
     }
 
     return NextResponse.json({

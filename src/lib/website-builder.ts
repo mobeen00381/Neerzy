@@ -416,3 +416,131 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
   }
 }
 
+
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  4. Review sync (Phase 2) — paid + ACTIVE subscribers only
+//     Cadence: REVIEWS_SYNC_DAYS (default 3).
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export const REVIEWS_SYNC_DAYS = Math.max(1, Number(process.env.REVIEWS_SYNC_DAYS || 3));
+
+/**
+ * Only paid plans with an ACTIVE subscription may spend Google API calls.
+ * Plan off / subscription canceled or past-due → false → ZERO API calls.
+ */
+export async function isReviewSyncAllowed(userId: string): Promise<boolean> {
+  try {
+    const { data: p } = await supabaseAdmin
+      .from("profiles")
+      .select("selected_plan, subscription_status")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!p) return false;
+    const plan = (p.selected_plan || "free").toLowerCase();
+    if (!["pro", "growth", "agency"].includes(plan)) return false;
+    return (p.subscription_status || "active").toLowerCase() === "active";
+  } catch {
+    return false;
+  }
+}
+
+const reviewSig = (r: any) =>
+  `${r?.author || ""}|${r?.time || ""}|${String(r?.text || "").slice(0, 40)}`;
+
+/**
+ * Refresh one trader's cached Google reviews (exactly 1 Places call).
+ * Updates websites.reviews_cache + content rating and pings WhatsApp when a
+ * NEW positive review is found. Safe to call on-demand or from the cron.
+ */
+export async function syncWebsiteReviewsForUser(userId: string): Promise<{
+  ok: boolean;
+  updated: boolean;
+  hasNewReview: boolean;
+  error?: string;
+}> {
+  try {
+    const { data: site } = await supabaseAdmin
+      .from("websites")
+      .select("id, user_id, domain_name, status, content, reviews_cache")
+      .eq("user_id", userId)
+      .eq("status", "live")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!site) return { ok: false, updated: false, hasNewReview: false, error: "no live website" };
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("phone, business_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const phone = profile?.phone || "";
+
+    const { data: biz } = phone
+      ? await supabaseAdmin
+          .from("business_profiles")
+          .select("google_place_id")
+          .eq("user_phone", phone)
+          .maybeSingle()
+      : { data: null as any };
+    const placeId = biz?.google_place_id || null;
+    if (!placeId) return { ok: false, updated: false, hasNewReview: false, error: "no place id" };
+
+    const enr = await enrichFromPlaces(placeId);
+    if (!enr.reviews.length && enr.rating === null) {
+      return { ok: false, updated: false, hasNewReview: false, error: "no review data" };
+    }
+
+    const prev: any[] = Array.isArray(site.reviews_cache) ? site.reviews_cache : [];
+    const prevSigs = new Set(prev.map(reviewSig));
+    const newReview = enr.reviews.find((r) => !prevSigs.has(reviewSig(r))) || null;
+    const prevContent: any = site.content || {};
+    const changed =
+      !!newReview ||
+      enr.reviews.length !== prev.length ||
+      (enr.rating !== null && enr.rating !== prevContent.rating) ||
+      (enr.userRatingsTotal !== null && enr.userRatingsTotal !== prevContent.userRatingsTotal);
+
+    const nowIso = new Date().toISOString();
+
+    if (changed) {
+      const content = {
+        ...prevContent,
+        reviews: enr.reviews,
+        rating: enr.rating,
+        userRatingsTotal: enr.userRatingsTotal,
+        reviewsSyncedAt: nowIso,
+      };
+      const { error: upErr } = await supabaseAdmin
+        .from("websites")
+        .update({ reviews_cache: enr.reviews, reviews_synced_at: nowIso, content })
+        .eq("id", site.id);
+      if (upErr) return { ok: false, updated: false, hasNewReview: false, error: upErr.message };
+    } else {
+      await supabaseAdmin.from("websites").update({ reviews_synced_at: nowIso }).eq("id", site.id);
+    }
+
+    // Celebrate a new review (best effort — positive reviews only)
+    if (newReview && phone && (newReview.rating || 0) >= 4) {
+      try {
+        await sendMetaText({
+          to: phone.replace(/\D/g, ""),
+          body:
+            `⭐ *New ${newReview.rating}-star review!*\n\n` +
+            `"${String(newReview.text || "").slice(0, 180)}"\n— ${newReview.author}\n\n` +
+            `It's already live on your website: https://${site.domain_name} 🎉`,
+        });
+      } catch (e: any) {
+        console.warn("⚠️ [Review Sync] WhatsApp ping failed:", e?.message || e);
+      }
+    }
+
+    console.log(
+      `⭐ [Review Sync] ${site.domain_name}: ${changed ? "updated" : "no change"}${newReview ? " (new review)" : ""}`
+    );
+    return { ok: true, updated: changed, hasNewReview: !!newReview };
+  } catch (err: any) {
+    console.error("❌ [Review Sync]", err?.message || err);
+    return { ok: false, updated: false, hasNewReview: false, error: err?.message };
+  }
+}
+

@@ -392,6 +392,52 @@ export async function POST(req: Request) {
       else console.log(`⏸️ Website ${serviceWebsiteId} paused (${eventType})`);
     }
 
+    // ── Subscription lifecycle → profiles.subscription_status ──
+    // Gates paid-only work (Google review sync). Canceled / past-due users
+    // stop syncing entirely → no further Google API calls.
+    if (serviceSource !== 'website' && eventType.startsWith('subscription')) {
+      const subStatus =
+        eventType === 'subscription.created' || eventType === 'subscription.activated'
+          ? 'active'
+          : eventType.includes('canceled') || eventType.includes('cancelled')
+          ? 'canceled'
+          : eventType.includes('past_due')
+          ? 'past_due'
+          : null;
+
+      if (subStatus) {
+        const uid = eventCustomData.userId || eventCustomData.user_id || null;
+        const profileUpdate: any = { subscription_status: subStatus };
+        if (subStatus === 'canceled') profileUpdate.subscription_canceled_at = new Date().toISOString();
+
+        if (uid) {
+          const { error: subErr } = await supabase
+            .from('profiles')
+            .update(profileUpdate)
+            .eq('id', uid);
+          if (subErr) console.error('❌ Failed to update subscription_status:', subErr);
+          else console.log(`🔔 Subscription ${subStatus} → profile ${uid}`);
+        } else if (subscriptionIdFromEvent) {
+          // Fall back to the ledger when custom data is missing
+          const { data: prev } = await supabase
+            .from('transactions')
+            .select('user_id')
+            .eq('paddle_subscription_id', subscriptionIdFromEvent)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (prev?.user_id) {
+            const { error: subErr } = await supabase
+              .from('profiles')
+              .update(profileUpdate)
+              .eq('id', prev.user_id);
+            if (subErr) console.error('❌ Failed to update subscription_status:', subErr);
+            else console.log(`🔔 Subscription ${subStatus} → profile ${prev.user_id}`);
+          }
+        }
+      }
+    }
+
     return NextResponse.json({ received: true });
   } catch (error: any) {
     console.error(`Webhook Error: ${error.message}`);
