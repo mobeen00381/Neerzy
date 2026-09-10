@@ -137,6 +137,10 @@ Every trader uses the exact same simple WhatsApp flow — you just watch it all 
     patterns: ['domain', 'custom domain', 'domain fee', 'domain cost', '$19'],
     answer: `There's a one-time **$19 domain registration fee** when you sign up. This gives you a custom domain for your Neerzy-powered website (e.g., yourcompany.com).
 
+Once your domain is live you can tap **Build Website** in your dashboard:
+• **$99 setup fee** — waived FREE for early adopters 🎉
+• **$10/month hosting** — free for your first 90 days, then $10/month
+
 Your website is auto-generated and auto-updated every time you post. No website builder needed! 🌐`
   },
 
@@ -248,10 +252,15 @@ Neerzy is designed for businesses that may not have a website yet. Here's how it
 You don't need any existing website or technical skills. Neerzy builds everything for you! 👉 /onboarding`
   },
   {
-    patterns: ['website', 'my website', 'neerzy website', 'auto website', 'landing page'],
-    answer: `Every Neerzy user gets a beautiful, auto-generated website! 🌐
+    patterns: ['website', 'my website', 'neerzy website', 'auto website', 'landing page', 'build website', 'website cost', 'website fee', 'hosting', 'website price'],
+    answer: `You can build your own website right from the dashboard! 🌐
 
-• Custom domain (one-time $19 fee)
+1. First claim your **custom domain** (one-time $19)
+2. Then tap **Build Website**
+3. **$99 setup fee — FREE for early adopters** (limited-time offer)
+4. **Hosting just $10/month** — free for your first 90 days, then $10/month
+
+Every website is:
 • Automatically updated with every post you create
 • SEO-optimized with proper meta tags and schema markup
 • Mobile-responsive design
@@ -401,7 +410,8 @@ If you're based somewhere we don't cover yet or need content in another language
 2. Pick a plan (Free includes a 30-day trial - no credit card needed)
 3. Pay the one-time $19 domain fee to claim your custom domain
 4. Connect WhatsApp and your Google Business Profile
-5. Finish your first job → send a photo → type POST 🎉
+5. Optional: tap **Build Website** in the dashboard — $99 setup is FREE for early adopters, and hosting is $10/month (free for your first 90 days)
+6. Finish your first job → send a photo → type POST 🎉
 
 If you hit any snag, support@neerzy.com is here to help.`
   },

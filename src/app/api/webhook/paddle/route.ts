@@ -166,6 +166,21 @@ export async function POST(req: Request) {
     // Handle successful transaction or subscription
     const eventType = rawPayload?.event_type || event.eventType || event.event_type || 'unknown';
 
+    // ── Custom data (shared by domain + website provisioning below) ──
+    const payloadRoot: any = rawPayload?.data || {};
+    const eventData: any = (event as any).data;
+    const eventCustomData: any =
+      payloadRoot.custom_data ||
+      payloadRoot.customData ||
+      eventData?.customData ||
+      eventData?.custom_data ||
+      {};
+    // 'website' marks BUILD WEBSITE transactions/subscriptions so they never
+    // touch plan billing/quota logic.
+    const serviceSource = String(eventCustomData.source || '').toLowerCase();
+    const serviceWebsiteId = eventCustomData.websiteId || eventCustomData.website_id || null;
+    const subscriptionIdFromEvent = payloadRoot.subscription_id || payloadRoot.subscriptionId || null;
+
     // Record every revenue-relevant event into the admin `transactions` ledger.
     // Cancels/refunds are recorded as lifecycle rows; revenue totals in the
     // dashboard are computed from transaction.completed rows only.
@@ -184,14 +199,9 @@ export async function POST(req: Request) {
     if (isSuccessEvent) {
       // v3 SDK events expose data as specialized classes; the plain JSON parse
       // is the most reliable source for custom_data on both shapes.
-      const payloadData: any = rawPayload?.data || {};
-      const data: any = event.data;
-      const customData: any =
-        payloadData.custom_data ||
-        payloadData.customData ||
-        data?.customData ||
-        data?.custom_data ||
-        {};
+      const payloadData = payloadRoot;
+      const data = eventData;
+      const customData = eventCustomData;
 
       const domainName = String(customData.domainName || customData.domain_name || '')
         .toString().toLowerCase().trim();
@@ -281,6 +291,33 @@ export async function POST(req: Request) {
         }
       }
 
+      // ── 1b. WEBSITE purchase → $99 setup paid + $10/mo hosting active ──
+      // Marked with source:'website' so it never touches plan/quota billing.
+      if (serviceSource === 'website' && serviceWebsiteId) {
+        const siteUpdate: any = {};
+        if (isDomainPayment) {
+          // one-time $99 setup charged (latecomers)
+          siteUpdate.setup_paid = true;
+          siteUpdate.setup_paid_at = new Date().toISOString();
+          siteUpdate.status = 'building';
+          if (transactionId) siteUpdate.paddle_transaction_id = transactionId;
+        }
+        if (isSubscriptionActivation) {
+          // $10/mo hosting subscription created (latecomers pay up-front,
+          // early adopters start it after their free 90 days)
+          siteUpdate.hosting_status = 'active';
+          if (subscriptionIdFromEvent) siteUpdate.paddle_subscription_id = subscriptionIdFromEvent;
+        }
+        if (Object.keys(siteUpdate).length > 0) {
+          const { error: siteErr } = await supabase
+            .from('websites')
+            .update(siteUpdate)
+            .eq('id', serviceWebsiteId);
+          if (siteErr) console.error('❌ Failed to update website row:', siteErr);
+          else console.log(`🌐 Website ${serviceWebsiteId} updated:`, Object.keys(siteUpdate).join(', '));
+        }
+      }
+
       // ── 2. Sync the user row (domain purchase or subscription) ──
       const userPayload: any = {
         email: customerEmail || undefined,
@@ -289,7 +326,7 @@ export async function POST(req: Request) {
         service_type: customData.serviceType || customData.service_type || undefined,
         status: 'active',
       };
-      if (planIdFromCustom) userPayload.plan = planIdFromCustom;
+      if (planIdFromCustom && serviceSource !== 'website') userPayload.plan = planIdFromCustom;
       if (domainName && !ownershipConflict) userPayload.domain = domainName;
       if (domainName && domainExpiryIso && !ownershipConflict) userPayload.domain_expires_at = domainExpiryIso;
 
@@ -314,7 +351,7 @@ export async function POST(req: Request) {
       // ── 3. Sync plan + 30-day cycle anchor to the profile (quota engine).
       // Only on NEW subscription activation — a one-time $19 domain purchase
       // must never reset the user's billing cycle.
-      if (userIdFromCustom && isSubscriptionActivation) {
+      if (userIdFromCustom && isSubscriptionActivation && serviceSource !== 'website') {
         const { error: profileErr } = await supabase
           .from('profiles')
           .update({
@@ -333,6 +370,26 @@ export async function POST(req: Request) {
       if (domainName && !ownershipConflict) {
         console.log('🚀 Business is now LIVE on:', domainName);
       }
+    }
+
+    // ── Website hosting lifecycle → pause the site when hosting stops ──
+    // (subscription.canceled / past_due are not "success events", so they are
+    // handled here rather than inside the block above.)
+    if (
+      serviceSource === 'website' &&
+      serviceWebsiteId &&
+      eventType.includes('subscription') &&
+      (eventType.includes('canceled') || eventType.includes('cancelled') || eventType.includes('past_due'))
+    ) {
+      const { error: pauseErr } = await supabase
+        .from('websites')
+        .update({
+          hosting_status: eventType.includes('past_due') ? 'trial' : 'canceled',
+          status: 'paused',
+        })
+        .eq('id', serviceWebsiteId);
+      if (pauseErr) console.error('❌ Failed to pause website:', pauseErr);
+      else console.log(`⏸️ Website ${serviceWebsiteId} paused (${eventType})`);
     }
 
     return NextResponse.json({ received: true });

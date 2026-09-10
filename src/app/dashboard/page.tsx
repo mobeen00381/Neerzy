@@ -8,6 +8,7 @@ import { FallbackReviewModal } from '@/components/dashboard/FallbackReviewModal'
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
 import { AgencyClientsPanel } from '@/components/dashboard/AgencyClientsPanel';
 import DomainPanel from '@/components/dashboard/DomainPanel';
+import WebsitePanel, { WebsiteCtaButton } from '@/components/dashboard/WebsitePanel';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { 
   Sparkles, 
@@ -1535,6 +1536,17 @@ export default function Dashboard() {
                           <ChevronRight className="w-4 h-4 opacity-70" />
                         </a>
                       )}
+                      {/* 3rd button — build the custom-domain website */}
+                      <WebsiteCtaButton
+                        onOpen={() => {
+                          setActiveTab('account');
+                          setTimeout(() => {
+                            document
+                              .getElementById('custom-domain')
+                              ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }, 250);
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1811,7 +1823,12 @@ export default function Dashboard() {
                 )}
 
                 {/* Custom Domain (Pro · Growth · Agency) */}
-                <DomainPanel />
+                <div id="custom-domain">
+                  <DomainPanel />
+                </div>
+
+                {/* Website — BUILD WEBSITE ($99 setup · $10/mo hosting) */}
+                <WebsitePanel />
 
                 {/* Listing Details Card */}
                 <div className="bg-white p-8 rounded-3xl border border-slate-200/60 shadow-sm space-y-6">
