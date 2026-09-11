@@ -24,20 +24,20 @@ const FAQ_DATABASE: FAQEntry[] = [
 
 Here's how it works:
 1. 📸 Snap a photo or record a voice note of a job you just finished
-2. 🤖 Neerzy's AI instantly turns it into an SEO-optimized blog post
-3. 🌐 It publishes to your Google Business Profile and your Neerzy-powered website
+2. 🤖 Neerzy's AI turns it into a ready Google post — and the review ask for your customer
+3. 🌐 It goes to your Google Business Profile, and keeps your Neerzy website fresh
 
-All from WhatsApp — no apps to download, no dashboards to learn. Just text and post!`
+Send from WhatsApp or from your Neerzy link — both work the same. No apps to download, nothing new to learn.`
   },
   {
     patterns: ['how does neerzy work', 'how it works', 'how neerzy works'],
     answer: `It's super simple — 3 steps:
 
-1. 📱 Send a photo + voice note of your job to Neerzy via WhatsApp
-2. 🤖 Our AI generates an SEO-optimized post with headline, body, and hashtags
-3. 🚀 Post gets published to your Google Business Profile and website
+1. 📱 Send a photo + voice note of your job — on WhatsApp or from the Neerzy link
+2. 🤖 Our AI writes the Google post for you
+3. 🚀 Publish it in a couple of taps
 
-You can also send your customer's name and phone number, and Neerzy will automatically send them a review request via WhatsApp! ⭐`
+Add your customer's name and phone number, and Neerzy writes the review ask for you. Customer has no WhatsApp? One tap sends it by text, or copies your link. ⭐`
   },
 
   // ── Pricing ──
@@ -47,33 +47,35 @@ You can also send your customer's name and phone number, and Neerzy will automat
 
 🆓 **Free Plan** — $0/mo
 • 5 posts/month (1/day) • 5 review requests/month (1/day)
+• Google posts + review asks
+• Send jobs by WhatsApp or the app link
 • 30-day free trial
-• Google post & website generation
-• Review requests
 
 💼 **Pro Plan** — $39/mo
-• 25 posts/month, 2/day
-• WhatsApp workflow
-• Custom domain support
-• AI captions & voice notes
-• Basic analytics
+• 25 posts/month (2/day) • 25 review requests/month (2/day)
+• Send jobs by WhatsApp or the app link
+• Your own domain — $19 once
+• Website builder — $99 setup FREE for early adopters
+• Website hosting — $10/month, first 90 days free
+• AI captions & voice notes • Basic analytics
 
 🚀 **Growth Plan** — $79/mo
-• 60 posts/month, 4/day
-• Social content (Facebook + Instagram)
-• Priority processing
-• Advanced analytics
-• Review tracking dashboard
+• 60 posts/month (4/day) • 60 review requests/month (4/day)
+• Your own domain — $19 once
+• Website builder — $99 setup FREE for early adopters
+• Website hosting — $10/month, first 90 days free
+• Facebook + Instagram content • Priority processing
+• Advanced analytics + review tracking
 
 🏢 **Agency Plan** — $199/mo
 • Up to 10 traders — each connects their own WhatsApp
 • 300 posts + 300 review requests/month (30 per trader)
-• 3 posts/day per trader
+• One domain per client — $19 each
+• Website builder for every client — setup FREE for early adopters
 • Google + Facebook + Instagram posts for every trader
-• Agency overview dashboard
-• Priority processing & support
+• Agency overview dashboard • Priority processing & support
 
-💡 One-time $19 domain registration fee applies at signup.
+💡 Your own domain is $19 once. The Free plan gives you Google posts and review asks — no domain or website.
 👉 Start here: /onboarding`
   },
   {
@@ -83,12 +85,11 @@ You can also send your customer's name and phone number, and Neerzy will automat
 It includes:
 • 5 posts per month (1/day)
 • 5 review requests per month (1/day)
-• Google post generation
-• Website update generation
-• Review request generation
+• Google posts + review asks
+• Send jobs by WhatsApp or the app link
 • **30-day free trial** to explore everything
 
-No credit card required to start. 👉 Get started at /onboarding`
+The Free plan does not include a custom domain or a website. No credit card required to start. 👉 Get started at /onboarding`
   },
   {
     patterns: ['pro plan', 'pro tier', '$39'],
@@ -96,9 +97,10 @@ No credit card required to start. 👉 Get started at /onboarding`
 
 • 25 posts per month (2 per day)
 • 25 review requests per month (2 per day)
-• WhatsApp workflow
-• Google post generation
-• Custom domain support
+• Send jobs by WhatsApp or the app link
+• Your own domain — $19 once
+• Website builder — $99 setup FREE for early adopters
+• Website hosting — $10/month, first 90 days free
 • AI-powered content & captions
 • Voice note support
 • Basic analytics
@@ -111,10 +113,12 @@ Perfect for individual contractors and small businesses! 👉 /onboarding`
 
 • 60 posts per month (4 per day)
 • 60 review requests per month (4 per day)
+• Your own domain — $19 once
+• Website builder — $99 setup FREE for early adopters
+• Website hosting — $10/month, first 90 days free
 • Social content generation (Facebook + Instagram)
 • Priority processing
-• Advanced analytics
-• Review tracking dashboard
+• Advanced analytics + review tracking
 
 Ideal for growing businesses that want to dominate local search. 👉 /onboarding`
   },
@@ -124,7 +128,8 @@ Ideal for growing businesses that want to dominate local search. 👉 /onboardin
 
 • Up to 10 traders — each connects their own WhatsApp
 • 300 posts + 300 review requests per month (30 per trader)
-• 3 posts/day per trader
+• One domain per client — $19 each
+• Website builder for every client — setup FREE for early adopters
 • Google + Facebook + Instagram posts for every trader
 • Agency overview dashboard
 • Priority processing & priority support
@@ -134,14 +139,18 @@ Every trader uses the exact same simple WhatsApp flow — you just watch it all 
 
   // ── Domain ──
   {
-    patterns: ['domain', 'custom domain', 'domain fee', 'domain cost', '$19'],
-    answer: `There's a one-time **$19 domain registration fee** when you sign up. This gives you a custom domain for your Neerzy-powered website (e.g., yourcompany.com).
+    patterns: ['domain', 'custom domain', 'domain fee', 'domain cost', '$19', 'domain price', 'how much is the domain'],
+    answer: `Your own domain costs a one-time **$19**. You get it for your Neerzy website (e.g., yourcompany.com).
+
+• Registered and connected for you
+• Padlock (SSL) included
+• Renews at the same price
 
 Once your domain is live you can tap **Build Website** in your dashboard:
 • **$99 setup fee** — waived FREE for early adopters 🎉
 • **$10/month hosting** — free for your first 90 days, then $10/month
 
-Your website is auto-generated and auto-updated every time you post. No website builder needed! 🌐`
+Your website auto-updates every time you post. No website builder needed! 🌐`
   },
 
   // ── Trial ──
@@ -152,9 +161,8 @@ Your website is auto-generated and auto-updated every time you post. No website 
 During the trial you get:
 • 5 posts per month
 • 5 review requests per month
-• Google post generation
-• Website updates
-• Review request sending
+• Google posts + review asks
+• Send jobs by WhatsApp or the app link
 
 After the trial, you can upgrade to Pro ($39/mo), Growth ($79/mo), or Agency ($199/mo) — or stay on Free with your remaining posts. 👉 /onboarding`
   },
@@ -185,6 +193,25 @@ For refund requests, email us at support@neerzy.com.`
 …and any local business that wants more Google visibility and customer reviews!`
   },
 
+  // ── WhatsApp is optional ──
+  {
+    patterns: ['customer no whatsapp', 'customer without whatsapp', "customer doesn't have whatsapp", "customer doesnt have whatsapp", "customer doesn't use whatsapp", "customer doesnt use whatsapp", 'customer does not use whatsapp', 'customer does not have whatsapp', 'customer not on whatsapp', 'client does not use whatsapp', 'client no whatsapp', 'no whatsapp on their phone', 'sms', 'text message', 'send a text', 'copy the link'],
+    answer: `No problem at all. 🙌
+Every review ask has three ways out:
+• Send it on **WhatsApp**
+• Send it by **text (SMS)**
+• **copy the link** and paste it anywhere
+
+The message is written for you first — you just press send. ⭐`
+  },
+  {
+    patterns: ['do i need whatsapp', 'need whatsapp', 'without whatsapp', 'is whatsapp required', 'whatsapp required', 'dont have whatsapp', "don't have whatsapp", 'not on whatsapp', 'whatsapp needed'],
+    answer: `No — WhatsApp is optional. 🙌
+Send every job from **WhatsApp** or from your **Neerzy link**. Both work the same.
+
+The Neerzy link opens in any browser. Save it to your home screen and it works like an app — nothing to download, no app store needed.`
+  },
+
   // ── WhatsApp ──
   {
     patterns: ['whatsapp', 'how to post', 'send photo', 'voice note', 'how to use whatsapp'],
@@ -204,11 +231,13 @@ You can also send customer details (name + phone) and type **DONE** to automatic
     answer: `Neerzy makes getting reviews effortless! ⭐
 
 After finishing a job:
-1. Send the customer's name and phone number via WhatsApp
+1. Send the customer's name and phone number — on WhatsApp or from the Neerzy link
 2. Type **DONE**
-3. Neerzy automatically sends them a review request via WhatsApp + SMS
+3. Neerzy writes the review ask for you
 
-The review link goes directly to your Google Business Profile. More reviews = higher Google rankings! 📈`
+Send it on **WhatsApp**, send it by **text**, or **copy the link** and paste it anywhere. The message is ready — you just press send.
+
+The link goes straight to your Google reviews. More 5-star reviews = higher on Maps! 📈`
   },
 
   // ── Google Business Profile ──
@@ -240,25 +269,25 @@ The more you post, the higher you rank. Businesses using Neerzy typically see im
   // ── Website (specific questions first, then general) ──
   {
     patterns: ['without website', 'no website', "don't have website", 'do not have website', 'need a website', 'do i need website', 'start without', 'without a website'],
-    answer: `Yes! You can absolutely start without a website! 
+    answer: `Yes! You can absolutely start without a website!
 
 Neerzy is designed for businesses that may not have a website yet. Here's how it works:
 
-• 📸 Just send a photo via WhatsApp after each job
-•  Neerzy's AI generates SEO-optimized content
-• 🌐 We auto-generate a website for you (one-time $19 domain fee)
-• 📈 Content gets published to your Google Business Profile
+• 📸 Just send a photo on WhatsApp — or from the Neerzy link — after each job
+• 🤖 Neerzy's AI writes the Google post for you
+• 🌐 Add your own domain ($19 once) and tap **Build Website** when you're ready
+• 📈 Your work stays fresh on your Google Business Profile
 
-You don't need any existing website or technical skills. Neerzy builds everything for you! 👉 /onboarding`
+You don't need any existing website or technical skills. 👉 /onboarding`
   },
   {
-    patterns: ['website', 'my website', 'neerzy website', 'auto website', 'landing page', 'build website', 'website cost', 'website fee', 'hosting', 'website price'],
+    patterns: ['website', 'my website', 'neerzy website', 'auto website', 'landing page', 'build website', 'build a website', 'website cost', 'website fee', 'website price', 'website extra', 'website included', 'is the website extra', 'hosting'],
     answer: `You can build your own website right from the dashboard! 🌐
 
-1. First claim your **custom domain** (one-time $19)
+1. First claim your **domain** (one-time $19)
 2. Then tap **Build Website**
-3. **$99 setup fee — FREE for early adopters** (limited-time offer)
-4. **Hosting just $10/month** — free for your first 90 days, then $10/month
+3. **$99 setup fee — FREE for early adopters**
+4. **Hosting $10/month** — free for your first 90 days, then $10/month
 
 Every website is:
 • Automatically updated with every post you create
@@ -266,7 +295,7 @@ Every website is:
 • Mobile-responsive design
 • No coding or website builder needed
 
-Your website builds itself as you work! `
+The Free plan gives you Google posts and review asks. Your domain and website start on a paid plan.`
   },
 
   // ── Support / Contact ──
@@ -285,10 +314,10 @@ Pro tip: Growth and Agency plans get priority support! 🚀`
     patterns: ['compare', 'compare plans', 'which plan', 'what plan should', 'best plan for me', 'recommend a plan', 'recommend', 'difference between', 'free vs', 'vs pro', 'vs growth', 'vs agency', 'upgrade', 'downgrade', 'switch plan', 'change plan'],
     answer: `Here's a quick comparison to help you choose:
 
-🆓 **Free** - $0/mo: 5 posts + 5 review requests per month. Great for trying Neerzy (includes the 30-day trial).
-💼 **Pro** - $39/mo: 25 posts + 25 review requests per month, WhatsApp workflow, custom domain, basic analytics. Best for a single contractor posting every day.
-🚀 **Growth** - $79/mo: 60 posts + 60 review requests per month, Facebook & Instagram posts, priority processing, advanced analytics, review dashboard. Best for growing businesses.
-🏢 **Agency** - $199/mo: up to 10 traders, 300 posts + 300 review requests per month (30 per trader), Google + Facebook + Instagram for every trader, agency dashboard. Best for marketing agencies.
+🆓 **Free** - $0/mo: 5 posts + 5 review requests per month. Google posts and review asks, by WhatsApp or the Neerzy link. Includes the 30-day trial.
+💼 **Pro** - $39/mo: Your own domain — $19 once, website builder ($99 setup FREE for early adopters, then $10/mo hosting), 25 posts + 25 review requests per month, AI captions, voice notes, basic analytics. Best for a single contractor posting every day.
+🚀 **Growth** - $79/mo: Your own domain and website builder on the same terms as Pro, plus 60 posts + 60 review requests per month, Facebook & Instagram posts, priority processing, advanced analytics and review tracking. Best for growing businesses.
+🏢 **Agency** - $199/mo: up to 10 traders, 300 posts + 300 review requests per month (30 per trader), a domain and website for each client, Google + Facebook + Instagram for every trader, agency dashboard. Best for marketing agencies.
 
 Starting out? The **Free Plan** with its 30-day trial is the safest pick - you can upgrade anytime. 👉 /onboarding`
   },
@@ -299,7 +328,7 @@ Starting out? The **Free Plan** with its 30-day trial is the safest pick - you c
 🆓 **Free** - 5 posts/month (1/day) • 5 review requests/month (1/day)
 💼 **Pro** - 25 posts/month (2/day) • 25 review requests/month (2/day)
 🚀 **Growth** - 60 posts/month (4/day) • 60 review requests/month (4/day)
-🏢 **Agency** - 300 posts + 300 review requests/month across up to 10 traders (30 per trader, 3 posts/day per trader)
+🏢 **Agency** - 300 posts + 300 review requests/month across up to 10 traders (30 per trader)
 
 Limits refresh each month. 👉 /onboarding`
   },
@@ -333,7 +362,7 @@ Photos help your posts stand out (posts with photos usually perform better), but
     patterns: ['facebook', 'instagram', 'social media', 'social content', 'social posts', 'fb', 'ig', 'linkedin', 'twitter', 'tiktok'],
     answer: `Social posting depends on your plan:
 
-• **Free & Pro** - Google posts + your Neerzy website updates
+• **Free & Pro** - Google posts (plus your Neerzy website on Pro, once you build it)
 • **Growth & Agency** - you also get **Facebook + Instagram** posts for the same job
 
 If you want every job shared to Facebook & Instagram automatically, Growth (or Agency) is the plan for you. 👉 /onboarding`
@@ -342,7 +371,7 @@ If you want every job shared to Facebook & Instagram automatically, Growth (or A
     patterns: ['publish', 'auto post', 'automatically post', 'does neerzy post', 'does it post', 'who writes the post', 'post for me', 'automatic posting'],
     answer: `Neerzy does the writing for you.
 
-You send a photo or voice note → Neerzy's AI writes the SEO-optimised post → it's published to your Google Business Profile and your auto-generated Neerzy website. On Growth/Agency it also creates your Facebook + Instagram posts from the same job.`
+You send a photo or voice note → Neerzy's AI writes the SEO-optimised post → it's ready to publish to your Google Business Profile, and it updates your Neerzy website once you've built it. On Growth/Agency it also creates your Facebook + Instagram posts from the same job.`
   },
 
   {
@@ -389,7 +418,7 @@ For questions about customising colours, logos, or specific branding, email supp
     patterns: ['legit', 'legitimate', 'trust', 'trustworthy', 'scam', 'is neerzy real', 'real company', 'safe', 'secure', 'reliable', 'genuine'],
     answer: `Neerzy is a real SaaS company - you'll find our business details on the Contact page. 💙
 
-• Transparent pricing with no hidden fees
+• Transparent pricing: your own domain is $19 once, the website build is $99 (free for early adopters), and hosting is $10/month after 90 free days
 • Cancel anytime - no contracts
 • 30-day free trial so you can see results before paying
 • Real support at support@neerzy.com
@@ -442,6 +471,7 @@ const NEERZY_KEYWORDS = [
   'post', 'posting', 'whatsapp', 'voice note', 'photo', 'image',
   'review', 'reviews', 'customer', 'client',
   'website', 'domain', 'seo', 'search engine', 'ranking', 'rank',
+  'build website', 'website builder', 'hosting', 'sms', 'text message', 'no whatsapp',
   'google', 'gbp', 'google maps', 'google business',
   'content', 'blog', 'caption', 'hashtag',
   'analytics', 'dashboard', 'workflow',

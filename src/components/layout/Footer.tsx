@@ -21,7 +21,7 @@ export default function Footer() {
           <div className="space-y-4">
             <img src="/images/logo.svg" alt="Neerzy Logo" className="h-16 w-auto object-contain" />
             <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
-              Take a photo after every job. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.
+              Take a photo after every job. Send it on WhatsApp or the Neerzy link. Neerzy writes the post, asks for the review, and keeps your website fresh.
             </p>
             <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', fontWeight: 500, marginTop: 'var(--space-2)' }}>
               <a href="tel:+18338872999" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)', textDecoration: 'none' }}>
@@ -34,7 +34,7 @@ export default function Footer() {
             <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
               <li><Link href="/" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Features</Link></li>
               <li><Link href="/pricing" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Pricing</Link></li>
-              <li><Link href="/gmb-audit-tool" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>GMB Audit Tool</Link></li>
+              <li><Link href="/gmb-audit-tool" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Free Google Score</Link></li>
             </ul>
           </div>
           <div>

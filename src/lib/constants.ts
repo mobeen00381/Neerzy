@@ -1,4 +1,7 @@
-export const DOMAIN_PRICE_YEARLY = 20;
+export const DOMAIN_PRICE_ONETIME = 19; // One-time custom domain registration (paid plans)
+export const WEBSITE_SETUP_PRICE = 99; // One-time website build — FREE for early adopters
+export const WEBSITE_HOSTING_MONTHLY = 10; // Hosting per month, after the free window
+export const WEBSITE_HOSTING_FREE_DAYS = 90; // Hosting is free for the first 90 days
 export const TRIAL_DAYS = 30; // 30 days free trial
 
 export const PRICING_PLANS = {
@@ -8,11 +11,10 @@ export const PRICING_PLANS = {
     priceMonthly: 0,
     postsPerMonth: 5,
     features: [
-      "5 WhatsApp posts total",
-      "1 post per day limit",
-      "Google post generation",
-      "Website update generation",
-      "Review request generation"
+      "5 posts per month",
+      "5 review requests per month",
+      "Google posts + review asks",
+      "Send jobs by WhatsApp or the app link"
     ]
   },
   pro: {
@@ -21,11 +23,13 @@ export const PRICING_PLANS = {
     priceMonthly: 39,
     postsPerMonth: 25,
     features: [
-      "25 posts per month + review requests",
-      "25 review requests-extra",
-      "WhatsApp workflow",
-      "Custom domain support",
-      "Voice note support"
+      "25 posts + 25 review requests per month",
+      "Send jobs by WhatsApp or the app link",
+      "Your own domain — $19 once",
+      "Website builder — $99 setup FREE for early adopters",
+      "Website hosting — $10/month, first 90 days free",
+      "AI post content, captions & voice notes",
+      "Basic analytics"
     ]
   },
   growth: {
@@ -34,11 +38,13 @@ export const PRICING_PLANS = {
     priceMonthly: 79,
     postsPerMonth: 60,
     features: [
-      "60 posts per month + review requests",
-      "60 review requests-extra",
-      "Social content generation",
+      "60 posts + 60 review requests per month",
+      "Your own domain — $19 once",
+      "Website builder — $99 setup FREE for early adopters",
+      "Website hosting — $10/month, first 90 days free",
+      "Facebook + Instagram content",
       "Priority processing",
-      "Advanced analytics"
+      "Advanced analytics + review tracking"
     ]
   },
   agency: {
@@ -48,13 +54,12 @@ export const PRICING_PLANS = {
     postsPerMonth: 300,
     features: [
       "Up to 10 traders — each connects their own WhatsApp",
-      "300 posts per month (30 per trader)",
-      "300 review requests per month (30 per trader)",
-      "3 posts/day per trader",
+      "300 posts + 300 review requests per month (30 per trader)",
+      "One domain per client — $19 each",
+      "Website builder per client — $99 setup FREE for early adopters",
+      "Hosting $10/month per site, first 90 days free",
       "Google + Facebook + Instagram posts for every trader",
-      "Agency overview dashboard",
-      "Priority processing",
-      "Priority support"
+      "Agency overview dashboard + priority support"
     ]
   }
 };
@@ -62,19 +67,31 @@ export const PRICING_PLANS = {
 export const FAQ_ITEMS = [
   {
     question: "What happens after my trial?",
-    answer: "You can continue on the Free plan or upgrade to a paid tier anytime to unlock more posts and features."
+    answer: "You can stay on the Free plan (5 posts + 5 review asks a month) or upgrade to a paid plan anytime for more posts and your own domain and website."
   },
   {
     question: "Can I change plans later?",
-    answer: "Absolutely. Upgrade or downgrade between Free, Pro, and Growth at any time from your dashboard."
+    answer: "Absolutely. Upgrade or downgrade between Free, Pro, Growth, and Agency at any time from your dashboard."
   },
   {
     question: "Do I own my domain?",
-    answer: "Yes, 100%. The domain is registered in your name. You can transfer it out anytime with zero restrictions — no questions asked."
+    answer: "Yes, 100%. Your domain is $19 once, registered in your name, and renews at the same price. Transfer it out anytime with zero restrictions."
   },
   {
-    question: "What's included in each AI post?",
-    answer: "Every AI post includes a professionally written blog article for your website AND a Google Business Profile update, both auto-optimized for local SEO keywords."
+    question: "Is the website extra?",
+    answer: "Your domain is $19 once. The website build is $99 — free for early adopters. Hosting is $10/month, with the first 90 days free."
+  },
+  {
+    question: "Do I need WhatsApp?",
+    answer: "No. Send every job from WhatsApp or from the Neerzy link. Both work the same way. Nothing to download."
+  },
+  {
+    question: "What if my customer has no WhatsApp?",
+    answer: "One tap sends the review request by text, or copies your link. The message is ready — you just press send."
+  },
+  {
+    question: "What's included in each post?",
+    answer: "Every job gives you a ready Google post, written for you. Once your website is built, the same job keeps your site fresh. Growth and Agency also get Facebook + Instagram posts."
   },
   {
     question: "Can I cancel anytime?",
@@ -82,14 +99,10 @@ export const FAQ_ITEMS = [
   },
   {
     question: "Do I need any technical knowledge?",
-    answer: "Not at all. Just send a text message, photo, or voice note about your latest job. Our AI handles everything — writing, publishing, and SEO optimization."
+    answer: "Not at all. Send a text message, photo, or voice note about your latest job. Our AI handles the writing. You just press publish."
   },
   {
     question: "What if I already have a website?",
-    answer: "We can work alongside your existing website or replace it entirely. Your Neerzy site is a separate, optimized presence that boosts your local search rankings."
-  },
-  {
-    question: "How does the AI assistant work?",
-    answer: "Send a message, upload a photo, or record a voice note about your completed project. The AI instantly writes a professional SEO-optimized post and publishes it to your website and Google Business Profile."
+    answer: "Keep it. Your Neerzy site is a separate, fast, Google-ready presence that grows with every job you send. Nothing to switch or delete."
   }
 ];

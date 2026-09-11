@@ -23,11 +23,11 @@ const PLANS = [
     features: [
       { text: '5 posts per month', included: true },
       { text: '5 review requests per month', included: true },
-      { text: '1 post per day limit', included: true },
-      { text: 'Google post generation', included: true },
-      { text: 'Publish workflow page', included: true },
-      { text: 'No social posting', included: false },
-      { text: 'Neerzy branding visible', included: false },
+      { text: 'Google posts + review asks', included: true },
+      { text: 'Send jobs by WhatsApp or the app link', included: true },
+      { text: 'Your own domain ($19 once)', included: false },
+      { text: 'Website builder', included: false },
+      { text: 'Social posting', included: false },
     ]
   },
   {
@@ -39,13 +39,12 @@ const PLANS = [
     highlight: true,
     badge: 'Most Popular',
     features: [
-      { text: '25 posts per month + review requests', included: true },
-      { text: '25 review requests-extra', included: true },
-      { text: 'WhatsApp workflow', included: true },
-      { text: 'Google post generation', included: true },
-      { text: 'Custom domain support', included: true },
-      { text: 'AI post content & captions', included: true },
-      { text: 'Voice note support', included: true },
+      { text: '25 posts + 25 review requests per month', included: true },
+      { text: 'Send jobs by WhatsApp or the app link', included: true },
+      { text: 'Your own domain — $19 once', included: true },
+      { text: 'Website builder — $99 setup FREE for early adopters', included: true },
+      { text: 'Website hosting — $10/month, first 90 days free', included: true },
+      { text: 'AI post content, captions & voice notes', included: true },
       { text: 'Basic analytics', included: true },
     ]
   },
@@ -57,13 +56,13 @@ const PLANS = [
     href: '/checkout/growth',
     highlight: false,
     features: [
-      { text: '60 posts per month + review requests', included: true },
-      { text: '60 review requests-extra', included: true },
-      { text: 'Social content generation', included: true },
+      { text: '60 posts + 60 review requests per month', included: true },
+      { text: 'Your own domain — $19 once', included: true },
+      { text: 'Website builder — $99 setup FREE for early adopters', included: true },
+      { text: 'Website hosting — $10/month, first 90 days free', included: true },
       { text: 'Facebook + Instagram content', included: true },
       { text: 'Priority processing', included: true },
-      { text: 'Advanced analytics', included: true },
-      { text: 'Review tracking dashboard', included: true },
+      { text: 'Advanced analytics + review tracking', included: true },
     ]
   },
   {
@@ -75,25 +74,75 @@ const PLANS = [
     highlight: false,
     features: [
       { text: 'Up to 10 traders — each connects their own WhatsApp', included: true },
-      { text: '300 posts per month + review requests (30 per trader)', included: true },
-      { text: '3 posts/day per trader', included: true },
+      { text: '300 posts + 300 review requests per month (30 per trader)', included: true },
+      { text: 'One domain per client — $19 each', included: true },
+      { text: 'Website builder per client — $99 setup FREE for early adopters', included: true },
+      { text: 'Hosting $10/month per site, first 90 days free', included: true },
       { text: 'Google + Facebook + Instagram posts for every trader', included: true },
-      { text: 'Agency overview dashboard', included: true },
-      { text: 'Everything in Growth', included: true },
-      { text: 'Priority processing & priority support', included: true },
+      { text: 'Agency overview dashboard + priority support', included: true },
     ]
   }
 ];
 
 const COMPARISON = [
-  { feature: 'WhatsApp workflow', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Send by WhatsApp or the app link', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Google posts', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
-  { feature: 'Website updates', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
-  { feature: 'Review requests', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Review asks (WhatsApp, SMS or link)', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Your own domain ($19 once)', free: '—', pro: '✓', growth: '✓', agency: '✓ up to 10' },
+  { feature: 'Website builder (setup $99 — FREE for early adopters)', free: '—', pro: '✓', growth: '✓', agency: '✓ up to 10' },
+  { feature: 'Website hosting ($10/month)', free: '—', pro: '90 days free', growth: '90 days free', agency: '90 days free' },
   { feature: 'Voice notes', free: '—', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Social content', free: '—', pro: '—', growth: '✓', agency: '✓' },
   { feature: 'Analytics', free: 'Basic', pro: 'Basic', growth: 'Advanced', agency: 'Advanced' },
   { feature: 'Manage 10 traders', free: '—', pro: '—', growth: '—', agency: '✓' },
+];
+
+/** Add-ons sold on top of any paid plan. */
+const ADD_ONS = [
+  {
+    icon: '🌐',
+    name: 'Your own domain',
+    price: '$19',
+    note: 'one-time',
+    bullets: [
+      'Registered in your name',
+      'Connected and live for you',
+      'Padlock (SSL) included',
+      'Renews at the same price',
+    ],
+    cta: 'Claim Your Name',
+    href: '/onboarding',
+  },
+  {
+    icon: '🖥️',
+    name: 'Your website',
+    price: 'FREE',
+    strike: '$99',
+    note: 'setup — early adopters',
+    bullets: [
+      'Built from your Google listing',
+      'Live in about one minute',
+      'Every job updates it by itself',
+      'Google-ready and AI-ready',
+    ],
+    cta: 'Build My Website — Free',
+    href: '/onboarding',
+    highlight: true,
+  },
+  {
+    icon: '🚀',
+    name: 'Hosting',
+    price: '$10',
+    note: 'per month — first 90 days free',
+    bullets: [
+      'Fast and always on',
+      'Padlock (SSL) handled',
+      'Cancel anytime',
+      'No setup fees, no surprises',
+    ],
+    cta: 'Start Free — 5 Posts',
+    href: '/signup?plan=free',
+  },
 ];
 
 const FAQS = [
@@ -110,8 +159,20 @@ const FAQS = [
     a: 'No. Neerzy is designed specifically for busy, non-technical local businesses. If you can send a WhatsApp message, you can use Neerzy.'
   },
   {
-    q: 'Can I connect my existing website?',
-    a: 'Yes. We provide easy integration tools and managed website options for all paid plans.'
+    q: 'Do I need WhatsApp?',
+    a: 'No. Send every job from WhatsApp or from the Neerzy link. Both work the same way. Save the link to your home screen and it works like an app. Nothing to download.'
+  },
+  {
+    q: 'What if my customer does not use WhatsApp?',
+    a: 'One tap sends the review request by text, or copies your link. It is ready — you just press send.'
+  },
+  {
+    q: 'Is the website extra?',
+    a: 'Your own domain is $19 once. The website build is $99 — free for early adopters. Hosting is $10/month, with the first 90 days free. The Free plan gives you Google posts and review asks, without a domain or website.'
+  },
+  {
+    q: 'Can I keep my existing website?',
+    a: 'Yes. Your old site can stay online. Neerzy builds your own site on your own domain, and every job keeps it fresh.'
   },
   {
     q: 'Can I cancel anytime?',
@@ -122,6 +183,7 @@ const FAQS = [
 const pricingMobileStyles = `
   @media (max-width: 768px) {
     .pricing-grid-4 { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
+    .pricing-grid-3 { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
     .pricing-grid-2 { grid-template-columns: 1fr !important; max-width: 400px !important; margin: 0 auto !important; }
     .pricing-compare-grid { grid-template-columns: 1fr !important; max-width: 400px !important; }
   }
@@ -145,13 +207,13 @@ export default function PricingPage() {
             <span style={{ color: 'var(--color-primary)' }}>busy local businesses</span>
           </h1>
           <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto var(--space-5)' }}>
-            Send a job photo on <WhatsAppIcon size={24} className="text-[#22C55E] mx-1" /> <strong>WhatsApp</strong> → Neerzy helps create your Google posts, 
-            website updates, and review requests in minutes.
+            Send a job photo on <WhatsAppIcon size={24} className="text-[#22C55E] mx-1" /> <strong>WhatsApp</strong> — or from the Neerzy link. 
+            Neerzy writes your Google post, asks for reviews, and keeps your website fresh. Minutes, not hours.
           </p>
           
           {/* Value Bar */}
           <div className="hero-trust" style={{ justifyContent: 'center' }}>
-            {['WhatsApp-first workflow', 'Built for traders', 'No dashboards needed', 'Publish in < 60s'].map((item, i) => (
+            {['Send by WhatsApp or the app link', 'Built for traders', 'No jargon, no dashboards', 'Your own domain — $19'].map((item, i) => (
               <div key={i} className="hero-trust-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
@@ -165,8 +227,16 @@ export default function PricingPage() {
       </section>
 
       {/* Plans Section */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+      <section id="plans" className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+              Pick your plan. Cancel anytime.
+            </h2>
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '560px', margin: 'var(--space-3) auto 0' }}>
+              Start free. Upgrade when the work keeps coming.
+            </p>
+          </div>
           <div className="card-grid pricing-grid-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {PLANS.map((plan, i) => (
               <div 
@@ -254,6 +324,64 @@ export default function PricingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Add-ons Section */}
+      <section id="add-ons" className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-7)' }}>
+            <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
+              Your name online — and your own website
+            </h2>
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '560px', margin: 'var(--space-3) auto 0' }}>
+              Add these when you are ready. No hidden fees.
+            </p>
+          </div>
+          <div className="card-grid pricing-grid-3" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            {ADD_ONS.map((addon, i) => (
+              <div
+                key={i}
+                className="card"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  border: addon.highlight ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  boxShadow: addon.highlight ? '0 4px 16px rgba(15,81,50,0.12)' : 'var(--shadow-card)'
+                }}
+              >
+                <div style={{ fontSize: '28px', marginBottom: 'var(--space-2)' }} aria-hidden="true">{addon.icon}</div>
+                <h3 style={{ fontSize: 'var(--text-h3-size)', lineHeight: 'var(--text-h3-line)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-primary-dark)', marginBottom: 'var(--space-3)' }}>
+                  {addon.name}
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
+                  {addon.strike && (
+                    <span style={{ textDecoration: 'line-through', color: 'var(--color-text-secondary)', fontSize: 'var(--text-body-size)' }}>{addon.strike}</span>
+                  )}
+                  <span style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>{addon.price}</span>
+                  <span style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{addon.note}</span>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', flex: 1 }}>
+                  {addon.bullets.map((b, j) => (
+                    <li key={j} style={{ display: 'flex', gap: 'var(--space-2)', fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                      <span style={{ color: 'var(--color-accent)', fontWeight: 800 }}>✓</span>
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={addon.href}
+                  className={addon.highlight ? 'btn btn-primary' : 'btn btn-secondary'}
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  {addon.cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+          <p style={{ textAlign: 'center', marginTop: 'var(--space-4)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
+            $19 is paid once per domain. Hosting is $10/month after 90 free days. The website build is $99 — free for early adopters.
+          </p>
         </div>
       </section>
 
@@ -354,10 +482,19 @@ export default function PricingPage() {
       <section className="cta-final">
         <div className="container">
           <h2>Your next completed job could bring your next customer</h2>
-          <p>Send your next job photo on WhatsApp. Neerzy handles the heavy lifting of your marketing work.</p>
-          <Link href="#plans" className="btn btn-primary" style={{ fontSize: '18px', padding: '14px 36px' }}>
-            Choose Your Plan
-          </Link>
+          <p>Send your next job photo on WhatsApp — or from the Neerzy link. Neerzy does the rest.</p>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/signup?plan=free" className="btn btn-primary" style={{ fontSize: '18px', padding: '14px 36px' }}>
+              Start Free — 5 Posts
+            </Link>
+            <Link
+              href="#plans"
+              className="btn"
+              style={{ fontSize: '18px', padding: '14px 36px', color: '#FFFFFF', border: '2px solid rgba(255,255,255,0.6)', background: 'transparent' }}
+            >
+              See Plans
+            </Link>
+          </div>
           <div style={{ marginTop: 'var(--space-3)', color: 'rgba(255,255,255,0.7)', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             No credit card required
           </div>

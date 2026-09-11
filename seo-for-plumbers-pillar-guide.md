@@ -1005,7 +1005,7 @@ Neerzy also gives businesses genuine ownership rather than a rented presence: Ne
 
 The local SEO software category broadly includes rank-tracking and citation-management platforms (that monitor and report on your existing SEO), agency-style done-for-you services (that manage strategy on your behalf), and review-management tools (that focus specifically on collecting and responding to reviews). Neerzy occupies a different, more specific niche: it doesn't track your rankings or manage strategy — it automates the actual day-to-day *production* of the content (Google Posts, website updates, review requests) that those other categories of tools are designed to measure and report on. For a solo or small plumbing business, that production gap — not a lack of strategy — is usually the real bottleneck, which is why Neerzy is built around eliminating it rather than adding another dashboard to monitor it.
 
-**Pricing** starts at **Free** (5 total WhatsApp posts, useful for testing the workflow), then **Pro at $39/month** (25 posts and review requests monthly, custom domain support, AI-generated post content, voice note support), **Growth at $79/month** (60 posts and review requests monthly, social content for Facebook and Instagram, priority processing, advanced analytics, a review-tracking dashboard), and **Agency at $199/month** (for marketing agencies managing up to 10 traders — 300 posts and 300 review requests per month, 30 per trader, 3 posts/day per trader, and Google + Facebook + Instagram posts for every trader).
+**Pricing** starts at **Free** ($0 — 5 posts and 5 review asks a month, useful for testing the workflow), then **Pro at $39/month** (25 posts and review requests monthly, your own domain at $19 once, a website builder with setup free for early adopters and $10/month hosting after the first 90 days, AI-generated post content, voice note support), **Growth at $79/month** (60 posts and review requests monthly, social content for Facebook and Instagram, priority processing, advanced analytics, a review-tracking dashboard), and **Agency at $199/month** (for marketing agencies managing up to 10 traders — 300 posts and 300 review requests per month, 30 per trader, and Google + Facebook + Instagram posts for every trader).
 
 **→ [Start with 5 Free Posts](https://www.neerzy.com/) · [View Pricing](https://www.neerzy.com/pricing)**
 
@@ -1164,7 +1164,7 @@ Typically several hundred to a few thousand dollars per month, depending on scop
 Yes — optimizing your Google Business Profile completely (category, description, photos, posts) costs nothing but time, and tools like Neerzy's GBP audit are free to use.
 
 **What does Neerzy cost?**
-Neerzy's Free plan is $0 (5 total WhatsApp posts). Paid plans start at $39/month (Pro), $79/month (Growth), and $199/month (Agency, built for managing multiple clients).
+Neerzy's Free plan is $0 — 5 posts and 5 review asks a month. Paid plans start at $39/month (Pro), $79/month (Growth), and $199/month (Agency, built for managing multiple clients). Your own domain is $19 once, the website build is $99 (free for early adopters), and hosting is $10/month after 90 free days.
 
 **Is Neerzy cheaper than hiring an SEO agency?**
 For a single plumbing business, Neerzy's paid plans are generally significantly less expensive than a traditional agency retainer, though they solve a different, narrower part of the SEO workload (Google Business Profile activity, reviews, and website content) rather than full-service SEO strategy.
@@ -1199,7 +1199,7 @@ Yes — Neerzy is built broadly for local trades and service businesses, includi
 Not entirely — Neerzy automates the specific, ongoing tasks that most often get neglected (Google Posts, review requests, website freshness), which for most small plumbing businesses covers the majority of what an agency would otherwise be hired to do manually. Larger businesses with more competitive markets may still benefit from additional strategic SEO work alongside Neerzy's automation.
 
 **Can a marketing agency use Neerzy for multiple clients?**
-Yes — the Agency plan is built specifically for this: an agency can manage up to 10 traders (each connects their own WhatsApp), with 300 posts and 300 review requests per month shared across the agency (30 per trader, 3 posts/day per trader), and every trader gets Google + Facebook + Instagram posts through the same simple WhatsApp flow.
+Yes — the Agency plan is built specifically for this: an agency can manage up to 10 traders (each connects their own WhatsApp), with 300 posts and 300 review requests per month shared across the agency (30 per trader), and every trader gets Google + Facebook + Instagram posts through the same simple WhatsApp flow.
 
 **Does Neerzy support voice notes instead of typed messages?**
 Yes, on the Pro plan and above — technicians can send a voice note describing the job instead of typing, which Neerzy uses alongside the job photo to generate content.
