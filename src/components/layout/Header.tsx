@@ -41,7 +41,7 @@ export default function Header() {
   const navLinks = [
     { href: "/#features", label: "Features" },
     { href: "/pricing", label: "Pricing" },
-    { href: "/gmb-audit-tool", label: "GMB Checker" },
+    { href: "/gmb-audit-tool", label: "Free Google Score" },
   ];
 
   return (

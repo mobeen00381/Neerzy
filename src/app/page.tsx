@@ -52,14 +52,22 @@ export default function Page() {
               You finish the job. Neerzy helps the next customer find you.
             </h1>
             <p>
-              Take a photo after every job. Send it via <WhatsAppIcon size={16} className="inline-block align-middle text-[#22C55E]" /> WhatsApp or the web app. Neerzy prepares ready-to-copy posts for Google, Facebook and Instagram — plus a review request — in about a minute. Copy, paste, publish: Neerzy guides you through every step.
+              Finish the job. Send one photo on <WhatsAppIcon size={16} className="inline-block align-middle text-[#22C55E]" /> WhatsApp or the Neerzy link. Neerzy does the rest — a Google post, a website update, and a review ask. About one minute.
+            </p>
+            <p style={{
+              fontSize: 'var(--text-small-size)',
+              color: 'var(--color-text-secondary)',
+              fontWeight: 600,
+              marginTop: 'var(--space-2)'
+            }}>
+              Works like an app — no download. Just save the Neerzy link once.
             </p>
             <div className="hero-ctas">
               <Link href="/pricing" className="btn btn-primary">
-                Start Free
+                Start Free — 5 Posts
               </Link>
-              <Link href="/gmb-audit-tool" className="btn btn-secondary">
-                Check Your Visibility Score
+              <Link href="/#how-it-works" className="btn btn-secondary">
+                See How It Works
               </Link>
             </div>
 
@@ -75,7 +83,7 @@ export default function Page() {
               </div>
               <div className="hero-trust-item">
                 <CheckIcon size={16} />
-                <WhatsAppIcon size={14} className="text-[#22C55E]" /> WhatsApp + web app
+                <WhatsAppIcon size={14} className="text-[#22C55E]" /> WhatsApp or the Neerzy link
               </div>
             </div>
           </div>
@@ -142,7 +150,7 @@ export default function Page() {
             marginLeft: 'auto',
             marginRight: 'auto'
           }}>
-            You do excellent work. You finish the job, clean up, and move on to the next customer. But at the end of the day, there's no Google update, no website update, no review request, and no online record of the work you just completed.
+            The job is done. The van is packed. But Google, your website and your reviews wait.
           </p>
           <p style={{
             fontSize: 'var(--text-body-size)',
@@ -153,7 +161,7 @@ export default function Page() {
             marginLeft: 'auto',
             marginRight: 'auto'
           }}>
-            Meanwhile, larger competitors with marketing teams keep showing up in local searches — not because they do better work, but because they consistently post, collect reviews, and stay visible.
+            Big companies post every day. You have real work to do. Neerzy closes that gap.
           </p>
           <p style={{
             fontSize: 'var(--text-body-size)',
@@ -174,14 +182,14 @@ export default function Page() {
       {/* ============================================
           Section 3: How It Works
           ============================================ */}
-      <section className="section-padding" style={{
+      <section id="how-it-works" className="section-padding" style={{
         backgroundColor: 'var(--color-bg-soft)',
         borderTop: '1px solid var(--color-divider)'
       }}>
         <div className="container">
           <div className="steps-header">
             <h2>How it works</h2>
-            <p>Five simple steps. About one minute total. No marketing skills required.</p>
+            <p>One photo is all it takes. Five steps. About one minute.</p>
           </div>
 
           <div className="steps-grid">
@@ -205,8 +213,8 @@ export default function Page() {
               <div className="step-icon">
                 <SendIcon size={22} />
               </div>
-              <h3>Send via WhatsApp or web app</h3>
-              <p>Message the photo to Neerzy on WhatsApp or upload it through the web app — whichever is faster for you.</p>
+              <h3>Send it — WhatsApp or the Neerzy link</h3>
+              <p>Whichever is easier for you.</p>
             </div>
 
             <div className="step-card">
@@ -221,13 +229,49 @@ export default function Page() {
               <div className="step-icon">
                 <GlobeIcon size={22} />
               </div>
-              <h3>Follow the step-by-step guide</h3>
-              <p>Copy the post, paste it into Google, Facebook or Instagram, and attach the saved photo. Then reply DONE and the review request goes to your customer.</p>
+              <h3>Tap, post, done</h3>
+              <p>Tap the link, paste your post, add the photo. Then reply DONE — the review ask goes out.</p>
             </div>
           </div>
 
           <div className="steps-total">
             Total time: <strong>about one minute</strong> from photo to published.
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 3b: Connect (set up once)
+          ============================================ */}
+      <section id="features" className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container">
+          <div className="steps-header">
+            <h2>Set up once. Then forget it.</h2>
+            <p>Three taps. That's the whole setup.</p>
+          </div>
+
+          <div className="connect-grid">
+            <div className="connect-card">
+              <div className="step-icon"><MapPinIcon size={22} /></div>
+              <h3>Connect Google</h3>
+              <p>Tap Connect. Neerzy reads your name, hours and photos. You type nothing.</p>
+            </div>
+
+            <div className="connect-card">
+              <div className="step-icon"><WhatsAppIcon size={22} className="text-[#22C55E]" /></div>
+              <h3>Connect WhatsApp</h3>
+              <p>Tap one link. Send a photo. That's how every job goes in.</p>
+            </div>
+
+            <div className="connect-card">
+              <div className="step-icon"><GlobeIcon size={22} /></div>
+              <h3>The Neerzy link</h3>
+              <p>Not an app from a store. It's one link that works like an app. Save it once. Tap it forever.</p>
+            </div>
+          </div>
+
+          <div className="tip-strip">
+            📱 iPhone ✓ · 🤖 Android ✓ · ⬇️ Nothing to download · You never start from a blank page
           </div>
         </div>
       </section>
@@ -422,8 +466,8 @@ export default function Page() {
           ============================================ */}
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container assets-section">
-          <h2>One completed job creates multiple marketing assets.</h2>
-          <p>From a single photo, Neerzy prepares everything your business needs to stay visible and attract the next customer.</p>
+          <h2>One photo becomes five things.</h2>
+          <p>Same photo. Same minute. Five places your customers look.</p>
 
           <div className="assets-grid">
             <div className="asset-card">
@@ -579,6 +623,210 @@ export default function Page() {
               </div>
             </div>
           </div>
+
+          {/* No-WhatsApp customers: SMS or copy link */}
+          <div className="fallback-block">
+            <h3>Customer has no WhatsApp?</h3>
+            <p>One tap sends a text, or copies your link. Either way it's ready to go.</p>
+            <div className="fallback-buttons">
+              <span className="fallback-btn primary">📩 Send by SMS</span>
+              <span className="fallback-btn">🔗 Copy Link</span>
+            </div>
+            <p className="fallback-note">Message ready — just press send.</p>
+            <p className="fallback-note">⭐ New 5-star reviews show up on your website by themselves.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 7b: Show up higher on Google Maps
+          ============================================ */}
+      <section id="reviews" className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container">
+          <div className="steps-header">
+            <h2>Show up higher on Google Maps.</h2>
+            <p>Google shows businesses that post often and collect reviews. Neerzy does both — automatically.</p>
+          </div>
+
+          <div className="map-compare">
+            <div className="map-panel">
+              <div className="map-panel-label without">Without Neerzy</div>
+              <div className="map-mock">
+                <span className="map-pin gray" style={{ top: '62%', left: '22%' }} />
+                <span className="map-pin gray" style={{ top: '74%', left: '58%' }} />
+                <span className="map-pin gray dim" style={{ top: '82%', left: '38%' }} />
+              </div>
+              <p className="map-caption">Posted 8 months ago · 6 reviews</p>
+            </div>
+
+            <div className="map-panel">
+              <div className="map-panel-label with">With Neerzy</div>
+              <div className="map-mock accent">
+                <span className="map-pin green" style={{ top: '18%', left: '30%' }}><b>4.8</b></span>
+                <span className="map-pin green" style={{ top: '26%', left: '62%' }}><b>5.0</b></span>
+                <span className="map-pin green" style={{ top: '12%', left: '52%' }}><b>4.9</b></span>
+              </div>
+              <p className="map-caption">Posted today · 47 reviews</p>
+            </div>
+          </div>
+
+          <div className="tip-strip">Example. Results depend on your area and your work.</div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 7c: Your own domain ($19)
+          ============================================ */}
+      <section id="domain" className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container">
+          <div className="steps-header">
+            <h2>Your own name on the internet. $19.</h2>
+            <p>Type your business name. If it's free, tap Buy. We do the rest.</p>
+          </div>
+
+          <div className="domain-mock">
+            <div className="domain-search">
+              <span className="domain-search-text">blacksmithhandles.com</span>
+              <span className="domain-search-badge">✓ Available</span>
+            </div>
+            <div className="domain-ticks">
+              <span>✓ Registered for you</span>
+              <span>✓ Connected to your site</span>
+              <span>🔒 Padlock on</span>
+            </div>
+          </div>
+
+          <div className="price-card">
+            <div className="price-card-main">
+              <span className="price-card-amount">$19</span>
+              <span className="price-card-once">once</span>
+            </div>
+            <ul className="price-card-list">
+              <li>You own it. Forever.</li>
+              <li>Renews at the same price.</li>
+              <li>No surprises.</li>
+            </ul>
+            <Link href="/pricing" className="btn btn-primary">Claim Your Name</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 7d: Build your website
+          ============================================ */}
+      <section id="build-website" className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container">
+          <div className="steps-header">
+            <h2>Tap one button. Get a real website.</h2>
+            <p>Neerzy reads your Google page, writes the words, picks the look. Your site goes live on your new name.</p>
+          </div>
+
+          <div className="build-grid">
+            <div className="browser-mock">
+              <div className="browser-bar">
+                <span className="browser-dot" /><span className="browser-dot" /><span className="browser-dot" />
+                <span className="browser-url">blacksmithhandles.com</span>
+              </div>
+              <div className="browser-body">
+                <div className="browser-hero" />
+                <div className="browser-line" />
+                <div className="browser-line short" />
+                <div className="browser-tiles">
+                  <span /><span /><span />
+                </div>
+              </div>
+            </div>
+
+            <ul className="build-list">
+              <li>Words, photos and reviews — already in.</li>
+              <li>Pick the look you like. Ten choices.</li>
+              <li>Change anything later — words, photos, colors. You can't break it.</li>
+              <li>Every new job shows up on the site by itself.</li>
+              <li>Google-ready and AI-ready. Handled. Locked.</li>
+            </ul>
+          </div>
+
+          <div className="price-card">
+            <div className="price-card-main">
+              <span className="price-card-strike">$99</span>
+              <span className="price-card-amount">FREE</span>
+              <span className="price-card-once">for early adopters</span>
+            </div>
+            <ul className="price-card-list">
+              <li>Setup fee waived — yours to keep.</li>
+              <li>Hosting $10/month.</li>
+              <li>First 90 days of hosting free.</li>
+            </ul>
+            <Link href="/pricing" className="btn btn-primary">Build My Website — Free</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 7e: Protected (Google + AI ready)
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container">
+          <div className="connect-grid">
+            <div className="connect-card">
+              <div className="step-icon"><MapPinIcon size={22} /></div>
+              <h3>Shows up on Google</h3>
+              <p>Set up for you.</p>
+            </div>
+            <div className="connect-card">
+              <div className="step-icon"><MessageSquareIcon size={22} /></div>
+              <h3>AI helpers can find you</h3>
+              <p>They can recommend your business too.</p>
+            </div>
+            <div className="connect-card">
+              <div className="step-icon"><CheckIcon size={22} /></div>
+              <h3>Protected</h3>
+              <p>Handled automatically. You can't break it.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================
+          Section 7f: What marketing costs
+          ============================================ */}
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+        <div className="container">
+          <div className="steps-header">
+            <h2>What marketing costs.</h2>
+            <p>Agencies do it for you and charge a lot. Tools make you do it yourself. Neerzy just does it.</p>
+          </div>
+
+          <div className="price-table-wrap">
+            <table className="price-table">
+              <thead>
+                <tr>
+                  <th>The old way</th>
+                  <th>Price</th>
+                  <th>What happens</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Marketing agency</td>
+                  <td>$500–$3,000 / month</td>
+                  <td>They do it. You wait.</td>
+                </tr>
+                <tr>
+                  <td>Marketing tools</td>
+                  <td>$97–$497 / month</td>
+                  <td>You do it all yourself.</td>
+                </tr>
+                <tr className="highlight">
+                  <td><strong>Neerzy</strong></td>
+                  <td><strong>Free to start</strong></td>
+                  <td><strong>One photo. We do the rest.</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="tip-strip">Typical prices. Pro plan $39/month when you grow.</div>
         </div>
       </section>
 
@@ -588,7 +836,7 @@ export default function Page() {
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container flow-section">
           <h2>Why this matters</h2>
-          <p>Every completed job feeds a chain that makes your business more visible and attracts the next customer.</p>
+          <p>One job makes more trust. More trust brings more calls.</p>
 
           <div className="flow-grid">
             {/* Row 1 */}
@@ -596,7 +844,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <ZapIcon size={18} />
               </div>
-              <span className="flow-node-text">Completed job</span>
+              <span className="flow-node-text">Job done</span>
             </div>
 
             <div className="flow-arrow">
@@ -609,7 +857,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <FileTextIcon size={18} />
               </div>
-              <span className="flow-node-text">Fresh content</span>
+              <span className="flow-node-text">Google post</span>
             </div>
 
             <div className="flow-arrow">
@@ -622,7 +870,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <StarIcon size={18} />
               </div>
-              <span className="flow-node-text">Review request</span>
+              <span className="flow-node-text">Ask for review</span>
             </div>
 
             <div className="flow-arrow">
@@ -635,7 +883,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <CheckIcon size={18} />
               </div>
-              <span className="flow-node-text">Customer review</span>
+              <span className="flow-node-text">5-star review</span>
             </div>
 
             {/* Downward connector between rows */}
@@ -650,7 +898,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <TrendingUpIcon size={18} />
               </div>
-              <span className="flow-node-text">Better credibility</span>
+              <span className="flow-node-text">More trust</span>
             </div>
 
             <div className="flow-arrow">
@@ -663,7 +911,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <MapPinIcon size={18} />
               </div>
-              <span className="flow-node-text">Stronger Google Profile</span>
+              <span className="flow-node-text">Higher on Maps</span>
             </div>
 
             <div className="flow-arrow">
@@ -676,7 +924,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <EyeIcon size={18} />
               </div>
-              <span className="flow-node-text">More visibility</span>
+              <span className="flow-node-text">More people see you</span>
             </div>
 
             <div className="flow-arrow">
@@ -689,7 +937,7 @@ export default function Page() {
               <div className="flow-node-icon">
                 <MessageSquareIcon size={18} />
               </div>
-              <span className="flow-node-text">More enquiries</span>
+              <span className="flow-node-text">More calls</span>
             </div>
           </div>
         </div>
@@ -740,6 +988,24 @@ export default function Page() {
               </div>
               <span className="own-card-text">Your customer relationships</span>
             </div>
+            <div className="own-card">
+              <div className="own-check">
+                <CheckIcon size={16} />
+              </div>
+              <span className="own-card-text">Your search ranking — handled</span>
+            </div>
+            <div className="own-card">
+              <div className="own-check">
+                <CheckIcon size={16} />
+              </div>
+              <span className="own-card-text">Your growth</span>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 'var(--space-6)', textAlign: 'center' }}>
+            <Link href="/onboarding" className="btn btn-primary">
+              Claim Your Name
+            </Link>
           </div>
         </div>
       </section>
@@ -782,13 +1048,18 @@ export default function Page() {
           ============================================ */}
       <section className="cta-final">
         <div className="container">
-          <h2>Every completed job deserves the chance to bring another one.</h2>
+          <div className="cta-chips">
+            <span>✓ No fake reviews</span>
+            <span>✓ Google-friendly</span>
+            <span>✓ You own everything</span>
+          </div>
+          <h2>Every job can bring the next one.</h2>
           <p>Keep doing great work. Neerzy helps make sure people see it.</p>
           <Link href="/pricing" className="btn btn-primary">
-            Start Free
+            Start Free — 5 Posts
           </Link>
           <Link href="/gmb-audit-tool" className="cta-final-link">
-            Not ready? Check your Visibility Score
+            Check My Google Score
           </Link>
         </div>
       </section>
