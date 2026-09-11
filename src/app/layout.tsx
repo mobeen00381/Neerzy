@@ -58,7 +58,7 @@ const organizationSchema = {
   "@type": "Organization",
   "name": "Neerzy",
   "url": "https://www.neerzy.com",
-  "logo": "https://www.neerzy.com/images/logo.svg",
+  "logo": "https://www.neerzy.com/images/logo.png",
   "description": "Done-for-you SEO websites and Google Business management for local service businesses via WhatsApp.",
   "contactPoint": {
     "@type": "ContactPoint",

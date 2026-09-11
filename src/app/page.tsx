@@ -52,7 +52,7 @@ export default function Page() {
               You finish the job. Neerzy helps the next customer find you.
             </h1>
             <p>
-              Finish the job. Send one photo on <WhatsAppIcon size={16} className="inline-block align-middle text-[#22C55E]" /> WhatsApp or the Neerzy link. Neerzy does the rest — a Google post, a website update, and a review ask. About one minute.
+              Finish the job. Send one photo on <WhatsAppIcon size={16} className="inline-block align-middle text-[#0F5132]" /> WhatsApp or the Neerzy link. Neerzy does the rest — a Google post, a website update, and a review ask. About one minute.
             </p>
             <p style={{
               fontSize: 'var(--text-small-size)',
@@ -83,7 +83,7 @@ export default function Page() {
               </div>
               <div className="hero-trust-item">
                 <CheckIcon size={16} />
-                <WhatsAppIcon size={14} className="text-[#22C55E]" /> WhatsApp or the Neerzy link
+                <WhatsAppIcon size={14} className="text-[#0F5132]" /> WhatsApp or the Neerzy link
               </div>
             </div>
           </div>
@@ -150,18 +150,7 @@ export default function Page() {
             marginLeft: 'auto',
             marginRight: 'auto'
           }}>
-            The job is done. The van is packed. But Google, your website and your reviews wait.
-          </p>
-          <p style={{
-            fontSize: 'var(--text-body-size)',
-            lineHeight: 'var(--text-body-line)',
-            color: 'var(--color-text-secondary)',
-            textAlign: 'center',
-            maxWidth: '600px',
-            marginLeft: 'auto',
-            marginRight: 'auto'
-          }}>
-            Big companies post every day. You have real work to do. Neerzy closes that gap.
+            The job is done and the van is packed — but Google, your website and your reviews wait. Big companies post every day while you have real work to do.
           </p>
           <p style={{
             fontSize: 'var(--text-body-size)',
@@ -258,7 +247,7 @@ export default function Page() {
             </div>
 
             <div className="connect-card">
-              <div className="step-icon"><WhatsAppIcon size={22} className="text-[#22C55E]" /></div>
+              <div className="step-icon"><WhatsAppIcon size={22} /></div>
               <h3>Connect WhatsApp</h3>
               <p>Tap one link. Send a photo. That's how every job goes in.</p>
             </div>
@@ -271,7 +260,7 @@ export default function Page() {
           </div>
 
           <div className="tip-strip">
-            📱 iPhone ✓ · 🤖 Android ✓ · ⬇️ Nothing to download · You never start from a blank page
+            iPhone and Android · Nothing to download · You never start from a blank page
           </div>
         </div>
       </section>
@@ -279,7 +268,7 @@ export default function Page() {
       {/* ============================================
           Section 4: Free Visibility Check
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container audit-section">
           <h2>See how your business looks online today.</h2>
           <p>Enter your business name for a quick visibility check. See what's working and what could bring you more customers.</p>
@@ -368,7 +357,7 @@ export default function Page() {
       {/* ============================================
           Section 5: How Neerzy Fixes It
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container fix-section">
           <h2>How Neerzy fixes it</h2>
           <p>Every problem the audit finds has a fix built into Neerzy's workflow. No extra tools, no separate logins.</p>
@@ -464,7 +453,7 @@ export default function Page() {
       {/* ============================================
           Section 6: One Photo, Multiple Results
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container assets-section">
           <h2>One photo becomes five things.</h2>
           <p>Same photo. Same minute. Five places your customers look.</p>
@@ -516,7 +505,7 @@ export default function Page() {
       {/* ============================================
           Section 7: Review Request Comparison
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container compare-section">
           <h2>Ask for the review while the customer is still happy.</h2>
           <p>The difference between a review collected and a review opportunity lost is just a few minutes — and one photo.</p>
@@ -629,11 +618,11 @@ export default function Page() {
             <h3>Customer has no WhatsApp?</h3>
             <p>One tap sends a text, or copies your link. Either way it's ready to go.</p>
             <div className="fallback-buttons">
-              <span className="fallback-btn primary">📩 Send by SMS</span>
-              <span className="fallback-btn">🔗 Copy Link</span>
+              <span className="fallback-btn primary">Send by SMS</span>
+              <span className="fallback-btn">Copy Link</span>
             </div>
             <p className="fallback-note">Message ready — just press send.</p>
-            <p className="fallback-note">⭐ New 5-star reviews show up on your website by themselves.</p>
+            <p className="fallback-note">New 5-star reviews show up on your website by themselves.</p>
           </div>
         </div>
       </section>
@@ -641,7 +630,7 @@ export default function Page() {
       {/* ============================================
           Section 7b: Show up higher on Google Maps
           ============================================ */}
-      <section id="reviews" className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+      <section id="reviews" className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container">
           <div className="steps-header">
             <h2>Show up higher on Google Maps.</h2>
@@ -677,7 +666,7 @@ export default function Page() {
       {/* ============================================
           Section 7c: Your own domain ($19)
           ============================================ */}
-      <section id="domain" className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+      <section id="domain" className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container">
           <div className="steps-header">
             <h2>Your own name on the internet. $19.</h2>
@@ -687,12 +676,12 @@ export default function Page() {
           <div className="domain-mock">
             <div className="domain-search">
               <span className="domain-search-text">blacksmithhandles.com</span>
-              <span className="domain-search-badge">✓ Available</span>
+              <span className="domain-search-badge">Available</span>
             </div>
             <div className="domain-ticks">
-              <span>✓ Registered for you</span>
-              <span>✓ Connected to your site</span>
-              <span>🔒 Padlock on</span>
+              <span>Registered for you</span>
+              <span>Connected to your site</span>
+              <span>Padlock on</span>
             </div>
           </div>
 
@@ -714,7 +703,7 @@ export default function Page() {
       {/* ============================================
           Section 7d: Build your website
           ============================================ */}
-      <section id="build-website" className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+      <section id="build-website" className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container">
           <div className="steps-header">
             <h2>Tap one button. Get a real website.</h2>
@@ -765,7 +754,7 @@ export default function Page() {
       {/* ============================================
           Section 7e: Protected (Google + AI ready)
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container">
           <div className="connect-grid">
             <div className="connect-card">
@@ -790,7 +779,7 @@ export default function Page() {
       {/* ============================================
           Section 7f: What marketing costs
           ============================================ */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
+      <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container">
           <div className="steps-header">
             <h2>What marketing costs.</h2>

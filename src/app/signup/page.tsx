@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
-  Sparkles, 
   Mail, 
   Lock, 
   ArrowRight, 
@@ -12,6 +11,7 @@ import {
   ShieldCheck, 
   CheckCircle2 
 } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 import { Suspense } from 'react';
 
@@ -80,10 +80,7 @@ function SignupForm() {
       <div className="w-full max-w-md flex flex-col items-center z-10 space-y-6">
         {/* Header / Brand Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#22C55E] flex items-center justify-center shadow-lg shadow-[#22C55E]/20">
-            <Sparkles className="w-4.5 h-4.5 text-white stroke-[2.5]" />
-          </div>
-          <span className="text-xl font-black tracking-tight text-white">Neerzy</span>
+          <Logo tone="onDark" className="h-12 w-auto object-contain" />
         </div>
 
         {/* Signup Card */}

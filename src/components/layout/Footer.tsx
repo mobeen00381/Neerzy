@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
+import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
 
 export default function Footer() {
@@ -19,7 +20,7 @@ export default function Footer() {
       <div className="container" style={{ paddingTop: 'var(--space-6)', paddingBottom: 'var(--space-6)' }}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <img src="/images/logo.svg" alt="Neerzy Logo" className="h-16 w-auto object-contain" />
+            <Logo className="h-14 w-auto object-contain" />
             <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
               Take a photo after every job. Send it on WhatsApp or the Neerzy link. Neerzy writes the post, asks for the review, and keeps your website fresh.
             </p>

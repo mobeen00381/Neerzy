@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
+import Logo from "@/components/ui/Logo";
 import {
   LayoutDashboard, Users, Wallet, Target, Activity, Link2, LogOut, Lock, Menu, X,
 } from "lucide-react";
@@ -78,7 +79,7 @@ export default function AdminDashboard() {
         <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-[#E1E8E4]">
           <div className="p-10">
             <div className="flex items-center justify-center mb-8">
-              <img src="/images/logo.svg" alt="Neerzy Logo" className="h-20 w-auto object-contain" />
+              <Logo className="h-16 w-auto object-contain" />
             </div>
             <h1 className="text-3xl font-bold text-[#0A2E22] text-center mb-1">Admin Portal</h1>
             <p className="text-[#5B6B64] font-normal text-center mb-8">Sign in with your administrator credentials</p>

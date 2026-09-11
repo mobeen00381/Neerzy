@@ -208,3 +208,36 @@ Marketing pages (homepage, blog, category guides) frequently need to show what t
 - These are built as real product UI components rendering demo data — not stock images, not illustrations pretending to be screenshots.
 - Never caption or present illustrative data as a verified real customer outcome (no "this plumber achieved X," no specific unverified before/after numbers attributed to a named real business). Generic framing ("here's what a low-scoring profile looks like," "an optimized profile scores highly across categories") is fine; a specific real-sounding customer claim is not.
 - Genuine product UI with no invented data (an input field, a settings screen, a responsive layout check) should be captured as an actual real screenshot — the demo-data standard applies only where a specific score, result, or data point would otherwise need to be fabricated.
+
+---
+
+## 11. Visual Hierarchy Rule (new — accent reservation)
+
+`--color-accent` (#22C55E) is reserved for exactly two uses per page:
+
+1. **Primary CTA buttons** (already correct — do not change).
+2. **ONE "hero result" per section** — the single number, score, or price that section is trying to sell (e.g. the `72` visibility score, the `$19` price, star ratings, the "With Neerzy" map score bubbles / comparison card).
+
+Every other use of green on a page — checkmarks (✓), small icon-circle backgrounds, step badges, bullets, arrow glyphs — must switch to `--color-primary` (#0F5132). Never `--color-accent` for these.
+
+**Reasoning:** if checkmarks, icons and buttons are all the same bright green, the CTA and the hero number stop reading as important — everything competes at once. Reserving accent keeps exactly one focal point per section.
+
+---
+
+## 12. Brand Mark Rule (new — one logo, everywhere)
+
+There is **one** Neerzy logo. It must never be re-drawn, re-coloured, or replaced with a text wordmark anywhere on the site.
+
+- Assets live in `/public/images/`: `logo.svg` (full lockup, dark wordmark — for light surfaces), `logo-white.svg` (full lockup, light wordmark — for dark surfaces), `logo-icon.svg` (square tile only).
+- **Always render it through `<Logo />` (`src/components/ui/Logo.tsx`)** — never a raw `<img>`, never a hand-built icon tile, never a text wordmark.
+- `variant="full" | "icon"` picks the lockup; `tone="onLight" | "onDark"` picks the wordmark colour. Size is controlled per placement with a fixed height + `w-auto object-contain` (Header `h-11`, Sidebar `h-11`, Footer `h-14`, auth/Admin `h-16`, Signup `h-12`).
+- Favicon/icons are generated from the same tile: `src/app/favicon.ico`, `src/app/icon.svg`, `src/app/icon.png`, `src/app/apple-icon.png`. Keep them in sync if the mark ever changes.
+- **Gradient exception:** the rounded tile inside the logo carries a green gradient (`#22C55E → #16A34A → #0B3D2E`). This is a *brand asset*, not UI chrome — it is the only permitted gradient besides `--gradient-cta-dark`. Never reuse that gradient on buttons, cards, or headings.
+
+---
+
+## 13. Section Rhythm Rule (new — strict alternation)
+
+On every long page, light section backgrounds must **strictly alternate** `--color-bg` → `--color-bg-soft` → `--color-bg` with no two adjacent sections sharing a background. A dark band (`--color-primary-dark` / `--gradient-cta-dark`) counts as a break and may follow any background, but never another dark section.
+
+**Reasoning:** the homepage previously had ~9 same-background transitions, which is why it read as "one long section." Alternation is what makes boundaries visible at real scroll speed. Audit top-to-bottom before shipping: list each section's background and confirm no two neighbours match.

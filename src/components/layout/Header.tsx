@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "../ui/Button";
 import { ThemeToggle } from "./ThemeToggle";
+import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -49,7 +50,7 @@ export default function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex gap-6 md:gap-10 items-center">
           <Link href="/" className="flex items-center">
-            <img src="/images/logo-white.svg" alt="Neerzy Logo" className="h-12 w-auto object-contain" />
+            <Logo tone="onDark" className="h-11 w-auto object-contain" />
           </Link>
           {/* Desktop nav */}
           <nav className="hidden md:flex gap-6 items-center">

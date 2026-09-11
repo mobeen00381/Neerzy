@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { Button } from "@/components/ui/Button";
+import Logo from "@/components/ui/Logo";
 import { supabase } from "@/lib/supabase";
 import { Mail, ArrowRight, CheckCircle2, Loader2, Zap, MessageSquare, Phone } from "lucide-react";
 import Link from "next/link";
@@ -121,7 +122,7 @@ function LoginContent() {
       <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-[#E1E8E4]">
         <div className="p-10">
           <div className="flex items-center mb-10 justify-center">
-            <img src="/images/logo.svg" alt="Neerzy Logo" className="h-20 w-auto object-contain" />
+            <Logo className="h-16 w-auto object-contain" />
           </div>
 
           {status === "success" ? (

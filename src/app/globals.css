@@ -230,7 +230,7 @@
 }
 
 .hero-trust-item svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -345,7 +345,7 @@
 }
 
 .floating-badge-icon svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .floating-badge-text {
@@ -482,7 +482,7 @@
 }
 
 .why-list-icon svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .why-list-text {
@@ -594,7 +594,7 @@
 }
 
 .step-icon svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .step-card h3 {
@@ -621,7 +621,7 @@
 }
 
 .steps-total strong {
-  color: var(--color-accent);
+  color: var(--color-primary);
   font-weight: 700;
 }
 
@@ -763,7 +763,7 @@
 }
 
 .audit-score-label strong {
-  color: var(--color-accent);
+  color: var(--color-primary);
   font-weight: 700;
 }
 
@@ -960,7 +960,7 @@
 }
 
 .fix-arrow svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .fix-solution {
@@ -969,8 +969,8 @@
 
 .fix-solution-label {
   font-size: var(--text-small-size);
-  font-weight: 600;
-  color: var(--color-accent);
+  font-weight: 700;
+  color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: var(--space-1);
@@ -1045,7 +1045,7 @@
 }
 
 .asset-icon svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .asset-card h3 {
@@ -1293,7 +1293,7 @@
 }
 
 .flow-node-icon svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .flow-node-text {
@@ -1312,7 +1312,7 @@
 }
 
 .flow-arrow svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .flow-down {
@@ -1324,7 +1324,7 @@
 }
 
 .flow-down svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 @media (max-width: 1024px) {
@@ -1425,7 +1425,7 @@
 }
 
 .own-check svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .own-card-text {
@@ -1487,7 +1487,7 @@
 }
 
 .trust-point svg {
-  color: var(--color-accent);
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 
