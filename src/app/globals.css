@@ -2013,3 +2013,221 @@ main {
   .build-grid { grid-template-columns: 1fr; }
 }
 
+
+/* ============================================
+   Founding-member offer slider (home page)
+   ============================================ */
+
+.offer-slider {
+  background-color: var(--color-bg-soft);
+  padding: var(--space-6) 0 var(--space-5);
+}
+
+.offer-slider-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-primary-dark);
+  color: #fff;
+  box-shadow: 0 18px 44px rgba(11, 61, 46, 0.22);
+}
+
+.offer-slider-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.offer-slider-badge,
+.offer-slider-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: var(--text-small-size);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.offer-slider-badge {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.offer-slider-countdown {
+  background: #FFFFFF;
+  color: var(--color-primary-dark);
+  font-weight: 800;
+}
+
+.offer-slide {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  animation: offer-slide-in 0.45s ease;
+}
+
+.offer-slide-copy {
+  flex: 1 1 520px;
+}
+
+.offer-slide-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: var(--space-3);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+}
+
+.offer-slide-title {
+  margin: 0 0 var(--space-2);
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.offer-slide-body {
+  max-width: 620px;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.offer-slide-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.offer-slide-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
+  font-size: var(--text-small-size);
+  font-weight: 700;
+  color: #fff;
+}
+
+.offer-slide-cta {
+  flex: 0 0 auto;
+}
+
+.offer-slider-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.offer-slider-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.offer-slider-arrow:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.offer-slider-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.offer-slider-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.offer-slider-dot.is-active {
+  width: 26px;
+  background: #FFFFFF;
+}
+
+@keyframes offer-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .offer-slide { animation: none; }
+}
+
+@media (max-width: 900px) {
+  .offer-slider {
+    padding: var(--space-5) 0;
+  }
+
+  .offer-slider-card {
+    padding: var(--space-4);
+    border-radius: 20px;
+  }
+
+  .offer-slide {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+  .offer-slide-title {
+    font-size: 24px;
+  }
+
+  .offer-slide-cta,
+  .offer-slide-cta .btn {
+    width: 100%;
+  }
+}
+
+
+

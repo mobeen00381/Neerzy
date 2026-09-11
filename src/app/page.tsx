@@ -2,7 +2,9 @@
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 import WhatsAppMockup from '@/components/landing/WhatsAppMockup';
+import OfferSlides from '@/components/landing/OfferSlides';
 import { CheckIcon, CameraIcon, FileTextIcon, StarIcon, ZapIcon, MessageSquareIcon, SearchIcon, SendIcon, GlobeIcon, SmartphoneIcon, MapPinIcon, EyeIcon, ClipboardListIcon, TrendingUpIcon } from '@/components/ui/Icons';
+import { WEBSITE_EARLY_ADOPTER_ENDS, WEBSITE_SETUP_PRICE_USD, HOSTING_PRICE_USD, HOSTING_FREE_DAYS, isEarlyAdopterWindowOpen } from '@/lib/website';
 
 export const metadata: Metadata = {
   title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
@@ -121,6 +123,26 @@ export default function Page() {
           </div>
         </div>
       </section>
+
+      {/* ============================================
+          Section 1b: Founding-member offer slider (countdown)
+          — $99 setup waived + 90 days free hosting for early adopters,
+            driven by the same deadline the billing code uses.
+            Sits on the hero's mint background (--color-bg-soft) so the dark
+            band inside it is the break before the white section below.
+            Server-side gate: if the window is already closed at build time we
+            never ship the banner; the component also hides itself on the
+            client once the countdown hits zero (covers long-lived tabs and
+            cached HTML).
+          ============================================ */}
+      {isEarlyAdopterWindowOpen() && (
+        <OfferSlides
+          deadline={WEBSITE_EARLY_ADOPTER_ENDS}
+          setupPrice={WEBSITE_SETUP_PRICE_USD}
+          hostingPrice={HOSTING_PRICE_USD}
+          freeDays={HOSTING_FREE_DAYS}
+        />
+      )}
 
       {/* ============================================
           Section 2: Why We Exist (problem only — no solution preview)
