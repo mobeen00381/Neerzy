@@ -103,7 +103,9 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
             className="site-hero-img"
             src={heroImage}
             alt={`${businessName} — recent work`}
-            loading="lazy"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
           />
         ) : null}
         <div className="site-hero-scrim" aria-hidden="true" />
