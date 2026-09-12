@@ -115,6 +115,7 @@ export default function WebsiteBuildMockup() {
             the founding-offer section, so both stories show one product.
             The device URL pill mirrors the same illustrative domain. */}
         <PhoneMockup
+          compact
           className="wbm-phone"
           domain={
             at("domain-picked") ? "smithplumbingandheating.com" : "neerzy.com/onboarding"
@@ -254,7 +255,7 @@ export default function WebsiteBuildMockup() {
                 <>
                   {/* The finished trader website — the same image-hero screen
                       rendered by the real SiteRenderer pipeline, on the device. */}
-                  <PhoneSite liveLabel="" />
+                  <PhoneSite heroOnly liveLabel="" />
                   <p className="wbm-note is-good">
                     <CheckIcon size={12} /> Live in under a minute — and it updates after every job.
                   </p>

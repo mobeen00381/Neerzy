@@ -64,6 +64,11 @@ interface PhoneMockupProps {
   children: ReactNode;
   /** Lay the device on a premium 3D angle (auto-disabled under 900px via CSS). */
   tilt?: boolean;
+  /**
+   * Shorter "hero-only" device (390 × 620 instead of 390 × 844) so a mockup
+   * shows just the top of the site instead of a full-length page.
+   */
+  compact?: boolean;
   /** Extra classes for the outer stage (e.g. glow layers). */
   className?: string;
   /** Screen background before the site paints (defaults to white). */
@@ -74,11 +79,16 @@ export function PhoneMockup({
   domain = "smithplumbingandheating.com",
   children,
   tilt = false,
+  compact = false,
   className = "",
   screenClassName = "",
 }: PhoneMockupProps) {
   return (
-    <div className={`phone-stage${tilt ? " is-tilted" : ""}${className ? ` ${className}` : ""}`}>
+    <div
+      className={`phone-stage${tilt ? " is-tilted" : ""}${compact ? " is-compact" : ""}${
+        className ? ` ${className}` : ""
+      }`}
+    >
       <div className="phone-frame">
         {/* Side buttons */}
         <span className="phone-btn phone-btn-volume-up" aria-hidden="true" />
@@ -132,6 +142,11 @@ export interface PhoneSiteProps {
   palette?: { primary: string; secondary: string };
   /** Live-status strip under the tiles (site updates itself). */
   liveLabel?: string;
+  /**
+   * Compact/hero-only screen: nav + image hero + live strip, without the
+   * service tiles or the review card (used by the shorter device mockups).
+   */
+  heroOnly?: boolean;
 }
 
 const SMITH = {
@@ -160,11 +175,12 @@ export function PhoneSite(props: PhoneSiteProps = {}) {
     heroImage = SMITH.heroImage,
     palette = SMITH.palette,
     liveLabel = "Site live — updates itself after every job",
+    heroOnly = false,
   } = props;
 
   return (
     <div
-      className="phone-site"
+      className={`phone-site${heroOnly ? " is-hero-only" : ""}`}
       style={
         {
           "--ps-primary": palette.primary,
@@ -209,22 +225,25 @@ export function PhoneSite(props: PhoneSiteProps = {}) {
         </div>
       </div>
 
-      {/* Service tiles */}
-      <div className="phone-site-services">
-        {services.map((s) => (
-          <span key={s}>{s}</span>
-        ))}
-      </div>
+      {/* Service tiles + review — hidden on the compact hero-only screen */}
+      {!heroOnly && (
+        <>
+          <div className="phone-site-services">
+            {services.map((s) => (
+              <span key={s}>{s}</span>
+            ))}
+          </div>
 
-      {/* Review strip */}
-      <div className="phone-site-review">
-        <span className="phone-site-stars">
-          <StarIcon size={10} />
-          {rating}
-        </span>
-        <span className="phone-site-quote">&ldquo;{reviewQuote}&rdquo;</span>
-        <span className="phone-site-reviewer">{reviewer}</span>
-      </div>
+          <div className="phone-site-review">
+            <span className="phone-site-stars">
+              <StarIcon size={10} />
+              {rating}
+            </span>
+            <span className="phone-site-quote">&ldquo;{reviewQuote}&rdquo;</span>
+            <span className="phone-site-reviewer">{reviewer}</span>
+          </div>
+        </>
+      )}
 
       {liveLabel && (
         <div className="phone-site-live">

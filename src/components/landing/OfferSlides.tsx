@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CheckIcon, ClockIcon, GiftIcon, GlobeIcon } from '@/components/ui/Icons';
 import { TEMPLATE_LOOKS } from '@/lib/template-looks';
 import { PhoneMockup, PhoneSite } from '@/components/landing/PhoneMockup';
+import LaptopMockup from '@/components/landing/LaptopMockup';
 
 // ────────────────────────────────────────────────────────────────
 // Founding-member offer slides (home page).
@@ -127,25 +128,25 @@ export default function OfferSlides({
     <section className="offer-slider" aria-label="Founding member offer">
       <div className="container">
         <div
-          className="offer-slider-card"
+          className="offer-split"
           role="group"
           aria-roledescription="carousel"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
-          <div className="offer-slider-top">
-            <span className="offer-slider-badge">
-              <GiftIcon size={14} />
-              Founding members
-            </span>
-            <span className="offer-slider-countdown" aria-live="polite">
-              <ClockIcon size={14} />
-              {countdownLabel}
-            </span>
-          </div>
+          {/* BLOCK 1 — teal-green copy card (badge, countdown, offer, CTA) */}
+          <div className="offer-panel offer-panel-copy">
+            <div className="offer-slider-top">
+              <span className="offer-slider-badge">
+                <GiftIcon size={14} />
+                Founding members
+              </span>
+              <span className="offer-slider-countdown" aria-live="polite">
+                <ClockIcon size={14} />
+                {countdownLabel}
+              </span>
+            </div>
 
-          <div className="offer-slide-row">
-            {/* LEFT: the offer copy, with its call-to-action directly beneath it. */}
             <div className="offer-slide" key={slide.key} aria-live="polite">
               <div className="offer-slide-copy">
                 <div className="offer-slide-icon">{slide.icon}</div>
@@ -169,89 +170,98 @@ export default function OfferSlides({
               </div>
             </div>
 
-            {/* RIGHT: a finished website built by Neerzy — shown on a real
-                phone (design.md §4 "Device mockups"), with the template's
-                real colour variations selectable underneath.
-                Illustrative example only — follows the design.md §10
-                demo-data standard (one consistent fictional business:
-                "Smith Plumbing & Heating", Austin, TX). */}
-            <div className="offer-slide-mock">
-              <div className="offer-mock-stack">
-                <PhoneMockup tilt className="is-glow">
-                  <PhoneSite
-                    palette={{
-                      primary: lookVariation.primary,
-                      secondary: lookVariation.secondary,
-                    }}
+            <div className="offer-slider-controls">
+              <button
+                type="button"
+                className="offer-slider-arrow"
+                onClick={() => go(-1)}
+                aria-label="Previous offer slide"
+              >
+                ‹
+              </button>
+              <div className="offer-slider-dots">
+                {slides.map((s, i) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    className={`offer-slider-dot${i === active ? ' is-active' : ''}`}
+                    onClick={() => setActive(i)}
+                    aria-label={`Show offer slide ${i + 1} of ${SLIDE_COUNT}`}
+                    aria-current={i === active}
                   />
-                </PhoneMockup>
-
-                <div
-                  className="offer-looks"
-                  role="group"
-                  aria-label="Website colour variations"
-                >
-                  <span className="offer-looks-caption">
-                    {DEMO_LOOK.name} · {DEMO_LOOK.variations.length} colour ways
-                  </span>
-                  <div className="offer-looks-swatches">
-                    {DEMO_LOOK.variations.map((v, i) => (
-                      <button
-                        key={v.id}
-                        type="button"
-                        className={`offer-look${i === lookIndex ? ' is-active' : ''}`}
-                        onClick={() => setLookIndex(i)}
-                        aria-pressed={i === lookIndex}
-                        aria-label={`Show the ${v.name} colour way`}
-                      >
-                        <span className="offer-look-dots" aria-hidden="true">
-                          <span
-                            className="offer-look-dot"
-                            style={{ background: v.primary }}
-                          />
-                          <span
-                            className="offer-look-dot"
-                            style={{ background: v.secondary }}
-                          />
-                        </span>
-                        {v.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
+              <button
+                type="button"
+                className="offer-slider-arrow"
+                onClick={() => go(1)}
+                aria-label="Next offer slide"
+              >
+                ›
+              </button>
             </div>
           </div>
 
-          <div className="offer-slider-controls">
-            <button
-              type="button"
-              className="offer-slider-arrow"
-              onClick={() => go(-1)}
-              aria-label="Previous offer slide"
-            >
-              ‹
-            </button>
-            <div className="offer-slider-dots">
-              {slides.map((s, i) => (
-                <button
-                  key={s.key}
-                  type="button"
-                  className={`offer-slider-dot${i === active ? ' is-active' : ''}`}
-                  onClick={() => setActive(i)}
-                  aria-label={`Show offer slide ${i + 1} of ${SLIDE_COUNT}`}
-                  aria-current={i === active}
+          {/* BLOCK 2 — light demo card: the finished website on a laptop AND
+              a phone (design.md §4 "Device mockups"), with the template's
+              real colour variations selectable underneath.
+              Illustrative example only — follows the design.md §10 demo-data
+              standard (one consistent fictional business: "Smith Plumbing &
+              Heating", Austin, TX). */}
+          <div className="offer-panel offer-panel-demo">
+            <span className="offer-demo-caption">
+              The same site on every screen — pick a look, any colour
+            </span>
+
+            <div className="offer-demo-stage">
+              <LaptopMockup
+                domain="smithplumbingandheating.com"
+                palette={{
+                  primary: lookVariation.primary,
+                  secondary: lookVariation.secondary,
+                }}
+              />
+
+              <PhoneMockup
+                compact
+                tilt
+                domain="smithplumbingandheating.com"
+                className="offer-demo-phone"
+              >
+                <PhoneSite
+                  heroOnly
+                  liveLabel=""
+                  palette={{
+                    primary: lookVariation.primary,
+                    secondary: lookVariation.secondary,
+                  }}
                 />
-              ))}
+              </PhoneMockup>
             </div>
-            <button
-              type="button"
-              className="offer-slider-arrow"
-              onClick={() => go(1)}
-              aria-label="Next offer slide"
-            >
-              ›
-            </button>
+
+            <div className="offer-looks" role="group" aria-label="Website colour variations">
+              <span className="offer-looks-caption">
+                {DEMO_LOOK.name} · {DEMO_LOOK.variations.length} colour ways
+              </span>
+              <div className="offer-looks-swatches">
+                {DEMO_LOOK.variations.map((v, i) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className={`offer-look${i === lookIndex ? ' is-active' : ''}`}
+                    onClick={() => setLookIndex(i)}
+                    aria-pressed={i === lookIndex}
+                    aria-label={`Show the ${v.name} colour way`}
+                  >
+                    <span className="offer-look-dots" aria-hidden="true">
+                      <span className="offer-look-dot" style={{ background: v.primary }} />
+                      <span className="offer-look-dot" style={{ background: v.secondary }} />
+                    </span>
+                    {v.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

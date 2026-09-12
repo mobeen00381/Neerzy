@@ -173,6 +173,9 @@ Any mockup that shows a website on a phone must use the shared `<PhoneMockup>` c
 - **Frame:** `--color-device-frame` bezel, large rounded corners, thin outer highlight, plus side buttons. Dynamic Island (`--color-device-island`) — no oversized legacy notch.
 - **Chrome:** iOS status bar (time · signal · battery) and a browser URL pill (`--color-device-chrome`) showing the trader's real domain.
 - **Content inside** = the trader's own website: image hero with `--gradient-image-overlay` scrim, name, tagline, Call/WhatsApp actions, service tiles, review strip. A photo always wins over a flat colour block.
+- **Variants.** `compact` renders **390 × 620** and shows the *top of the site only* (`heroOnly` — nav + image hero + live strip, no service tiles/review). Use compact by default for inline mockups; the full **390 × 844** device is only for when a whole page must be shown. Desktop view uses the shared `<LaptopMockup>` (**16:10** screen, same device tokens, same demo site).
+- **Paired demo.** When a section shows "the site on every screen", pair the laptop with the compact phone as a **collage** — the phone overlaps the laptop's front corner (≥10px overlap) and both are driven by the same palette state, so a colour way repaints both.
+- **Variation picker lives on the light card.** When a demo is paired with a dark offer block, the colour-way chips sit in the light card (dark text, `--color-border` outline, active = `--color-primary-dark`), never on the dark panel.
 - **Presentation:** `--shadow-float`, optional 3D tilt (`perspective` + `rotateY`) for premium depth. **Tilt is decorative only — disable it under 900px**, and always stack the phone below the copy on mobile rather than shrinking the copy.
 - **Reuse:** both the founding-offer section and the "your website builds itself" section render *this same* device, so the story looks like one product.
 
@@ -202,6 +205,7 @@ These rules apply to the actual websites Neerzy generates for traders (never to 
 | Alternating content section | Alternate `--color-bg` / `--color-bg-soft` — never two of the same in a row |
 | Dark feature/CTA band | `--color-primary-dark` solid, or `--gradient-cta-dark` for the final CTA only | White text |
 | Footer | `--color-bg` | `--color-text-primary` |
+| Split offer/demo band (new) | Two side-by-side cards: teal-green copy card + light demo card | Dark card: white text; light card: `--color-text-primary` |
 
 **Rule:** no more than one dark section in a row. Currently some pages stack dark → dark or leave long stretches of light with no visual break — alternate deliberately.
 
