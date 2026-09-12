@@ -52,6 +52,10 @@ export default function WebsiteEditor({ siteId, initialContent, onClose, onSaved
   const [showReviews, setShowReviews] = useState<boolean>(c0.showReviews !== false);
   const [showGallery, setShowGallery] = useState<boolean>(c0.showGallery !== false);
   const [templateId, setTemplateId] = useState<string>(c0.templateId || "generic");
+  // Colour variation of the chosen template (TEMPLATE_LOOKS variations).
+  const [templateVariation, setTemplateVariation] = useState<string>(
+    c0.templateVariation || "classic"
+  );
 
   const authHeader = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -100,15 +104,23 @@ export default function WebsiteEditor({ siteId, initialContent, onClose, onSaved
     }
   };
 
-  const applyTemplate = async (id: string) => {
+  // Choose a template, and optionally one of its colour variations
+  // (TEMPLATE_LOOKS). Picking a different template resets to its default.
+  const applyTemplate = async (id: string, variation?: string) => {
     setBusy(true);
     setError("");
     setNotice("");
+    const nextVariation =
+      variation || (id === templateId ? templateVariation : "classic");
     try {
       const res = await fetch("/api/websites", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await authHeader()) },
-        body: JSON.stringify({ action: "set_template", templateId: id }),
+        body: JSON.stringify({
+          action: "set_template",
+          templateId: id,
+          variation: nextVariation,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -116,6 +128,7 @@ export default function WebsiteEditor({ siteId, initialContent, onClose, onSaved
         return;
       }
       setTemplateId(id);
+      setTemplateVariation(nextVariation);
       setNotice("🎨 New look applied!");
       setPreviewKey((k) => k + 1);
       onSaved();
@@ -372,28 +385,77 @@ export default function WebsiteEditor({ siteId, initialContent, onClose, onSaved
             {tab === "Look" && (
               <div className="space-y-4">
                 <p className="text-sm text-slate-500 font-medium">
-                  Pick the style that fits your trade. Your words and photos stay the same.
+                  Pick the style that fits your trade, then choose a colour way. Your words and
+                  photos stay the same.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   {Object.values(TEMPLATE_REGISTRY).map((tpl: any) => {
                     const active = templateId === tpl.id;
                     return (
-                      <button
-                        key={tpl.id}
-                        onClick={() => applyTemplate(tpl.id)}
-                        disabled={busy}
-                        className={`p-3 rounded-2xl border-2 text-left transition-all disabled:opacity-60 ${
-                          active ? "border-emerald-500 bg-emerald-50/40" : "border-slate-200 hover:border-emerald-300"
-                        }`}
-                      >
-                        <div className="flex gap-1.5 mb-2">
-                          <span className="w-6 h-6 rounded-lg" style={{ backgroundColor: tpl.colorPalette.primary }} />
-                          <span className="w-6 h-6 rounded-lg" style={{ backgroundColor: tpl.colorPalette.secondary }} />
-                        </div>
-                        <p className="text-xs font-black text-slate-900">{tpl.name}</p>
-                        <p className="text-[10px] text-slate-400 font-bold leading-snug">{tpl.description}</p>
-                        {active && <p className="text-[10px] font-black text-emerald-700 mt-1">✓ Current look</p>}
-                      </button>
+                      <div key={tpl.id} className="space-y-2">
+                        <button
+                          onClick={() => applyTemplate(tpl.id)}
+                          disabled={busy}
+                          className={`w-full p-2.5 rounded-2xl border-2 text-left transition-all disabled:opacity-60 ${
+                            active ? "border-emerald-500 bg-emerald-50/40" : "border-slate-200 hover:border-emerald-300"
+                          }`}
+                        >
+                          {/* Live mini preview — the real template component,
+                              scaled down, so the trader can see the look
+                              before choosing it. */}
+                          <div className="relative w-full h-24 mb-2 rounded-xl overflow-hidden border border-slate-200 bg-white pointer-events-none">
+                            <div
+                              className="absolute top-0 left-0 origin-top-left"
+                              style={{ transform: "scale(0.185)", width: "540%", height: "540%" }}
+                            >
+                              <tpl.component
+                                data={{
+                                  businessName: "Your Business",
+                                  seoTitle: "Licensed, insured and trusted locally.",
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex gap-1.5 mb-1">
+                            <span className="w-5 h-5 rounded-lg" style={{ backgroundColor: tpl.colorPalette.primary }} />
+                            <span className="w-5 h-5 rounded-lg" style={{ backgroundColor: tpl.colorPalette.secondary }} />
+                          </div>
+                          <p className="text-xs font-black text-slate-900">{tpl.name}</p>
+                          <p className="text-[10px] text-slate-400 font-bold leading-snug">{tpl.description}</p>
+                          {active && <p className="text-[10px] font-black text-emerald-700 mt-1">✓ Current look</p>}
+                        </button>
+
+                        {/* Colour ways — only for the chosen template */}
+                        {active && Array.isArray(tpl.variations) && (
+                          <div className="pl-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                              Colour
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {tpl.variations.map((v: any) => {
+                                const on = templateVariation === v.id;
+                                return (
+                                  <button
+                                    key={v.id}
+                                    type="button"
+                                    onClick={() => applyTemplate(tpl.id, v.id)}
+                                    disabled={busy}
+                                    title={v.name}
+                                    className={`flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full border-2 transition-all disabled:opacity-60 ${
+                                      on ? "border-emerald-500 bg-emerald-50" : "border-slate-200 hover:border-emerald-300"
+                                    }`}
+                                  >
+                                    <span className="w-3.5 h-3.5 rounded" style={{ backgroundColor: v.primary }} />
+                                    <span className="w-3.5 h-3.5 rounded" style={{ backgroundColor: v.secondary }} />
+                                    <span className="text-[10px] font-bold text-slate-600">{v.name}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

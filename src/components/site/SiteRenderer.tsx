@@ -37,10 +37,24 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
   const services: any[] = Array.isArray(c.services) ? c.services : [];
   const hours: string[] = Array.isArray(c.hours) ? c.hours : [];
   const faqs: any[] = Array.isArray(c.faqs) ? c.faqs : [];
+  // Image hero (design.md §4 "Trader site blocks"): the trader's own photo —
+  // hero image if set, otherwise their first gallery photo (Google/WhatsApp).
+  // Only when neither exists does the hero fall back to a palette gradient.
+  const heroImage: string = c.heroImage || photos[0] || "";
   const wa = waHref(phone, businessName);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div
+      className="site-root min-h-screen bg-white text-slate-900 font-sans"
+      style={
+        {
+          // Palette as CSS vars so the image hero + block separators below
+          // stay in the trader's chosen template colours.
+          "--site-primary": primary,
+          "--site-secondary": secondary,
+        } as React.CSSProperties
+      }
+    >
       {preview && (
         <div className="bg-amber-400 text-amber-950 text-center text-xs font-black py-2 px-4">
           👀 Preview — this is how your website looks. It goes live on your domain automatically.
@@ -76,26 +90,41 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="px-4 py-14 md:py-20" style={{ backgroundColor: `${primary}0D` }}>
-        <div className="max-w-5xl mx-auto">
+      {/* Hero — image hero (design.md §4 "Trader site blocks").
+          A real job photo always wins over a flat colour block; when the
+          trader has no photo yet, the palette gradient stands in. */}
+      <section
+        className={`site-hero${heroImage ? " has-photo" : ""}`}
+        style={{ backgroundColor: primary }}
+      >
+        {heroImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className="site-hero-img"
+            src={heroImage}
+            alt={`${businessName} — recent work`}
+            loading="lazy"
+          />
+        ) : null}
+        <div className="site-hero-scrim" aria-hidden="true" />
+        <div className="max-w-5xl mx-auto site-hero-body">
           {c.tagline && (
-            <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: primary }}>
+            <p className="text-xs font-black uppercase tracking-widest mb-3 text-white/85">
               {c.tagline}
             </p>
           )}
-          <h1 className="text-3xl md:text-5xl font-black leading-tight max-w-3xl">
+          <h1 className="text-3xl md:text-5xl font-black leading-tight max-w-3xl text-white drop-shadow-sm">
             {c.hero?.headline || businessName}
           </h1>
           {c.hero?.subheadline && (
-            <p className="mt-4 text-lg text-slate-600 max-w-2xl">{c.hero.subheadline}</p>
+            <p className="mt-4 text-lg max-w-2xl text-white/90">{c.hero.subheadline}</p>
           )}
           <div className="mt-7 flex flex-wrap gap-3">
             {phone && (
               <a
                 href={telHref(phone)}
-                className="px-6 py-3.5 rounded-2xl text-white font-black shadow-lg"
-                style={{ backgroundColor: primary }}
+                className="px-6 py-3.5 rounded-2xl bg-white font-black shadow-lg"
+                style={{ color: secondary }}
               >
                 📞 Call {phone}
               </a>
@@ -115,23 +144,22 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
                 href={c.reviewLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-6 py-3.5 rounded-2xl font-black border-2"
-                style={{ borderColor: primary, color: primary }}
+                className="px-6 py-3.5 rounded-2xl font-black border-2 border-white/50 text-white"
               >
                 ⭐ Leave a Review
               </a>
             )}
           </div>
 
-          {/* Trust bar */}
+          {/* Trust bar — one job, part of the hero block */}
           {(c.rating || c.userRatingsTotal) && (
-            <div className="mt-8 flex items-center gap-3 text-sm font-bold text-slate-700">
-              <span className="text-amber-500 text-lg">★</span>
+            <div className="mt-8 inline-flex items-center gap-3 rounded-2xl bg-white/12 px-4 py-2.5 text-sm font-bold text-white backdrop-blur-sm">
+              <span className="text-amber-400 text-lg leading-none">★</span>
               <span>
                 {c.rating ? `${c.rating} rating` : "Highly rated"}
                 {c.userRatingsTotal ? ` · ${c.userRatingsTotal} reviews` : ""}
               </span>
-              {c.address && <span className="hidden md:inline text-slate-400">· {c.address}</span>}
+              {c.address && <span className="hidden md:inline text-white/70">· {c.address}</span>}
             </div>
           )}
         </div>
@@ -139,7 +167,7 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
 
       {/* Services */}
       {services.length > 0 && (
-        <section id="services" className="px-4 py-14">
+        <section id="services" className="site-block px-4 py-14">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-black mb-1">What we do</h2>
             <p className="text-slate-500 mb-8">Friendly, professional service you can count on.</p>
@@ -163,7 +191,7 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
 
       {/* About */}
       {c.about && (
-        <section id="about" className="px-4 py-14" style={{ backgroundColor: `${secondary}08` }}>
+        <section id="about" className="site-block px-4 py-14" style={{ backgroundColor: `${secondary}08` }}>
           <div className="max-w-3xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-black mb-4">About {businessName}</h2>
             <p className="text-slate-600 leading-relaxed whitespace-pre-line">{c.about}</p>
@@ -173,7 +201,7 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
 
       {/* Hours */}
       {hours.length > 0 && (
-        <section id="hours" className="px-4 py-14">
+        <section id="hours" className="site-block px-4 py-14">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-black mb-4">Opening hours</h2>
             <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-200 overflow-hidden">
@@ -189,7 +217,7 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
 
       {/* Gallery */}
       {photos.length > 0 && (
-        <section id="gallery" className="px-4 py-14" style={{ backgroundColor: `${primary}0A` }}>
+        <section id="gallery" className="site-block px-4 py-14" style={{ backgroundColor: `${primary}0A` }}>
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-black mb-6">Our work</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -210,7 +238,7 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
 
       {/* Reviews */}
       {reviews.length > 0 && (
-        <section id="reviews" className="px-4 py-14">
+        <section id="reviews" className="site-block px-4 py-14">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-black mb-6">What customers say</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -231,7 +259,7 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
 
       {/* Latest updates (auto-fed by Neerzy posts) */}
       {posts.length > 0 && (
-        <section id="updates" className="px-4 py-14" style={{ backgroundColor: `${secondary}08` }}>
+        <section id="updates" className="site-block px-4 py-14" style={{ backgroundColor: `${secondary}08` }}>
           <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-black mb-2">Latest updates</h2>
             <p className="text-slate-500 mb-8">Fresh from the jobs we&apos;ve completed.</p>
@@ -255,7 +283,7 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
 
       {/* FAQ — AEO: visible answers AI assistants can quote (open by default) */}
       {faqs.length > 0 && (
-        <section id="faq" className="px-4 py-14">
+        <section id="faq" className="site-block px-4 py-14">
           <div className="max-w-3xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-black mb-6">Frequently asked questions</h2>
             <div className="space-y-3">

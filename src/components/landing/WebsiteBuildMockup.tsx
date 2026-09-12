@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon, StarIcon, SearchIcon, MapPinIcon } from "@/components/ui/Icons";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
+import { PhoneMockup, PhoneSite } from "@/components/landing/PhoneMockup";
 
 // ────────────────────────────────────────────────────────────────
 // "Tap one button. Get a real website." — animated story (home page).
@@ -110,17 +111,16 @@ export default function WebsiteBuildMockup() {
       </div>
 
       <div className="wbm-frame" ref={frameRef} aria-hidden="true">
-        {/* Browser chrome */}
-        <div className="wbm-bar">
-          <span className="wbm-dot" />
-          <span className="wbm-dot" />
-          <span className="wbm-dot" />
-          <span className="wbm-url">
-            {at("domain-picked") ? "smithplumbingandheating.com" : "neerzy.com/onboarding"}
-          </span>
-        </div>
-
-        <div className="wbm-body">
+        {/* design.md §4 "Device mockups": the same real-size phone used by
+            the founding-offer section, so both stories show one product.
+            The device URL pill mirrors the same illustrative domain. */}
+        <PhoneMockup
+          className="wbm-phone"
+          domain={
+            at("domain-picked") ? "smithplumbingandheating.com" : "neerzy.com/onboarding"
+          }
+        >
+          <div className="wbm-body">
           {/* ── Scene 1: find the real business ── */}
           {active.scene === "find" && (
             <div className="wbm-scene">
@@ -252,34 +252,9 @@ export default function WebsiteBuildMockup() {
 
               {at("build-live") && (
                 <>
-                  <div className="wbm-site">
-                    <span className="wbm-site-nav">
-                      <strong>Smith Plumbing</strong>
-                      <span>Services · Reviews · Contact</span>
-                    </span>
-                    <span className="wbm-site-hero">
-                      <em>Austin, TX · 24/7 call-outs</em>
-                      <strong>Smith Plumbing &amp; Heating</strong>
-                      <span>Fast, honest plumbing — trusted by families across Austin.</span>
-                      <span className="wbm-site-actions">
-                        <span className="wbm-site-btn">Call Now</span>
-                        <span className="wbm-site-btn is-ghost">
-                          <WhatsAppIcon size={10} /> WhatsApp
-                        </span>
-                      </span>
-                    </span>
-                    <span className="wbm-site-tiles">
-                      <span>Emergency Repairs</span>
-                      <span>Water Heaters</span>
-                      <span>Drain Cleaning</span>
-                    </span>
-                    <span className="wbm-site-review">
-                      <span className="wbm-site-stars">
-                        <StarIcon size={10} /> 5.0
-                      </span>
-                      “Arrived in 40 minutes and fixed it first time.” — David R.
-                    </span>
-                  </div>
+                  {/* The finished trader website — the same image-hero screen
+                      rendered by the real SiteRenderer pipeline, on the device. */}
+                  <PhoneSite liveLabel="" />
                   <p className="wbm-note is-good">
                     <CheckIcon size={12} /> Live in under a minute — and it updates after every job.
                   </p>
@@ -288,6 +263,7 @@ export default function WebsiteBuildMockup() {
             </div>
           )}
         </div>
+        </PhoneMockup>
       </div>
     </div>
   );

@@ -17,8 +17,13 @@
   /* Brand Colors */
   --color-primary-dark: #0B3D2E;
   --color-primary: #0F5132;
+  --color-primary-deep: #06251B;
+  --color-primary-mid: #14532D;
   --color-accent: #22C55E;
   --color-accent-hover: #16A34A;
+  --color-accent-soft: #DCFCE7;
+  --color-accent-bright: #4ADE80;
+  --color-gold: #B8860B;
 
   /* Neutrals */
   --color-bg: #FFFFFF;
@@ -29,8 +34,16 @@
   --color-border: #E1E8E4;
   --color-divider: #D3E6DA;
 
-  /* Gradient (final CTA only) */
+  /* Device mockup colours (phone frames only) */
+  --color-device-frame: #111418;
+  --color-device-screen: #FFFFFF;
+  --color-device-chrome: #F2F4F3;
+  --color-device-island: #000000;
+
+  /* Gradients (approved set) */
   --gradient-cta-dark: linear-gradient(135deg, #0B3D2E 0%, #06251B 100%);
+  --gradient-hero-dark: linear-gradient(140deg, #0B3D2E 0%, #0F5132 45%, #06251B 100%);
+  --gradient-image-overlay: linear-gradient(180deg, rgba(6, 37, 27, 0) 30%, rgba(6, 37, 27, 0.85) 100%);
 
   /* Spacing Scale */
   --space-1: 4px;
@@ -62,7 +75,9 @@
   /* Component Tokens */
   --radius-card: 16px;
   --radius-pill: 9999px;
-  --shadow-card: 0 2px 8px rgba(11, 61, 46, 0.06);
+  --shadow-card: 0 2px 12px rgba(11, 61, 46, 0.08);
+  --shadow-float: 0 24px 60px rgba(6, 37, 27, 0.35);
+  --shadow-glow: 0 0 0 4px rgba(74, 222, 128, 0.18);
 }
 
 /* ============================================
@@ -1958,11 +1973,37 @@ main {
 .offer-slider-card {
   position: relative;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: 28px;
   padding: var(--space-5) var(--space-6);
-  background: var(--color-primary-dark);
+  background: var(--gradient-hero-dark);
   color: #fff;
-  box-shadow: 0 18px 44px rgba(11, 61, 46, 0.22);
+  box-shadow: 0 24px 60px rgba(6, 37, 27, 0.35);
+}
+
+/* Layered light so the dark panel reads as a premium stage, not a flat fill */
+.offer-slider-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 80% at 88% 10%, rgba(74, 222, 128, 0.16), transparent 64%),
+    radial-gradient(55% 75% at 2% 96%, rgba(15, 81, 50, 0.6), transparent 70%);
+  pointer-events: none;
+}
+
+/* Hairline highlight along the top edge */
+.offer-slider-card::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  pointer-events: none;
+}
+
+.offer-slider-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .offer-slider-top {
@@ -2003,7 +2044,7 @@ main {
 /* Two columns: offer copy + its CTA on the LEFT, finished-website mock on the RIGHT. */
 .offer-slide-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
   align-items: center;
   gap: var(--space-6);
 }
@@ -2135,219 +2176,85 @@ main {
 }
 
 /* ---- Finished-website mockup (right column of the offer card) ----
-   Illustrative example site, matching the design.md §10 demo-data
-   standard: one consistent fictional business ("Smith Plumbing &
-   Heating", Austin, TX) with English, tier-1 market naming. */
+   design.md §4 "Device mockups": the site is shown on a REAL phone
+   (shared <PhoneMockup>), the template's real colour variations are
+   selectable underneath. Illustrative example business per design.md
+   §10: "Smith Plumbing & Heating", Austin, TX. */
 
 .offer-slide-mock {
   justify-self: end;
   width: 100%;
-  max-width: 380px;
+  max-width: 320px;
 }
 
-.offer-mock {
-  border-radius: 18px;
-  overflow: hidden;
-  background: #FFFFFF;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.34);
-}
-
-.offer-mock-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 12px;
-  background: #EFF4F1;
-  border-bottom: 1px solid rgba(11, 61, 46, 0.1);
-}
-
-.offer-mock-dot {
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #C7D3CD;
-}
-
-.offer-mock-url {
-  margin-left: 8px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: #FFFFFF;
-  border: 1px solid rgba(11, 61, 46, 0.12);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.offer-mock-site {
+.offer-mock-stack {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
-}
-
-.offer-mock-nav {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-4);
 }
 
-.offer-mock-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
-  color: var(--color-primary-dark);
-}
-
-.offer-mock-links {
-  display: inline-flex;
-  gap: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--color-text-secondary);
-}
-
-.offer-mock-hero {
+/* Colour-variation picker — the same choices as the dashboard "Look" tab */
+.offer-looks {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  border-radius: 12px;
-  background: linear-gradient(140deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
-  color: #FFFFFF;
+  gap: 8px;
+  width: 100%;
 }
 
-.offer-mock-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.offer-mock-name {
-  font-size: 16px;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.offer-mock-tagline {
+.offer-looks-caption {
   font-size: 11px;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, 0.86);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.72);
 }
 
-.offer-mock-actions {
+.offer-looks-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 2px;
-}
-
-.offer-mock-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 11px;
-  border-radius: 999px;
-  background: #FFFFFF;
-  color: var(--color-primary-dark);
-  font-size: 10px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.offer-mock-btn.is-ghost {
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  color: #FFFFFF;
-}
-
-.offer-mock-services {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
-.offer-mock-services span {
-  display: flex;
-  align-items: center;
   justify-content: center;
-  min-height: 42px;
-  padding: 6px;
-  border-radius: 10px;
-  background: #F1F6F3;
-  border: 1px solid rgba(11, 61, 46, 0.08);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.25;
-  text-align: center;
-  color: var(--color-primary-dark);
+  gap: 6px;
 }
 
-.offer-mock-review {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 2px 8px;
-  padding: 10px;
-  border-radius: 10px;
-  background: #F1F6F3;
-  border: 1px solid rgba(11, 61, 46, 0.08);
-}
-
-.offer-mock-stars {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 800;
-  color: #B8860B;
-}
-
-.offer-mock-quote {
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--color-text-primary);
-}
-
-.offer-mock-reviewer {
-  grid-column: 2;
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-}
-
-.offer-mock-live {
+.offer-look {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 10px;
   font-weight: 700;
-  color: var(--color-text-secondary);
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.offer-mock-live-dot {
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+.offer-look:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.offer-look.is-active {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: var(--color-primary-dark);
+}
+
+.offer-look-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.offer-look-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35) inset;
 }
 
 @keyframes offer-slide-in {
@@ -2386,7 +2293,7 @@ main {
 
   .offer-slide-mock {
     justify-self: stretch;
-    max-width: 460px;
+    max-width: 320px;
     margin: 0 auto;
   }
 
@@ -2408,7 +2315,7 @@ main {
 
 .wbm-wrap {
   width: 100%;
-  max-width: 500px;
+  max-width: 320px;
   margin: 0 auto;
 }
 
@@ -2436,48 +2343,20 @@ main {
   color: #fff;
 }
 
+/* The story runs on the SAME real-size device as the founding-offer
+   section (design.md §4 "Device mockups") — no bespoke browser chrome. */
 .wbm-frame {
-  border: 1px solid var(--color-divider);
-  border-radius: 18px;
-  overflow: hidden;
-  background: var(--color-bg);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.1);
-}
-
-.wbm-bar {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 12px;
-  background: var(--color-bg-soft);
-  border-bottom: 1px solid var(--color-divider);
+  justify-content: center;
 }
 
-.wbm-dot {
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #C7D3CD;
-}
-
-.wbm-url {
-  margin-left: 8px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-divider);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.wbm-phone {
+  max-width: 288px;
 }
 
 .wbm-body {
-  padding: 16px;
-  min-height: 330px;
+  height: 100%;
+  min-height: 0;
 }
 
 .wbm-scene {
@@ -2743,144 +2622,13 @@ main {
   font-weight: 800;
 }
 
-/* Finished site preview */
-.wbm-site {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding: 12px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid var(--color-divider);
-  animation: wbm-fade-in 0.4s ease;
-}
-
-.wbm-site-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.wbm-site-nav strong {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--color-primary-dark);
-}
-
-.wbm-site-nav span {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.wbm-site-hero {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 13px;
-  border-radius: 11px;
-  background: linear-gradient(140deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
-  color: #fff;
-}
-
-.wbm-site-hero em {
-  font-size: 9px;
-  font-style: normal;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.wbm-site-hero strong {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.wbm-site-hero > span {
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.wbm-site-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 3px;
-}
-
-.wbm-site-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 11px;
-  border-radius: 999px;
-  background: #fff;
-  color: var(--color-primary-dark);
-  font-size: 10px;
-  font-weight: 800;
-}
-
-.wbm-site-btn.is-ghost {
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  color: #fff;
-}
-
-.wbm-site-tiles {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-}
-
-.wbm-site-tiles span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 6px;
-  border-radius: 9px;
-  background: #F1F6F3;
-  border: 1px solid rgba(11, 61, 46, 0.08);
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.25;
-  text-align: center;
-  color: var(--color-primary-dark);
-}
-
-.wbm-site-review {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 9px 10px;
-  border-radius: 9px;
-  background: #F1F6F3;
-  border: 1px solid rgba(11, 61, 46, 0.08);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.wbm-site-stars {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 800;
-  color: #B8860B;
-}
+/* Finished site preview: rendered by the shared <PhoneSite> screen
+   (see .phone-site-* above), so no bespoke preview chrome is needed. */
 
 @media (prefers-reduced-motion: reduce) {
   .wbm-scene,
   .wbm-bubble,
-  .wbm-row,
-  .wbm-site {
+  .wbm-row {
     animation: none;
   }
 
@@ -2888,6 +2636,458 @@ main {
     animation: none;
   }
 }
+
+/* ============================================
+   Device mockup — realistic phone frame
+   design.md §4 "Device mockups". Real iPhone-class
+   proportions (390 × 844), scaled — never stretched.
+   Reused by every section that shows a phone.
+   ============================================ */
+
+.phone-stage {
+  position: relative;
+  width: 100%;
+  max-width: 288px;
+  margin: 0 auto;
+  perspective: 1500px;
+}
+
+/* Ambient green glow behind the device (dark surfaces) */
+.phone-stage.is-glow::before {
+  content: "";
+  position: absolute;
+  inset: -16% -22%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, rgba(74, 222, 128, 0.3), rgba(74, 222, 128, 0) 62%);
+  filter: blur(38px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.phone-frame {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  aspect-ratio: 390 / 844; /* real phone proportions */
+  padding: 8px;
+  border-radius: 48px;
+  background: linear-gradient(155deg, #33383f 0%, var(--color-device-frame) 42%, #05080b 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 0 0 2px rgba(0, 0, 0, 0.5),
+    var(--shadow-float);
+}
+
+/* Side buttons — part of the realism */
+.phone-btn {
+  position: absolute;
+  background: linear-gradient(90deg, #1b2027, #343a42);
+  border-radius: 3px;
+}
+
+.phone-btn-volume-up {
+  left: -3px;
+  top: 20%;
+  width: 3px;
+  height: 9%;
+}
+
+.phone-btn-volume-down {
+  left: -3px;
+  top: 32%;
+  width: 3px;
+  height: 9%;
+}
+
+.phone-btn-power {
+  right: -3px;
+  top: 25%;
+  width: 3px;
+  height: 13%;
+}
+
+.phone-bezel {
+  width: 100%;
+  height: 100%;
+  padding: 4px;
+  border-radius: 41px;
+  background: #05080b;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+}
+
+.phone-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 37px;
+  background: var(--color-device-screen);
+}
+
+/* Status bar + Dynamic Island */
+.phone-status {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px 2px;
+  color: #101418;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.phone-status-time {
+  letter-spacing: 0.01em;
+}
+
+.phone-status-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.phone-island {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 74px;
+  height: 21px;
+  border-radius: 999px;
+  background: var(--color-device-island);
+}
+
+/* Browser URL pill */
+.phone-urlbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 7px 11px 0;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--color-device-chrome);
+  border: 1px solid rgba(11, 61, 46, 0.06);
+}
+
+.phone-url-lock {
+  display: inline-flex;
+  color: #3f5148;
+}
+
+.phone-url-text {
+  font-size: 9px;
+  font-weight: 700;
+  color: #33463d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phone-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 9px 11px 11px;
+  background: #fff;
+}
+
+/* ── Trader website screen (PhoneSite) ── */
+
+.phone-site {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+}
+
+.phone-site-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.phone-site-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #0a2e22;
+}
+
+.phone-site-mark {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--ps-primary, #0f5132);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.phone-site-nav-links {
+  display: inline-flex;
+  gap: 7px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #5b6b64;
+}
+
+/* Image hero — the photo always wins over a flat colour block */
+.phone-site-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 208px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(150deg, var(--ps-secondary, #0a2e22) 0%, var(--ps-primary, #0f5132) 100%);
+  box-shadow: 0 6px 18px rgba(6, 37, 27, 0.22);
+}
+
+.phone-site-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.phone-site-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--gradient-image-overlay);
+}
+
+.phone-site-hero-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 12px;
+  color: #fff;
+}
+
+.phone-site-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.phone-site-name {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.phone-site-tagline {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.phone-site-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.phone-site-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ps-secondary, #0a2e22);
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.phone-site-btn.is-ghost {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+}
+
+.phone-site-services {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.phone-site-services span {
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  padding: 4px;
+  border-radius: 9px;
+  background: #f1f6f3;
+  background: color-mix(in srgb, var(--ps-primary, #0f5132) 8%, #ffffff);
+  border: 1px solid rgba(11, 61, 46, 0.08);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--ps-secondary, #0a2e22);
+}
+
+.phone-site-review {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 9px;
+  border-radius: 10px;
+  background: #f1f6f3;
+  background: color-mix(in srgb, var(--ps-primary, #0f5132) 7%, #ffffff);
+  border: 1px solid rgba(11, 61, 46, 0.08);
+}
+
+.phone-site-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--color-gold);
+}
+
+.phone-site-quote {
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #0a2e22;
+}
+
+.phone-site-reviewer {
+  grid-column: 2;
+  font-size: 8px;
+  font-weight: 700;
+  color: #5b6b64;
+}
+
+.phone-site-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: auto;
+  font-size: 8px;
+  font-weight: 700;
+  color: #5b6b64;
+}
+
+.phone-site-live-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+/* ── 3D premium angle (decorative only) ── */
+
+.phone-stage.is-tilted .phone-frame {
+  transform: rotateY(-15deg) rotateX(5deg) rotateZ(-2deg);
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
+}
+
+.phone-stage.is-tilted:hover .phone-frame {
+  transform: rotateY(-8deg) rotateX(2deg) rotateZ(-1deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-stage.is-tilted .phone-frame {
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .phone-stage {
+    max-width: 248px;
+  }
+
+  /* Tilt is decorative — remove it on small screens, never squash the device. */
+  .phone-stage.is-tilted .phone-frame,
+  .phone-stage.is-tilted:hover .phone-frame {
+    transform: none;
+  }
+}
+
+/* ============================================
+   Trader website blocks (SiteRenderer)
+   design.md §4 "Trader site blocks": image hero + one
+   clearly separated block per job.
+   ============================================ */
+
+/* Image hero — a real job photo always wins over a flat colour block.
+   The inline background-color (palette primary) is the gradient fallback. */
+.site-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background-image: linear-gradient(
+    140deg,
+    var(--site-secondary, #0a2e22) 0%,
+    var(--site-primary, #0f5132) 100%
+  );
+}
+
+.site-hero-img {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.site-hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--gradient-image-overlay);
+}
+
+.site-hero-body {
+  padding: 56px 16px 60px;
+}
+
+@media (min-width: 768px) {
+  .site-hero-body {
+    padding: 88px 16px 96px;
+  }
+}
+
+/* Block separation: hairline divider + alternating background, so the
+   boundary is visible at real scroll speed (design.md §5.1). */
+.site-block {
+  border-top: 1px solid color-mix(in srgb, var(--site-primary, #0f5132) 16%, transparent);
+}
+
+
+
+
 
 
 

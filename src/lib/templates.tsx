@@ -378,37 +378,40 @@ const GenericTemplate = ({ data }: any) => (
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━
 // REGISTRY & TYPES
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━
-export type TemplateId = 
-  | "plumber" 
-  | "electrician" 
-  | "hvac" 
-  | "mechanic" 
-  | "dentist" 
-  | "roofing"
-  | "handyman"
-  | "grocery"
-  | "hardware"
-  | "generic";
+// Template metadata (names, descriptions, palettes + colour variations)
+// lives in ./template-looks so the landing page can show REAL palettes
+// without bundling every template component. The registry below pairs
+// each look with its component.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━
+import {
+  TEMPLATE_LOOKS,
+  type TemplateId,
+  type TemplateLook,
+} from "./template-looks";
 
-export interface TemplateDefinition {
-  id: TemplateId;
-  name: string;
-  description: string;
+export type { TemplateId } from "./template-looks";
+export {
+  TEMPLATE_LOOKS,
+  TEMPLATE_IDS,
+  resolvePalette,
+  isValidVariation,
+} from "./template-looks";
+
+export interface TemplateDefinition extends TemplateLook {
   component: ComponentType<{ data: any }>;
-  colorPalette: { primary: string; secondary: string };
 }
 
 export const TEMPLATE_REGISTRY: Record<TemplateId, TemplateDefinition> = {
-  plumber:     { id: "plumber",     name: "The Plumber Pro",     description: "Trust-first, emergency-focused design.",       component: PlumberTemplate,     colorPalette: { primary: "#3B82F6", secondary: "#1E3A8A" } },
-  hvac:        { id: "hvac",        name: "Arctic HVAC",         description: "Icy blue to warm orange gradient.",             component: HVACTemplate,        colorPalette: { primary: "#4F9CF9", secondary: "#F97316" } },
-  electrician: { id: "electrician", name: "Volt Electric",       description: "Yellow energetic, dark safety theme.",          component: ElectricianTemplate, colorPalette: { primary: "#FCD34D", secondary: "#1E293B" } },
-  roofing:     { id: "roofing",     name: "Apex Roofing",        description: "Earthy red/gray, storm damage ready.",          component: RoofingTemplate,     colorPalette: { primary: "#EF4444", secondary: "#44403C" } },
-  handyman:    { id: "handyman",    name: "Fix-It Handyman",     description: "Versatile green, card-based layout.",           component: HandymanTemplate,    colorPalette: { primary: "#10B981", secondary: "#064E3B" } },
-  dentist:     { id: "dentist",     name: "Smile Dental",        description: "Calm mint, elegant family-friendly.",           component: DentistTemplate,     colorPalette: { primary: "#14B8A6", secondary: "#042F2E" } },
-  grocery:     { id: "grocery",     name: "Fresh Market",        description: "Vibrant green, farm-fresh product focus.",      component: GroceryTemplate,     colorPalette: { primary: "#16A34A", secondary: "#14532D" } },
-  hardware:    { id: "hardware",    name: "BuildRight Hardware", description: "Industrial orange/black, rugged & bold.",       component: HardwareTemplate,    colorPalette: { primary: "#F97316", secondary: "#0A0A0A" } },
-  mechanic:    { id: "mechanic",    name: "Torque Auto",         description: "Industrial dark theme for auto shops.",         component: MechanicTemplate,    colorPalette: { primary: "#334155", secondary: "#0F172A" } },
-  generic:     { id: "generic",     name: "Modern Business",     description: "Flexible fallback for any local service.",      component: GenericTemplate,     colorPalette: { primary: "#64748B", secondary: "#1E293B" } },
+  plumber:     { ...TEMPLATE_LOOKS.plumber,     component: PlumberTemplate },
+  hvac:        { ...TEMPLATE_LOOKS.hvac,        component: HVACTemplate },
+  electrician: { ...TEMPLATE_LOOKS.electrician, component: ElectricianTemplate },
+  roofing:     { ...TEMPLATE_LOOKS.roofing,     component: RoofingTemplate },
+  handyman:    { ...TEMPLATE_LOOKS.handyman,    component: HandymanTemplate },
+  dentist:     { ...TEMPLATE_LOOKS.dentist,     component: DentistTemplate },
+  grocery:     { ...TEMPLATE_LOOKS.grocery,     component: GroceryTemplate },
+  hardware:    { ...TEMPLATE_LOOKS.hardware,    component: HardwareTemplate },
+  mechanic:    { ...TEMPLATE_LOOKS.mechanic,    component: MechanicTemplate },
+  generic:     { ...TEMPLATE_LOOKS.generic,     component: GenericTemplate },
 };
 
 export function getTemplateComponent(templateId: TemplateId | string): ComponentType<{ data: any }> {

@@ -23,9 +23,22 @@ Only these colors are allowed anywhere on the site. No exceptions, no one-off he
 ```css
 --color-primary-dark:   #0B3D2E;   /* deep forest green — header, footer, dark section backgrounds */
 --color-primary:        #0F5132;   /* secondary dark green — headings on light backgrounds, dark card backgrounds */
---color-accent:         #22C55E;   /* bright green — primary CTA buttons, active states, checkmarks */
+--color-primary-deep:   #06251B;   /* darkest green — layered dark sections, depth under gradients, footer base */
+--color-primary-mid:    #14532D;   /* middle green step — bridges primary→accent in dark hero gradients */
+--color-accent:         #22C55E;   /* bright green — primary CTA buttons, active states, hero result (see §11) */
 --color-accent-hover:   #16A34A;   /* button hover/active state */
+--color-accent-soft:    #DCFCE7;   /* light green tint — icon chips, badges, "available" pills on light surfaces */
+--color-accent-bright:  #4ADE80;   /* bright green for DARK backgrounds — live dots, glows, highlights (accent goes muddy on deep green) */
 ```
+
+**When to use which green:** `--color-accent` on light surfaces only. On any dark green surface (`--color-primary-dark` / `--color-primary-deep`), highlights and live indicators switch to `--color-accent-bright`. Tints (soft fills behind icons/badges) always use `--color-accent-soft` — never ad-hoc `rgba(34,197,94,0.14)` in component code.
+
+### Premium accent (star ratings only)
+```css
+--color-gold:           #B8860B;   /* review star ratings ONLY — the single approved non-green brand accent */
+```
+
+**Rule:** `--color-gold` may be used *exclusively* for star rating glyphs and their score text (Google reviews, testimonial stars). It must never appear on buttons, headings, borders, backgrounds, or icons. This token formalises the value already used by `.phone-site-stars`.
 
 ### Neutrals
 ```css
@@ -48,13 +61,36 @@ Only these colors are allowed anywhere on the site. No exceptions, no one-off he
 **Rule:** Status colors (warn/fail) are reserved exclusively for the GMB Audit Tool's pass/fail results and score indicator. They must never appear on Home, About, Pricing, or Features pages — those pages use brand + neutral colors only.
 
 ### Excluded / Forbidden
-- No blue, purple, teal, or secondary accent colors anywhere (currently no blue/purple exists in the palette — keep it that way even for links, focus states, or icons).
-- No gradients except the single approved dark CTA gradient below.
-- No random opacity-based tints (e.g. `rgba(0,0,0,0.05)` shadows are fine; colored tints are not).
+- No blue, purple, teal, or secondary accent colors in **Neerzy UI chrome** anywhere (no blue/purple exists in the palette — keep it that way even for links, focus states, or icons). The only exception is multi-colour content shown *inside device mockups* — see "Device mockups" below.
+- No gradients except the approved set below.
+- No random opacity-based tints (e.g. `rgba(0,0,0,0.05)` shadows are fine; coloured tints are not — use `--color-accent-soft`).
 
+### Gradients (full approved set)
 ```css
---gradient-cta-dark: linear-gradient(135deg, #0B3D2E 0%, #06251B 100%); /* final CTA band only */
+--gradient-cta-dark:     linear-gradient(135deg, #0B3D2E 0%, #06251B 100%);              /* final CTA band only */
+--gradient-hero-dark:    linear-gradient(140deg, #0B3D2E 0%, #0F5132 45%, #06251B 100%); /* full dark-green offer/hero stage */
+--gradient-image-overlay:linear-gradient(180deg, rgba(6,37,27,0) 30%, rgba(6,37,27,0.85) 100%); /* scrim over hero photos in mockups + trader sites */
 ```
+
+### Shadows
+```css
+--shadow-card:  0 2px 12px rgba(11, 61, 46, 0.08);   /* standard cards (supersedes the older card shadow) */
+--shadow-float: 0 24px 60px rgba(6, 37, 27, 0.35);   /* floating phone mockup / elevated device */
+--shadow-glow:  0 0 0 4px rgba(74, 222, 128, 0.18);  /* live-dot + focus glow on dark green */
+```
+
+### Device mockup colours (phone frames only)
+```css
+--color-device-frame:  #111418;   /* phone bezel — near-black, never pure black */
+--color-device-screen: #FFFFFF;   /* screen base */
+--color-device-chrome: #F2F4F3;   /* mobile browser bar / status chrome */
+--color-device-island: #000000;   /* Dynamic Island / notch cutout */
+```
+
+**Device-mockup exception:** inside a phone frame we render a *customer's* website — that content may use its own trade palette (e.g. Volt Electric yellow). This is product content, not Neerzy chrome, and is the only place non-brand colours are allowed. Neerzy chrome around the device (badges, captions, controls) stays strictly brand green.
+
+**Hardware detail:** the device's own bezel gradient, status-bar glyphs and browser-pill greys may use neutral device hex values (they depict physical hardware, not brand chrome). Those values live only in `globals.css` under "Device mockup" / `.phone-*` — never copied into components.
+
 
 ---
 
@@ -72,6 +108,7 @@ Only these colors are allowed anywhere on the site. No exceptions, no one-off he
 
 - Headings always use `--color-primary` or `--color-primary-dark` (never accent green for large text blocks — accent green is for CTAs and highlights only).
 - Body copy always `--color-text-secondary` on light backgrounds, `#FFFFFF` at 85% opacity on dark backgrounds.
+- On dark green sections (`--gradient-hero-dark`, `--color-primary-dark`, `--color-primary-deep`), headings are `#FFFFFF`, body is `rgba(255,255,255,0.86)`, and any highlight/live dot uses `--color-accent-bright`.
 - Never use more than 2 font weights per section (e.g. 700 for heading, 400 for body). Drop any 500/600 mid-weights currently mixed into small labels.
 
 ---
@@ -122,11 +159,31 @@ gap: var(--space-4); /* 24px */
 
 ### Cards
 - One card style, used everywhere icon+label or icon+heading+body content repeats (steps, features, trust points, comparisons).
-- `background: var(--color-bg-muted)`, `border: 1px solid var(--color-border)`, `border-radius: 16px`, `box-shadow: 0 2px 8px rgba(11,61,46,0.06)`.
+- `background: var(--color-bg-muted)`, `border: 1px solid var(--color-border)`, `border-radius: 16px`, `box-shadow: var(--shadow-card)`.
 - Never mix bordered cards and "bare icon + text with no container" for the same type of content on the same page. Pick one and apply everywhere (currently inconsistent — fix on Home and About).
 
 ### Icons
 - Single-color line or duotone icons only, using `--color-primary` or `--color-accent`. Remove any emoji-style icons currently used as section markers (🚿⚡🏠) — replace with the same icon system used elsewhere on the site for consistency.
+- On dark green surfaces, icons use `--color-accent-bright` (never `--color-accent`).
+
+### Device mockups — phone frames (required where a real phone is shown)
+Any mockup that shows a website on a phone must use the shared `<PhoneMockup>` component (`src/components/landing/PhoneMockup.tsx`) — never a bespoke frame per section.
+
+- **Real phone proportions.** Device aspect ratio is **390 × 844** (iPhone-class). Never stretch or squash a phone to fill a layout slot — scale it.
+- **Frame:** `--color-device-frame` bezel, large rounded corners, thin outer highlight, plus side buttons. Dynamic Island (`--color-device-island`) — no oversized legacy notch.
+- **Chrome:** iOS status bar (time · signal · battery) and a browser URL pill (`--color-device-chrome`) showing the trader's real domain.
+- **Content inside** = the trader's own website: image hero with `--gradient-image-overlay` scrim, name, tagline, Call/WhatsApp actions, service tiles, review strip. A photo always wins over a flat colour block.
+- **Presentation:** `--shadow-float`, optional 3D tilt (`perspective` + `rotateY`) for premium depth. **Tilt is decorative only — disable it under 900px**, and always stack the phone below the copy on mobile rather than shrinking the copy.
+- **Reuse:** both the founding-offer section and the "your website builds itself" section render *this same* device, so the story looks like one product.
+
+### Trader site blocks (the real generated websites — `SiteRenderer`)
+These rules apply to the actual websites Neerzy generates for traders (never to Neerzy's own marketing chrome):
+
+- **Image hero always.** Every generated site opens with a photo hero — the trader's own Google/WhatsApp job photo if one exists, otherwise a trade-appropriate photo, otherwise a `--gradient-hero-dark` palette gradient. Never ship a flat single-colour hero block.
+- **Overlay for legibility.** Text over a hero photo always sits on `--gradient-image-overlay`, with white heading and `rgba(255,255,255,0.86)` body.
+- **One clear block per job.** A generated site is a stack of separated blocks, each doing one job, in this order: `hero → trust bar → services → about → gallery → reviews → hours → contact`. Never merge two jobs into one block, never repeat a block.
+- **Visible block separation.** Each block is separated by `border-top: 1px solid` (palette tint) **and** alternating background (`#FFFFFF` / `${palette.primary}08`) — matching §5.1's "both, not just colour" rule. Bold headings per block, `--space-5` internal rhythm.
+- **Photos use real image markup** with `loading="lazy"` + descriptive `alt` text (SEO), laid out in a proper gallery grid — never a single cramped thumbnail row.
 
 ### Floating badges/tooltips (e.g. "Visibility improved," review-sent snippets)
 - Must have a minimum `16px` offset from any element they overlap, with `box-shadow` and `z-index` clearly above the base card — never touching or clipping another container's edge.

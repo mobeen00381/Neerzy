@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CheckIcon, ClockIcon, GiftIcon, GlobeIcon, MapPinIcon, StarIcon } from '@/components/ui/Icons';
-import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
+import { CheckIcon, ClockIcon, GiftIcon, GlobeIcon } from '@/components/ui/Icons';
+import { TEMPLATE_LOOKS } from '@/lib/template-looks';
+import { PhoneMockup, PhoneSite } from '@/components/landing/PhoneMockup';
 
 // ────────────────────────────────────────────────────────────────
 // Founding-member offer slides (home page).
@@ -23,6 +24,13 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 const AUTO_ADVANCE_MS = 6000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SLIDE_COUNT = 3;
+
+// The finished-website mock shows the REAL Plumber Pro template (the trade
+// of the demo business below) and lets the visitor flip through its real
+// colour variations — exactly what a trader does in the dashboard's
+// "Look" tab. Illustrative example per design.md §10: "Smith Plumbing &
+// Heating", Austin, TX — one consistent fictional business.
+const DEMO_LOOK = TEMPLATE_LOOKS.plumber;
 
 interface OfferSlidesProps {
   /** ISO timestamp when the founding-member (early adopter) window closes. */
@@ -45,6 +53,11 @@ export default function OfferSlides({
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  // Colour variation shown inside the phone (index 1 = "Forest", so the
+  // default view stays on-brand green on the dark section). Real data from
+  // TEMPLATE_LOOKS — the same list the dashboard picker renders.
+  const [lookIndex, setLookIndex] = useState(1);
+  const lookVariation = DEMO_LOOK.variations[lookIndex] || DEMO_LOOK.variations[0];
 
   // Countdown in days, recomputed every minute so an open tab stays correct.
   useEffect(() => {
@@ -156,70 +169,54 @@ export default function OfferSlides({
               </div>
             </div>
 
-            {/* RIGHT: a finished website built by Neerzy.
-                Illustrative example only — follows the design.md §10 demo-data
-                standard (one consistent fictional business, English, tier-1 market:
-                "Smith Plumbing & Heating", Austin, TX). Decorative markup. */}
-            <div className="offer-slide-mock" aria-hidden="true">
-              <div className="offer-mock">
-                <div className="offer-mock-bar">
-                  <span className="offer-mock-dot" />
-                  <span className="offer-mock-dot" />
-                  <span className="offer-mock-dot" />
-                  <span className="offer-mock-url">smithplumbingandheating.com</span>
-                </div>
+            {/* RIGHT: a finished website built by Neerzy — shown on a real
+                phone (design.md §4 "Device mockups"), with the template's
+                real colour variations selectable underneath.
+                Illustrative example only — follows the design.md §10
+                demo-data standard (one consistent fictional business:
+                "Smith Plumbing & Heating", Austin, TX). */}
+            <div className="offer-slide-mock">
+              <div className="offer-mock-stack">
+                <PhoneMockup tilt className="is-glow">
+                  <PhoneSite
+                    palette={{
+                      primary: lookVariation.primary,
+                      secondary: lookVariation.secondary,
+                    }}
+                  />
+                </PhoneMockup>
 
-                <div className="offer-mock-site">
-                  <div className="offer-mock-nav">
-                    <span className="offer-mock-logo">
-                      <GlobeIcon size={12} />
-                      Smith Plumbing
-                    </span>
-                    <span className="offer-mock-links">
-                      <span>Services</span>
-                      <span>Reviews</span>
-                      <span>Contact</span>
-                    </span>
-                  </div>
-
-                  <div className="offer-mock-hero">
-                    <span className="offer-mock-eyebrow">
-                      <MapPinIcon size={11} />
-                      Austin, TX · 24/7 call-outs
-                    </span>
-                    <strong className="offer-mock-name">Smith Plumbing &amp; Heating</strong>
-                    <span className="offer-mock-tagline">
-                      Fast, honest plumbing work — trusted by families across Austin.
-                    </span>
-                    <span className="offer-mock-actions">
-                      <span className="offer-mock-btn">Call Now</span>
-                      <span className="offer-mock-btn is-ghost">
-                        <WhatsAppIcon size={11} />
-                        WhatsApp
-                      </span>
-                    </span>
-                  </div>
-
-                  <div className="offer-mock-services">
-                    <span>Emergency Repairs</span>
-                    <span>Water Heaters</span>
-                    <span>Drain Cleaning</span>
-                  </div>
-
-                  <div className="offer-mock-review">
-                    <span className="offer-mock-stars">
-                      <StarIcon size={11} />
-                      5.0
-                    </span>
-                    <span className="offer-mock-quote">
-                      &ldquo;Arrived in 40 minutes and fixed it first time.&rdquo;
-                    </span>
-                    <span className="offer-mock-reviewer">David R. · Google review</span>
-                  </div>
-
-                  <div className="offer-mock-live">
-                    <span className="offer-mock-live-dot" />
-                    Site live — updates itself after every job
+                <div
+                  className="offer-looks"
+                  role="group"
+                  aria-label="Website colour variations"
+                >
+                  <span className="offer-looks-caption">
+                    {DEMO_LOOK.name} · {DEMO_LOOK.variations.length} colour ways
+                  </span>
+                  <div className="offer-looks-swatches">
+                    {DEMO_LOOK.variations.map((v, i) => (
+                      <button
+                        key={v.id}
+                        type="button"
+                        className={`offer-look${i === lookIndex ? ' is-active' : ''}`}
+                        onClick={() => setLookIndex(i)}
+                        aria-pressed={i === lookIndex}
+                        aria-label={`Show the ${v.name} colour way`}
+                      >
+                        <span className="offer-look-dots" aria-hidden="true">
+                          <span
+                            className="offer-look-dot"
+                            style={{ background: v.primary }}
+                          />
+                          <span
+                            className="offer-look-dot"
+                            style={{ background: v.secondary }}
+                          />
+                        </span>
+                        {v.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

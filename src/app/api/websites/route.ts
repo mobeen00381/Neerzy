@@ -13,6 +13,7 @@ import {
 } from "@/lib/website";
 import { buildWebsite } from "@/lib/website-builder";
 import { TEMPLATE_REGISTRY } from "@/lib/templates";
+import { isValidVariation, resolvePalette } from "@/lib/template-looks";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -438,23 +439,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, content });
     }
 
-    // ── set_template: change the look (palette) only ──
+    // ── set_template: change the look (palette) — optionally a colour variation ──
     if (action === "set_template") {
       const site = ctx.website;
       if (!site) {
         return NextResponse.json({ error: "Start your website build first." }, { status: 400 });
       }
-      const templateId = String(body.templateId || "");
+      const templateId = String(body.templateId || site.template_id || "");
       const def = (TEMPLATE_REGISTRY as any)[templateId];
       if (!def) {
         return NextResponse.json({ error: "Unknown template." }, { status: 400 });
       }
 
+      // Optional colour variation from TEMPLATE_LOOKS. Must belong to the
+      // chosen template — "classic" (the template default) is implied.
+      const variationId = body.variation ? String(body.variation) : "classic";
+      if (body.variation && !isValidVariation(templateId, variationId)) {
+        return NextResponse.json({ error: "Unknown colour variation." }, { status: 400 });
+      }
+      const palette = resolvePalette(templateId, variationId);
+
       const content = {
         ...(site.content || {}),
         templateId,
         templateName: def.name,
-        palette: def.colorPalette,
+        templateVariation: variationId,
+        palette,
       };
 
       const { error: tErr } = await supabaseAdmin
@@ -463,7 +473,7 @@ export async function POST(req: Request) {
         .eq("id", site.id);
       if (tErr) return NextResponse.json({ error: tErr.message }, { status: 500 });
 
-      return NextResponse.json({ success: true, content, templateId });
+      return NextResponse.json({ success: true, content, templateId, variation: variationId });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
