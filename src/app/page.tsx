@@ -687,18 +687,18 @@ export default function Page() {
       </section>
 
       {/* ============================================
-          Section 7c: Your own domain ($19)
+          Section 7c: Your own domain
           ============================================ */}
       <section id="domain" className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container">
           <div className="steps-header">
-            <h2>Your own name on the internet. $19.</h2>
-            <p>Type your business name. If it's free, tap Buy. We do the rest.</p>
+            <h2>Your own name on the internet.</h2>
+            <p>Type your business name. If it&apos;s free, tap Buy. We do the rest.</p>
           </div>
 
           <div className="domain-mock">
             <div className="domain-search">
-              <span className="domain-search-text">blacksmithhandles.com</span>
+              <span className="domain-search-text">smithplumbingandheating.com</span>
               <span className="domain-search-badge">Available</span>
             </div>
             <div className="domain-ticks">
@@ -706,19 +706,6 @@ export default function Page() {
               <span>Connected to your site</span>
               <span>Padlock on</span>
             </div>
-          </div>
-
-          <div className="price-card">
-            <div className="price-card-main">
-              <span className="price-card-amount">$19</span>
-              <span className="price-card-once">once</span>
-            </div>
-            <ul className="price-card-list">
-              <li>You own it. Forever.</li>
-              <li>Renews at the same price.</li>
-              <li>No surprises.</li>
-            </ul>
-            <Link href="/pricing" className="btn btn-primary">Claim Your Name</Link>
           </div>
         </div>
       </section>
