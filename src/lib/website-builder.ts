@@ -19,6 +19,7 @@ import { createClient } from "@supabase/supabase-js";
 import { chatWithFallback } from "@/lib/openai";
 import { sendMetaText } from "@/lib/whatsapp";
 import { TEMPLATE_REGISTRY, type TemplateId } from "@/lib/templates";
+import { WEBSITE_ELIGIBLE_PLANS } from "@/lib/website";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -504,6 +505,8 @@ export const REVIEWS_SYNC_DAYS = Math.max(1, Number(process.env.REVIEWS_SYNC_DAY
 /**
  * Only paid plans with an ACTIVE subscription may spend Google API calls.
  * Plan off / subscription canceled or past-due → false → ZERO API calls.
+ * Uses the shared website-plan list so this gate can never drift out of sync
+ * with the build gate (src/lib/website.ts).
  */
 export async function isReviewSyncAllowed(userId: string): Promise<boolean> {
   try {
@@ -514,7 +517,7 @@ export async function isReviewSyncAllowed(userId: string): Promise<boolean> {
       .maybeSingle();
     if (!p) return false;
     const plan = (p.selected_plan || "free").toLowerCase();
-    if (!["pro", "growth", "agency"].includes(plan)) return false;
+    if (!WEBSITE_ELIGIBLE_PLANS.includes(plan)) return false;
     return (p.subscription_status || "active").toLowerCase() === "active";
   } catch {
     return false;
