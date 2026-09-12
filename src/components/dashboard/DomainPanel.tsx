@@ -12,6 +12,7 @@ import {
   Lock,
   Plus,
   X,
+  Star,
   AlertCircle,
   CheckCircle2,
   ShieldCheck,
@@ -62,6 +63,13 @@ type CheckResult = {
   simulated: boolean;
   buyable: boolean;
   verified: boolean;
+  /** Neerzy's recommended pick (first verifiably-available candidate). */
+  suggested?: boolean;
+  /** Why it is recommended — e.g. "Best for local businesses". */
+  note?: string;
+  /** ISO-2 when this candidate is the trader's own local TLD. */
+  localFor?: string | null;
+  countryName?: string | null;
 };
 
 type StatusChipProps = { status: string };
@@ -104,6 +112,9 @@ export default function DomainPanel() {
   const [buying, setBuying] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // The trader's Google address, used to rank their own country's TLD first.
+  // Best-effort: a missing row simply means .com comes first.
+  const [businessAddress, setBusinessAddress] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -134,6 +145,27 @@ export default function DomainPanel() {
     load();
   }, [load]);
 
+  // Read the trader's Google address once so the suggestion API can put their
+  // own country's TLD first. Silent on failure — .com is the safe fallback.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const meta = (user?.user_metadata || {}) as Record<string, string>;
+        const phone = user?.phone || meta.phone_number || meta.phone;
+        if (!phone) return;
+        const { data } = await supabase
+          .from("business_profiles")
+          .select("address")
+          .eq("user_phone", phone)
+          .maybeSingle();
+        if (data?.address) setBusinessAddress(data.address);
+      } catch {
+        // non-fatal: suggestions still work, just .com-first
+      }
+    })();
+  }, []);
+
   const startAdding = () => {
     setAdding(true);
     setError("");
@@ -154,13 +186,17 @@ export default function DomainPanel() {
       const res = await fetch("/api/domains", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "check", domain: searchTerm.trim() }),
+        body: JSON.stringify({
+          action: "suggest",
+          domain: searchTerm.trim(),
+          address: businessAddress,
+        }),
       });
       const j = await res.json();
       if (!res.ok) {
         setError(j.error || "Could not check availability. Please try again.");
       } else {
-        setResults(j.results || []);
+        setResults(j.suggestions || []);
       }
     } catch (err: any) {
       setError("Could not check availability. Please try again.");
@@ -453,20 +489,57 @@ export default function DomainPanel() {
               {results.map((r) => (
                 <div
                   key={r.domain}
-                  className="p-4 rounded-2xl border border-slate-200/70 flex items-center justify-between gap-3"
+                  className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+                    r.suggested
+                      ? "border-emerald-300 bg-emerald-50/50 ring-1 ring-emerald-100"
+                      : "border-slate-200/70"
+                  }`}
                 >
                   <div className="min-w-0">
-                    <p className="text-base font-black text-slate-900 truncate">{r.domain}</p>
-                    <p className="text-xs font-bold mt-0.5">
-                      {r.available ? (
-                        <span className="text-emerald-600">
-                          ✓ Available{r.price ? ` · $${r.price}` : ""} · 1 year
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-base font-black text-slate-900 truncate">{r.domain}</p>
+
+                      {/* Badge 3 — Neerzy's recommendation (shown alongside the
+                          availability badge, never instead of it). */}
+                      {r.suggested && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 text-white text-[10px] font-black rounded-full uppercase tracking-wider">
+                          <Star className="w-3 h-3" /> Suggested by Neerzy
+                        </span>
+                      )}
+
+                      {/* Badges 1 & 2 — Available / Taken. A failed lookup is
+                          never reported as "taken". */}
+                      {r.available && r.verified ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-800 text-[10px] font-black rounded-full uppercase tracking-wider border border-emerald-100">
+                          <CheckCircle2 className="w-3 h-3" /> Available
+                        </span>
+                      ) : r.verified ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 text-[10px] font-black rounded-full uppercase tracking-wider border border-red-100">
+                          <X className="w-3 h-3" /> Taken
                         </span>
                       ) : (
-                        <span className="text-red-500">Not available</span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full uppercase tracking-wider">
+                          <AlertCircle className="w-3 h-3" /> Couldn&apos;t verify
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs font-bold mt-1">
+                      {r.suggested && r.note ? (
+                        <span className="text-emerald-700">{r.note}</span>
+                      ) : r.available && r.verified ? (
+                        <span className="text-slate-500">
+                          Ready now{r.price ? ` · $${r.price}` : ""} · 1 year
+                          {r.countryName ? ` · ${r.countryName} local name` : ""}
+                        </span>
+                      ) : r.verified ? (
+                        <span className="text-slate-500">Already registered — try another name</span>
+                      ) : (
+                        <span className="text-slate-500">Lookup failed — try again in a moment</span>
                       )}
                     </p>
                   </div>
+
                   {r.available && r.buyable ? (
                     <button
                       onClick={() => buy(r.domain)}
@@ -489,7 +562,7 @@ export default function DomainPanel() {
               ))}
               <p className="text-[11px] text-slate-400 font-bold pt-1">
                 Tip: your Neerzy website is auto-updated with every Google post you make — customers can find
-                you instantly at your new domain. 🌐
+                you instantly at your new domain. 🌐 Availability is confirmed at checkout.
               </p>
             </div>
           )}

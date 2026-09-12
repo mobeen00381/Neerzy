@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 import WhatsAppMockup from '@/components/landing/WhatsAppMockup';
+import WebsiteBuildMockup from '@/components/landing/WebsiteBuildMockup';
 import OfferSlides from '@/components/landing/OfferSlides';
 import { CheckIcon, CameraIcon, FileTextIcon, StarIcon, ZapIcon, MessageSquareIcon, SearchIcon, SendIcon, GlobeIcon, SmartphoneIcon, MapPinIcon, EyeIcon, ClipboardListIcon, TrendingUpIcon } from '@/components/ui/Icons';
 import { WEBSITE_EARLY_ADOPTER_ENDS, WEBSITE_SETUP_PRICE_USD, HOSTING_PRICE_USD, HOSTING_FREE_DAYS, isEarlyAdopterWindowOpen } from '@/lib/website';
@@ -723,37 +724,24 @@ export default function Page() {
       </section>
 
       {/* ============================================
-          Section 7d: Build your website
+          Section 7d: Build your website (animated story)
           ============================================ */}
       <section id="build-website" className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container">
           <div className="steps-header">
             <h2>Tap one button. Get a real website.</h2>
-            <p>Neerzy reads your Google page, writes the words, picks the look. Your site goes live on your new name.</p>
+            <p>Pick your business, connect WhatsApp, choose your name. Neerzy does the rest — your site goes live on your own name, written from the Google profile you already have.</p>
           </div>
 
           <div className="build-grid">
-            <div className="browser-mock">
-              <div className="browser-bar">
-                <span className="browser-dot" /><span className="browser-dot" /><span className="browser-dot" />
-                <span className="browser-url">blacksmithhandles.com</span>
-              </div>
-              <div className="browser-body">
-                <div className="browser-hero" />
-                <div className="browser-line" />
-                <div className="browser-line short" />
-                <div className="browser-tiles">
-                  <span /><span /><span />
-                </div>
-              </div>
-            </div>
+            <WebsiteBuildMockup />
 
             <ul className="build-list">
-              <li>Words, photos and reviews — already in.</li>
-              <li>Pick the look you like. Ten choices.</li>
-              <li>Change anything later — words, photos, colors. You can't break it.</li>
-              <li>Every new job shows up on the site by itself.</li>
-              <li>Google-ready and AI-ready. Handled. Locked.</li>
+              <li>Pick your business — Neerzy reads it straight from Google.</li>
+              <li>Connect WhatsApp once. One link, no app to download.</li>
+              <li>See what&apos;s free and take the name Neerzy picks for you.</li>
+              <li>Words, photos and reviews are already in — ten looks to choose from.</li>
+              <li>Live in under a minute. Every new job updates the site by itself.</li>
             </ul>
           </div>
 
@@ -768,7 +756,10 @@ export default function Page() {
               <li>Hosting $10/month.</li>
               <li>First 90 days of hosting free.</li>
             </ul>
-            <Link href="/pricing" className="btn btn-primary">Build My Website — Free</Link>
+            {/* Starts the real journey: account → find your business → connect
+                WhatsApp → name → build. /onboarding needs a session, so the
+                marketing CTA begins at signup. */}
+            <Link href="/signup" className="btn btn-primary">Build My Website — Free</Link>
           </div>
         </div>
       </section>

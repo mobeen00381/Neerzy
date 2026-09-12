@@ -89,6 +89,8 @@ export interface AvailabilityResult {
   currency: string;
   simulated: boolean;        // true when API keys are not configured
   rawStatus?: string;        // Porkbun "availability" when available
+  /** Set when the lookup itself failed — callers must NOT show "taken". */
+  error?: string;
 }
 
 /**
@@ -120,7 +122,25 @@ export async function checkDomainAvailability(
 
     const r = (json.response || {}) as any;
     const avail = String(r.avail || "").toLowerCase();
-    const available = json.status === "SUCCESS" && (avail === "yes" || avail === "true");
+
+    // A non-SUCCESS status (rate limit, bad key, upstream error) is a FAILED
+    // lookup — never report it as "taken".
+    if (json.status !== "SUCCESS") {
+      return {
+        domain,
+        available: false,
+        price: null,
+        currency: "USD",
+        simulated: true,
+        rawStatus: json.code || json.status,
+        error:
+          json.code === "RATE_LIMIT_EXCEEDED"
+            ? "rate-limited"
+            : json.message || json.code || "lookup-failed",
+      };
+    }
+
+    const available = avail === "yes" || avail === "true";
     const price = r.price ? Number(r.price) : r.regularPrice ? Number(r.regularPrice) : null;
 
     return {
@@ -133,8 +153,16 @@ export async function checkDomainAvailability(
     };
   } catch (err: any) {
     console.error("❌ Porkbun availability check failed:", err?.message || err);
-    // Never hard-block the UI on a lookup failure — surface "could not verify".
-    return { domain, available: false, price: null, currency: "USD", simulated: true };
+    // Never hard-block the UI on a lookup failure — surface "couldn't verify"
+    // instead of a false "taken" (see `error` on AvailabilityResult).
+    return {
+      domain,
+      available: false,
+      price: null,
+      currency: "USD",
+      simulated: true,
+      error: "lookup-failed",
+    };
   }
 }
 
@@ -169,6 +197,66 @@ async function simulateAvailability(domain: string): Promise<AvailabilityResult>
     price: priceByTld[tld] ?? DOMAIN_PRICE_USD,
     currency: "USD",
     simulated: true,
+  };
+}
+
+/**
+ * Fast pre-check used to RANK suggestions.
+ *
+ * Porkbun rate-limits availability checks to ~1 per 10 seconds, so it cannot
+ * rank several candidates in one request (and a rate-limited response must
+ * never be shown as "taken"). The suggestion list therefore uses a DNS probe:
+ *   • resolves A or NS records → registered → "Taken"
+ *   • resolves nothing         → almost certainly free → "Available"
+ * The authoritative check runs at purchase time (registerDomain), which
+ * refuses the registration if Porkbun says the name is unavailable.
+ */
+export async function probeDomainAvailability(
+  domainName: string
+): Promise<AvailabilityResult> {
+  const domain = normalizeDomain(domainName);
+  const tld = "." + domain.split(".").pop();
+  const priceByTld: Record<string, number> = {
+    ".com": DOMAIN_PRICE_USD,
+    ".net": 21,
+    ".org": 20,
+    ".co": 35,
+  };
+
+  let available = true;
+  try {
+    const dns = await import("dns/promises");
+    await dns.resolve4(domain);
+    available = false;
+  } catch {
+    try {
+      const dns = await import("dns/promises");
+      await dns.resolveNs(domain);
+      available = false;
+    } catch (nsErr: any) {
+      const code = String(nsErr?.code || "");
+      // ENOTFOUND / ENODATA → no records of either kind → likely free.
+      // Anything else is a resolver problem, so don't guess.
+      if (code && code !== "ENOTFOUND" && code !== "ENODATA") {
+        return {
+          domain,
+          available: false,
+          price: null,
+          currency: "USD",
+          simulated: false,
+          error: "lookup-failed",
+        };
+      }
+    }
+  }
+
+  return {
+    domain,
+    available,
+    price: priceByTld[tld] ?? DOMAIN_PRICE_USD,
+    currency: "USD",
+    simulated: false,
+    rawStatus: "dns",
   };
 }
 
@@ -345,4 +433,177 @@ export function daysUntilExpiry(expiresAt: string | null | undefined): number | 
 export function isInRenewalNoticeWindow(expiresAt: string | null | undefined): boolean {
   const days = daysUntilExpiry(expiresAt);
   return days !== null && days >= 0 && days <= RENEWAL_NOTICE_BEFORE_DAYS;
+}
+
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  Country-aware suggestions (used by /api/domains "suggest")
+//
+//  Priority is always the trader's OWN country TLD first, then the global
+//  .com. The country comes from the address Google already gave us at
+//  onboarding — nothing extra is asked of the trader, and no single country
+//  is special-cased in the UI. Unmapped countries simply fall back to .com.
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** ISO-3166 alpha-2 → local ccTLDs (most preferred first). */
+export const COUNTRY_TLDS: Record<string, { name: string; tlds: string[] }> = {
+  CA: { name: "Canada", tlds: [".ca"] },
+  US: { name: "United States", tlds: [".us"] },
+  GB: { name: "United Kingdom", tlds: [".co.uk", ".uk"] },
+  AU: { name: "Australia", tlds: [".com.au"] },
+  NZ: { name: "New Zealand", tlds: [".co.nz"] },
+  IE: { name: "Ireland", tlds: [".ie"] },
+  ZA: { name: "South Africa", tlds: [".co.za"] },
+  IN: { name: "India", tlds: [".in"] },
+};
+
+/** Global fallbacks, tried AFTER the trader's own country TLDs. */
+export const GLOBAL_TLDS = [".com", ".net"] as const;
+
+/** The only TLD the one-price checkout can register today. */
+export const BUYABLE_TLDS = [".com"] as const;
+
+/** Address tails → ISO-2. Google returns e.g. "Austin, TX 78704, USA". */
+const COUNTRY_HINTS: Array<[RegExp, string]> = [
+  [/canada|canadian/i, "CA"],
+  [/united states|u\.?s\.?a\b/i, "US"],
+  [/united kingdom|england|scotland|wales|northern ireland|\buk\b|\bgb\b/i, "GB"],
+  [/australia/i, "AU"],
+  [/new zealand/i, "NZ"],
+  [/ireland/i, "IE"],
+  [/south africa/i, "ZA"],
+  [/india/i, "IN"],
+];
+
+/** Best-effort country detection from a formatted Google address. */
+export function detectCountryFromAddress(address?: string | null): string | null {
+  const a = (address || "").trim();
+  if (!a) return null;
+  for (const [re, code] of COUNTRY_HINTS) {
+    if (re.test(a)) return code;
+  }
+  return null;
+}
+
+/** "Smith Plumbing & Heating" → "smithplumbingandheating". */
+export function domainSlug(input: string): string {
+  return (input || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/** First two words of the trade name → "smithplumbing" (reads better locally). */
+export function shortDomainSlug(input: string): string {
+  const words = (input || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  if (words.length <= 1) return domainSlug(input);
+  return words.slice(0, 2).join("");
+}
+
+export interface DomainCandidate {
+  domain: string;
+  /** ISO-2 when this candidate came from the trader's own country TLD. */
+  localFor: string | null;
+}
+
+/**
+ * Ordered candidate list: own-country TLD(s) first, then global TLDs.
+ * Duplicates are dropped and the list is capped so one lookup stays quick
+ * (Porkbun rate-limits availability checks).
+ */
+export function candidateDomains(
+  name: string,
+  country?: string | null,
+  limit = 4
+): DomainCandidate[] {
+  const raw = normalizeDomain(name);
+  if (!raw) return [];
+  // Already a full domain → only that one is relevant.
+  if (raw.includes(".")) return [{ domain: raw, localFor: null }];
+
+  const code = country ? country.toUpperCase() : null;
+  const local = code ? COUNTRY_TLDS[code] : undefined;
+  const full = domainSlug(raw);
+  const short = shortDomainSlug(raw);
+
+  const out: DomainCandidate[] = [];
+  const push = (domain: string, localFor: string | null) => {
+    if (domain && !out.some((c) => c.domain === domain)) out.push({ domain, localFor });
+  };
+
+  if (local) {
+    push(`${short}${local.tlds[0]}`, code);
+    push(`${full}${local.tlds[0]}`, code);
+  }
+  push(`${full}${GLOBAL_TLDS[0]}`, null);
+  push(`${short}${GLOBAL_TLDS[0]}`, null);
+
+  return out.slice(0, Math.max(1, limit));
+}
+
+export interface DomainSuggestion extends AvailabilityResult {
+  /** This is the one Neerzy recommends (first available in priority order). */
+  suggested: boolean;
+  /** Why it is recommended. */
+  note?: string;
+  /** True when the lookup actually completed (never claim "taken" otherwise). */
+  verified: boolean;
+  /** True when the one-price checkout can register it today. */
+  buyable: boolean;
+  localFor: string | null;
+  countryName: string | null;
+}
+
+/**
+ * Ranks the ordered candidates and marks exactly one as Neerzy's pick: the
+ * first candidate the probe says is free. Uses the fast DNS probe (see
+ * probeDomainAvailability) because Porkbun's own check is rate-limited to
+ * ~1 per 10s and cannot rank a list; the real check happens at purchase.
+ * A failed probe comes back as `verified: false` so the UI says "couldn't
+ * verify" instead of wrongly telling a trader the name is taken.
+ */
+export async function suggestDomains(
+  name: string,
+  opts: { country?: string | null; address?: string | null; limit?: number } = {}
+): Promise<{ query: string; country: string | null; suggestions: DomainSuggestion[] }> {
+  const explicit = opts.country ? opts.country.toUpperCase() : null;
+  const country = explicit || detectCountryFromAddress(opts.address) || null;
+  const candidates = candidateDomains(name, country, opts.limit ?? 4);
+
+  const suggestions: DomainSuggestion[] = [];
+  let picked = false;
+
+  for (const c of candidates) {
+    const check = await probeDomainAvailability(c.domain);
+    const verified = !check.error;
+    const available = verified && check.available === true;
+    const buyable = available && BUYABLE_TLDS.some((t) => c.domain.endsWith(t));
+    const suggested = !picked && available;
+
+    if (suggested) picked = true;
+
+    suggestions.push({
+      ...check,
+      available,
+      suggested,
+      note: suggested
+        ? c.localFor
+          ? "Best for local businesses"
+          : "Best available name for your business"
+        : undefined,
+      verified,
+      buyable,
+      localFor: c.localFor,
+      countryName: c.localFor ? COUNTRY_TLDS[c.localFor]?.name ?? null : null,
+    });
+  }
+
+  return { query: normalizeDomain(name), country, suggestions };
 }

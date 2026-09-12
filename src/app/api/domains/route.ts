@@ -4,22 +4,44 @@ import {
   DOMAIN_PRICE_USD,
   checkDomainAvailability,
   normalizeDomain,
+  suggestDomains,
 } from "@/lib/domain-registry";
 
 /**
- * POST /api/domains  { action: "check", domain: string }
+ * POST /api/domains
  *
- * Availability lookup for the dashboard DomainPanel. Uses the real Porkbun
- * check API when keys are configured, otherwise a dev-only DNS probe.
+ *   { action: "check",   domain }              → exactly one candidate (legacy)
+ *   { action: "suggest", domain, country?, address? }
+ *                                              → ordered suggestions: the
+ *                                                trader's own country TLD
+ *                                                first, then .com/.net, with
+ *                                                one "Suggested by Neerzy" pick
  *
- * If `domain` is already a full domain (contains a dot), only that domain is
- * checked. Otherwise suggestions are checked across the registerable TLDs.
- * Only .com is purchasable at the flat $19 price today (see `buyable`).
+ * Uses the real Porkbun check API when keys are configured, otherwise a
+ * dev-only DNS probe. Only .com is purchasable at the flat $19 price today
+ * (see `buyable`) — local TLDs are shown and suggested, bought later.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { action, domain } = body || {};
+
+    // ── Suggestions (business name → ranked list with badges) ──
+    if (action === "suggest") {
+      const raw = normalizeDomain(domain || "");
+      if (!raw) {
+        return NextResponse.json({ error: "Please enter a business name or domain." }, { status: 400 });
+      }
+      const country = typeof body.country === "string" ? body.country : null;
+      const address = typeof body.address === "string" ? body.address : null;
+
+      const { query, country: detected, suggestions } = await suggestDomains(raw, {
+        country,
+        address,
+      });
+
+      return NextResponse.json({ query, country: detected, suggestions });
+    }
 
     if (action !== "check") {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -43,7 +65,7 @@ export async function POST(request: Request) {
         currency: check.currency,
         simulated: check.simulated,
         buyable: candidate.endsWith(".com"),
-        verified: !check.simulated,
+        verified: !check.simulated && !check.error,
       },
     ];
 
