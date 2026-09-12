@@ -94,13 +94,33 @@ export interface AvailabilityResult {
 }
 
 /**
+ * Porkbun allows ~1 availability lookup per 10s per API key, so a verified
+ * answer is cached briefly: repeat checks (double-click, tab switch, or the
+ * purchase re-quote straight after a check) then cost zero API calls instead
+ * of surfacing "couldn't verify".
+ */
+const AVAILABILITY_CACHE_MS = 60_000;      // reuse as-is, no API call
+const AVAILABILITY_STALE_MS = 10 * 60_000; // fallback during a rate-limit window
+const availabilityCache = new Map<string, { at: number; result: AvailabilityResult }>();
+
+/**
  * Real Porkbun check: POST /domain/check/{domain}.
  * Simulated DNS probe when keys are missing (dev only).
+ *
+ * `allowStaleCache` (display paths only) serves the last verified answer when
+ * Porkbun rate-limits us; the purchase path stays strict so a cached answer
+ * can never gate money.
  */
 export async function checkDomainAvailability(
-  domainName: string
+  domainName: string,
+  opts: { allowStaleCache?: boolean } = {}
 ): Promise<AvailabilityResult> {
   const domain = normalizeDomain(domainName);
+
+  const cached = availabilityCache.get(domain);
+  if (cached && Date.now() - cached.at < AVAILABILITY_CACHE_MS) {
+    return cached.result;
+  }
 
   const creds = porkbunAuth();
   if (!creds) {
@@ -126,6 +146,17 @@ export async function checkDomainAvailability(
     // A non-SUCCESS status (rate limit, bad key, upstream error) is a FAILED
     // lookup — never report it as "taken".
     if (json.status !== "SUCCESS") {
+      const rateLimited = json.code === "RATE_LIMIT_EXCEEDED";
+      // Display paths keep showing the last verified answer (≤10 min old)
+      // instead of a misleading "couldn't verify" during a rate-limit window.
+      if (
+        rateLimited &&
+        opts.allowStaleCache &&
+        cached &&
+        Date.now() - cached.at < AVAILABILITY_STALE_MS
+      ) {
+        return cached.result;
+      }
       return {
         domain,
         available: false,
@@ -133,17 +164,16 @@ export async function checkDomainAvailability(
         currency: "USD",
         simulated: true,
         rawStatus: json.code || json.status,
-        error:
-          json.code === "RATE_LIMIT_EXCEEDED"
-            ? "rate-limited"
-            : json.message || json.code || "lookup-failed",
+        error: rateLimited
+          ? "rate-limited"
+          : json.message || json.code || "lookup-failed",
       };
     }
 
     const available = avail === "yes" || avail === "true";
     const price = r.price ? Number(r.price) : r.regularPrice ? Number(r.regularPrice) : null;
 
-    return {
+    const result: AvailabilityResult = {
       domain,
       available,
       price,
@@ -151,6 +181,8 @@ export async function checkDomainAvailability(
       simulated: false,
       rawStatus: avail || json.status,
     };
+    availabilityCache.set(domain, { at: Date.now(), result });
+    return result;
   } catch (err: any) {
     console.error("❌ Porkbun availability check failed:", err?.message || err);
     // Never hard-block the UI on a lookup failure — surface "couldn't verify"

@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     // Porkbun rate-limits availability lookups (~1 per 10s per API key), so we
     // check exactly ONE domain per request. `.com` is the purchasable offer.
     const candidate = raw.includes(".") ? raw : `${raw}.com`;
-    const check = await checkDomainAvailability(candidate);
+    const check = await checkDomainAvailability(candidate, { allowStaleCache: true });
 
     const results = [
       {
