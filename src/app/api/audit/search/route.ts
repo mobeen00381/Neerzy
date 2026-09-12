@@ -71,7 +71,7 @@ export async function POST(req: Request) {
           let photoUrl = '';
           if (place.photos && place.photos.length > 0) {
             const photoName = place.photos[0].name;
-            photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=400&key=${placesApiKey}`;
+            photoUrl = `/api/places/photo?name=${encodeURIComponent(photoName)}&w=400`;
           }
           return {
             placeId: place.id,
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
         const places = data.results.slice(0, limit).map((result: any) => {
           let photoUrl = '';
           if (result.photos && result.photos.length > 0 && mapsApiKey) {
-            photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${result.photos[0].photo_reference}&key=${mapsApiKey}`;
+            photoUrl = `/api/places/photo?ref=${encodeURIComponent(result.photos[0].photo_reference)}&w=400`;
           }
           return {
             placeId: result.place_id,

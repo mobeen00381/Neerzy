@@ -59,15 +59,89 @@ const EMPTY_ENRICHMENT: Enrichment = {
   reviews: [], phone: null, address: null, website: null, geo: null,
 };
 
-async function enrichFromPlaces(placeId: string | null): Promise<Enrichment> {
-  // Prefer a dedicated server key; fall back to the existing ones.
-  // NOTE: this uses **Places API (New)** — the legacy /maps/api/place/* endpoints
-  // are disabled on the Neerzy Google Cloud project.
-  const key =
+/** Public bucket that already serves owner-uploaded site photos. */
+const SITE_MEDIA_BUCKET = "site-media";
+/** How many Places photos a build copies into storage (hero + gallery). */
+const MAX_PERSISTED_PHOTOS = 6;
+
+/** Server-side Places key — never handed to a browser. */
+function placesServerKey(): string {
+  return (
     process.env.GOOGLE_PLACES_SERVER_KEY ||
     process.env.GOOGLE_PLACES_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
-    "";
+    ""
+  );
+}
+
+/**
+ * Copies Places photos into the public `site-media` bucket and returns their
+ * permanent storage URLs.
+ *
+ * WHY: the Places media endpoint only serves bytes when the request carries the
+ * API key, so a `<img src="…&key=AIza…">` hands that key to every visitor of a
+ * generated site (view-source is enough to steal it). Downloading the bytes
+ * once, server-side, keeps the key off the page — and makes the URL permanent
+ * (Places media links can expire) and free of per-view Google billing.
+ *
+ * A photo that fails to copy is skipped: we never fall back to a keyed URL.
+ */
+async function persistPlacePhotos(
+  photoNames: string[],
+  ctx: { userId: string; siteId: string }
+): Promise<string[]> {
+  const key = placesServerKey();
+  if (!key || !photoNames.length) return [];
+
+  // Public-read bucket; create it on first use (mirrors /api/websites/media).
+  const { error: bucketErr } = await supabaseAdmin.storage.getBucket(SITE_MEDIA_BUCKET);
+  if (bucketErr) {
+    await supabaseAdmin.storage.createBucket(SITE_MEDIA_BUCKET, { public: true }).catch(() => {});
+  }
+
+  const urls: string[] = [];
+  for (let i = 0; i < photoNames.length; i++) {
+    if (urls.length >= MAX_PERSISTED_PHOTOS) break;
+    try {
+      const res = await fetch(
+        `https://places.googleapis.com/v1/${photoNames[i]}/media?maxWidthPx=1200`,
+        { headers: { "X-Goog-Api-Key": key }, cache: "no-store" }
+      );
+      if (!res.ok) {
+        console.warn(`⚠️ [Website Builder] photo ${i} fetch failed (${res.status})`);
+        continue;
+      }
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      if (!contentType.startsWith("image/")) continue;
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (!bytes.length) continue;
+
+      const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+      const path = `${ctx.userId}/${ctx.siteId}-place-${i}.${ext}`;
+      const { error: upErr } = await supabaseAdmin.storage
+        .from(SITE_MEDIA_BUCKET)
+        .upload(path, bytes, { contentType, upsert: true });
+      if (upErr) {
+        console.warn(`⚠️ [Website Builder] photo ${i} upload failed: ${upErr.message}`);
+        continue;
+      }
+      const { data: pub } = supabaseAdmin.storage.from(SITE_MEDIA_BUCKET).getPublicUrl(path);
+      if (pub?.publicUrl) urls.push(pub.publicUrl);
+    } catch (e: any) {
+      console.warn(`⚠️ [Website Builder] photo ${i} copy failed: ${e?.message || e}`);
+    }
+  }
+  return urls;
+}
+
+async function enrichFromPlaces(
+  placeId: string | null,
+  persist?: { userId: string; siteId: string }
+): Promise<Enrichment> {
+  // Prefer a dedicated server key; fall back to the existing ones.
+  // NOTE: this uses **Places API (New)** — the legacy /maps/api/place/* endpoints
+  // are disabled on the Neerzy Google Cloud project.
+  const key = placesServerKey();
   if (!key || !placeId) return EMPTY_ENRICHMENT;
 
   try {
@@ -105,13 +179,14 @@ async function enrichFromPlaces(placeId: string | null): Promise<Enrichment> {
 
     const hours: string[] = json.regularOpeningHours?.weekdayDescriptions || [];
 
-    const photos: string[] = (json.photos || [])
-      .slice(0, 6)
+    const photoNames: string[] = (json.photos || [])
+      .slice(0, MAX_PERSISTED_PHOTOS)
       .filter((p: any) => p?.name)
-      .map(
-        (p: any) =>
-          `https://places.googleapis.com/v1/${p.name}/media?maxWidthPx=1200&key=${key}`
-      );
+      .map((p: any) => p.name);
+
+    // Never store a Places URL: it would carry the API key into public HTML.
+    // Copy the bytes into our own bucket instead (skipped without a ctx).
+    const photos = persist ? await persistPlacePhotos(photoNames, persist) : [];
 
     const reviews = (json.reviews || []).slice(0, 5).map((rv: any) => ({
       author: rv.authorAttribution?.displayName || "Customer",
@@ -389,8 +464,9 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
     const address = biz?.address || "";
     const placeId = biz?.google_place_id || null;
 
-    // Google Place Details enrichment (hours, photos, reviews) — silent fallback
-    const enrichment = await enrichFromPlaces(placeId);
+    // Google Place Details enrichment (hours, photos, reviews) — silent fallback.
+    // Photos are copied into `site-media` so no API key ever reaches the page.
+    const enrichment = await enrichFromPlaces(placeId, { userId: site.user_id, siteId: site.id });
 
     // ── WRITE (single LLM call) ──
     const copy = await writeSiteCopy({

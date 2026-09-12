@@ -133,7 +133,7 @@ export async function POST(req: Request) {
     let photoUrl = '';
     if (placeData.photos && placeData.photos.length > 0) {
       const photoName = placeData.photos[0].name;
-      photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=800&key=${apiKey}`;
+      photoUrl = `/api/places/photo?name=${encodeURIComponent(photoName)}&w=800`;
     }
 
     // Run audit checks

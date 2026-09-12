@@ -97,7 +97,7 @@ export async function POST(req: Request) {
         types: place.types || [],
         primaryType: place.types?.find((t: string) => !t.includes('point_of_interest')) || 'Business',
         photoUrl: place.photos?.length > 0 
-          ? `https://places.googleapis.com/v1/${place.photos[0].name}/media?key=${apiKey}&maxWidthPx=100&maxHeightPx=100` 
+          ? `/api/places/photo?name=${encodeURIComponent(place.photos[0].name)}&w=100` 
           : null,
         googleMapsUri: place.googleMapsUri || null
       };

@@ -46,7 +46,7 @@ export async function GET(req: Request) {
       types: place.types || [],
       hasPhotos: place.photos?.length > 0,
       photoUrl: place.photos?.length > 0 
-        ? `https://places.googleapis.com/v1/${place.photos[0].name}/media?key=${process.env.GOOGLE_PLACES_API_KEY}&maxWidthPx=100&maxHeightPx=100` 
+        ? `/api/places/photo?name=${encodeURIComponent(place.photos[0].name)}&w=100` 
         : null,
       googleMapsUrl: place.googleMapsUri || '',
       // Extract business type from types
