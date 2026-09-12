@@ -26,6 +26,7 @@ const DOMAIN_QUOTA: Record<string, number> = {
   pro: 1,
   growth: 1,
   agency: 10,
+  unlimited: 999, // internal full-power plan (src/lib/plans.ts) — effectively no cap
 };
 
 /** Purchase is flat $19 — matches every pricing page / FAQ. Only .com is buyable. */

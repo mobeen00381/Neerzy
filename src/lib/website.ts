@@ -32,7 +32,7 @@ export const HOSTING_PADDLE_PRICE_ID =
   process.env.PADDLE_HOSTING_PRICE_ID || '';
 
 /** Plans allowed to build a website (inherited from the domain gate). */
-export const WEBSITE_ELIGIBLE_PLANS = ['pro', 'growth', 'agency'];
+export const WEBSITE_ELIGIBLE_PLANS = ['pro', 'growth', 'agency', 'unlimited'];
 
 export function isWebsiteEligiblePlan(plan: string | null | undefined): boolean {
   return WEBSITE_ELIGIBLE_PLANS.includes((plan || '').toLowerCase());
