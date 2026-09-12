@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CheckIcon, ClockIcon, GiftIcon, GlobeIcon } from '@/components/ui/Icons';
+import { CheckIcon, ClockIcon, GiftIcon, GlobeIcon, MapPinIcon, StarIcon } from '@/components/ui/Icons';
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 
 // ────────────────────────────────────────────────────────────────
 // Founding-member offer slides (home page).
@@ -130,25 +131,98 @@ export default function OfferSlides({
             </span>
           </div>
 
-          <div className="offer-slide" key={slide.key} aria-live="polite">
-            <div className="offer-slide-copy">
-              <div className="offer-slide-icon">{slide.icon}</div>
-              <h3 className="offer-slide-title">{slide.title}</h3>
-              <p className="offer-slide-body">{slide.body}</p>
-              <ul className="offer-slide-chips">
-                {slide.chips.map((chip) => (
-                  <li key={chip}>
-                    <CheckIcon size={13} />
-                    {chip}
-                  </li>
-                ))}
-              </ul>
+          <div className="offer-slide-row">
+            {/* LEFT: the offer copy, with its call-to-action directly beneath it. */}
+            <div className="offer-slide" key={slide.key} aria-live="polite">
+              <div className="offer-slide-copy">
+                <div className="offer-slide-icon">{slide.icon}</div>
+                <h3 className="offer-slide-title">{slide.title}</h3>
+                <p className="offer-slide-body">{slide.body}</p>
+                <ul className="offer-slide-chips">
+                  {slide.chips.map((chip) => (
+                    <li key={chip}>
+                      <CheckIcon size={13} />
+                      {chip}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="offer-slide-cta">
+                  <Link href="/pricing#add-ons" className="btn btn-primary">
+                    {slide.cta}
+                  </Link>
+                  <span className="offer-slide-cta-note">No card needed to start · Live in minutes</span>
+                </div>
+              </div>
             </div>
 
-            <div className="offer-slide-cta">
-              <Link href="/pricing#add-ons" className="btn btn-primary">
-                {slide.cta}
-              </Link>
+            {/* RIGHT: a finished website built by Neerzy.
+                Illustrative example only — follows the design.md §10 demo-data
+                standard (one consistent fictional business, English, tier-1 market:
+                "Smith Plumbing & Heating", Austin, TX). Decorative markup. */}
+            <div className="offer-slide-mock" aria-hidden="true">
+              <div className="offer-mock">
+                <div className="offer-mock-bar">
+                  <span className="offer-mock-dot" />
+                  <span className="offer-mock-dot" />
+                  <span className="offer-mock-dot" />
+                  <span className="offer-mock-url">smithplumbingandheating.com</span>
+                </div>
+
+                <div className="offer-mock-site">
+                  <div className="offer-mock-nav">
+                    <span className="offer-mock-logo">
+                      <GlobeIcon size={12} />
+                      Smith Plumbing
+                    </span>
+                    <span className="offer-mock-links">
+                      <span>Services</span>
+                      <span>Reviews</span>
+                      <span>Contact</span>
+                    </span>
+                  </div>
+
+                  <div className="offer-mock-hero">
+                    <span className="offer-mock-eyebrow">
+                      <MapPinIcon size={11} />
+                      Austin, TX · 24/7 call-outs
+                    </span>
+                    <strong className="offer-mock-name">Smith Plumbing &amp; Heating</strong>
+                    <span className="offer-mock-tagline">
+                      Fast, honest plumbing work — trusted by families across Austin.
+                    </span>
+                    <span className="offer-mock-actions">
+                      <span className="offer-mock-btn">Call Now</span>
+                      <span className="offer-mock-btn is-ghost">
+                        <WhatsAppIcon size={11} />
+                        WhatsApp
+                      </span>
+                    </span>
+                  </div>
+
+                  <div className="offer-mock-services">
+                    <span>Emergency Repairs</span>
+                    <span>Water Heaters</span>
+                    <span>Drain Cleaning</span>
+                  </div>
+
+                  <div className="offer-mock-review">
+                    <span className="offer-mock-stars">
+                      <StarIcon size={11} />
+                      5.0
+                    </span>
+                    <span className="offer-mock-quote">
+                      &ldquo;Arrived in 40 minutes and fixed it first time.&rdquo;
+                    </span>
+                    <span className="offer-mock-reviewer">David R. · Google review</span>
+                  </div>
+
+                  <div className="offer-mock-live">
+                    <span className="offer-mock-live-dot" />
+                    Site live — updates itself after every job
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

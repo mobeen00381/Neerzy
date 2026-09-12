@@ -227,7 +227,7 @@ export function AgencyClientsPanel() {
                   <input
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    placeholder="Business name (e.g., Mike's Plumbing)"
+                    placeholder="Business name (e.g., Smith Plumbing & Heating)"
                     className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-500"
                   />
                   <input

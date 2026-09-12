@@ -16,8 +16,8 @@ export async function POST(req: Request) {
           placeId: `mock_${Date.now()}_1`,
           name: query,
           displayName: { text: query },
-          formattedAddress: '123 Main Street, Karachi',
-          formatted_address: '123 Main Street, Karachi',
+          formattedAddress: '123 Main Street, Austin, TX',
+          formatted_address: '123 Main Street, Austin, TX',
           rating: 4.6,
           user_ratings_total: 82,
           types: ['plumber', 'establishment', 'point_of_interest']
@@ -26,8 +26,8 @@ export async function POST(req: Request) {
           placeId: `mock_${Date.now()}_2`,
           name: `${query} - Branch`,
           displayName: { text: `${query} - Branch` },
-          formattedAddress: '456 Oak Road, Lahore',
-          formatted_address: '456 Oak Road, Lahore',
+          formattedAddress: '456 Oak Road, Denver, CO',
+          formatted_address: '456 Oak Road, Denver, CO',
           rating: 4.2,
           user_ratings_total: 19,
           types: ['contractor', 'establishment']
@@ -36,8 +36,8 @@ export async function POST(req: Request) {
           placeId: `mock_${Date.now()}_3`,
           name: `${query} & Sons`,
           displayName: { text: `${query} & Sons` },
-          formattedAddress: '789 Pine Ave, Islamabad',
-          formatted_address: '789 Pine Ave, Islamabad',
+          formattedAddress: '789 Pine Avenue, Seattle, WA',
+          formatted_address: '789 Pine Avenue, Seattle, WA',
           rating: 4.8,
           user_ratings_total: 145,
           types: ['electrician', 'establishment']

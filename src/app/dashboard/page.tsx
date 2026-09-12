@@ -1919,7 +1919,7 @@ export default function Dashboard() {
                           value={ownerInput}
                           onChange={(e) => setOwnerInput(e.target.value)}
                           className="flex-1 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200 outline-none text-sm text-slate-800 focus:border-emerald-500 font-semibold transition-all"
-                          placeholder="e.g. John Doe"
+                          placeholder="e.g. James Carter"
                         />
                         <button
                           onClick={handleSaveOwnerName}

@@ -418,7 +418,7 @@ export default function DomainPanel() {
                 type="text"
                 value={clientLabel}
                 onChange={(e) => setClientLabel(e.target.value)}
-                placeholder="e.g. Jake’s Plumbing — client #1"
+                placeholder="e.g. Smith Plumbing & Heating — client #1"
                 className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-colors"
               />
             </div>

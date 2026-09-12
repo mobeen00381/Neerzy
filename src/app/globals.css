@@ -2068,16 +2068,20 @@ main {
   font-weight: 800;
 }
 
-.offer-slide {
-  display: flex;
+/* Two columns: offer copy + its CTA on the LEFT, finished-website mock on the RIGHT. */
+.offer-slide-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-5);
+  gap: var(--space-6);
+}
+
+.offer-slide {
   animation: offer-slide-in 0.45s ease;
 }
 
 .offer-slide-copy {
-  flex: 1 1 520px;
+  max-width: 620px;
 }
 
 .offer-slide-icon {
@@ -2133,7 +2137,17 @@ main {
 }
 
 .offer-slide-cta {
-  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.offer-slide-cta-note {
+  font-size: var(--text-small-size);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .offer-slider-controls {
@@ -2188,6 +2202,222 @@ main {
   background: #FFFFFF;
 }
 
+/* ---- Finished-website mockup (right column of the offer card) ----
+   Illustrative example site, matching the design.md §10 demo-data
+   standard: one consistent fictional business ("Smith Plumbing &
+   Heating", Austin, TX) with English, tier-1 market naming. */
+
+.offer-slide-mock {
+  justify-self: end;
+  width: 100%;
+  max-width: 380px;
+}
+
+.offer-mock {
+  border-radius: 18px;
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.34);
+}
+
+.offer-mock-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  background: #EFF4F1;
+  border-bottom: 1px solid rgba(11, 61, 46, 0.1);
+}
+
+.offer-mock-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #C7D3CD;
+}
+
+.offer-mock-url {
+  margin-left: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1px solid rgba(11, 61, 46, 0.12);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offer-mock-site {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.offer-mock-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.offer-mock-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--color-primary-dark);
+}
+
+.offer-mock-links {
+  display: inline-flex;
+  gap: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+}
+
+.offer-mock-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(140deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
+  color: #FFFFFF;
+}
+
+.offer-mock-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.offer-mock-name {
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.offer-mock-tagline {
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.offer-mock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.offer-mock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: var(--color-primary-dark);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.offer-mock-btn.is-ghost {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #FFFFFF;
+}
+
+.offer-mock-services {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.offer-mock-services span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 6px;
+  border-radius: 10px;
+  background: #F1F6F3;
+  border: 1px solid rgba(11, 61, 46, 0.08);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--color-primary-dark);
+}
+
+.offer-mock-review {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #F1F6F3;
+  border: 1px solid rgba(11, 61, 46, 0.08);
+}
+
+.offer-mock-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #B8860B;
+}
+
+.offer-mock-quote {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-primary);
+}
+
+.offer-mock-reviewer {
+  grid-column: 2;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.offer-mock-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.offer-mock-live-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
 @keyframes offer-slide-in {
   from {
     opacity: 0;
@@ -2213,19 +2443,29 @@ main {
     border-radius: 20px;
   }
 
-  .offer-slide {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-4);
+  .offer-slide-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
   }
 
   .offer-slide-title {
     font-size: 24px;
   }
 
-  .offer-slide-cta,
+  .offer-slide-mock {
+    justify-self: stretch;
+    max-width: 460px;
+    margin: 0 auto;
+  }
+
+  .offer-slide-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .offer-slide-cta .btn {
     width: 100%;
+    justify-content: center;
   }
 }
 

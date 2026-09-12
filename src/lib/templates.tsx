@@ -357,7 +357,7 @@ const MechanicTemplate = ({ data }: any) => (
         </div>
       </div>
       <div className="z-10 flex items-center justify-between border-t border-zinc-800 pt-6">
-         <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 tracking-wider"><MapPin className="w-4 h-4"/> {data.serviceArea || "ENGINE ROAD, TX"}</div>
+         <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 tracking-wider"><MapPin className="w-4 h-4"/> {data.serviceArea || "AUSTIN, TX"}</div>
          <div className="flex gap-1">{[1,2,3,4,5].map(i=><Star key={i} className="w-4 h-4 fill-yellow-600 text-yellow-600"/>)}</div>
       </div>
     </main>

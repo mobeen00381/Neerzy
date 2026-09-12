@@ -113,7 +113,7 @@ export default function GMBChecker() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               onFocus={() => query.length >= 2 && setShowDropdown(true)}
-              placeholder="e.g. Acme Plumbing London"
+              placeholder="e.g. Smith Plumbing & Heating"
               className="w-full pl-16 pr-24 py-6 bg-transparent border-none outline-none font-bold text-2xl text-slate-900 placeholder:text-slate-300"
               autoComplete="off"
             />
