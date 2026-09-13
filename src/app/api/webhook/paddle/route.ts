@@ -287,6 +287,56 @@ export async function POST(req: Request) {
             console.error('❌ Failed to write domains row:', domainWriteErr);
           } else {
             console.log(`🚀 Domain ${domainName} → ${domainStatus} for user ${userIdFromCustom || 'unlinked'}`);
+
+            // Point the trader's website at the domain they just bought.
+            // WHY: serving resolves a site through getSiteByHost(), which matches
+            // `websites.domain_name` against the request host. Nothing else
+            // re-points that row, so a trader who already has a website (built on
+            // an earlier domain) would pay for a domain that resolves to 404.
+            if (domainStatus === 'active' && userIdFromCustom) {
+              try {
+                const { data: linkedDomain } = await supabase
+                  .from('domains')
+                  .select('id')
+                  .eq('domain_name', domainName)
+                  .maybeSingle();
+
+                const { data: sites } = await supabase
+                  .from('websites')
+                  .select('id, domain_name, created_at, content')
+                  .eq('user_id', userIdFromCustom)
+                  .order('created_at', { ascending: false });
+
+                const target = sites?.[0];
+                if (target) {
+                  if (sites.length > 1) {
+                    console.warn(
+                      `⚠️ ${sites.length} websites for user ${userIdFromCustom} — linking the newest (${target.id})`
+                    );
+                  }
+                  const { error: linkErr } = await supabase
+                    .from('websites')
+                    .update({
+                      domain_id: linkedDomain?.id || null,
+                      domain_name: domainName,
+                      // SEO/canonical + schema read content.domain — keep it in
+                      // step with the serving host, or the site would advertise
+                      // the previous domain to Google.
+                      content: { ...(target.content || {}), domain: domainName },
+                    })
+                    .eq('id', target.id);
+                  if (linkErr) {
+                    console.error('❌ Failed to link website to domain:', linkErr);
+                  } else {
+                    console.log(
+                      `🔗 Website ${target.id} → ${domainName} (was "${target.domain_name || 'none'}")`
+                    );
+                  }
+                }
+              } catch (linkErr: any) {
+                console.warn('⚠️ Website link step failed:', linkErr?.message || linkErr);
+              }
+            }
           }
         }
       }
