@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
+  openPaddleCheckout,
+  CHECKOUT_COMPLETED_EVENT,
+} from "@/lib/paddle-client";
+import {
   Globe,
   Search,
   Loader2,
@@ -145,6 +149,17 @@ export default function DomainPanel() {
     load();
   }, [load]);
 
+  // When the Paddle overlay completes, refresh so the bought domain appears
+  // ("Processing…" until the webhook provisions it) without a manual reload.
+  useEffect(() => {
+    const onCompleted = () => {
+      setNotice("Payment received — setting up your domain…");
+      load();
+    };
+    window.addEventListener(CHECKOUT_COMPLETED_EVENT, onCompleted);
+    return () => window.removeEventListener(CHECKOUT_COMPLETED_EVENT, onCompleted);
+  }, [load]);
+
   // Read the trader's Google address once so the suggestion API can put their
   // own country's TLD first. Silent on failure — .com is the safe fallback.
   useEffect(() => {
@@ -225,10 +240,12 @@ export default function DomainPanel() {
         return;
       }
       setNotice(`Starting checkout for ${j.domain} — complete payment to activate your domain.`);
-      // Paddle hosted checkout → user returns and the domain shows as "Processing".
-      if (j.url) {
-        window.location.href = j.url;
-      }
+      // Paddle checkout: open the overlay for the transaction the server just
+      // created. (Navigating to the returned `?_ptxn=` link only works on a page
+      // where Paddle.js is initialized — the dashboard isn't one, so the old
+      // redirect landed the trader on the home page with no checkout.)
+      const opened = j.url ? await openPaddleCheckout(j.url) : false;
+      if (!opened && j.url) window.location.href = j.url;
     } catch (err: any) {
       setError("Could not start checkout. Please try again.");
     } finally {

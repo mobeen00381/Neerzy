@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import {
+  openPaddleCheckout,
+  CHECKOUT_COMPLETED_EVENT,
+} from "@/lib/paddle-client";
 import WebsiteEditor from "@/components/dashboard/WebsiteEditor";
 import {
   Globe,
@@ -188,6 +192,16 @@ export default function WebsitePanel() {
     load();
   }, [load]);
 
+  // After a Paddle checkout completes, refresh so newly-paid setup/hosting shows.
+  useEffect(() => {
+    const onCompleted = () => {
+      setNotice("Payment received — updating your website…");
+      load();
+    };
+    window.addEventListener(CHECKOUT_COMPLETED_EVENT, onCompleted);
+    return () => window.removeEventListener(CHECKOUT_COMPLETED_EVENT, onCompleted);
+  }, [load]);
+
   const start = async () => {
     setBusy(true);
     setError("");
@@ -208,7 +222,10 @@ export default function WebsitePanel() {
         // Latecomer → must pay $99 setup + $10/mo hosting before the build
         const pay = await postAction("checkout");
         if (pay.ok && pay.json?.url) {
-          window.location.href = pay.json.url;
+          // Open the Paddle overlay in place; only navigate if Paddle.js is
+          // unavailable (the `?_ptxn=` link needs Paddle.js on the target page).
+          const opened = await openPaddleCheckout(pay.json.url);
+          if (!opened) window.location.href = pay.json.url;
           return;
         }
         setError(pay.json?.error || "Could not start checkout. Please try again.");
@@ -267,7 +284,8 @@ export default function WebsitePanel() {
     try {
       const { ok, json } = await postAction("checkout");
       if (ok && json?.url) {
-        window.location.href = json.url;
+        const opened = await openPaddleCheckout(json.url);
+        if (!opened) window.location.href = json.url;
         return;
       }
       if (ok && json?.alreadyActive) {

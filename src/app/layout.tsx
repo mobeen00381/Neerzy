@@ -7,6 +7,7 @@ import Footer from "@/components/layout/Footer";
 import { GlobalChatWrapper } from "@/components/chat/GlobalChatWrapper";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import QueryProvider from "@/components/providers/QueryProvider";
+import PaddleCheckoutLink from "@/components/PaddleCheckoutLink";
 import { initMonitoring } from "@/lib/monitoring";
 import Script from "next/script";
 
@@ -96,6 +97,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <QueryProvider>
             <Header />
+            <PaddleCheckoutLink />
             <main className="flex-1 flex flex-col">
               {children}
             </main>
