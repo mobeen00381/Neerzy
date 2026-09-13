@@ -5,6 +5,7 @@ import { Button } from "../ui/Button";
 import { ThemeToggle } from "./ThemeToggle";
 import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
+import { isTraderSitePath } from "@/lib/routes";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -35,7 +36,9 @@ export default function Header() {
                      pathname?.startsWith('/login') || 
                      pathname?.startsWith('/signup') ||
                      pathname?.startsWith('/checkout') ||
-                     pathname?.startsWith('/admin');
+                     pathname?.startsWith('/admin') ||
+                     // the trader's own website carries the trader's own header
+                     isTraderSitePath(pathname);
 
   if (hideHeader) return null;
 

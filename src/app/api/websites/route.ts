@@ -416,6 +416,11 @@ export async function POST(req: Request) {
         photos: Array.isArray(patch.photos)
           ? patch.photos.map(cleanPhotoUrl).filter(Boolean).slice(0, 8)
           : prev.photos,
+        // An owner who uploaded real photos retires the template placeholders.
+        stockPhotos:
+          Array.isArray(patch.photos) && patch.photos.length
+            ? []
+            : prev.stockPhotos,
         reviewLink: patch.reviewLink !== undefined ? (cleanLink(patch.reviewLink) || prev.reviewLink) : prev.reviewLink,
         mapUrl: patch.mapUrl !== undefined ? (cleanLink(patch.mapUrl) || prev.mapUrl) : prev.mapUrl,
         // section visibility toggles (cosmetic only — never SEO data)

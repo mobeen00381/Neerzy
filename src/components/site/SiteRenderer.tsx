@@ -1,14 +1,16 @@
 import React from "react";
+import TradeSiteTemplate from "./TradeSiteTemplate";
+import { getTradeSiteTemplate } from "@/lib/site-templates";
 
 /**
  * Part 2 — Trader website renderer.
  *
- * Renders a complete website from the JSON stored in websites.content:
- * hero · trust bar · services · about · hours · gallery · reviews ·
- * latest job updates (auto-fed by the WhatsApp → website_posts pipeline).
- *
- * Theming comes from the template palette (TEMPLATE_REGISTRY) that the
- * builder picked for the trader's trade.
+ * Dispatches on `content.templateId` (written by the website builder) to the
+ * locked trade template from `src/lib/site-templates.ts` — hero · services ·
+ * before/after · gallery · service areas · Google map · reviews · hours ·
+ * FAQ · quote. Sites built before the trade templates existed (or with an
+ * unknown template id) fall through to the legacy generic layout below, so
+ * nothing that is already live changes appearance without a rebuild.
  */
 
 type Props = {
@@ -28,6 +30,17 @@ function waHref(phone: string, businessName: string) {
 
 export default function SiteRenderer({ content, posts = [], preview = false }: Props) {
   const c = content || {};
+
+  // ── Trade template (locked full-page layout) ──
+  // The builder stores `templateId` on every site, so this is the normal path.
+  // Unknown/missing ids keep the legacy layout below (older sites).
+  const tradeTemplate = getTradeSiteTemplate(c.templateId);
+  if (tradeTemplate) {
+    return (
+      <TradeSiteTemplate content={c} posts={posts} preview={preview} def={tradeTemplate} />
+    );
+  }
+
   const primary: string = c.palette?.primary || "#0F5C4D";
   const secondary: string = c.palette?.secondary || "#0A2E22";
   const businessName: string = c.businessName || "Your Business";

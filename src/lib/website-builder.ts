@@ -20,6 +20,8 @@ import { chatWithFallback } from "@/lib/openai";
 import { sendMetaText } from "@/lib/whatsapp";
 import { TEMPLATE_REGISTRY, type TemplateId } from "@/lib/templates";
 import { WEBSITE_ELIGIBLE_PLANS } from "@/lib/website";
+import { computeServiceAreas } from "@/lib/service-areas";
+import { getTradeSiteTemplate, type StockPair } from "@/lib/site-templates";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -52,11 +54,17 @@ type Enrichment = {
   address: string | null;
   website: string | null;
   geo: { lat: number; lng: number } | null;
+  /** Structured address parts — full PostalAddress schema + service-area seeds. */
+  postalCode: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
 };
 
 const EMPTY_ENRICHMENT: Enrichment = {
   hours: [], photos: [], rating: null, userRatingsTotal: null,
   reviews: [], phone: null, address: null, website: null, geo: null,
+  postalCode: null, city: null, region: null, country: null,
 };
 
 /** Public bucket that already serves owner-uploaded site photos. */
@@ -134,6 +142,96 @@ async function persistPlacePhotos(
   return urls;
 }
 
+/** Public-read bucket for trader photos (created on first use). */
+async function ensureSiteMediaBucket() {
+  const { error } = await supabaseAdmin.storage.getBucket(SITE_MEDIA_BUCKET);
+  if (error) {
+    await supabaseAdmin.storage.createBucket(SITE_MEDIA_BUCKET, { public: true }).catch(() => {});
+  }
+}
+
+/**
+ * Copy the trade template's STOCK placeholders into `site-media`.
+ *
+ * These are placeholders ONLY: they make a freshly built site look finished
+ * before Google Business Profile is connected. The moment real photos exist
+ * (GMB sync or an owner upload) `content.photos` wins and the stock list is
+ * dropped — see `syncWebsitePhotosForUser` and `buildWebsite`.
+ *
+ * A photo that fails to copy falls back to its CDN URL rather than leaving a
+ * hole in the layout.
+ */
+async function persistStockPhotos(
+  trade: TemplateId,
+  ctx: { userId: string; siteId: string }
+): Promise<string[]> {
+  const def = getTradeSiteTemplate(trade);
+  const sources = def ? def.gallery : [];
+  if (!sources.length) return [];
+
+  await ensureSiteMediaBucket();
+  const out: string[] = [];
+
+  for (let i = 0; i < sources.length; i++) {
+    const src = sources[i];
+    try {
+      const res = await fetch(src, { cache: "no-store" });
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      if (!res.ok || !contentType.startsWith("image/")) {
+        out.push(src);
+        continue;
+      }
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (!bytes.length) {
+        out.push(src);
+        continue;
+      }
+      const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+      const path = `${ctx.userId}/${ctx.siteId}-stock-${i}.${ext}`;
+      const { error } = await supabaseAdmin.storage
+        .from(SITE_MEDIA_BUCKET)
+        .upload(path, bytes, { contentType, upsert: true });
+      if (error) {
+        console.warn(`⚠️ [Website Builder] stock photo ${i} upload failed: ${error.message}`);
+        out.push(src);
+        continue;
+      }
+      const { data: pub } = supabaseAdmin.storage.from(SITE_MEDIA_BUCKET).getPublicUrl(path);
+      out.push(pub?.publicUrl || src);
+    } catch (e: any) {
+      console.warn(`⚠️ [Website Builder] stock photo ${i} copy failed: ${e?.message || e}`);
+      out.push(src);
+    }
+  }
+  return out;
+}
+
+/**
+ * Turn real job photos into before/after slider pairs.
+ * Labels say "During"/"Finished" because a Google photo library is not a
+ * curated before/after set — we never claim more than we can see.
+ * Returns [] when fewer than two photos exist (the block is then hidden).
+ */
+export function buildPhotoPairs(
+  photos: string[],
+  businessName: string,
+  tradeLabel: string
+): StockPair[] {
+  if (!Array.isArray(photos) || photos.length < 2) return [];
+  const caption = `Recent ${tradeLabel} work${businessName ? ` by ${businessName}` : ""}.`;
+  const pair = (a: string, b: string): StockPair => ({
+    before: a,
+    after: b,
+    beforeLabel: "During",
+    afterLabel: "Finished",
+    caption,
+    alt: `${tradeLabel} job in progress and finished`,
+  });
+  const pairs: StockPair[] = [pair(photos[0], photos[1])];
+  if (photos.length >= 4) pairs.push(pair(photos[2], photos[3]));
+  return pairs;
+}
+
 async function enrichFromPlaces(
   placeId: string | null,
   persist?: { userId: string; siteId: string }
@@ -159,6 +257,7 @@ async function enrichFromPlaces(
       "location",
       "googleMapsUri",
       "websiteUri",
+      "addressComponents",
     ].join(",");
 
     const res = await fetch(
@@ -195,6 +294,17 @@ async function enrichFromPlaces(
       time: rv.relativePublishTimeDescription || "",
     }));
 
+    // Structured address parts → complete PostalAddress schema + the seed for
+    // the build-time service-area lookup.
+    const comps: any[] = json.addressComponents || [];
+    const pick = (...types: string[]) =>
+      comps.find((x) => (x.types || []).some((t: string) => types.includes(t))) || null;
+    const postalCode: string | null = pick("postal_code")?.shortText || null;
+    const city: string | null =
+      pick("locality", "postal_town", "administrative_area_level_3")?.longText || null;
+    const region: string | null = pick("administrative_area_level_1")?.shortText || null;
+    const country: string | null = pick("country")?.shortText || null;
+
     return {
       hours,
       photos,
@@ -208,6 +318,10 @@ async function enrichFromPlaces(
         json.location?.latitude && json.location?.longitude
           ? { lat: json.location.latitude, lng: json.location.longitude }
           : null,
+      postalCode,
+      city,
+      region,
+      country,
     };
   } catch (err: any) {
     console.warn("⚠️ [Website Builder] Places enrichment skipped:", err?.message || err);
@@ -480,6 +594,22 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
     const templateId = pickTemplate(copy.templateType);
     const palette = TEMPLATE_REGISTRY[templateId].colorPalette;
     const templateName = TEMPLATE_REGISTRY[templateId].name;
+    const tradeDef = getTradeSiteTemplate(templateId);
+    const tradeLabel = tradeDef?.tradeLabel || category || "local services";
+
+    // ── GEO: the postcodes this trader can honestly claim (build-time query,
+    //    cached in websites.content for the page + LocalBusiness schema) ──
+    const serviceAreas = await computeServiceAreas(enrichment.geo);
+
+    // ── Placeholder photography ──
+    // Real Google photos win. Stock is copied into `site-media` ONLY when the
+    // trader has none yet, and is dropped automatically once real ones arrive.
+    const stockPhotos = enrichment.photos.length
+      ? []
+      : await persistStockPhotos(templateId, { userId: site.user_id, siteId: site.id });
+
+    // ── Before/after pairs are only ever built from the trader's own photos ──
+    const pairs = buildPhotoPairs(enrichment.photos, businessName, tradeLabel);
 
     const sitePhone = enrichment.phone || phone || "";
     const siteAddress = enrichment.address || address || "";
@@ -498,6 +628,9 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
       reviewLink: biz?.review_link || "",
       hours: enrichment.hours,
       photos: enrichment.photos,
+      stockPhotos,
+      beforeAfter: pairs,
+      photosSyncedAt: enrichment.photos.length ? new Date().toISOString() : null,
       rating: enrichment.rating,
       userRatingsTotal: enrichment.userRatingsTotal,
       reviews: enrichment.reviews,
@@ -508,6 +641,12 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
       areaServed: copy.areaServed,
       hoursSpec: toHoursSpec(enrichment.hours),
       geo: enrichment.geo,
+      city: enrichment.city || "",
+      region: enrichment.region || "",
+      country: enrichment.country || "",
+      postalCode: enrichment.postalCode || "",
+      serviceAreas,
+      priceRange: tradeDef?.priceRange || "",
       sameAs:
         biz?.google_maps_url ||
         (placeId ? `https://www.google.com/maps/place/?q=place_id:${placeId}` : ""),
@@ -693,5 +832,175 @@ export async function syncWebsiteReviewsForUser(userId: string): Promise<{
     console.error("❌ [Review Sync]", err?.message || err);
     return { ok: false, updated: false, hasNewReview: false, error: err?.message };
   }
+}
+
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  5. Photo sync — stock placeholders OUT, real GMB photos IN
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+export const PHOTOS_SYNC_DAYS = Math.max(1, Number(process.env.PHOTOS_SYNC_DAYS || 30));
+
+/**
+ * Replace a trader's template placeholders with their own Google photos.
+ *
+ * Runs automatically:
+ *   • right after the Google Business Profile connect step (fire-and-forget)
+ *   • from the daily website cron while a site still shows stock photos, or
+ *     when its cached photos are older than PHOTOS_SYNC_DAYS
+ *
+ * Rules:
+ *   • owner-set photos are never discarded — Google photos are appended after
+ *     them, so a manual choice always stays first
+ *   • `stockPhotos` is emptied, which makes the renderer switch to real photos
+ *     everywhere (hero, gallery, schema images, og:image) with no other change
+ *   • before/after pairs are rebuilt from the real photos (labelled
+ *     "During"/"Finished"); with fewer than two photos the block is hidden
+ */
+export async function syncWebsitePhotosForUser(userId: string): Promise<{
+  ok: boolean;
+  updated: boolean;
+  photoCount: number;
+  error?: string;
+}> {
+  try {
+    const { data: site } = await supabaseAdmin
+      .from("websites")
+      .select("id, user_id, domain_name, status, content")
+      .eq("user_id", userId)
+      .eq("status", "live")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!site) return { ok: false, updated: false, photoCount: 0, error: "no live website" };
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("phone, business_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const phone = profile?.phone || "";
+
+    const biz = phone ? await findBusinessProfileByPhone(phone) : null;
+    const placeId = biz?.google_place_id || null;
+    if (!placeId) return { ok: false, updated: false, photoCount: 0, error: "no place id" };
+
+    const prev: any = site.content || {};
+    const existing: string[] = Array.isArray(prev.photos) ? prev.photos : [];
+    const prevStock: string[] = Array.isArray(prev.stockPhotos) ? prev.stockPhotos : [];
+    const hasPairs = Array.isArray(prev.beforeAfter) && prev.beforeAfter.length > 0;
+    const needsAreas = !prev.serviceAreas && !!prev.geo?.lat && !!prev.geo?.lng;
+
+    const tradeId = (prev.templateId || "generic") as TemplateId;
+    const tradeLabel = getTradeSiteTemplate(tradeId)?.tradeLabel || "local services";
+    const businessName = prev.businessName || profile?.business_name || site.domain_name || "";
+    const nowIso = new Date().toISOString();
+
+    // Real photos are already in place → no Google photo calls needed. Still
+    // self-heal the system-managed extras (before/after pairs, GEO service
+    // areas) so sites built before those features existed upgrade in place
+    // instead of waiting for a full rebuild.
+    if (existing.length >= 6 && !prevStock.length) {
+      if (!hasPairs || needsAreas) {
+        const pairs = hasPairs
+          ? prev.beforeAfter
+          : buildPhotoPairs(existing, businessName, tradeLabel);
+        const areas = needsAreas ? await computeServiceAreas(prev.geo) : null;
+
+        const content = {
+          ...prev,
+          beforeAfter: pairs,
+          ...(areas ? { serviceAreas: areas } : {}),
+          ...(needsAreas ? { serviceAreasAttemptedAt: nowIso } : {}),
+          lastPhotoSyncAt: nowIso,
+        };
+        const { error: healErr } = await supabaseAdmin
+          .from("websites")
+          .update({ content })
+          .eq("id", site.id);
+        if (healErr) {
+          return { ok: false, updated: false, photoCount: 0, error: healErr.message };
+        }
+        console.log(
+          `🧩 [Site Refresh] ${site.domain_name}: pairs=${pairs.length} · ` +
+            `service areas=${areas ? areas.postalCodes.length : 0}`
+        );
+        return { ok: true, updated: true, photoCount: existing.length };
+      }
+      return { ok: true, updated: false, photoCount: existing.length };
+    }
+
+    const enr = await enrichFromPlaces(placeId, { userId: site.user_id, siteId: site.id });
+    if (!enr.photos.length) {
+      return { ok: false, updated: false, photoCount: 0, error: "no google photos" };
+    }
+
+    // Owner photos first (they win), then the new Google photos, de-duplicated.
+    const merged: string[] = [];
+    for (const url of [...existing, ...enr.photos]) {
+      if (url && !merged.includes(url)) merged.push(url);
+    }
+    const photos = merged.slice(0, 8);
+
+    const pairs = buildPhotoPairs(photos, businessName, tradeLabel);
+
+    // A hero that was a stock placeholder must be repointed at a real photo.
+    const heroWasStock = !!prev.heroImage && prevStock.includes(prev.heroImage);
+    const heroImage = !prev.heroImage || heroWasStock ? photos[0] : prev.heroImage;
+
+    // GEO self-heal: fill in the postal-code service area if it was never built.
+    const areas = needsAreas ? await computeServiceAreas(prev.geo || enr.geo) : null;
+
+    const content = {
+      ...prev,
+      photos,
+      // Placeholders are gone for good — real photography from here on.
+      stockPhotos: [],
+      heroImage,
+      beforeAfter: pairs,
+      ...(areas ? { serviceAreas: areas } : {}),
+      ...(needsAreas ? { serviceAreasAttemptedAt: nowIso } : {}),
+      photosSyncedAt: nowIso,
+      lastPhotoSyncAt: nowIso,
+    };
+
+    const { error: upErr } = await supabaseAdmin
+      .from("websites")
+      .update({ content })
+      .eq("id", site.id);
+    if (upErr) return { ok: false, updated: false, photoCount: 0, error: upErr.message };
+
+    console.log(
+      `🖼️ [Photo Sync] ${site.domain_name}: ${existing.length} → ${photos.length} photos ` +
+        `(stock replaced: ${prevStock.length ? "yes" : "no"}), pairs: ${pairs.length}`
+    );
+    return { ok: true, updated: true, photoCount: photos.length };
+  } catch (err: any) {
+    console.error("❌ [Photo Sync]", err?.message || err);
+    return { ok: false, updated: false, photoCount: 0, error: err?.message };
+  }
+}
+
+/** True when a site still needs real photos or a system-field refresh. */
+export function needsPhotoSync(content: any, syncedAt?: string | null): boolean {
+  const c = content || {};
+  const stock: string[] = Array.isArray(c.stockPhotos) ? c.stockPhotos : [];
+  const photos: string[] = Array.isArray(c.photos) ? c.photos : [];
+  const stale = (stamp?: string | null) =>
+    !stamp || Date.now() - new Date(stamp).getTime() > PHOTOS_SYNC_DAYS * 24 * 60 * 60 * 1000;
+
+  // Template placeholders are still on the page → fetch the trader's photos.
+  if (stock.length) return true;
+
+  // System-managed extras that later releases added:
+  //   • the before/after block (built from the trader's own photos)
+  //   • GEO service areas (postal codes within 10 km)
+  const pairs = Array.isArray(c.beforeAfter) ? c.beforeAfter : [];
+  if (photos.length >= 2 && pairs.length === 0) return true;
+  if (!c.serviceAreas && c.geo?.lat && c.geo?.lng && stale(c.serviceAreasAttemptedAt)) {
+    return true;
+  }
+
+  // Gallery still short of a full set, or the cached photos are old.
+  if (photos.length >= 6) return false;
+  return stale(c.lastPhotoSyncAt || syncedAt || null);
 }
 

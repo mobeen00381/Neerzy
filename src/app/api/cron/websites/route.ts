@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendMetaText } from "@/lib/whatsapp";
 import { HOSTING_NOTICE_DAYS_BEFORE, HOSTING_PRICE_USD, hostingDaysLeft } from "@/lib/website";
-import { buildWebsite, isReviewSyncAllowed, syncWebsiteReviewsForUser, REVIEWS_SYNC_DAYS } from "@/lib/website-builder";
+import { buildWebsite, isReviewSyncAllowed, syncWebsiteReviewsForUser, REVIEWS_SYNC_DAYS, syncWebsitePhotosForUser, needsPhotoSync, PHOTOS_SYNC_DAYS } from "@/lib/website-builder";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -193,6 +193,35 @@ export async function POST(req: Request) {
       console.error("❌ [Cron] Review sync failed:", revErr?.message || revErr);
     }
 
+    // ── Photo sync: swap template placeholders for the trader's real Google
+    // photos (same paid + active gate → API calls only for paying customers) ──
+    let photosSynced = 0;
+    let photosUpdated = 0;
+    try {
+      const { data: liveSites } = await supabaseAdmin
+        .from("websites")
+        .select("id, user_id, domain_name, content")
+        .eq("status", "live")
+        .limit(300);
+
+      for (const s of liveSites || []) {
+        if (!needsPhotoSync(s.content)) continue;
+        const allowed = await isReviewSyncAllowed(s.user_id);
+        if (!allowed) continue;
+        photosSynced += 1;
+        const res = await syncWebsitePhotosForUser(s.user_id);
+        if (res.ok && res.updated) photosUpdated += 1;
+      }
+
+      if (photosSynced) {
+        console.log(
+          `🖼️ [Cron] Photos: ${photosSynced} checked (${photosUpdated} updated) · cadence ${PHOTOS_SYNC_DAYS}d`
+        );
+      }
+    } catch (photoErr: any) {
+      console.error("❌ [Cron] Photo sync failed:", photoErr?.message || photoErr);
+    }
+
     return NextResponse.json({
       ok: true,
       noticed,
@@ -205,6 +234,9 @@ export async function POST(req: Request) {
       reviewsUpdated,
       reviewsSkippedUnpaid,
       reviewsCadenceDays: REVIEWS_SYNC_DAYS,
+      photosSynced,
+      photosUpdated,
+      photosCadenceDays: PHOTOS_SYNC_DAYS,
     });
   } catch (err: any) {
     console.error("❌ [Cron] Website cron unexpected error:", err?.message || err);

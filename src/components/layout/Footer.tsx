@@ -4,6 +4,7 @@ import Link from "next/link";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
 import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
+import { isTraderSitePath } from "@/lib/routes";
 
 export default function Footer() {
   const pathname = usePathname();
@@ -12,7 +13,9 @@ export default function Footer() {
                      pathname?.startsWith('/login') || 
                      pathname?.startsWith('/signup') ||
                      pathname?.startsWith('/checkout') ||
-                     pathname?.startsWith('/admin');
+                     pathname?.startsWith('/admin') ||
+                     // the trader's own website carries the trader's own footer
+                     isTraderSitePath(pathname);
 
   if (hideFooter) return null;
   return (

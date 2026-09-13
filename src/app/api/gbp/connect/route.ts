@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { syncWebsitePhotosForUser } from '@/lib/website-builder';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -163,6 +164,15 @@ export async function POST(req: Request) {
       } catch (profileErr) {
         console.error('❌ CRITICAL: Fallback public profile sync failed:', profileErr);
       }
+    }
+
+    // ── Photo re-sync: now that Google Business Profile is connected, swap the
+    // template placeholders for the trader's REAL Google photos. Fire-and-forget
+    // so the connect response is never delayed (and nothing to sync → no-op).
+    if (data.userId) {
+      void syncWebsitePhotosForUser(data.userId).catch((e: any) =>
+        console.warn('⚠️ [GBP Connect] photo sync failed:', e?.message || e)
+      );
     }
 
     return NextResponse.json({ success: true });
