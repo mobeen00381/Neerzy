@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Neerzy Day 13 — Your site updates itself after every job (FB &amp; IG Feed 4:5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* Locked Neerzy palette — design.md. Light + dark combination: dark header,
+     white body with dark flow cards, dark footer band. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #FFFFFF; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; color: #0A2E22; -webkit-font-smoothing: antialiased; }
+  .post { position: relative; width: 1080px; height: 1350px; background: #FFFFFF; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* dark header band */
+  .top { position: relative; background: #0B3D2E; padding: 42px 60px 44px; display: flex; flex-direction: column; align-items: center; gap: 20px; border-radius: 0 0 60px 60px; overflow: hidden; }
+  .top .glow { position: absolute; border: 3px solid #0F5132; border-radius: 50%; }
+  .top .g1 { width: 500px; height: 500px; top: -330px; left: -180px; }
+  .top .g2 { width: 360px; height: 360px; bottom: -250px; right: -150px; }
+  .top .dot { position: absolute; background: #4ADE80; border-radius: 50%; }
+  .top .d1 { width: 13px; height: 13px; top: 34px; right: 120px; }
+  .logo { width: 220px; position: relative; z-index: 2; }
+  .pill { position: relative; z-index: 2; border: 3px solid #4ADE80; color: #4ADE80; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; padding: 9px 30px; border-radius: 999px; }
+
+  .body { flex: 1; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px 64px 32px; }
+  h1 { font-size: 58px; font-weight: 900; line-height: 1.1; letter-spacing: -1px; color: #0A2E22; max-width: 950px; }
+  h1 .hl { color: #0F5132; }
+  .sub { margin-top: 14px; font-size: 27px; font-weight: 600; line-height: 1.4; color: #5B6B64; max-width: 890px; }
+  .sub b { color: #0F5132; }
+
+  /* dark flow cards on the light body */
+  .flow { margin-top: 30px; display: flex; align-items: stretch; gap: 16px; width: 100%; max-width: 960px; }
+  .fc { flex: 1; background: #0F5132; border-radius: 30px; padding: 26px 22px 26px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+  .fc .icon { width: 74px; height: 74px; border-radius: 22px; background: #DCFCE7; display: flex; align-items: center; justify-content: center; }
+  .fc .t { font-size: 27px; font-weight: 800; color: #FFFFFF; line-height: 1.2; }
+  .fc .s { font-size: 20px; font-weight: 500; color: #B7DEC7; line-height: 1.32; }
+  .arrow { align-self: center; font-size: 40px; font-weight: 900; color: #0F5132; }
+
+  .note { margin-top: 28px; font-size: 26px; font-weight: 800; color: #0F5132; background: #DCFCE7; border: 2px solid #D3E6DA; border-radius: 999px; padding: 15px 38px; }
+
+  /* dark footer band */
+  .foot { background: #0F5132; padding: 30px 60px 32px; display: flex; flex-direction: column; align-items: center; gap: 13px; border-radius: 56px 56px 0 0; text-align: center; }
+  .cta { background: #22C55E; color: #0A2E22; font-size: 35px; font-weight: 900; padding: 16px 46px; border-radius: 999px; }
+  .ask { font-size: 25px; font-weight: 700; color: #E6F2EA; }
+  .ask b { color: #4ADE80; }
+  .url { font-size: 21px; font-weight: 600; color: #B7DEC7; }
+  .url b { color: #4ADE80; }
+</style>
+</head>
+<body>
+<div class="post" id="post">
+  <div class="top">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="dot d1"></div>
+    <img class="logo" src="file:///C:/Neerzy/public/images/logo-white.svg" alt="Neerzy" />
+    <div class="pill">Always fresh</div>
+  </div>
+
+  <div class="body">
+    <h1>Finish the job. <span class="hl">Your site updates itself.</span></h1>
+    <p class="sub">One photo on WhatsApp and the rest happens without you — <b>no dashboard, no logins, nothing to remember</b>.</p>
+
+    <div class="flow">
+      <div class="fc">
+        <div class="icon"><svg viewBox="0 0 48 48" width="38" height="38" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="12" width="34" height="27" rx="5"/><circle cx="24" cy="25" r="7"/><path d="M17 12l3-5h8l3 5"/></svg></div>
+        <div class="t">Send one photo</div>
+        <div class="s">A snapshot of the job you just finished</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="fc">
+        <div class="icon"><svg viewBox="0 0 48 48" width="38" height="38" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round"><circle cx="24" cy="24" r="17"/><ellipse cx="24" cy="24" rx="8" ry="17"/><path d="M7 24h34"/></svg></div>
+        <div class="t">Your site refreshes</div>
+        <div class="s">New work appears on your website</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="fc">
+        <div class="icon"><svg viewBox="0 0 48 48" width="38" height="38" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M24 9l4.5 9.5 10.5 1.5-7.6 7.4 1.9 10.4L24 32.9l-9.3 4.9 1.9-10.4L9 20l10.5-1.5z"/></svg></div>
+        <div class="t">Google stays busy</div>
+        <div class="s">A fresh post from real work</div>
+      </div>
+    </div>
+
+    <div class="note">You never touch a dashboard. Ever. ⚡</div>
+  </div>
+
+  <div class="foot">
+    <div class="cta">Build My Website — Free</div>
+    <div class="ask">What was the last job you finished? <b>📸 Tell us below</b></div>
+    <div class="url">neerzy.com &nbsp;·&nbsp; <b>link in bio</b></div>
+  </div>
+</div>
+</body>
+</html>

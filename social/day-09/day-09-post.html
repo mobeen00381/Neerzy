@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Neerzy Day 9 — No Skill Needed, split light/dark cards (FB &amp; IG Feed 4:5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* Locked Neerzy palette — design.md. Light + dark combination: white head,
+     dark vs light comparison cards, dark footer band. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #FFFFFF; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; color: #0A2E22; -webkit-font-smoothing: antialiased; }
+  .post { position: relative; width: 1080px; height: 1350px; background: #FFFFFF; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* light header */
+  .top { position: relative; background: #FFFFFF; padding: 40px 64px 0; display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; }
+  .top .dash { position: absolute; top: 118px; left: 64px; right: 64px; height: 2px; background: #D3E6DA; }
+  .logo { width: 214px; position: relative; z-index: 2; background: #FFFFFF; padding: 0 18px; }
+  .pill { position: relative; z-index: 2; background: #0F5132; color: #FFFFFF; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; padding: 10px 32px; border-radius: 999px; }
+
+  h1 { margin-top: 26px; font-size: 62px; font-weight: 900; line-height: 1.1; letter-spacing: -1px; color: #0A2E22; max-width: 940px; }
+  h1 .hl { color: #0F5132; }
+  .body { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 64px; }
+  .sub { margin-top: 16px; font-size: 28px; font-weight: 600; line-height: 1.4; color: #5B6B64; max-width: 880px; }
+  .sub b { color: #0F5132; }
+
+  /* dark vs light comparison */
+  .compare { margin-top: 32px; display: flex; gap: 22px; width: 100%; max-width: 952px; align-items: stretch; }
+  .col { flex: 1; border-radius: 30px; padding: 28px 28px 30px; text-align: left; }
+  .col .ch { font-size: 23px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; padding-bottom: 14px; border-bottom: 2px solid; margin-bottom: 18px; }
+  .col .it { display: flex; align-items: center; gap: 14px; font-size: 27px; font-weight: 700; line-height: 1.24; margin-top: 18px; }
+
+  .bad { background: #F7F9F8; border: 2px solid #D3E6DA; }
+  .bad .ch { color: #5B6B64; border-color: #D3E6DA; }
+  .bad .it { color: #5B6B64; }
+  .bad .x { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; border: 2px solid #D3E6DA; display: flex; align-items: center; justify-content: center; }
+
+  .good { background: #0B3D2E; }
+  .good .ch { color: #4ADE80; border-color: #14532D; }
+  .good .it { color: #FFFFFF; }
+  .good .tick { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; background: #22C55E; display: flex; align-items: center; justify-content: center; }
+  .good .it .sm { display: block; font-size: 20px; font-weight: 500; color: #B7DEC7; margin-top: 2px; }
+
+  .note { margin-top: 24px; font-size: 26px; font-weight: 800; color: #0F5132; background: #DCFCE7; border: 2px solid #D3E6DA; border-radius: 999px; padding: 15px 38px; }
+  .spacer { flex: 1; }
+
+  /* dark footer band */
+  .foot { background: #0F5132; padding: 30px 60px 32px; display: flex; flex-direction: column; align-items: center; gap: 13px; border-radius: 56px 56px 0 0; text-align: center; }
+  .cta { background: #22C55E; color: #0A2E22; font-size: 35px; font-weight: 900; padding: 16px 46px; border-radius: 999px; }
+  .ask { font-size: 24px; font-weight: 700; color: #E6F2EA; }
+  .ask b { color: #4ADE80; }
+  .url { font-size: 21px; font-weight: 600; color: #B7DEC7; }
+  .url b { color: #4ADE80; }
+</style>
+</head>
+<body>
+<div class="post" id="post">
+  <div class="top">
+    <div class="dash"></div>
+    <img class="logo" src="file:///C:/Neerzy/public/images/logo.svg" alt="Neerzy" />
+    <div class="pill">No skill needed</div>
+  </div>
+
+  <div class="body">
+    <h1>No skill? <span class="hl">No problem.</span></h1>
+    <p class="sub">No coding. No designer. No dashboard to learn.<br/>If you can send a WhatsApp message, <b>you can do this</b>.</p>
+
+    <div class="compare">
+      <div class="col bad">
+        <div class="ch">The usual way</div>
+        <div class="it"><span class="x"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#5B6B64" stroke-width="4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>Find a web designer</div>
+        <div class="it"><span class="x"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#5B6B64" stroke-width="4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>Learn a website builder</div>
+        <div class="it"><span class="x"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#5B6B64" stroke-width="4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>Write all the words</div>
+        <div class="it"><span class="x"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#5B6B64" stroke-width="4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span>Wait weeks for it</div>
+      </div>
+
+      <div class="col good">
+        <div class="ch">With Neerzy</div>
+        <div class="it"><span class="tick"><svg viewBox="0 0 48 48" width="24" height="24" fill="none" stroke="#0A2E22" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26l10 10 18-24"/></svg></span><span>Tap one button<span class="sm">Your site builds itself</span></span></div>
+        <div class="it"><span class="tick"><svg viewBox="0 0 48 48" width="24" height="24" fill="none" stroke="#0A2E22" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26l10 10 18-24"/></svg></span><span>Pick from 10 looks<span class="sm">Made for your trade</span></span></div>
+        <div class="it"><span class="tick"><svg viewBox="0 0 48 48" width="24" height="24" fill="none" stroke="#0A2E22" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26l10 10 18-24"/></svg></span><span>Words already written<span class="sm">From your Google profile</span></span></div>
+        <div class="it"><span class="tick"><svg viewBox="0 0 48 48" width="24" height="24" fill="none" stroke="#0A2E22" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26l10 10 18-24"/></svg></span><span>Live in a minute<span class="sm">Not weeks</span></span></div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+    <div class="note">Takes about 60 seconds. No skill required. 🛠️</div>
+  </div>
+
+  <div class="foot">
+    <div class="cta">Build My Website — Free</div>
+    <div class="ask">Tag a tradie who&apos;s still got <b>no website</b> 👇</div>
+    <div class="url">neerzy.com &nbsp;·&nbsp; <b>link in bio</b></div>
+  </div>
+</div>
+</body>
+</html>

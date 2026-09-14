@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Neerzy Day 8 — Website Builder "Tap one button" (FB &amp; IG Feed 4:5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* Locked Neerzy palette — design.md. Light + dark combination: dark bands top
+     and bottom, light mint body between. No single full-page dark colour. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #FFFFFF; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; color: #0A2E22; -webkit-font-smoothing: antialiased; }
+  .post { position: relative; width: 1080px; height: 1350px; background: #E6F2EA; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* dark header band */
+  .top { position: relative; background: #0B3D2E; padding: 44px 60px 46px; display: flex; flex-direction: column; align-items: center; gap: 22px; border-radius: 0 0 60px 60px; overflow: hidden; }
+  .top .glow { position: absolute; border: 3px solid #0F5132; border-radius: 50%; }
+  .top .g1 { width: 520px; height: 520px; top: -340px; left: -190px; }
+  .top .g2 { width: 380px; height: 380px; bottom: -270px; right: -150px; }
+  .top .dot { position: absolute; background: #4ADE80; border-radius: 50%; }
+  .top .d1 { width: 14px; height: 14px; top: 34px; right: 112px; }
+  .top .d2 { width: 9px; height: 9px; top: 62px; right: 158px; }
+  .logo { width: 226px; position: relative; z-index: 2; }
+  .pill { position: relative; z-index: 2; border: 3px solid #4ADE80; color: #4ADE80; font-size: 23px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; padding: 9px 30px; border-radius: 999px; }
+
+  /* light body */
+  .body { flex: 1; background: #E6F2EA; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px 64px 34px; }
+  h1 { font-size: 56px; font-weight: 900; line-height: 1.12; letter-spacing: -1px; color: #0A2E22; max-width: 940px; }
+  h1 .hl { color: #0F5132; }
+  .sub { margin-top: 16px; font-size: 27px; font-weight: 600; line-height: 1.4; color: #5B6B64; max-width: 880px; }
+  .sub b { color: #0F5132; }
+
+  /* dark step cards on the light body */
+  .steps { margin-top: 30px; display: flex; gap: 20px; width: 100%; max-width: 952px; }
+  .step { flex: 1; background: #0F5132; border-radius: 32px; padding: 24px 18px 22px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+  .step .icon { width: 76px; height: 76px; border-radius: 24px; background: #DCFCE7; display: flex; align-items: center; justify-content: center; }
+  .step .n { font-size: 18px; font-weight: 800; letter-spacing: 3px; color: #4ADE80; }
+  .step .t { font-size: 28px; font-weight: 800; color: #FFFFFF; line-height: 1.2; }
+  .step .s { font-size: 20px; font-weight: 500; color: #B7DEC7; line-height: 1.34; }
+
+  .skipped { margin-top: 22px; display: inline-flex; align-items: center; gap: 16px; background: #FFFFFF; border: 2px solid #D3E6DA; border-radius: 999px; padding: 13px 30px; }
+  .skipped .lbl { font-size: 21px; font-weight: 800; color: #0F5132; letter-spacing: 0.5px; }
+  .skipped .strike { font-size: 23px; font-weight: 700; color: #5B6B64; text-decoration: line-through; }
+  .spacer { flex: 1; }
+
+  /* dark footer band */
+  .foot { background: #0F5132; padding: 32px 60px 34px; display: flex; flex-direction: column; align-items: center; gap: 14px; border-radius: 56px 56px 0 0; text-align: center; }
+  .cta { background: #22C55E; color: #0A2E22; font-size: 36px; font-weight: 900; letter-spacing: 0.2px; padding: 17px 48px; border-radius: 999px; }
+  .ask { font-size: 25px; font-weight: 700; color: #E6F2EA; }
+  .ask b { color: #4ADE80; }
+  .url { font-size: 22px; font-weight: 600; color: #B7DEC7; }
+  .url b { color: #4ADE80; }
+</style>
+</head>
+<body>
+<div class="post" id="post">
+  <div class="top">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="dot d1"></div><div class="dot d2"></div>
+    <img class="logo" src="file:///C:/Neerzy/public/images/logo-white.svg" alt="Neerzy" />
+    <div class="pill">Website builder</div>
+  </div>
+
+  <div class="body">
+    <h1>Tap one button.<br/>Get a <span class="hl">real website</span>.</h1>
+    <p class="sub">No skill needed. Your words, photos and reviews are already in —<br/><b>live in under a minute</b>.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="icon">
+          <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="#0F5132" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 40V14l16-6 16 6v26"/><path d="M18 40V28h12v12"/></svg>
+        </div>
+        <div class="n">STEP 1</div>
+        <div class="t">Pick your business</div>
+        <div class="s">We read it straight from Google</div>
+      </div>
+      <div class="step">
+        <div class="icon">
+          <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="#0F5132" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 6a12 12 0 0 0-12 12c0 9-3 12-3 12h30s-3-3-3-12A12 12 0 0 0 24 6z"/><path d="M20 36a4 4 0 0 0 8 0"/></svg>
+        </div>
+        <div class="n">STEP 2</div>
+        <div class="t">Connect WhatsApp</div>
+        <div class="s">One link — no app to download</div>
+      </div>
+      <div class="step">
+        <div class="icon">
+          <svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="#0F5132" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><rect x="11" y="7" width="26" height="34" rx="4"/><path d="M19 35h10"/></svg>
+        </div>
+        <div class="n">STEP 3</div>
+        <div class="t">Tap build</div>
+        <div class="s">Ten looks to choose from — then it&apos;s live</div>
+      </div>
+    </div>
+
+    <div class="skipped">
+      <span class="lbl">NO SKILL NEEDED</span>
+      <span class="strike">coding</span>
+      <span class="strike">design</span>
+      <span class="strike">setup</span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="cta">Build My Website — Free</div>
+    <div class="ask">What&apos;s stopping you from getting online? <b>Tell us below 👇</b></div>
+    <div class="url">neerzy.com &nbsp;·&nbsp; <b>link in bio</b></div>
+  </div>
+</div>
+</body>
+</html>

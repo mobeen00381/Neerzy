@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Neerzy Day 10 — 10 templates to choose from (FB &amp; IG Feed 4:5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* Locked Neerzy palette — design.md. Light + dark combination: dark header,
+     light mint body, dark template cards, white footer. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #FFFFFF; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; color: #0A2E22; -webkit-font-smoothing: antialiased; }
+  .post { position: relative; width: 1080px; height: 1350px; background: #E6F2EA; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* dark header band */
+  .top { position: relative; background: #0B3D2E; padding: 42px 60px 44px; display: flex; flex-direction: column; align-items: center; gap: 20px; border-radius: 0 0 60px 60px; overflow: hidden; }
+  .top .glow { position: absolute; border: 3px solid #0F5132; border-radius: 50%; }
+  .top .g1 { width: 500px; height: 500px; top: -330px; left: -180px; }
+  .top .g2 { width: 360px; height: 360px; bottom: -260px; right: -140px; }
+  .top .dot { position: absolute; background: #4ADE80; border-radius: 50%; }
+  .top .d1 { width: 13px; height: 13px; top: 32px; right: 118px; }
+  .top .d2 { width: 9px; height: 9px; top: 58px; right: 162px; }
+  .logo { width: 220px; position: relative; z-index: 2; }
+  .pill { position: relative; z-index: 2; border: 3px solid #4ADE80; color: #4ADE80; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; padding: 9px 30px; border-radius: 999px; }
+
+  /* light body */
+  .body { flex: 1; background: #E6F2EA; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px 64px 30px; }
+  h1 { font-size: 58px; font-weight: 900; line-height: 1.1; letter-spacing: -1px; color: #0A2E22; max-width: 940px; }
+  h1 .hl { color: #0F5132; }
+  .sub { margin-top: 14px; font-size: 27px; font-weight: 600; line-height: 1.38; color: #5B6B64; max-width: 900px; }
+  .sub b { color: #0F5132; }
+
+  /* dark template cards on the light body */
+  .grid { margin-top: 30px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; width: 100%; max-width: 952px; }
+  .card { background: #0F5132; border-radius: 28px; padding: 30px 14px 30px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+  .card .icon { width: 80px; height: 80px; border-radius: 24px; background: #DCFCE7; display: flex; align-items: center; justify-content: center; }
+  .card .nm { font-size: 26px; font-weight: 800; color: #FFFFFF; line-height: 1.16; }
+  .card .sb { font-size: 19px; font-weight: 500; color: #B7DEC7; line-height: 1.28; }
+  .spacer { flex: 1; }
+
+  /* light footer with dark CTA */
+  .foot { background: #FFFFFF; border-top: 2px solid #D3E6DA; padding: 28px 60px 30px; display: flex; flex-direction: column; align-items: center; gap: 13px; text-align: center; }
+  .cta { background: #22C55E; color: #0A2E22; font-size: 35px; font-weight: 900; padding: 16px 46px; border-radius: 999px; }
+  .ask { font-size: 25px; font-weight: 800; color: #0F5132; }
+  .ask b { color: #0A2E22; }
+  .url { font-size: 21px; font-weight: 600; color: #5B6B64; }
+  .url b { color: #0F5132; }
+</style>
+</head>
+<body>
+<div class="post" id="post">
+  <div class="top">
+    <div class="glow g1"></div><div class="glow g2"></div>
+    <div class="dot d1"></div><div class="dot d2"></div>
+    <img class="logo" src="file:///C:/Neerzy/public/images/logo-white.svg" alt="Neerzy" />
+    <div class="pill">10 built-in looks</div>
+  </div>
+
+  <div class="body">
+    <h1>Ten looks. <span class="hl">Pick yours.</span></h1>
+    <p class="sub">Every template is already written and set up for your trade —<br/><b>you just pick the one that feels like you</b>.</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M30 8h10v10a6 6 0 0 1-6 6H24"/><path d="M24 24v16h-8V24"/><path d="M8 40h32"/></svg></div>
+        <div class="nm">Plumber</div>
+        <div class="sb">Pipes &amp; leaks</div>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M26 6L10 28h12l-4 14 18-22H24z"/></svg></div>
+        <div class="nm">Electrician</div>
+        <div class="sb">Wiring &amp; lights</div>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round"><circle cx="24" cy="24" r="16"/><path d="M24 14v10l7 5"/></svg></div>
+        <div class="nm">HVAC</div>
+        <div class="sb">Heat &amp; cool</div>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 34h32"/><path d="M14 34V18l10-8 10 8v16"/><circle cx="18" cy="40" r="3"/><circle cx="30" cy="40" r="3"/></svg></div>
+        <div class="nm">Mechanic</div>
+        <div class="sb">Repairs &amp; service</div>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 26L24 12l18 14"/><path d="M12 26v14h24V26"/></svg></div>
+        <div class="nm">Roofing</div>
+        <div class="sb">Roofs &amp; gutters</div>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10l10 10"/><path d="M22 18l14 14a4 4 0 0 1-6 6L16 24z"/><path d="M12 8l6 6"/></svg></div>
+        <div class="nm">Handyman</div>
+        <div class="sb">Odd jobs &amp; fixes</div>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M24 10a14 14 0 0 0-8 25v5h16v-5a14 14 0 0 0-8-25z"/></svg></div>
+        <div class="nm">Dentist</div>
+        <div class="sb">Care &amp; whitening</div>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20h28l-3 20H13z"/><path d="M18 20c0-6 3-9 6-9s6 3 6 9"/></svg></div>
+        <div class="nm">Grocery</div>
+        <div class="sb">Fresh &amp; local</div>
+      </div>
+      <div class="card">
+        <div class="icon"><svg viewBox="0 0 48 48" width="34" height="34" fill="none" stroke="#0F5132" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 36l6-8 6 8"/><path d="M24 8l4 14H20z"/><path d="M12 40h24"/></svg></div>
+        <div class="nm">Hardware</div>
+        <div class="sb">Tools &amp; supplies</div>
+      </div>
+      <div class="card" style="background:#0B3D2E;">
+        <div class="icon" style="background:#22C55E;"><svg viewBox="0 0 48 48" width="32" height="32" fill="none" stroke="#0A2E22" stroke-width="5" stroke-linecap="round"><path d="M24 10v28M10 24h28"/></svg></div>
+        <div class="nm">Your trade</div>
+        <div class="sb">Tell us &amp; we build it</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="cta">Build My Website — Free</div>
+    <div class="ask">Comment your trade <b>👇</b> — we&apos;ll reply with your look.</div>
+    <div class="url">neerzy.com &nbsp;·&nbsp; <b>link in bio</b></div>
+  </div>
+</div>
+</body>
+</html>

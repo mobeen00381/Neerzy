@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Neerzy Day 14 — Website build FREE for early adopters (FB &amp; IG Feed 4:5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* Locked Neerzy palette — design.md. Light + dark combination: light mint
+     header, dark offer panel, light mint include rows, dark footer band. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #FFFFFF; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; color: #0A2E22; -webkit-font-smoothing: antialiased; }
+  .post { position: relative; width: 1080px; height: 1350px; background: #FFFFFF; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* light header block */
+  .top { position: relative; background: #E6F2EA; padding: 38px 64px 32px; display: flex; flex-direction: column; align-items: center; gap: 18px; border-radius: 0 0 60px 60px; text-align: center; }
+  .logo { width: 212px; }
+  .pill { border: 3px solid #0F5132; color: #0F5132; font-size: 22px; font-weight: 800; letter-spacing: 4px; text-transform: uppercase; padding: 9px 30px; border-radius: 999px; }
+
+  .body { flex: 1; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px 64px 30px; }
+  h1 { font-size: 56px; font-weight: 900; line-height: 1.1; letter-spacing: -1px; color: #0A2E22; max-width: 950px; }
+  h1 .hl { color: #0F5132; }
+  .sub { margin-top: 12px; font-size: 26px; font-weight: 600; line-height: 1.4; color: #5B6B64; max-width: 890px; }
+  .sub b { color: #0F5132; }
+
+  /* dark offer panel — accent reserved for the hero number */
+  .offer { margin-top: 26px; width: 100%; max-width: 840px; background: #0B3D2E; border-radius: 36px; padding: 30px 44px 32px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .offer .lbl { font-size: 23px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: #4ADE80; }
+  .offer .row { display: flex; align-items: baseline; gap: 22px; margin-top: 4px; }
+  .offer .was { font-size: 46px; font-weight: 800; color: #B7DEC7; text-decoration: line-through; }
+  .offer .now { font-size: 96px; font-weight: 900; letter-spacing: -3px; color: #22C55E; line-height: 1; }
+  .offer .who { margin-top: 10px; font-size: 26px; font-weight: 700; color: #FFFFFF; }
+  .offer .fine { font-size: 22px; font-weight: 500; color: #B7DEC7; }
+
+  /* light mint include rows */
+  .rows { margin-top: 22px; display: flex; gap: 14px; width: 100%; max-width: 860px; }
+  .r { flex: 1; background: #E6F2EA; border: 2px solid #D3E6DA; border-radius: 24px; padding: 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .r .tick { width: 44px; height: 44px; border-radius: 50%; background: #0F5132; display: flex; align-items: center; justify-content: center; }
+  .r .tx { font-size: 23px; font-weight: 800; color: #0A2E22; line-height: 1.22; }
+  .r .sm { font-size: 18px; font-weight: 600; color: #5B6B64; line-height: 1.24; }
+
+  /* dark footer band */
+  .foot { background: #0F5132; padding: 28px 60px 30px; display: flex; flex-direction: column; align-items: center; gap: 12px; border-radius: 56px 56px 0 0; text-align: center; }
+  .cta { background: #22C55E; color: #0A2E22; font-size: 36px; font-weight: 900; padding: 17px 48px; border-radius: 999px; }
+  .ask { font-size: 24px; font-weight: 700; color: #E6F2EA; }
+  .ask b { color: #4ADE80; }
+  .url { font-size: 21px; font-weight: 600; color: #B7DEC7; }
+  .url b { color: #4ADE80; }
+</style>
+</head>
+<body>
+<div class="post" id="post">
+  <div class="top">
+    <img class="logo" src="file:///C:/Neerzy/public/images/logo.svg" alt="Neerzy" />
+    <div class="pill">Early adopter offer</div>
+  </div>
+
+  <div class="body">
+    <h1>Your website build is <span class="hl">free</span>.</h1>
+    <p class="sub">For early adopters we waive the $99 build. <b>You pay $19 once for your own domain</b> — and hosting is free for the first 90 days.</p>
+
+    <div class="offer">
+      <div class="lbl">Website build</div>
+      <div class="row"><span class="was">$99</span><span class="now">FREE</span></div>
+      <div class="who">For early adopters</div>
+      <div class="fine">Setup fee waived — yours to keep.</div>
+    </div>
+
+    <div class="rows">
+      <div class="r">
+        <span class="tick"><svg viewBox="0 0 48 48" width="22" height="22" fill="none" stroke="#22C55E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26l10 10 18-24"/></svg></span>
+        <div class="tx">Your own domain</div>
+        <div class="sm">$19 once — you own it</div>
+      </div>
+      <div class="r">
+        <span class="tick"><svg viewBox="0 0 48 48" width="22" height="22" fill="none" stroke="#22C55E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26l10 10 18-24"/></svg></span>
+        <div class="tx">10 built-in looks</div>
+        <div class="sm">Switch any time, free</div>
+      </div>
+      <div class="r">
+        <span class="tick"><svg viewBox="0 0 48 48" width="22" height="22" fill="none" stroke="#22C55E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 26l10 10 18-24"/></svg></span>
+        <div class="tx">Hosting</div>
+        <div class="sm">90 days free, then $10/month</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="cta">Build My Website — Free</div>
+    <div class="ask">Still on the fence? <b>Ask us anything below 👇</b></div>
+    <div class="url">neerzy.com/pricing &nbsp;·&nbsp; <b>link in bio</b></div>
+  </div>
+</div>
+</body>
+</html>
