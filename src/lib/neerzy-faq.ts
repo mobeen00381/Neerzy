@@ -169,7 +169,7 @@ After the trial, you can upgrade to Pro ($39/mo), Growth ($79/mo), or Agency ($1
 
   // ── Cancellation ──
   {
-    patterns: ['cancel', 'cancellation', 'cancel anytime', 'refund', 'stop subscription', 'unsubscribe'],
+    patterns: ['cancel', 'cancellation', 'cancel anytime', 'cancel at any time', 'quit', 'quit anytime', 'refund', 'money back', 'stop subscription', 'stop my subscription', 'unsubscribe', 'no contract', 'no contracts', 'no lock in', 'no lock-in', 'locked in', 'commitment', 'long term contract'],
     answer: `You can **cancel anytime** — no contracts, no lock-in. 🙌
 
 Simply go to your Dashboard → Settings → Subscription and cancel. Your account will remain active until the end of your billing period.
@@ -478,7 +478,8 @@ const NEERZY_KEYWORDS = [
   // Pricing / Account
   'plan', 'pricing', 'price', 'cost', 'subscription', 'trial', 'free',
   'pro', 'growth', 'agency', 'upgrade', 'downgrade',
-  'cancel', 'refund', 'billing', 'payment',
+  'cancel', 'quit', 'refund', 'billing', 'payment',
+  'contract', 'commitment', 'locked in',
   'signup', 'sign up', 'onboarding', 'account', 'login', 'log in',
   // Support
   'support', 'help', 'contact', 'email',

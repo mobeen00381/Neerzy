@@ -103,6 +103,19 @@ export function SupportChat({
         })
       });
 
+      // 503 = our limiter/AI infrastructure hiccupped, not a user limit: show
+      // the message but do NOT lock the visitor out so they can retry at once.
+      if (res.status === 503) {
+        let info: { error?: string } = {};
+        try { info = await res.json(); } catch { /* ignore body */ }
+
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: info.error || "I'm having a quick hiccup - please try again in a moment. For urgent help, email support@neerzy.com.",
+        }]);
+        return;
+      }
+
       if (res.status === 429) {
         let lockInfo: { error?: string; retryAfterSeconds?: number } = {};
         try { lockInfo = await res.json(); } catch { /* ignore body */ }

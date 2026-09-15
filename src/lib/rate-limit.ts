@@ -10,7 +10,11 @@ import { createClient } from "@supabase/supabase-js";
  *     (default 1 hour) via the rate_limits.blocked_until column
  *
  * The chat endpoint is public + unauthenticated and every model call burns AI
- * tokens, so a DB failure FAILS CLOSED (deny) — the same posture as posts/create.
+ * tokens, so a DB failure FAILS CLOSED (deny) by default — the same posture as
+ * posts/create. Callers that would rather degrade than lock everyone out can
+ * pass `fallbackToMemory: true` (see /api/chat, /api/audit/review), which
+ * swaps in a best-effort per-instance memory limiter when the shared store is
+ * unreachable.
  */
 
 const supabase = createClient(
@@ -41,6 +45,97 @@ export interface CheckRateLimitOptions {
   windowMs?: number;
   /** Lock length in ms once the cap is exceeded (default 1 hour). */
   blockMs?: number;
+  /**
+   * When true, a limiter DB outage (missing table, RLS/permission problem,
+   * network failure) falls back to a best-effort per-instance in-memory
+   * limiter that still returns a real allow/deny answer, instead of failing
+   * closed. Use this on user-facing endpoints where a broken shared dependency
+   * must never lock real visitors out (e.g. /api/chat). Leave it false where
+   * the caller prefers dropping requests over risking cost/abuse.
+   */
+  fallbackToMemory?: boolean;
+}
+
+/**
+ * Last-resort per-instance limiter, consulted only when the shared DB limiter
+ * itself is unreachable. It mirrors the DB semantics (max per window, then a
+ * block) but the state lives in the serverless instance's memory, so it is
+ * best-effort - still far better than telling every visitor they are
+ * rate-limited because OUR table is missing.
+ */
+interface MemoryBucket {
+  count: number;
+  windowStart: number;
+  blockedUntil: number;
+}
+
+const MEMORY_BUCKETS = new Map<string, MemoryBucket>();
+const MEMORY_BUCKET_CAP = 5_000;
+
+function checkMemoryLimit(
+  key: string,
+  max: number,
+  windowMs: number,
+  blockMs: number
+): RateLimitResult {
+  const now = Date.now();
+
+  // Keep the map from growing without bound on long-lived instances.
+  if (MEMORY_BUCKETS.size > MEMORY_BUCKET_CAP) {
+    for (const [k, v] of MEMORY_BUCKETS) {
+      if (v.blockedUntil <= now && now - v.windowStart >= windowMs) {
+        MEMORY_BUCKETS.delete(k);
+      }
+    }
+  }
+
+  const bucket = MEMORY_BUCKETS.get(key);
+
+  if (bucket) {
+    // Active block → reject until it lifts.
+    if (bucket.blockedUntil > now) {
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt: bucket.blockedUntil,
+        blockedUntil: bucket.blockedUntil,
+        reason: "blocked",
+      };
+    }
+
+    // Same window → cap check.
+    if (now - bucket.windowStart < windowMs) {
+      if (bucket.count >= max) {
+        bucket.blockedUntil = now + blockMs;
+        return {
+          allowed: false,
+          remaining: 0,
+          resetAt: bucket.blockedUntil,
+          blockedUntil: bucket.blockedUntil,
+          reason: "blocked",
+        };
+      }
+
+      bucket.count += 1;
+      return {
+        allowed: true,
+        remaining: max - bucket.count,
+        resetAt: bucket.windowStart + windowMs,
+        blockedUntil: null,
+        reason: "ok",
+      };
+    }
+  }
+
+  // No bucket, or the window expired → start a fresh window.
+  MEMORY_BUCKETS.set(key, { count: 1, windowStart: now, blockedUntil: 0 });
+  return {
+    allowed: true,
+    remaining: max - 1,
+    resetAt: now + windowMs,
+    blockedUntil: null,
+    reason: "ok",
+  };
 }
 
 export async function checkRateLimit(opts: CheckRateLimitOptions): Promise<RateLimitResult> {
@@ -48,6 +143,7 @@ export async function checkRateLimit(opts: CheckRateLimitOptions): Promise<RateL
   const max = opts.max ?? 10;
   const windowMs = opts.windowMs ?? 60_000;
   const blockMs = opts.blockMs ?? HOUR_MS;
+  const fallbackToMemory = opts.fallbackToMemory === true;
 
   const now = Date.now();
 
@@ -141,7 +237,20 @@ export async function checkRateLimit(opts: CheckRateLimitOptions): Promise<RateL
       reason: "ok",
     };
   } catch (err) {
-    // Fail-closed: this is a public, cost-bearing endpoint.
+    // Shared limiter is unreachable. Endpoints that opted into the memory
+    // fallback keep working (bounded per instance); everything else fails
+    // closed, since it is public and cost-bearing.
+    if (fallbackToMemory) {
+      const fallback = checkMemoryLimit(`${ip}:${endpoint}`, max, windowMs, blockMs);
+      console.warn(
+        `Rate limiter DB unavailable for ${endpoint} (${ip}) - in-memory fallback ${
+          fallback.allowed ? "allowed" : "denied"
+        }:`,
+        err
+      );
+      return fallback;
+    }
+
     console.error(`Rate limiter DB error for endpoint ${endpoint} (failing closed):`, err);
     return {
       allowed: false,

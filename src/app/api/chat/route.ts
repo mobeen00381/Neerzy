@@ -231,15 +231,31 @@ export async function POST(req: Request) {
 
   try {
     // Rate limit FIRST: 10/min per IP, exceed -> reject + 1-hour lock.
+    // fallbackToMemory: if the shared limiter store itself is unreachable we
+    // fall back to a per-instance memory limiter instead of failing closed -
+    // a broken/missing rate_limits table must never block every visitor.
     const rate = await checkRateLimit({
       ip,
       endpoint: CHAT_ENDPOINT,
       max: CHAT_MAX_PER_MINUTE,
       windowMs: CHAT_WINDOW_MS,
       blockMs: CHAT_BLOCK_MS,
+      fallbackToMemory: true,
     });
 
     if (!rate.allowed) {
+      // Limiter infrastructure failure (no memory fallback available).
+      // Never tell a visitor they hit a "message limit" when it is our fault.
+      if (rate.reason === "error") {
+        return NextResponse.json(
+          {
+            error:
+              "Chat is temporarily unavailable - please try again in a moment. For urgent help, email support@neerzy.com.",
+          },
+          { status: 503, headers: { "Retry-After": "10" } }
+        );
+      }
+
       const locked = rate.reason === "blocked";
       const waitMs = (rate.blockedUntil ?? rate.resetAt) - Date.now();
       const retryAfterSeconds = Math.max(1, Math.ceil(waitMs / 1000));

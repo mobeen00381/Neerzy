@@ -97,7 +97,8 @@ export async function POST(req: Request) {
         ? scan_place_id.trim().slice(0, MAX_SCAN_REF)
         : null;
 
-    // ── 4. Per-IP rate limit (shared limiter, fails closed) ──
+    // ── 4. Per-IP rate limit (shared limiter; per-instance memory fallback so a
+    //      broken limiter store can't block every rating) ──
     const ip = getClientIp(req);
     const limit = await checkRateLimit({
       ip,
@@ -105,6 +106,7 @@ export async function POST(req: Request) {
       max: RATE_MAX,
       windowMs: RATE_WINDOW_MS,
       blockMs: RATE_WINDOW_MS,
+      fallbackToMemory: true,
     });
 
     if (!limit.allowed) {
