@@ -4,6 +4,60 @@ import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+/**
+ * Loads a Google Places photo through the authed /api/places/photo proxy.
+ * A plain <img src> request never carries the Supabase Authorization header,
+ * so the proxy answers 401 and the thumbnail rendered as a broken image while
+ * the rest of the listing data (name, address, rating) synced fine. We fetch
+ * the bytes with the session token instead and render a blob URL, falling back
+ * to a generated avatar when there is no photo or the fetch fails.
+ */
+function BusinessPhoto({ src, name }: { src: string | null; name: string }) {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!src) {
+      setFailed(true);
+      return;
+    }
+    let cancelled = false;
+    let createdUrl: string | null = null;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(src, {
+          headers: session?.access_token
+            ? { Authorization: 'Bearer ' + session.access_token }
+            : {},
+        });
+        if (!res.ok) throw new Error('photo fetch failed (' + res.status + ')');
+        const blob = await res.blob();
+        if (cancelled) return;
+        createdUrl = URL.createObjectURL(blob);
+        setObjectUrl(createdUrl);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (createdUrl) URL.revokeObjectURL(createdUrl);
+    };
+  }, [src]);
+
+  const avatarUrl =
+    'https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=059669&color=fff&size=128';
+
+  return (
+    <img
+      src={failed || !objectUrl ? avatarUrl : objectUrl}
+      alt=""
+      className="w-full h-full object-cover"
+    />
+  );
+}
+
 function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -85,7 +139,7 @@ function OnboardingContent() {
         formattedAddress: p.formattedAddress || p.formatted_address,
         primaryType: p.primaryType || p.types?.[0] || 'Business',
         rating: p.rating,
-        photoUrl: p.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.displayName?.text || p.name)}&background=059669&color=fff&size=128`
+        photoUrl: p.photoUrl || null
       })) || [];
 
       if (mapped.length > 0) {
@@ -202,7 +256,7 @@ function OnboardingContent() {
                     }`}
                   >
                     <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      <img src={place.photoUrl} alt="" className="w-full h-full object-cover" />
+                      <BusinessPhoto src={place.photoUrl} name={place.name} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 truncate">{place.name}</div>
