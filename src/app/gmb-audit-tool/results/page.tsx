@@ -19,6 +19,7 @@ import {
   MapPin,
   Star
 } from 'lucide-react';
+import AuditReviewPrompt from '@/components/reviews/AuditReviewPrompt';
 
 export default function AuditResultsPage() {
   return (
@@ -136,10 +137,10 @@ function AuditContent() {
     );
   }
 
-  return <AuditReportView data={auditData} businessName={businessName} />;
+  return <AuditReportView data={auditData} businessName={businessName} placeId={placeId} />;
 }
 
-function AuditReportView({ data, businessName }: any) {
+function AuditReportView({ data, businessName, placeId }: any) {
   const router = useRouter();
 
   // Robust score aggregator: Summing the category actual scores to match 100 points maximum
@@ -340,6 +341,9 @@ function AuditReportView({ data, businessName }: any) {
             )}
           </div>
         </div>
+
+        {/* ⭐ Review capture — identical prompt for every visitor who finishes a scan */}
+        <AuditReviewPrompt placeId={placeId} />
 
         {/* 🚀 Premium CTA to Pricing */}
         <div className="bg-gradient-to-r from-[#0F5C4D] to-[#12705e] rounded-3xl p-8 md:p-12 text-center text-white shadow-2xl relative overflow-hidden">

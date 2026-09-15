@@ -169,3 +169,25 @@ export interface UserDetail {
   };
   transactions: AdminTransaction[];
 }
+
+// ── /gmb-audit-tool reviews (public rating pipeline) ──
+export type AuditReviewStatus = "pending" | "published" | "rejected";
+
+export interface AdminAuditReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  author_name: string | null;
+  scan_place_id: string | null;
+  status: AuditReviewStatus;
+  moderated_at: string | null;
+  created_at: string | null;
+}
+
+export interface AdminAuditReviewList {
+  reviews: AdminAuditReview[];
+  total: number;
+  page: number;
+  pageSize: number;
+  byStatus: { pending: number; published: number; rejected: number };
+}

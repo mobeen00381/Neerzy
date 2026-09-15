@@ -3,7 +3,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import Logo from "@/components/ui/Logo";
 import {
-  LayoutDashboard, Users, Wallet, Target, Activity, Link2, LogOut, Lock, Menu, X,
+  LayoutDashboard, Users, Wallet, Target, Activity, Link2, LogOut, Lock, Menu, X, Star,
 } from "lucide-react";
 import OverviewTab from "@/components/admin/OverviewTab";
 import UsersTab from "@/components/admin/UsersTab";
@@ -11,6 +11,7 @@ import TransactionsTab from "@/components/admin/TransactionsTab";
 import LeadsTab from "@/components/admin/LeadsTab";
 import ActivityTab from "@/components/admin/ActivityTab";
 import DemosTab from "@/components/admin/DemosTab";
+import ReviewsTab from "@/components/admin/ReviewsTab";
 import { clearAdminSession } from "@/components/admin/api";
 
 const NAV = [
@@ -20,6 +21,7 @@ const NAV = [
   { id: "leads", label: "Leads", icon: Target },
   { id: "activity", label: "Activity", icon: Activity },
   { id: "demos", label: "Demo Links", icon: Link2 },
+  { id: "reviews", label: "Reviews", icon: Star },
 ] as const;
 
 type TabId = (typeof NAV)[number]["id"];
@@ -212,6 +214,7 @@ export default function AdminDashboard() {
             {activeTab === "leads" && <LeadsTab />}
             {activeTab === "activity" && <ActivityTab />}
             {activeTab === "demos" && <DemosTab />}
+            {activeTab === "reviews" && <ReviewsTab />}
           </div>
         </main>
       </div>
