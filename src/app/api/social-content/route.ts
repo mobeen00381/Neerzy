@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendMetaText } from '@/lib/whatsapp';
 import { generateSocialContent } from '@/lib/social-content';
+import { getClientIp } from '@/lib/rate-limit';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Social Content API — Growth/Agency plan feature.
@@ -120,9 +121,7 @@ function buildWhatsAppBlocks(content: any) {
 export async function POST(req: Request) {
   try {
     // Rate limiting (per IP)
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-               req.headers.get('x-real-ip') ||
-               'unknown';
+    const ip = getClientIp(req);
     const rateCheck = await checkRateLimit(ip);
     if (!rateCheck.allowed) {
       return NextResponse.json(

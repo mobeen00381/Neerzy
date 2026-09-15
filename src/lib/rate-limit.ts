@@ -24,6 +24,28 @@ const supabase = createClient(
 
 const HOUR_MS = 3_600_000;
 
+/**
+ * The visitor's real IP, used as the rate-limit key.
+ *
+ * Production sits behind Cloudflare (www.neerzy.com -> 188.114.96.6/97.6), and
+ * Vercel then reports the *Cloudflare edge* address as the first
+ * x-forwarded-for entry. Keying limits on that made every visitor behind one
+ * edge node share a single 10/min bucket - and inherit each other's 1-hour
+ * locks - while the counters also fragmented across edge nodes (measured in
+ * production: 4 rows keyed 162.158.x / 172.69.x for a single visitor).
+ * Cloudflare's cf-connecting-ip carries the actual visitor, so prefer it.
+ */
+export function getClientIp(req: Request): string {
+  const cfClientIp = req.headers.get("cf-connecting-ip")?.trim();
+  if (cfClientIp) return cfClientIp;
+
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip")?.trim() ||
+    "unknown"
+  );
+}
+
 export type RateLimitReason = "ok" | "blocked" | "error";
 
 export interface RateLimitResult {

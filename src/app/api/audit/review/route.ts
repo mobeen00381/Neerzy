@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { createClient } from "@supabase/supabase-js";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 /**
  * POST /api/audit/review
@@ -34,14 +34,6 @@ const MIN_ELAPSED_MS = 3_000; // faster than this = bot
 const MAX_COMMENT = 500;
 const MAX_NAME = 60;
 const MAX_SCAN_REF = 128;
-
-function getClientIp(req: Request): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown"
-  );
-}
 
 /** sha256(ip + salt) — salted so the hash can't be reversed by brute force. */
 function hashIp(ip: string): string {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { chatWithFallback } from "@/lib/openai";
 import { matchFAQ, isNeerzyRelated, OFF_TOPIC_RESPONSE } from "@/lib/neerzy-faq";
-import { checkRateLimit, blockClient } from "@/lib/rate-limit";
+import { checkRateLimit, blockClient, getClientIp } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
 // Neerzy AI Agent - /api/chat
@@ -83,14 +83,6 @@ function trackOffTopic(ip: string): boolean {
 
 function resetOffTopic(ip: string): void {
   offTopicCounts.delete(ip);
-}
-
-function getClientIp(req: Request): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown"
-  );
 }
 
 function isOffTopicReply(content: string | null | undefined): boolean {

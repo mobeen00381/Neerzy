@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { chatWithFallback } from "@/lib/openai";
+import { getClientIp } from "@/lib/rate-limit";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co",
@@ -68,9 +69,7 @@ async function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining
 export async function POST(req: Request) {
   try {
     // Rate limiting check
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
-               req.headers.get("x-real-ip") || 
-               "unknown";
+    const ip = getClientIp(req);
     const rateCheck = await checkRateLimit(ip);
     
     if (!rateCheck.allowed) {
