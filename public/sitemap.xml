@@ -1,39 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Main-site sitemap (static, served from /public).
+
+  Two rules recorded here so this file stops drifting:
+  1. Never list a URL that 301s. /gmb-checker redirected to /gmb-audit-tool,
+     and Google reports redirecting sitemap entries as errors instead of
+     recrawling the real page.
+  2. lastmod must be the day the page actually changed, taken from the last
+     commit touching that route's page.tsx, never a blanket "bump everything"
+     date. A sitemap that cries wolf gets its dates ignored.
+
+  /gmb-audit-tool carries lastmod 2026-09-15 on purpose: that is when its
+  hardcoded AggregateRating ("4.9 from 127 reviews") was replaced with
+  schema that only emits once real reviews are published. The fresh date is
+  what nudges the recrawler to drop the stale star snippet from the SERP.
+
+  Keep this comment ASCII only and free of double hyphens: XML forbids two
+  consecutive dashes inside a comment, and a broken sitemap is worse than a
+  stale one.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.neerzy.com/</loc>
-    <lastmod>2026-05-11</lastmod>
+    <lastmod>2026-09-16</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://www.neerzy.com/blog</loc>
-    <lastmod>2026-08-07</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.neerzy.com/gmb-checker</loc>
-    <lastmod>2026-05-11</lastmod>
+    <loc>https://www.neerzy.com/gmb-audit-tool</loc>
+    <lastmod>2026-09-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.neerzy.com/pricing</loc>
-    <lastmod>2026-05-11</lastmod>
+    <lastmod>2026-09-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://www.neerzy.com/blog</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.neerzy.com/contact</loc>
+    <lastmod>2026-09-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.neerzy.com/about</loc>
+    <lastmod>2026-07-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://www.neerzy.com/terms</loc>
-    <lastmod>2026-05-11</lastmod>
+    <lastmod>2026-05-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://www.neerzy.com/privacy-policy</loc>
-    <lastmod>2026-05-11</lastmod>
+    <lastmod>2026-05-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.neerzy.com/cookies</loc>
+    <lastmod>2026-05-26</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
 </urlset>

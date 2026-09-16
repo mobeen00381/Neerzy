@@ -12,7 +12,7 @@ Disallow: /*?token=
 # Allow Googlebot full access to public pages
 User-agent: Googlebot
 Allow: /
-Allow: /gmb-checker
+Allow: /gmb-audit-tool
 Allow: /pricing
 Allow: /blog/
 
