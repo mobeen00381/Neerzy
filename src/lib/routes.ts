@@ -12,7 +12,16 @@ export const ROUTES = {
   },
 };
 
-export const SITE_URL = 'https://neerzy.com';
+/**
+ * Canonical origin. MUST stay on the `www` host: every page that hardcodes its
+ * canonical (/, /pricing, /terms ...) uses https://www.neerzy.com, and the
+ * apex host answers with a redirect to it. A canonical pointing at a
+ * redirecting URL is a contradiction, and it is what put
+ * https://neerzy.com/... in Google Search Console's "Page with redirect"
+ * bucket. Pages built from SITE_URL (blog + all guide routes) inherit the
+ * wrong host if this ever drifts back to the apex.
+ */
+export const SITE_URL = 'https://www.neerzy.com';
 
 /**
  * True for paths that belong to a TRADER'S own website rather than the Neerzy
