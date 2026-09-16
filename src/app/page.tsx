@@ -657,28 +657,188 @@ export default function Page() {
         <div className="container">
           <div className="steps-header">
             <h2>Show up higher on Google Maps.</h2>
-            <p>Google shows businesses that post often and collect reviews. Neerzy does both — automatically.</p>
+            <p>Google shows the businesses that keep posting and keep collecting reviews. Neerzy does both — automatically.</p>
           </div>
 
+          {/* Story: one real business, before and after */}
+          <p className="map-story">
+            <b>Meet Smith Plumbing &amp; Heating</b> — great plumbers, quiet phone. On Google Maps they were invisible:
+            6 reviews, and their last post was 8 months old. Customers searched &ldquo;plumber near me&rdquo; and scrolled
+            straight past them.
+          </p>
+
           <div className="map-compare">
+            {/* ---------- Before: the same business, invisible ---------- */}
             <div className="map-panel">
               <div className="map-panel-label without">Without Neerzy</div>
-              <div className="map-mock">
-                <span className="map-pin gray" style={{ top: '62%', left: '22%' }} />
-                <span className="map-pin gray" style={{ top: '74%', left: '58%' }} />
-                <span className="map-pin gray dim" style={{ top: '82%', left: '38%' }} />
+
+              <div className="gmaps">
+                <div className="gmaps-bar">
+                  <SearchIcon size={13} className="gmaps-bar-icon" />
+                  <span className="gmaps-bar-text">plumber near me</span>
+                </div>
+
+                <div className="gmaps-map is-dull">
+                  <span className="gmaps-road h" style={{ top: '26%' }} />
+                  <span className="gmaps-road h" style={{ top: '64%' }} />
+                  <span className="gmaps-road v" style={{ left: '28%' }} />
+                  <span className="gmaps-road v" style={{ left: '66%' }} />
+                  <span className="gmaps-block is-park" style={{ top: '8%', left: '5%', width: '20%', height: '18%' }} />
+                  <span className="gmaps-block" style={{ top: '70%', left: '72%', width: '24%', height: '24%' }} />
+                  <span className="gmaps-pin is-ghost" style={{ top: '44%', left: '34%' }} />
+                  <span className="gmaps-pin is-ghost" style={{ top: '30%', left: '58%' }} />
+                  <span className="gmaps-pin is-ghost" style={{ top: '72%', left: '46%' }} />
+                  <span className="gmaps-pin is-mine is-dull" style={{ top: '78%', left: '20%' }} />
+                  <span className="gmaps-badge">No new posts</span>
+                </div>
+
+                <div className="gmaps-list">
+                  <div className="gmaps-row is-dim">
+                    <span className="gmaps-row-rank">4</span>
+                    <span className="gmaps-row-body">
+                      <span className="gmaps-row-name">Smith Plumbing &amp; Heating</span>
+                      <span className="gmaps-row-meta">
+                        <span className="gmaps-stars">&#9733;&#9733;&#9733;&#9734;&#9734;</span>
+                        <span className="gmaps-score is-dull">3.6</span>
+                        <span className="gmaps-count">(6)</span>
+                      </span>
+                      <span className="gmaps-row-note">Last post 8 months ago</span>
+                    </span>
+                  </div>
+                </div>
               </div>
-              <p className="map-caption">Posted 8 months ago · 6 reviews</p>
+
+              <p className="map-caption">Customers tap the top 3. Smith never gets the call.</p>
             </div>
 
+            {/* ---------- After: same business, books full ---------- */}
             <div className="map-panel">
               <div className="map-panel-label with">With Neerzy</div>
-              <div className="map-mock accent">
-                <span className="map-pin green" style={{ top: '18%', left: '30%' }}><b>4.8</b></span>
-                <span className="map-pin green" style={{ top: '26%', left: '62%' }}><b>5.0</b></span>
-                <span className="map-pin green" style={{ top: '12%', left: '52%' }}><b>4.9</b></span>
+
+              <div className="gmaps is-live">
+                <div className="gmaps-bar">
+                  <SearchIcon size={13} className="gmaps-bar-icon" />
+                  <span className="gmaps-bar-text">plumber near me</span>
+                </div>
+
+                <div className="gmaps-map">
+                  <span className="gmaps-road h" style={{ top: '26%' }} />
+                  <span className="gmaps-road h" style={{ top: '64%' }} />
+                  <span className="gmaps-road v" style={{ left: '28%' }} />
+                  <span className="gmaps-road v" style={{ left: '66%' }} />
+                  <span className="gmaps-block is-park" style={{ top: '8%', left: '5%', width: '20%', height: '18%' }} />
+                  <span className="gmaps-block" style={{ top: '70%', left: '72%', width: '24%', height: '24%' }} />
+                  <span className="gmaps-pin is-ghost" style={{ top: '70%', left: '60%' }} />
+                  <span className="gmaps-pin is-ghost" style={{ top: '84%', left: '40%' }} />
+
+                  <span className="gmaps-marker" style={{ top: '34%', left: '22%' }}>
+                    <span className="gmaps-marker-pin" />
+                    <span className="gmaps-marker-label">
+                      <span className="gmaps-marker-name">Smith Plumbing &amp; Heating</span>
+                      <span className="gmaps-marker-meta">
+                        <span className="gmaps-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        <span className="gmaps-score">4.9</span>
+                        <span className="gmaps-count">(47)</span>
+                      </span>
+                    </span>
+                  </span>
+
+                  <span className="gmaps-badge is-live">Posted today</span>
+                </div>
+
+                <div className="gmaps-list">
+                  <div className="gmaps-row is-top">
+                    <span className="gmaps-row-rank is-top">1</span>
+                    <span className="gmaps-row-body">
+                      <span className="gmaps-row-name">Smith Plumbing &amp; Heating</span>
+                      <span className="gmaps-row-meta">
+                        <span className="gmaps-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        <span className="gmaps-score">4.9</span>
+                        <span className="gmaps-count">(47)</span>
+                        <span className="gmaps-open">Open now</span>
+                      </span>
+                      <span className="gmaps-row-note is-live">New post today &middot; 12 job photos</span>
+                    </span>
+                  </div>
+
+                  <div className="gmaps-reviews">
+                    <div className="gmaps-review">
+                      <span className="gmaps-avatar a1">D</span>
+                      <span className="gmaps-review-body">
+                        <span className="gmaps-review-head">
+                          <b>David R.</b>
+                          <span className="gmaps-review-time">3 days ago</span>
+                        </span>
+                        <span className="gmaps-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        <span className="gmaps-review-text">Arrived in 40 minutes and fixed it first time.</span>
+                      </span>
+                    </div>
+
+                    <div className="gmaps-review">
+                      <span className="gmaps-avatar a2">P</span>
+                      <span className="gmaps-review-body">
+                        <span className="gmaps-review-head">
+                          <b>Priya N.</b>
+                          <span className="gmaps-review-time">2 weeks ago</span>
+                        </span>
+                        <span className="gmaps-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        <span className="gmaps-review-text">Sent a photo of the finished job before leaving. Very tidy.</span>
+                      </span>
+                    </div>
+
+                    <div className="gmaps-review">
+                      <span className="gmaps-avatar a3">M</span>
+                      <span className="gmaps-review-body">
+                        <span className="gmaps-review-head">
+                          <b>Marcus T.</b>
+                          <span className="gmaps-review-time">1 month ago</span>
+                        </span>
+                        <span className="gmaps-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                        <span className="gmaps-review-text">If this keeps up they&apos;re my plumbers for good.</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="map-caption">Posted today · 47 reviews</p>
+
+              <p className="map-caption">Same street, same work. Now Smith is the first name customers see.</p>
+            </div>
+          </div>
+
+          {/* What the business actually gets when they onboard */}
+          <h3 className="map-benefits-title">What you get with Neerzy</h3>
+
+          <div className="map-benefits">
+            <div className="map-benefit">
+              <span className="map-benefit-icon">
+                <CameraIcon size={18} />
+              </span>
+              <h4>Fresh Google posts every week</h4>
+              <p>Every job photo you send becomes a Google post. No writing, no logging in, nothing to remember.</p>
+            </div>
+
+            <div className="map-benefit">
+              <span className="map-benefit-icon">
+                <StarIcon size={18} />
+              </span>
+              <h4>5-star reviews after every job</h4>
+              <p>The review ask goes out while the customer is still happy — so more of them actually say yes.</p>
+            </div>
+
+            <div className="map-benefit">
+              <span className="map-benefit-icon">
+                <TrendingUpIcon size={18} />
+              </span>
+              <h4>Higher up on Maps, month after month</h4>
+              <p>Google trusts businesses that stay active. Staying active is the part Neerzy does for you.</p>
+            </div>
+
+            <div className="map-benefit">
+              <span className="map-benefit-icon">
+                <SmartphoneIcon size={18} />
+              </span>
+              <h4>More calls, more jobs</h4>
+              <p>Customers pick the business that looks alive and well reviewed. From now on, that&apos;s you.</p>
             </div>
           </div>
 
