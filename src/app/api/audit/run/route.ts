@@ -129,11 +129,13 @@ export async function POST(req: Request) {
 
     console.log(`✅ Place details loaded: ${place.name}, ${place.user_ratings_total} reviews, ${place.photos.length} photos`);
     
-    // Build the profile photo URL from the first photo
+    // Build the profile photo URL from the first photo. 400px is the anonymous
+    // ceiling on /api/places/photo (the audit tool is public), and it is already
+    // sharper than the 144px slot this renders into.
     let photoUrl = '';
     if (placeData.photos && placeData.photos.length > 0) {
       const photoName = placeData.photos[0].name;
-      photoUrl = `/api/places/photo?name=${encodeURIComponent(photoName)}&w=800`;
+      photoUrl = `/api/places/photo?name=${encodeURIComponent(photoName)}&w=400`;
     }
 
     // Run audit checks
