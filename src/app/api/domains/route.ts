@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import {
-  DOMAIN_TLDS,
   DOMAIN_PRICE_USD,
   checkDomainAvailability,
+  getBuyableTlds,
   normalizeDomain,
   suggestDomains,
+  tldOf,
 } from "@/lib/domain-registry";
 
 /**
@@ -14,12 +15,15 @@ import {
  *   { action: "suggest", domain, country?, address? }
  *                                              → ordered suggestions: the
  *                                                trader's own country TLD
- *                                                first, then .com/.net, with
- *                                                one "Suggested by Neerzy" pick
+ *                                                first, then the local-style
+ *                                                name+country+.com fallback,
+ *                                                then plain .com, with one
+ *                                                "Suggested by Neerzy" pick
  *
  * Uses the real Porkbun check API when keys are configured, otherwise a
- * dev-only DNS probe. Only .com is purchasable at the flat $19 price today
- * (see `buyable`) — local TLDs are shown and suggested, bought later.
+ * dev-only DNS probe. `buyable` is decided per request by getBuyableTlds() —
+ * `.com` plus allowlisted ccTLDs whose live wholesale cost is under the $15
+ * ceiling — so the UI never offers a name the checkout would refuse.
  */
 export async function POST(request: Request) {
   try {
@@ -53,18 +57,23 @@ export async function POST(request: Request) {
     }
 
     // Porkbun rate-limits availability lookups (~1 per 10s per API key), so we
-    // check exactly ONE domain per request. `.com` is the purchasable offer.
+    // check exactly ONE domain per request. A bare name means ".com".
     const candidate = raw.includes(".") ? raw : `${raw}.com`;
     const check = await checkDomainAvailability(candidate, { allowStaleCache: true });
+
+    // `buyable` comes from the live margin gate, not a hardcoded TLD list.
+    const buyableTlds = await getBuyableTlds();
+    const buyable = buyableTlds.includes(tldOf(candidate) || "");
 
     const results = [
       {
         domain: check.domain,
         available: check.available,
-        price: check.price ?? (candidate.endsWith(".com") ? DOMAIN_PRICE_USD : null),
+        price: buyable ? DOMAIN_PRICE_USD : check.price ?? null,
         currency: check.currency,
         simulated: check.simulated,
-        buyable: candidate.endsWith(".com"),
+        buyable,
+        premium: check.premium === true,
         verified: !check.simulated && !check.error,
       },
     ];

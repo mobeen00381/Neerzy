@@ -69,11 +69,26 @@ type CheckResult = {
   verified: boolean;
   /** Neerzy's recommended pick (first verifiably-available candidate). */
   suggested?: boolean;
-  /** Why it is recommended — e.g. "Best for local businesses". */
+  /** Why it is recommended — or why it can't be sold yet. */
   note?: string;
+  /** How the name was built — local TLD / local-style .com / plain .com. */
+  kind?: "local-tld" | "local-com" | "global-com" | "exact";
+  /** Registry paperwork block (e.g. "ABN/ACN required"). */
+  requires?: string | null;
   /** ISO-2 when this candidate is the trader's own local TLD. */
   localFor?: string | null;
   countryName?: string | null;
+  /** Porkbun premium-priced name (known only after the authoritative check). */
+  premium?: boolean;
+};
+
+/** Response from /api/domains/purchase when a name is premium-priced: the
+ *  server has NOT created a Paddle transaction yet — it is asking the trader to
+ *  approve the exact amount first. */
+type PremiumQuote = {
+  domain: string;
+  priceUsd: number;
+  message: string;
 };
 
 type StatusChipProps = { status: string };
@@ -106,6 +121,8 @@ export default function DomainPanel() {
   const [quota, setQuota] = useState(0);
   const [domains, setDomains] = useState<DomainRow[]>([]);
   const [priceUsd, setPriceUsd] = useState(19);
+  /** Live sellable extensions (`.com` + gated ccTLDs) for the card copy. */
+  const [sellableTlds, setSellableTlds] = useState<string[]>([".com"]);
 
   // Add-domain flow
   const [adding, setAdding] = useState(false);
@@ -114,6 +131,8 @@ export default function DomainPanel() {
   const [checking, setChecking] = useState(false);
   const [results, setResults] = useState<CheckResult[]>([]);
   const [buying, setBuying] = useState<string | null>(null);
+  /** Set when the server quotes a premium price — nothing is charged yet. */
+  const [premiumQuote, setPremiumQuote] = useState<PremiumQuote | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   // The trader's Google address, used to rank their own country's TLD first.
@@ -138,6 +157,7 @@ export default function DomainPanel() {
       setQuota(j.quota || 0);
       setDomains(j.domains || []);
       setPriceUsd(j.priceUsd || 19);
+      if (Array.isArray(j.tlds) && j.tlds.length) setSellableTlds(j.tlds);
     } catch (err: any) {
       console.error("Failed to load domains:", err);
     } finally {
@@ -220,10 +240,11 @@ export default function DomainPanel() {
     }
   };
 
-  const buy = async (domain: string) => {
+  const buy = async (domain: string, confirmPremium = false) => {
     setBuying(domain);
     setError("");
     setNotice("");
+    setPremiumQuote(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch("/api/domains/purchase", {
@@ -232,13 +253,26 @@ export default function DomainPanel() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token || ""}`,
         },
-        body: JSON.stringify({ domain, clientLabel }),
+        body: JSON.stringify({ domain, clientLabel, confirmPremium }),
       });
       const j = await res.json();
       if (!res.ok) {
         setError(j.error || "Could not start checkout. Please try again.");
         return;
       }
+
+      // Premium names come back as a QUOTE, not a checkout: no Paddle
+      // transaction exists yet. Show the exact amount and let the trader decide
+      // before anything is charged.
+      if (j.premium && !j.url) {
+        setPremiumQuote({
+          domain: j.domain || domain,
+          priceUsd: Number(j.priceUsd) || 0,
+          message: j.message || "This is a registry premium domain.",
+        });
+        return;
+      }
+
       setNotice(`Starting checkout for ${j.domain} — complete payment to activate your domain.`);
       // Paddle checkout: open the overlay for the transaction the server just
       // created. (Navigating to the returned `?_ptxn=` link only works on a page
@@ -524,6 +558,14 @@ export default function DomainPanel() {
                         </span>
                       )}
 
+                      {/* Local-style fallback badge — the smithheatingau.com name
+                          that always works even when the local TLD can't be sold. */}
+                      {r.kind === "local-com" && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 text-sky-800 text-[10px] font-black rounded-full uppercase tracking-wider border border-sky-100">
+                          Local-style .com
+                        </span>
+                      )}
+
                       {/* Badges 1 & 2 — Available / Taken. A failed lookup is
                           never reported as "taken". */}
                       {r.available && r.verified ? (
@@ -542,7 +584,9 @@ export default function DomainPanel() {
                     </div>
 
                     <p className="text-xs font-bold mt-1">
-                      {r.suggested && r.note ? (
+                      {r.requires ? (
+                        <span className="text-amber-700">{r.note}</span>
+                      ) : r.suggested && r.note ? (
                         <span className="text-emerald-700">{r.note}</span>
                       ) : r.available && r.verified ? (
                         <span className="text-slate-500">
@@ -572,15 +616,57 @@ export default function DomainPanel() {
                     </button>
                   ) : r.available ? (
                     <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider shrink-0 border border-slate-200 px-2.5 py-1 rounded-full">
-                      Coming soon
+                      Not available at $19
                     </span>
                   ) : null}
                 </div>
               ))}
               <p className="text-[11px] text-slate-400 font-bold pt-1">
                 Tip: your Neerzy website is auto-updated with every Google post you make — customers can find
-                you instantly at your new domain. 🌐 Availability is confirmed at checkout.
+                you instantly at your new domain. 🌐 Your domain is ${priceUsd} — every extension we show
+                ({sellableTlds.join(", ")}) is included, and availability is confirmed at checkout.
               </p>
+            </div>
+          )}
+
+          {/* Premium confirm — the server quoted a price instead of charging.
+              Nothing exists in Paddle until the trader taps Continue. */}
+          {premiumQuote && (
+            <div className="p-4 rounded-2xl border border-amber-300 bg-amber-50/70 space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-black text-amber-900">
+                    Premium domain — {premiumQuote.domain}
+                  </p>
+                  <p className="text-xs font-bold text-amber-800 mt-1">{premiumQuote.message}</p>
+                  <p className="text-[11px] text-amber-700 mt-1">
+                    Premium pricing comes from the registry, not from Neerzy. Renewal returns to the
+                    standard rate for the extension.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => buy(premiumQuote.domain, true)}
+                  disabled={buying === premiumQuote.domain}
+                  className="px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-black hover:bg-amber-700 transition-all active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  {buying === premiumQuote.domain ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="w-3.5 h-3.5" />
+                  )}
+                  {`Continue — pay $${premiumQuote.priceUsd}`}
+                </button>
+                <button
+                  onClick={() => setPremiumQuote(null)}
+                  disabled={buying === premiumQuote.domain}
+                  className="px-4 py-2 border-2 border-amber-300 text-amber-900 rounded-xl text-xs font-black hover:bg-amber-100 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>

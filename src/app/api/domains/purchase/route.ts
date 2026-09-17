@@ -3,11 +3,15 @@ import { createClient } from "@supabase/supabase-js";
 import { paddle } from "@/lib/paddle";
 import {
   DOMAIN_PRICE_USD,
-  DOMAIN_TLDS,
   DOMAIN_PADDLE_PRICE_ID,
+  MAX_TLD_COST_USD,
+  PREMIUM_MARKUP,
+  TLD_NEEDS_ATTRIBUTES,
   checkDomainAvailability,
-  isRegisterableDomain,
+  getBuyableTldInfo,
   normalizeDomain,
+  premiumCustomerPrice,
+  tldOf,
 } from "@/lib/domain-registry";
 
 const supabaseAdmin = createClient(
@@ -29,9 +33,26 @@ const DOMAIN_QUOTA: Record<string, number> = {
   unlimited: 999, // internal full-power plan (src/lib/plans.ts) — effectively no cap
 };
 
-/** Purchase is flat $19 — matches every pricing page / FAQ. Only .com is buyable. */
-function isBuyable(domain: string): boolean {
-  return domain.toLowerCase().endsWith(".com");
+/** Purchase is the flat $19 for every TLD the margin gate allows; only
+ *  PREMIUM-priced individual names are quoted at wholesale + PREMIUM_MARKUP. */
+
+let cachedDomainProductId: string | null = null;
+
+/**
+ * The Paddle product the $19 domain price belongs to. Premium names are charged
+ * with an inline custom price, and Paddle requires every price to hang off a
+ * product — env override first, otherwise derived once from the catalog price.
+ */
+async function domainProductId(): Promise<string> {
+  const fromEnv = process.env.PADDLE_DOMAIN_PRODUCT_ID || "";
+  if (fromEnv) return fromEnv;
+  if (cachedDomainProductId) return cachedDomainProductId;
+
+  const price = await paddle.prices.get(DOMAIN_PADDLE_PRICE_ID);
+  const productId = (price as any)?.productId || (price as any)?.product_id || "";
+  if (!productId) throw new Error("Could not resolve the domain product in Paddle");
+  cachedDomainProductId = String(productId);
+  return cachedDomainProductId;
 }
 
 async function authenticate(authHeader: string | null) {
@@ -59,6 +80,11 @@ export async function GET(req: Request) {
     const plan = (profile?.selected_plan || "free").toLowerCase();
     const quota = DOMAIN_QUOTA[plan] || 0;
 
+    // Live sellable set — `.com` + ccTLDs whose wholesale cost is under the
+    // ceiling. The dashboard uses this for its copy, so it can never advertise
+    // an extension the checkout would refuse.
+    const sellableTlds = (await getBuyableTldInfo()).filter((b) => b.buyable).map((b) => b.tld);
+
     const { data: domains, error: domainErr } = await supabaseAdmin
       .from("domains")
       .select("*")
@@ -74,7 +100,7 @@ export async function GET(req: Request) {
       eligible: quota > 0,
       quota,
       priceUsd: DOMAIN_PRICE_USD,
-      tlds: DOMAIN_TLDS,
+      tlds: sellableTlds,
       domains: domains || [],
     });
   } catch (err: any) {
@@ -94,21 +120,42 @@ export async function POST(req: Request) {
     const rawDomain = normalizeDomain(body.domain || "");
     const clientLabel =
       typeof body.clientLabel === "string" ? body.clientLabel.trim().slice(0, 60) : "";
+    /** Second call from the premium confirm dialog — the trader has seen the
+     *  exact price and agreed, so we may charge the inline custom amount. */
+    const confirmPremium = body.confirmPremium === true;
 
     if (!rawDomain) {
       return NextResponse.json({ error: "Please enter a domain name." }, { status: 400 });
     }
-    if (!isRegisterableDomain(rawDomain)) {
+
+    // ── TLD gate: same source of truth the suggestions used ──
+    const buyableInfo = await getBuyableTldInfo();
+    const tld = tldOf(rawDomain);
+    const tldInfo = tld ? buyableInfo.find((b) => b.tld === tld) : undefined;
+    const sellableList = buyableInfo.filter((b) => b.buyable).map((b) => b.tld);
+    const paperwork = tld ? TLD_NEEDS_ATTRIBUTES[tld] : undefined;
+
+    // Paper-gated first: the trader should learn WHY the local name can't be
+    // sold (ABN, CIRA presence, nexus …) rather than just seeing a TLD list.
+    if (paperwork) {
       return NextResponse.json(
-        { error: `We support ${DOMAIN_TLDS.join(", ")} domains right now.` },
+        {
+          error: `${tld} needs registry paperwork we can't collect automatically (${paperwork}) — try ${sellableList.join(", ")} instead.`,
+        },
         { status: 400 }
       );
     }
-    if (!isBuyable(rawDomain)) {
+    if (!tldInfo) {
+      return NextResponse.json(
+        { error: `We support ${sellableList.join(", ")} domains right now.` },
+        { status: 400 }
+      );
+    }
+    if (!tldInfo.buyable) {
+      // Allowlisted TLD that has crossed the $15 wholesale ceiling.
       return NextResponse.json(
         {
-          error:
-            "Flat-price ($19) registration is available on .com for now — enter your name followed by .com.",
+          error: `${tld} isn't available at our $19 price right now — try ${sellableList.join(", ")}.`,
         },
         { status: 400 }
       );
@@ -158,15 +205,66 @@ export async function POST(req: Request) {
     if (!availability.available) {
       return NextResponse.json(
         {
-          error: `${rawDomain} is already registered${availability.simulated ? " (lookup could not be verified)" : ""}. Try a different name.`,
+          error: availability.error
+            ? "We couldn't verify that name with the registrar right now. Please try again in a moment."
+            : `${rawDomain} is already registered. Try a different name.`,
         },
         { status: 409 }
       );
     }
 
-    // Create a Paddle one-time $19 transaction.
+    // ── Price: flat $19, or wholesale + PREMIUM_MARKUP for premium names ──
+    const wholesale = availability.price ?? null;
+    const isPremium = availability.premium === true;
+
+    // A premium name with no confirmed wholesale price must never be charged at
+    // the flat price — we'd be selling at a loss. Ask the trader to retry.
+    if (isPremium && !wholesale) {
+      return NextResponse.json(
+        {
+          error: `${rawDomain} is a premium name and its price could not be confirmed. Please try again, or pick another name.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    const quotedPrice = isPremium && wholesale ? premiumCustomerPrice(wholesale) : DOMAIN_PRICE_USD;
+    const markupPercent = Math.round((PREMIUM_MARKUP - 1) * 100);
+
+    // Quote first, charge second: the trader sees the exact premium price and
+    // confirms. No Paddle transaction exists at this point.
+    if (isPremium && !confirmPremium) {
+      return NextResponse.json({
+        success: false,
+        premium: true,
+        domain: rawDomain,
+        priceUsd: quotedPrice,
+        wholesaleUsd: wholesale,
+        markupPercent,
+        message: `${rawDomain} is a premium domain — $${quotedPrice} (registry premium price + ${markupPercent}% fee).`,
+      });
+    }
+
+    // Regular names use the catalog $19 price; premium names use an inline
+    // custom price so the amount always equals the quote the trader confirmed.
+    const items: Parameters<typeof paddle.transactions.create>[0]["items"] = isPremium
+      ? [
+          {
+            quantity: 1,
+            price: {
+              productId: await domainProductId(),
+              description: `Premium domain — ${rawDomain} (1 year)`,
+              unitPrice: {
+                amount: String(Math.round(quotedPrice * 100)), // Paddle wants cents
+                currencyCode: "USD",
+              },
+            },
+          },
+        ]
+      : [{ priceId: DOMAIN_PADDLE_PRICE_ID, quantity: 1 }];
+
     const transaction = await paddle.transactions.create({
-      items: [{ priceId: DOMAIN_PADDLE_PRICE_ID, quantity: 1 }],
+      items,
       customData: {
         userId: user.id,
         planId: plan, // keeps users.plan valid (ledger + profiles stay consistent)
@@ -174,19 +272,35 @@ export async function POST(req: Request) {
         businessName: profile?.business_name || "",
         source: "dashboard",
         clientLabel: clientLabel || undefined,
+        premium: isPremium,
+        priceUsd: quotedPrice,
+        wholesaleUsd: wholesale ?? undefined,
       },
     });
 
     // Pre-provision a row so the dashboard can show "payment processing…"
     // until the webhook flips it to active/failed.
-    const { error: insertErr } = await supabaseAdmin.from("domains").insert({
+    const baseRow = {
       user_id: user.id,
       domain_name: rawDomain,
       status: "provisioning",
       client_label: clientLabel || null,
-      price_paid: DOMAIN_PRICE_USD,
+      price_paid: quotedPrice,
       paddle_transaction_id: transaction.id,
-    });
+    };
+
+    // is_premium / wholesale_cost ship in migration 20260918. If an environment
+    // has not applied it yet, still record the purchase (just without the
+    // accounting split) rather than losing the row.
+    let { error: insertErr } = await supabaseAdmin
+      .from("domains")
+      .insert({ ...baseRow, is_premium: isPremium, wholesale_cost: wholesale });
+
+    if (insertErr) {
+      console.warn("⚠️ Domain insert with premium columns failed, retrying without them:", insertErr.message);
+      const retry = await supabaseAdmin.from("domains").insert(baseRow);
+      insertErr = retry.error;
+    }
 
     if (insertErr) {
       console.error("⚠️ Could not pre-provision domain row:", insertErr);
@@ -196,6 +310,8 @@ export async function POST(req: Request) {
       success: true,
       url: transaction.checkout?.url || "",
       domain: rawDomain,
+      priceUsd: quotedPrice,
+      premium: isPremium,
     });
   } catch (err: any) {
     console.error("❌ Domain purchase error:", err?.message || err);

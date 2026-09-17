@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendMetaText } from "@/lib/whatsapp";
-import { RENEWAL_NOTICE_BEFORE_DAYS } from "@/lib/domain-registry";
+import { DOMAIN_PRICE_USD, RENEWAL_NOTICE_BEFORE_DAYS } from "@/lib/domain-registry";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -16,8 +16,11 @@ const supabaseAdmin = createClient(
  * When a trader's domain enters the day-330 window (≤35 days before expiry,
  * RENEWAL_NOTICE_BEFORE_DAYS) a Neerzy WhatsApp heads-up is sent once:
  *
- *   "Your domain renews automatically on {date} — same $19 as registration.
- *    No surprise fees."
+ *   regular: "Your domain renews automatically on {date} — same $19 as
+ *             registration. No surprise fees."
+ *   premium: "…premium fee was a one-time registry charge, so from this renewal
+ *             on it's the standard price." (premium is first-year only, so the
+ *             flat-price promise must not be repeated for those rows)
  *
  * Porkbun auto-renew is enabled at registration (`autoRenew: yes`), so the
  * renewal itself is fully automatic. This notice only prevents churn + builds
@@ -46,7 +49,10 @@ export async function POST(req: Request) {
 
     const { data: due, error: fetchErr } = await supabaseAdmin
       .from("domains")
-      .select("id, user_id, domain_name, status, price_paid, expires_at, renewal_notified_at")
+      // `*` on purpose: `is_premium` ships in migration 20260918 and naming it
+      // explicitly would make the whole cron fail on an environment that has
+      // not applied it yet (the same class of bug as the stale status CHECK).
+      .select("*")
       .eq("status", "active")
       .eq("auto_renew", true)
       .is("renewal_notified_at", null)
@@ -78,7 +84,8 @@ export async function POST(req: Request) {
       }
 
       const to = phone.replace(/\D/g, ""); // WhatsApp Cloud API wants digits, no "+"
-      const price = domain.price_paid ?? 19;
+      const price = domain.price_paid ?? DOMAIN_PRICE_USD;
+      const isPremium = domain.is_premium === true;
       const expiryDate = domain.expires_at
         ? new Date(domain.expires_at).toLocaleDateString("en-US", {
             year: "numeric",
@@ -87,10 +94,17 @@ export async function POST(req: Request) {
           })
         : "soon";
 
+      // Premium pricing is a first-year registry charge, so promising "the same
+      // price" would be untrue. Regular domains keep the flat-$19 promise, which
+      // the margin gate guarantees is profitable (MAX_TLD_COST_USD).
+      const renewalLine = isPremium
+        ? `Renewal price: *$${DOMAIN_PRICE_USD}* — the premium fee was a one-time registry charge, so from this renewal on it's the standard price. No surprise fees.`
+        : `Renewal price: *$${price}* — the *same* as your registration. No surprise fees, nothing to do — your website stays live. 🚀`;
+
       const message =
         `🌐 *Domain renewal heads-up — ${domain.domain_name}*\n\n` +
         `Hi ${profile?.business_name || "there"}! Your domain *${domain.domain_name}* renews automatically on ${expiryDate}. 🔁\n\n` +
-        `Renewal price: *$${price}* — the *same* as your registration. No surprise fees, nothing to do — your website stays live. 🚀`;
+        renewalLine;
 
       try {
         await sendMetaText({ to, body: message });

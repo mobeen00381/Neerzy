@@ -22,8 +22,9 @@
 export const DOMAIN_PRICE_USD = 19;
 
 /**
- * TLDs we can register through Porkbun WITHOUT extended attributes
- * (no .us nexus, .ca legal type, etc). Keeps the one-price, one-click flow.
+ * TLDs Porkbun can register WITHOUT extended attributes (no .us nexus, no .ca
+ * legal type, …). Recognized as domains — NOT automatically sellable: the
+ * flat-$19 offer is gated per request by getBuyableTlds().
  */
 export const DOMAIN_TLDS = [".com", ".net", ".org", ".co"] as const;
 
@@ -66,6 +67,223 @@ async function porkbunPost<T>(
   }
 }
 
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  TLD wholesale pricing → margin gate
+//
+//  Neerzy sells EVERY domain at the flat $19 (see DOMAIN_PRICE_USD). A TLD is
+//  only sellable while Porkbun's wholesale cost stays under MAX_TLD_COST_USD
+//  on BOTH the registration AND the renewal: registrations are created with
+//  `autoRenew: "yes"`, so Neerzy's own card carries the renewal, and the
+//  day-330 renewal notice promises the trader "the same $19". Gating on the
+//  max of the two keeps that promise truthful and the margin ≥ $4.
+// ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** Ceiling on Porkbun wholesale cost (USD) for any TLD we sell at $19. */
+export const MAX_TLD_COST_USD = 15;
+
+/**
+ * Markup on Porkbun PREMIUM-priced names (a specific domain, not a TLD, that
+ * the registry sells far above base cost). The customer pays wholesale + 20%,
+ * so Neerzy still earns on every premium sale instead of refusing the name.
+ *
+ * NOTE: Paddle (merchant of record) keeps ~5% + $0.50 per transaction, so a
+ * 20% markup nets roughly 14–15%. Raise PREMIUM_MARKUP if 20% NET is wanted.
+ */
+export const PREMIUM_MARKUP = 1.2;
+
+/** Customer price for a premium domain: wholesale + markup, rounded UP to a
+ *  whole dollar so we never round a margin away. */
+export function premiumCustomerPrice(wholesaleUsd: number): number {
+  if (!Number.isFinite(wholesaleUsd) || wholesaleUsd <= 0) return DOMAIN_PRICE_USD;
+  return Math.ceil(wholesaleUsd * PREMIUM_MARKUP);
+}
+
+export interface TldPricing {
+  registration: number | null;
+  renewal: number | null;
+  transfer: number | null;
+}
+
+/** Highest of registration/renewal — the number the margin gate uses. */
+export function effectiveTldCost(p: TldPricing | undefined): number | null {
+  if (!p) return null;
+  const values = [p.registration, p.renewal].filter(
+    (v): v is number => typeof v === "number" && v > 0
+  );
+  return values.length ? Math.max(...values) : null;
+}
+
+/**
+ * ccTLDs Porkbun can register WITHOUT extended attributes.
+ *
+ * DELIBERATELY MANUAL (human-approved), never inferred from the pricing API:
+ * eligibility is registry policy (CIRA presence for .ca, US nexus for .us,
+ * ABN/ACN for .com.au, …), not a field Porkbun exposes. Each TLD added here
+ * must be verified with a sandbox registration before it goes live — see
+ * TLD_NEEDS_ATTRIBUTES for the known exclusions and their reasons.
+ *
+ * Verified against live /pricing/get output (scratch/diag-porkbun-pricing.js,
+ * 2026-09-18): .in $7.83 · .co.nz $14.99 · .co.uk $5.66 — all under the $15
+ * ceiling. `.co.za` was REMOVED from this list: Porkbun publishes no pricing
+ * for it, so the margin gate would fail closed and it could never be sold.
+ */
+export const CC_TLD_ALLOWLIST = [".in", ".co.nz", ".co.uk"] as const;
+
+/** TLDs a trader may see suggested but that are never auto-charged: each one
+ *  needs registry paperwork (ABN, CIRA presence, nexus, legal type …) that the
+ *  one-click $19 checkout cannot collect. */
+export const TLD_NEEDS_ATTRIBUTES: Record<string, string> = {
+  ".ca": "Canadian presence requirement (CIRA)",
+  ".us": "US nexus requirement",
+  ".ie": "Irish/EU connection + legal type",
+  ".com.au": "ABN/ACN required",
+  ".uk": "registry verification required",
+};
+
+const PRICING_CACHE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Fallback wholesale costs, used ONLY when Porkbun's pricing API is
+ * unreachable WHILE credentials are configured. Kept intentionally minimal: a
+ * TLD missing here fails CLOSED (not sellable) rather than being sold against
+ * a guessed price. Every hit is logged loudly.
+ */
+const FALLBACK_TLD_PRICING: Record<string, TldPricing> = {
+  // Informational only: .com is always sellable, so this value never gates it.
+  ".com": { registration: 11.08, renewal: 11.08, transfer: 11.08 },
+};
+
+let pricingCache: { at: number; pricing: Record<string, TldPricing>; live: boolean } | null = null;
+
+/** "com" / "COM" / ".com" → ".com" (Porkbun omits the leading dot). */
+function normalizeTldKey(key: string): string {
+  const k = String(key || "").trim().toLowerCase();
+  return k ? (k.startsWith(".") ? k : `.${k}`) : "";
+}
+
+function toMoney(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * POST /domain/getPricing → per-TLD wholesale costs (USD), cached 24h.
+ *
+ * `live: false` means "do not sell ccTLDs": either we have no credentials at
+ * all (local/dev simulation — allowlisted ccTLDs stay visible for testing) or
+ * the API failed while credentials exist (fail closed).
+ */
+export async function getPorkbunPricing(): Promise<{
+  pricing: Record<string, TldPricing>;
+  live: boolean;
+}> {
+  if (pricingCache && Date.now() - pricingCache.at < PRICING_CACHE_MS) {
+    return { pricing: pricingCache.pricing, live: pricingCache.live };
+  }
+
+  const creds = porkbunAuth();
+  if (!creds) {
+    return { pricing: FALLBACK_TLD_PRICING, live: false };
+  }
+
+  try {
+    const json = await porkbunPost<{
+      status: string;
+      pricing?: Record<string, Record<string, unknown>>;
+      code?: string;
+      message?: string;
+    }>("/pricing/get", creds);
+
+    if (json.status !== "SUCCESS" || !json.pricing) {
+      throw new Error(json.message || json.code || `status ${json.status}`);
+    }
+
+    const pricing: Record<string, TldPricing> = {};
+    for (const [key, value] of Object.entries(json.pricing)) {
+      const tld = normalizeTldKey(key);
+      if (!tld || !value || typeof value !== "object") continue;
+      pricing[tld] = {
+        registration: toMoney((value as any).registration),
+        renewal: toMoney((value as any).renewal),
+        transfer: toMoney((value as any).transfer),
+      };
+    }
+    pricingCache = { at: Date.now(), pricing, live: true };
+    return { pricing, live: true };
+  } catch (err: any) {
+    console.error(
+      "❌ [Domain Registry] Porkbun pricing lookup failed — using the hardcoded cost map. " +
+        "ccTLDs are withheld (fail closed) until the API recovers:",
+      err?.message || err
+    );
+    return { pricing: FALLBACK_TLD_PRICING, live: false };
+  }
+}
+
+export interface BuyableTldInfo {
+  tld: string;
+  /** max(registration, renewal) — null when pricing is unavailable. */
+  cost: number | null;
+  registration: number | null;
+  renewal: number | null;
+  underCeiling: boolean;
+  noExtendedAttributes: boolean;
+  buyable: boolean;
+}
+
+/**
+ * The single source of truth for "what can the $19 checkout register today".
+ * `.com` is always present (the original offer); allowlisted ccTLDs join it
+ * only while their live wholesale cost stays under the ceiling, so a TLD that
+ * crosses $15 is withdrawn automatically on the next 24h refresh.
+ */
+export async function getBuyableTldInfo(): Promise<BuyableTldInfo[]> {
+  const { pricing, live } = await getPorkbunPricing();
+  const credsConfigured = !!porkbunAuth();
+
+  const entries: string[] = [".com", ...CC_TLD_ALLOWLIST];
+
+  return entries.map((tld) => {
+    const p = pricing[tld];
+    const cost = effectiveTldCost(p);
+    const noExtendedAttributes = !(tld in TLD_NEEDS_ATTRIBUTES);
+    // No credentials at all → local/dev simulation, so allowlisted ccTLDs stay
+    // visible for testing. Credentials present but pricing unavailable → fail
+    // closed (never sell a ccTLD against a guessed cost).
+    const underCeiling =
+      tld === ".com" ? true : live ? cost !== null && cost < MAX_TLD_COST_USD : !credsConfigured;
+    return {
+      tld,
+      cost,
+      registration: p?.registration ?? null,
+      renewal: p?.renewal ?? null,
+      underCeiling,
+      noExtendedAttributes,
+      buyable: underCeiling && noExtendedAttributes,
+    };
+  });
+}
+
+/** Buyable TLD list (`.com` first) — used by suggest + purchase so both agree. */
+export async function getBuyableTlds(): Promise<string[]> {
+  const info = await getBuyableTldInfo();
+  return info.filter((i) => i.buyable).map((i) => i.tld);
+}
+
+/** Longest-match TLD lookup: "smithheating.co.nz" → ".co.nz". */
+export function tldOf(domainName: string): string | null {
+  const d = normalizeDomain(domainName);
+  if (!d.includes(".")) return null;
+  const parts = d.split(".");
+  if (parts.length >= 3) {
+    const two = `.${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+    if (two in TLD_NEEDS_ATTRIBUTES || (CC_TLD_ALLOWLIST as readonly string[]).includes(two)) {
+      return two;
+    }
+  }
+  return `.${parts[parts.length - 1]}`;
+}
+
 /** Normalizes a user-typed domain → "example.com". */
 export function normalizeDomain(input: string): string {
   let d = (input || "").trim().toLowerCase();
@@ -77,9 +295,15 @@ export function normalizeDomain(input: string): string {
   return d;
 }
 
-/** True when the domain ends in one of the registerable TLDs. */
+/** True when the domain ends in one of the registerable TLDs.
+ *
+ *  Superset of what the $19 checkout can actually charge for: ccTLDs listed in
+ *  TLD_NEEDS_ATTRIBUTES are intentionally NOT registerable (registry paperwork
+ *  the one-click flow cannot collect). Per-request buyability is decided by
+ *  getBuyableTlds(). */
 export function isRegisterableDomain(domainName: string): boolean {
-  return DOMAIN_TLDS.some((tld) => domainName.toLowerCase().endsWith(tld));
+  const d = domainName.toLowerCase();
+  return [...DOMAIN_TLDS, ...CC_TLD_ALLOWLIST].some((tld) => d.endsWith(tld));
 }
 
 export interface AvailabilityResult {
@@ -91,6 +315,12 @@ export interface AvailabilityResult {
   rawStatus?: string;        // Porkbun "availability" when available
   /** Set when the lookup itself failed — callers must NOT show "taken". */
   error?: string;
+  /**
+   * Porkbun sells this specific name at a premium (registry premium list), or
+   * the per-domain price sits above MAX_TLD_COST_USD — the one-price $19 offer
+   * cannot cover it, so it is quoted at wholesale + PREMIUM_MARKUP instead.
+   */
+  premium?: boolean;
 }
 
 /**
@@ -173,6 +403,18 @@ export async function checkDomainAvailability(
     const available = avail === "yes" || avail === "true";
     const price = r.price ? Number(r.price) : r.regularPrice ? Number(r.regularPrice) : null;
 
+    // Premium detection, two independent signals:
+    //   1) Porkbun's own `premium` flag (string: "yes"/"true"/the premium price)
+    //   2) the per-domain price sits above the TLD ceiling — since a sellable TLD
+    //      is by definition under MAX_TLD_COST_USD, a higher quote for one name
+    //      means the registry premium-priced that name.
+    const premiumRaw = String((r as any).premium ?? "").toLowerCase();
+    const premium =
+      premiumRaw === "yes" ||
+      premiumRaw === "true" ||
+      (Number.isFinite(Number(premiumRaw)) && Number(premiumRaw) > 0) ||
+      (price !== null && price > MAX_TLD_COST_USD);
+
     const result: AvailabilityResult = {
       domain,
       available,
@@ -180,6 +422,7 @@ export async function checkDomainAvailability(
       currency: "USD",
       simulated: false,
       rawStatus: avail || json.status,
+      premium,
     };
     availabilityCache.set(domain, { at: Date.now(), result });
     return result;
@@ -476,11 +719,16 @@ export function isInRenewalNoticeWindow(expiresAt: string | null | undefined): b
 //  is special-cased in the UI. Unmapped countries simply fall back to .com.
 // ─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-/** ISO-3166 alpha-2 → local ccTLDs (most preferred first). */
-export const COUNTRY_TLDS: Record<string, { name: string; tlds: string[] }> = {
+/** ISO-3166 alpha-2 → local ccTLDs (most preferred first).
+ *
+ *  `suffix` is what gets appended to the business name for the local-style
+ *  `.com` fallback (smithheating + au + .com). It defaults to the lowercased
+ *  ISO-2 code; the UK is the one case where the natural suffix is NOT the ISO
+ *  code (people say "uk", not "gb"). */
+export const COUNTRY_TLDS: Record<string, { name: string; tlds: string[]; suffix?: string }> = {
   CA: { name: "Canada", tlds: [".ca"] },
   US: { name: "United States", tlds: [".us"] },
-  GB: { name: "United Kingdom", tlds: [".co.uk", ".uk"] },
+  GB: { name: "United Kingdom", tlds: [".co.uk", ".uk"], suffix: "uk" },
   AU: { name: "Australia", tlds: [".com.au"] },
   NZ: { name: "New Zealand", tlds: [".co.nz"] },
   IE: { name: "Ireland", tlds: [".ie"] },
@@ -488,11 +736,19 @@ export const COUNTRY_TLDS: Record<string, { name: string; tlds: string[] }> = {
   IN: { name: "India", tlds: [".in"] },
 };
 
+/** "smithheating" + AU → "au" · "smithheating" + GB → "uk". */
+export function countrySuffix(code: string): string {
+  const upper = (code || "").toUpperCase();
+  return (COUNTRY_TLDS[upper]?.suffix || upper).toLowerCase();
+}
+
 /** Global fallbacks, tried AFTER the trader's own country TLDs. */
 export const GLOBAL_TLDS = [".com", ".net"] as const;
 
-/** The only TLD the one-price checkout can register today. */
-export const BUYABLE_TLDS = [".com"] as const;
+// NOTE: there is deliberately no static "buyable" list any more. Buyability is
+// decided per request by getBuyableTlds() — `.com` plus allowlisted ccTLDs whose
+// live wholesale cost is under MAX_TLD_COST_USD — so an imported constant can
+// never drift out of sync with what the checkout will actually accept.
 
 /** Address tails → ISO-2. Google returns e.g. "Austin, TX 78704, USA". */
 const COUNTRY_HINTS: Array<[RegExp, string]> = [
@@ -543,12 +799,24 @@ export interface DomainCandidate {
   domain: string;
   /** ISO-2 when this candidate came from the trader's own country TLD. */
   localFor: string | null;
+  /** How the candidate was built — drives badge + copy in the UI. */
+  kind: "local-tld" | "local-com" | "global-com" | "exact";
+  /** Set when the TLD needs registry paperwork (ABN, CIRA presence, nexus …). */
+  requires?: string;
 }
 
 /**
- * Ordered candidate list: own-country TLD(s) first, then global TLDs.
+ * Ordered candidate list — the trader's own country first, then the local-style
+ * `.com` fallback, then the plain global `.com`:
+ *
+ *   "Smith Heating", AU →
+ *     1. smithheating.com.au     (local TLD — needs an ABN, so not buyable)
+ *     2. smithheatingau.com      (business name + country + .com  ← the fallback)
+ *     3. smithheating.com        (plain .com, always buyable)
+ *     4. smithplumbingandheating.com (full slug, when short & full differ)
+ *
  * Duplicates are dropped and the list is capped so one lookup stays quick
- * (Porkbun rate-limits availability checks).
+ * (Porkbun rate-limits availability checks; ranking itself uses the DNS probe).
  */
 export function candidateDomains(
   name: string,
@@ -558,7 +826,7 @@ export function candidateDomains(
   const raw = normalizeDomain(name);
   if (!raw) return [];
   // Already a full domain → only that one is relevant.
-  if (raw.includes(".")) return [{ domain: raw, localFor: null }];
+  if (raw.includes(".")) return [{ domain: raw, localFor: null, kind: "exact" }];
 
   const code = country ? country.toUpperCase() : null;
   const local = code ? COUNTRY_TLDS[code] : undefined;
@@ -566,40 +834,57 @@ export function candidateDomains(
   const short = shortDomainSlug(raw);
 
   const out: DomainCandidate[] = [];
-  const push = (domain: string, localFor: string | null) => {
-    if (domain && !out.some((c) => c.domain === domain)) out.push({ domain, localFor });
+  const push = (domain: string, localFor: string | null, kind: DomainCandidate["kind"]) => {
+    if (!domain || out.some((c) => c.domain === domain)) return;
+    out.push({ domain, localFor, kind, requires: TLD_NEEDS_ATTRIBUTES[tldOf(domain) || ""] });
   };
 
-  if (local) {
-    push(`${short}${local.tlds[0]}`, code);
-    push(`${full}${local.tlds[0]}`, code);
+  if (code && local) {
+    // 1) The trader's own TLD — shown even when it needs paperwork, so a local
+    //    business sees their real local name and understands the trade-off.
+    push(`${short}${local.tlds[0]}`, code, "local-tld");
+    // 2) Local-style .com fallback (smithheatingau.com) — the one that always
+    //    works, because it is a plain .com at the flat $19.
+    push(`${short}${countrySuffix(code)}.com`, null, "local-com");
   }
-  push(`${full}${GLOBAL_TLDS[0]}`, null);
-  push(`${short}${GLOBAL_TLDS[0]}`, null);
+
+  // 3) + 4) Plain global .com.
+  push(`${short}${GLOBAL_TLDS[0]}`, null, "global-com");
+  push(`${full}${GLOBAL_TLDS[0]}`, null, "global-com");
 
   return out.slice(0, Math.max(1, limit));
 }
 
 export interface DomainSuggestion extends AvailabilityResult {
-  /** This is the one Neerzy recommends (first available in priority order). */
+  /** Neerzy's pick: the first candidate that is BOTH available AND sellable. */
   suggested: boolean;
-  /** Why it is recommended. */
+  /** Why it is recommended — or why it can't be sold yet. */
   note?: string;
   /** True when the lookup actually completed (never claim "taken" otherwise). */
   verified: boolean;
-  /** True when the one-price checkout can register it today. */
+  /** True when the $19 checkout can register it right now. */
   buyable: boolean;
+  /** How the name was built — "local-tld" | "local-com" | "global-com" | "exact". */
+  kind: DomainCandidate["kind"];
+  /** Registry paperwork the one-click flow cannot collect (e.g. "ABN/ACN required"). */
+  requires: string | null;
   localFor: string | null;
   countryName: string | null;
 }
 
 /**
- * Ranks the ordered candidates and marks exactly one as Neerzy's pick: the
- * first candidate the probe says is free. Uses the fast DNS probe (see
- * probeDomainAvailability) because Porkbun's own check is rate-limited to
- * ~1 per 10s and cannot rank a list; the real check happens at purchase.
- * A failed probe comes back as `verified: false` so the UI says "couldn't
- * verify" instead of wrongly telling a trader the name is taken.
+ * Ranks the ordered candidates and marks exactly one as Neerzy's pick.
+ *
+ * Ranking uses the fast DNS probe (see probeDomainAvailability) because
+ * Porkbun's own check is rate-limited to ~1 per 10s and cannot rank a list; the
+ * authoritative check runs at purchase. A failed probe comes back as
+ * `verified: false` so the UI says "couldn't verify" rather than wrongly
+ * telling a trader the name is taken.
+ *
+ * Filtering uses the live margin gate: a TLD costing ≥ $15 at Porkbun is
+ * dropped entirely, and only TLDs the $19 checkout can actually register are
+ * ever marked `buyable` — so a name is never suggested here and refused at
+ * checkout. Paper-gated ccTLDs (.com.au, .ca …) stay visible with a note.
  */
 export async function suggestDomains(
   name: string,
@@ -609,32 +894,62 @@ export async function suggestDomains(
   const country = explicit || detectCountryFromAddress(opts.address) || null;
   const candidates = candidateDomains(name, country, opts.limit ?? 4);
 
+  // One shared source of truth for "what can we sell today".
+  const buyableTlds = new Set(await getBuyableTlds());
+
   const suggestions: DomainSuggestion[] = [];
-  let picked = false;
 
   for (const c of candidates) {
+    const tld = tldOf(c.domain) || "";
+
+    // Margin gate: over-ceiling TLDs are never shown. Paper-gated TLDs stay
+    // visible (with `requires`) so a local trader understands why they can't
+    // have the local name and sees the .com alternative right below it.
+    if (tld !== ".com" && !buyableTlds.has(tld) && !c.requires) continue;
+
     const check = await probeDomainAvailability(c.domain);
     const verified = !check.error;
     const available = verified && check.available === true;
-    const buyable = available && BUYABLE_TLDS.some((t) => c.domain.endsWith(t));
-    const suggested = !picked && available;
-
-    if (suggested) picked = true;
+    const buyable = available && buyableTlds.has(tld);
 
     suggestions.push({
       ...check,
       available,
-      suggested,
-      note: suggested
-        ? c.localFor
-          ? "Best for local businesses"
-          : "Best available name for your business"
-        : undefined,
+      suggested: false,
       verified,
       buyable,
+      kind: c.kind,
+      requires: c.requires ?? null,
       localFor: c.localFor,
       countryName: c.localFor ? COUNTRY_TLDS[c.localFor]?.name ?? null : null,
+      // Every sellable name is the flat Neerzy price, whatever the TLD costs.
+      price: buyable ? DOMAIN_PRICE_USD : check.price,
     });
+  }
+
+  // Exactly one recommendation: the first candidate that is BOTH available and
+  // sellable. Only when nothing is sellable do we fall back to the first
+  // available name (e.g. AU, where .com.au needs an ABN).
+  let pickedIdx = suggestions.findIndex((s) => s.available && s.buyable);
+  if (pickedIdx === -1) pickedIdx = suggestions.findIndex((s) => s.available);
+
+  // Explain the paperwork block on every gated candidate, not just the pick.
+  for (const s of suggestions) {
+    if (s.requires) {
+      s.note = `Needs ${s.requires} — the $19 one-click checkout can't register this yet`;
+    }
+  }
+
+  if (pickedIdx >= 0) {
+    const pick = suggestions[pickedIdx];
+    pick.suggested = true;
+    pick.note = pick.requires
+      ? `Available, but needs ${pick.requires} — pick the .com below`
+      : pick.kind === "local-tld"
+        ? "Best for local businesses"
+        : pick.kind === "local-com"
+          ? "Your business name + country + .com"
+          : "Best available name for your business";
   }
 
   return { query: normalizeDomain(name), country, suggestions };
