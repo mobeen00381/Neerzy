@@ -1,10 +1,32 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
+import { FacebookIcon } from "../ui/FacebookIcon";
+import { InstagramIcon } from "../ui/InstagramIcon";
 import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
 import { isTraderSitePath } from "@/lib/routes";
+
+// Neerzy's own social profiles, shown in the footer of every marketing page.
+const SOCIAL_LINKS = [
+  { label: "Facebook", href: "https://www.facebook.com/profile.php?id=61573222476095", Icon: FacebookIcon },
+  { label: "Instagram", href: "https://www.instagram.com/neerzy_/", Icon: InstagramIcon },
+];
+
+const socialLinkStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "36px",
+  height: "36px",
+  borderRadius: "9999px",
+  border: "1px solid var(--color-border)",
+  color: "var(--color-text-secondary)",
+  textDecoration: "none",
+  transition: "color 0.2s ease, border-color 0.2s ease",
+};
 
 export default function Footer() {
   const pathname = usePathname();
@@ -32,6 +54,29 @@ export default function Footer() {
                 <WhatsAppIcon size={16} className="text-[#22C55E]" /> Toll Free: +1 (833) 887-2999
               </a>
             </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: 'var(--space-4)' }}>
+              {SOCIAL_LINKS.map(({ label, href, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Neerzy on ${label}`}
+                  title={label}
+                  style={socialLinkStyle}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--color-primary)';
+                    e.currentTarget.style.borderColor = 'var(--color-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--color-text-secondary)';
+                    e.currentTarget.style.borderColor = 'var(--color-border)';
+                  }}
+                >
+                  <Icon size={18} />
+                </a>
+              ))}
+            </div>
           </div>
           <div>
             <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Product</h4>
