@@ -137,6 +137,30 @@ Ideal for growing businesses that want to dominate local search. 👉 /onboardin
 Every trader uses the exact same simple WhatsApp flow — you just watch it all from your agency overview. 👉 /onboarding`
   },
 
+  // ── Local TLDs ──
+  // Sits ABOVE the generic Domain entry: a question that names a country
+  // ending (or the word "TLD") must not fall through to the plain-$19 answer.
+  {
+    patterns: [
+      'local tld', 'local tlds', 'tld', 'tlds', 'local domain', 'country domain', 'country ending',
+      'co.uk', 'co.nz', 'com.au', 'uk domain', 'australian domain', 'new zealand domain',
+      'nz domain', 'indian domain', 'canadian domain', 'irish domain', 'abn', 'acn',
+      'registry paperwork', 'paperwork',
+    ],
+    answer: `Yes — your Neerzy domain isn't only .com. You can use a **local country ending** for the same one-time **$19**. 🌍
+
+• **.com** — every country
+• **.co.uk** (UK), **.co.nz** (New Zealand), **.in** (India) — same flat $19
+
+Neerzy suggests names using your business name plus your local ending (e.g. smithheating.co.uk), and only shows you ones you can actually buy.
+
+A few country endings need registry paperwork that a one-click checkout can't collect — **.com.au** needs an ABN/ACN (also .us, .ca, .ie). For those we suggest a name + country .com instead, like **smithheatingau.com**, which behaves exactly the same.
+
+Rare "premium" names carry a higher registry price. You always see the exact price and confirm before paying — never a surprise charge.
+
+Every domain comes registered in your name, connected to your site, padlock (SSL) included, and renews at the same price. 👉 /onboarding`
+  },
+
   // ── Domain ──
   {
     patterns: ['domain', 'custom domain', 'domain fee', 'domain cost', '$19', 'domain price', 'how much is the domain'],
@@ -144,7 +168,8 @@ Every trader uses the exact same simple WhatsApp flow — you just watch it all 
 
 • Registered and connected for you
 • Padlock (SSL) included
-• Renews at the same price
+• Renews at the same $19 (a rare premium name's premium fee is a one-time registry charge)
+• Local endings work too — .co.uk, .co.nz, .in, or a name + country .com where a registry needs paperwork
 
 Once your domain is live you can tap **Build Website** in your dashboard:
 • **$99 setup fee** — waived FREE for early adopters 🎉
@@ -268,6 +293,31 @@ The more you post, the higher you rank. Businesses using Neerzy typically see im
 
   // ── Website (specific questions first, then general) ──
   {
+    patterns: [
+      'edit my website', 'edit the website', 'edit website', 'edit my site', 'edit the site',
+      'website editor', 'site editor', 'how do i edit', 'how can i edit', 'how to edit',
+      'change my website', 'change the website', 'update my website', 'update the website',
+      'customize my website', 'customise my website', 'customize website', 'customise website',
+      'website after building', 'after building', 'edit after', 'make changes to my website',
+      'make changes to my site', 'change my site', 'change the site', 'change the text',
+      'change the text on', 'change text', 'change the photos', 'change the pictures',
+      'change content', 'edit content', 'edit the text', 'update the text', 'swap photos',
+      'add photos to my website', 'add photos to my site', 'website editing', 'editing', 'edit',
+    ],
+    answer: `Yes — you can edit your website any time, and most of it happens by itself. ✏️
+
+Two ways it stays up to date:
+
+1. 🤖 **Automatic** — every job you post (photo or voice note) refreshes your website. New photos, new work, new reviews appear on their own.
+2. ✏️ **Website Editor** — in your dashboard, tap **Website Editor** to fine-tune it yourself:
+   • Headline, About text and service list
+   • Photos (swap, reorder, remove)
+   • Hours, service areas and contact details
+   • Switch between the built-in looks any time
+
+No coding, no rebuilding, and no need to republish — save and it's live. You can't break it: the SEO and structure stay locked. 👉 Your dashboard has the editor.`
+  },
+  {
     patterns: ['without website', 'no website', "don't have website", 'do not have website', 'need a website', 'do i need website', 'start without', 'without a website'],
     answer: `Yes! You can absolutely start without a website!
 
@@ -294,6 +344,8 @@ Every website is:
 • SEO-optimized with proper meta tags and schema markup
 • Mobile-responsive design
 • No coding or website builder needed
+
+Once it's built you can edit it whenever you like: the dashboard's **Website Editor** handles your text, photos, services and hours, and you can switch looks any time. Every post keeps the site fresh on its own.
 
 The Free plan gives you Google posts and review asks. Your domain and website start on a paid plan.`
   },
@@ -525,6 +577,14 @@ function wordBoundaryMatch(text: string, pattern: string): boolean {
  * Tier 1: Match the user's message against the static FAQ database.
  * Returns the pre-written answer if matched, or null if no match.
  * This costs ZERO tokens.
+ *
+ * MATCHING RULE — most specific wins:
+ * every matching (entry, pattern) pair is scored by how long the matched
+ * pattern is, and the longest one is returned. A generic keyword like
+ * "domain" (6 chars) therefore loses to a precise phrase like
+ * "local tlds" (10 chars), so follow-up questions such as
+ * "but local TLDs domain name?" no longer replay the plain-$19 answer.
+ * Exact ties keep database order (the more specific entries are listed first).
  */
 export function matchFAQ(message: string): string | null {
   const normalized = message.toLowerCase().trim();
@@ -532,15 +592,21 @@ export function matchFAQ(message: string): string | null {
   // Skip very short messages (< 2 chars) — likely just punctuation
   if (normalized.length < 2) return null;
 
+  let bestAnswer: string | null = null;
+  let bestScore = 0;
+
   for (const entry of FAQ_DATABASE) {
     for (const pattern of entry.patterns) {
-      if (wordBoundaryMatch(normalized, pattern)) {
-        return entry.answer;
+      if (!wordBoundaryMatch(normalized, pattern)) continue;
+      // Longest match wins; ties keep the earlier (more specific) entry.
+      if (pattern.length > bestScore) {
+        bestScore = pattern.length;
+        bestAnswer = entry.answer;
       }
     }
   }
 
-  return null;
+  return bestAnswer;
 }
 
 /**
