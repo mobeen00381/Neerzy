@@ -87,7 +87,13 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           textQuery: query,
-          maxResultCount: maxResults
+          maxResultCount: maxResults,
+          // Trades are PURE SERVICE-AREA businesses (a plumber works at the
+          // customer's address and has no shop front). Google's Text Search
+          // EXCLUDES those by default, which is why a real listing such as
+          // "Prk gas & plumbing 24/7 ltd" came back as zero results while
+          // Google Maps happily showed it. Verified: this flag returns it.
+          includePureServiceAreaBusinesses: true
         })
       });
 
@@ -119,7 +125,7 @@ export async function POST(req: Request) {
       }
 
       // Log if the new API returned an error or empty results
-      console.warn('⚠️ New Places API returned no results, data:', JSON.stringify(data).slice(0, 300));
+      console.warn('⚠️ New Places API returned no results (HTTP ' + res.status + '), data:', JSON.stringify(data).slice(0, 300));
     }
 
     // Fallback: Try the LEGACY Places API if GOOGLE_MAPS_API_KEY exists

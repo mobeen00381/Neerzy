@@ -38,11 +38,12 @@ export async function GET(req: Request) {
         },
         body: JSON.stringify({
           textQuery: query,
-          languageCode: 'en'
-          // No regionCode on purpose: Neerzy targets Tier-1 markets (US/UK/CA/
-          // AU/NZ), and the search query already carries the location ("Smith
-          // Plumbing, Manchester"). A hardcoded region biased every non-PK
-          // business out of its own search results.
+          languageCode: 'en',
+          // Trades are PURE SERVICE-AREA businesses (no shop front, they work
+          // at the customer's address) and Google's Text Search EXCLUDES those
+          // by default — real listings came back as "no results" while Google
+          // Maps showed them. This flag includes them.
+          includePureServiceAreaBusinesses: true
         })
       }
     );
@@ -50,7 +51,7 @@ export async function GET(req: Request) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Places API Error:', data);
+      console.error(`Places API error (HTTP ${response.status}):`, data);
       return NextResponse.json({ results: [], error: data.error?.message }, { status: response.status });
     }
 
