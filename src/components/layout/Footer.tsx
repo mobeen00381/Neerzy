@@ -84,6 +84,7 @@ export default function Footer() {
               <li><Link href="/" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Features</Link></li>
               <li><Link href="/pricing" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Pricing</Link></li>
               <li><Link href="/gmb-audit-tool" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Free Google Score</Link></li>
+              <li><Link href="/website-builder" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Website Builder</Link></li>
             </ul>
           </div>
           <div>

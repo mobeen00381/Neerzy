@@ -367,6 +367,19 @@ function AuditReportView({ data, businessName, placeId }: any) {
             <span>View Plans & Pricing</span>
             <ChevronRight className="w-5 h-5 text-[#0F5C4D]" />
           </button>
+
+          {/* For visitors who just want the website, not the plan — the audit
+              they already ran is exactly the profile the builder syncs from. */}
+          <p className="mt-6 text-sm md:text-base text-white/80 font-medium">
+            Already have a profile?{" "}
+            <button
+              type="button"
+              onClick={() => router.push('/website-builder')}
+              className="underline font-black text-white hover:text-[#25D366] transition-colors"
+            >
+              Turn it into a website →
+            </button>
+          </p>
         </div>
       </div>
     </div>

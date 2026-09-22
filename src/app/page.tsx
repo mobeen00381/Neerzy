@@ -161,7 +161,7 @@ export default function Page() {
             letterSpacing: '-0.02em',
             textAlign: 'center'
           }}>
-            Busy businesses shouldn't have to become marketers.
+            Busy businesses shouldn&apos;t have to become marketers.
           </h2>
           <p style={{
             fontSize: 'var(--text-body-size)',
@@ -186,7 +186,7 @@ export default function Page() {
             marginTop: 'var(--space-5)',
             fontWeight: 600
           }}>
-            Here's how Neerzy closes that gap:
+            Here&apos;s how Neerzy closes that gap:
           </p>
         </div>
       </section>
@@ -218,7 +218,7 @@ export default function Page() {
                 <CameraIcon size={22} />
               </div>
               <h3>Take a photo</h3>
-              <p>Snap one photo of the finished work on your phone. That's the only input you need.</p>
+              <p>Snap one photo of the finished work on your phone. That&apos;s the only input you need.</p>
             </div>
 
             <div className="step-card">
@@ -259,7 +259,7 @@ export default function Page() {
         <div className="container">
           <div className="steps-header">
             <h2>Set up once. Then forget it.</h2>
-            <p>Three taps. That's the whole setup.</p>
+            <p>Three taps. That&apos;s the whole setup.</p>
           </div>
 
           <div className="connect-grid">
@@ -272,13 +272,13 @@ export default function Page() {
             <div className="connect-card">
               <div className="step-icon"><WhatsAppIcon size={22} /></div>
               <h3>Connect WhatsApp</h3>
-              <p>Tap one link. Send a photo. That's how every job goes in.</p>
+              <p>Tap one link. Send a photo. That&apos;s how every job goes in.</p>
             </div>
 
             <div className="connect-card">
               <div className="step-icon"><GlobeIcon size={22} /></div>
               <h3>The Neerzy link</h3>
-              <p>Not an app from a store. It's one link that works like an app. Save it once. Tap it forever.</p>
+              <p>Not an app from a store. It&apos;s one link that works like an app. Save it once. Tap it forever.</p>
             </div>
           </div>
 
@@ -294,7 +294,7 @@ export default function Page() {
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container audit-section">
           <h2>See how your business looks online today.</h2>
-          <p>Enter your business name for a quick visibility check. See what's working and what could bring you more customers.</p>
+          <p>Enter your business name for a quick visibility check. See what&apos;s working and what could bring you more customers.</p>
 
           <div className="audit-search">
             <input
@@ -383,7 +383,7 @@ export default function Page() {
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container fix-section">
           <h2>How Neerzy fixes it</h2>
-          <p>Every problem the audit finds has a fix built into Neerzy's workflow. No extra tools, no separate logins.</p>
+          <p>Every problem the audit finds has a fix built into Neerzy&apos;s workflow. No extra tools, no separate logins.</p>
 
           <div className="fix-grid">
             <div className="fix-card">
@@ -639,7 +639,7 @@ export default function Page() {
           {/* No-WhatsApp customers: SMS or copy link */}
           <div className="fallback-block">
             <h3>Customer has no WhatsApp?</h3>
-            <p>One tap sends a text, or copies your link. Either way it's ready to go.</p>
+            <p>One tap sends a text, or copies your link. Either way it&apos;s ready to go.</p>
             <div className="fallback-buttons">
               <span className="fallback-btn primary">Send by SMS</span>
               <span className="fallback-btn">Copy Link</span>
@@ -907,6 +907,13 @@ export default function Page() {
                 WhatsApp → name → build. /onboarding needs a session, so the
                 marketing CTA begins at signup. */}
             <Link href="/signup" className="btn btn-primary">Build My Website — Free</Link>
+            {/* Secondary path for visitors who want the detail page first — the
+                conversion CTA above stays pointed at /signup. */}
+            <p style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
+              <Link href="/website-builder" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+                See how the website builder works →
+              </Link>
+            </p>
           </div>
         </div>
       </section>
@@ -930,7 +937,7 @@ export default function Page() {
             <div className="connect-card">
               <div className="step-icon"><CheckIcon size={22} /></div>
               <h3>Protected</h3>
-              <p>Handled automatically. You can't break it.</p>
+              <p>Handled automatically. You can&apos;t break it.</p>
             </div>
           </div>
         </div>
@@ -1098,7 +1105,7 @@ export default function Page() {
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-soft)', borderTop: '1px solid var(--color-divider)' }}>
         <div className="container own-section">
           <h2>Build something that belongs to your business.</h2>
-          <p>Every job you complete with Neerzy adds to your own online presence — not someone else's platform.</p>
+          <p>Every job you complete with Neerzy adds to your own online presence — not someone else&apos;s platform.</p>
 
           <div className="own-grid">
             <div className="own-card">

@@ -1,6 +1,7 @@
 export const ROUTES = {
   PILLAR: '/seo-for-plumbers',
   AUDIT_TOOL: '/gmb-audit-tool',
+  WEBSITE_BUILDER: '/website-builder',
   UNDERSTANDING_SCORE: '/understanding-your-gbp-audit-score',
   IMPROVE_SCORE: '/improve-your-audit-score',
   GUIDES: {
