@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+import { guardPublicRequest, SEARCH_LIMIT } from '@/lib/api-guard';
+import { getCached, searchCacheKey, setCached, SEARCH_CACHE_MS } from '@/lib/places-cache';
+
+/**
+ * GBP search used by the onboarding "find your business" step. Public and
+ * unauthenticated — guarded with SEARCH_LIMIT and memoised 24h per query.
+ */
+const TOO_MANY_SEARCHES =
+  'Too many business searches from this device — please wait a few minutes and try again.';
 
 export async function POST(req: Request) {
   try {
@@ -45,6 +54,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ places: mockResults, count: mockResults.length, mode: 'mock' });
     }
 
+    // Rate limit BEFORE the paid Google call (mock mode above costs nothing).
+    const guard = await guardPublicRequest(req, 'gbp:search', SEARCH_LIMIT, TOO_MANY_SEARCHES);
+    if (!guard.allowed) return guard.response;
+
+    const cacheKey = searchCacheKey('gbp:search', String(query || ''));
+    const cached = getCached<any[]>(cacheKey);
+    if (cached) return NextResponse.json({ places: cached });
+
+    /** Cache a non-empty page of results, then answer. */
+    const respond = (places: any[]) => {
+      setCached(cacheKey, places, SEARCH_CACHE_MS);
+      return NextResponse.json({ places });
+    };
+
     // 🌍 REAL GOOGLE API CALL (v1 modern SearchText)
     const response = await fetch(
       'https://places.googleapis.com/v1/places:searchText',
@@ -57,8 +80,11 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           textQuery: query,
-          languageCode: 'en',
-          regionCode: 'PK' // Matches Pakistani region from GMB search
+          languageCode: 'en'
+          // No regionCode on purpose: Neerzy targets Tier-1 markets (US/UK/CA/
+          // AU/NZ), and the search query already carries the location ("Smith
+          // Plumbing, Manchester"). A hardcoded region biased every non-PK
+          // business out of its own search results.
         })
       }
     );
@@ -103,7 +129,7 @@ export async function POST(req: Request) {
       };
     });
 
-    return NextResponse.json({ places });
+    return respond(places);
   } catch (error) {
     console.error('Search error:', error);
     // Absolute fallback on system/network exceptions to prevent 500 crashes

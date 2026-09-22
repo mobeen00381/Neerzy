@@ -12,6 +12,7 @@ import {
   isWebsiteEligiblePlan,
 } from "@/lib/website";
 import { buildWebsite } from "@/lib/website-builder";
+import { guardUserAction, BUILD_LIMIT } from "@/lib/api-guard";
 import { TEMPLATE_REGISTRY } from "@/lib/templates";
 import { isValidVariation, resolvePalette } from "@/lib/template-looks";
 
@@ -358,6 +359,19 @@ export async function POST(req: Request) {
           { status: 402 }
         );
       }
+
+      // One build per 10 minutes per ACCOUNT (keyed on the user, not the IP —
+      // an IP can be a whole office). buildWebsite is idempotent for a site
+      // that is already live, so this exists to stop repeated clicks from
+      // re-billing AI copy + Places enrichment while a build is pending or
+      // after it failed.
+      const buildGuard = await guardUserAction(
+        user.id,
+        "websites:build",
+        BUILD_LIMIT,
+        "Your website was just built — please wait a few minutes before rebuilding."
+      );
+      if (!buildGuard.allowed) return buildGuard.response;
 
       const result = await buildWebsite(site.id);
       if (!result.ok) {

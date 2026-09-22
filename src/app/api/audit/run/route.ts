@@ -1,4 +1,17 @@
 import { NextResponse } from 'next/server';
+import { guardPublicRequest, DETAIL_LIMIT } from '@/lib/api-guard';
+import { detailCacheKey, getCached, setCached, DETAIL_CACHE_MS } from '@/lib/places-cache';
+
+/**
+ * Full GBP audit for one listing (the call behind /gmb-audit-tool/results).
+ *
+ * Expensive tier: one Places details call per run, so it is guarded with
+ * DETAIL_LIMIT (5/hour per IP, then a 1-hour block) instead of the generous
+ * autocomplete limit. The finished audit is memoised for 10 minutes so a page
+ * reload or a back-navigation doesn't cost a second Google call.
+ */
+const TOO_MANY_AUDITS =
+  'Too many audits from this device — please try again later.';
 
 export async function POST(req: Request) {
   try {
@@ -92,6 +105,16 @@ export async function POST(req: Request) {
       return NextResponse.json(mockAudit);
     }
 
+    // Rate limit BEFORE the paid Google call (the mock branch above costs nothing).
+    const guard = await guardPublicRequest(req, 'audit:run', DETAIL_LIMIT, TOO_MANY_AUDITS);
+    if (!guard.allowed) return guard.response;
+
+    // Memoise the finished audit for 10 minutes — review counts and photos move
+    // slowly, and reloading a report used to re-bill Google every time.
+    const auditKey = detailCacheKey('audit:run', String(placeId));
+    const cachedAudit = getCached<any>(auditKey);
+    if (cachedAudit) return NextResponse.json(cachedAudit);
+
     // 🌍 REAL GOOGLE PLACES API (v1) CALL
     console.log('🔍 Fetching place details via new Places API (v1) for:', placeId);
     const res = await fetch(
@@ -152,6 +175,7 @@ export async function POST(req: Request) {
       recommendations: generateRecommendations(place)
     };
 
+    setCached(auditKey, audit, DETAIL_CACHE_MS);
     return NextResponse.json(audit);
   } catch (error) {
     console.error('Audit Run Error:', error);

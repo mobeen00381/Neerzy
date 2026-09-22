@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+import { guardPublicRequest, SEARCH_LIMIT } from '@/lib/api-guard';
+import { getCached, searchCacheKey, setCached, SEARCH_CACHE_MS } from '@/lib/places-cache';
+
+/**
+ * GMB business search (new Places API, PK region). Public and unauthenticated —
+ * guarded with SEARCH_LIMIT and memoised 24h per identical query.
+ */
+const TOO_MANY_SEARCHES =
+  'Too many business searches from this device — please wait a few minutes and try again.';
 
 export async function GET(req: Request) {
   try {
@@ -8,6 +17,14 @@ export async function GET(req: Request) {
     if (!query || query.length < 3) {
       return NextResponse.json({ results: [] });
     }
+
+    // Rate limit BEFORE the paid Google call.
+    const guard = await guardPublicRequest(req, 'gmb:search', SEARCH_LIMIT, TOO_MANY_SEARCHES);
+    if (!guard.allowed) return guard.response;
+
+    const cacheKey = searchCacheKey('gmb:search', query);
+    const cached = getCached<any>(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     // Use NEW Places API with proper field mask
     const response = await fetch(
@@ -21,8 +38,11 @@ export async function GET(req: Request) {
         },
         body: JSON.stringify({
           textQuery: query,
-          languageCode: 'en',
-          regionCode: 'PK' // Pakistan region, change as needed
+          languageCode: 'en'
+          // No regionCode on purpose: Neerzy targets Tier-1 markets (US/UK/CA/
+          // AU/NZ), and the search query already carries the location ("Smith
+          // Plumbing, Manchester"). A hardcoded region biased every non-PK
+          // business out of its own search results.
         })
       }
     );
@@ -53,10 +73,13 @@ export async function GET(req: Request) {
       businessType: place.types?.find((t: string) => !t.includes('point_of_interest')) || 'business'
     }));
 
-    return NextResponse.json({ 
+    const payload = {
       results,
       status: 'OK'
-    });
+    };
+    // Only memoise a page that actually has results (see places-cache).
+    if (results.length > 0) setCached(cacheKey, payload, SEARCH_CACHE_MS);
+    return NextResponse.json(payload);
 
   } catch (error) {
     console.error('Search Error:', error);

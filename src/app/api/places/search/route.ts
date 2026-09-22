@@ -1,4 +1,14 @@
 import { NextResponse } from 'next/server';
+import { guardPublicRequest, SEARCH_LIMIT } from '@/lib/api-guard';
+import { getCached, searchCacheKey, setCached, SEARCH_CACHE_MS } from '@/lib/places-cache';
+
+/**
+ * Autocomplete lookup for the dashboard GMB checker — same call pattern and
+ * limits as /api/audit/search: SEARCH_LIMIT (30/min, then a 1-hour block) plus
+ * a 24h memo per identical query so repeats never reach Google again.
+ */
+const TOO_MANY_SEARCHES =
+  'Too many business searches from this device — please wait a few minutes and try again.';
 
 export async function GET(req: Request) {
   try {
@@ -13,6 +23,14 @@ export async function GET(req: Request) {
       console.error('CRITICAL: GOOGLE_PLACES_API_KEY is missing from environment');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
+
+    // Rate limit BEFORE the paid Google call.
+    const guard = await guardPublicRequest(req, 'places:search', SEARCH_LIMIT, TOO_MANY_SEARCHES);
+    if (!guard.allowed) return guard.response;
+
+    const cacheKey = searchCacheKey('places:search', query);
+    const cached = getCached<any>(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
     // Call Google Places API - New v1 Search Text (More reliable for modern keys)
     const res = await fetch(
@@ -45,7 +63,10 @@ export async function GET(req: Request) {
       types: place.types || []
     }));
 
-    return NextResponse.json({ results, status: data.status });
+    const payload = { results, status: data.status };
+    // Only memoise a page that actually has results (see places-cache).
+    if (results.length > 0) setCached(cacheKey, payload, SEARCH_CACHE_MS);
+    return NextResponse.json(payload);
 
   } catch (error) {
     console.error('Search API Error:', error);

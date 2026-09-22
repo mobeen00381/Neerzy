@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getTranscriptionClient, DEFAULT_ASR_MODEL, ASR_MAX_SECONDS } from '@/lib/openai';
+import { guardPublicRequest, TRANSCRIBE_LIMIT } from '@/lib/api-guard';
+
+/**
+ * Voice-note → text. Every request is a paid ASR call, and this route is
+ * reachable with a one-time quick-post token (no Neerzy session), so it is
+ * rate limited per visitor IP: 10/hour, then a 1-hour block.
+ */
+const TOO_MANY_TRANSCRIPTS =
+  'Too many voice notes from this device — please try again later.';
 
 export async function POST(req: Request) {
   try {
+    // Rate limit BEFORE the paid ASR call.
+    const guard = await guardPublicRequest(req, 'transcribe', TRANSCRIBE_LIMIT, TOO_MANY_TRANSCRIPTS);
+    if (!guard.allowed) return guard.response;
+
     const formData = await req.formData();
     const audioFile = formData.get('audio') as File;
 

@@ -1,4 +1,17 @@
 import { NextResponse } from 'next/server';
+import { guardPublicRequest, SEARCH_LIMIT } from '@/lib/api-guard';
+import { getCached, searchCacheKey, setCached, SEARCH_CACHE_MS } from '@/lib/places-cache';
+
+/**
+ * Public business-name lookup behind the /gmb-audit-tool hero search.
+ *
+ * This is live autocomplete: the client fires a request on every typing pause
+ * (>= 3 chars, 300ms debounce), so one visitor produces 4-8 calls. Guarded with
+ * SEARCH_LIMIT (30/min, then a 1-hour block) and memoised for 24h per identical
+ * query — repeating your own business name is the single most common pattern.
+ */
+const TOO_MANY_SEARCHES =
+  'Too many business searches from this device — please wait a few minutes and try again.';
 
 export async function POST(req: Request) {
   try {
@@ -47,6 +60,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ places: mockResults });
     }
 
+    // Rate limit BEFORE any paid Google call (the mock branch above costs nothing).
+    const guard = await guardPublicRequest(req, 'audit:search', SEARCH_LIMIT, TOO_MANY_SEARCHES);
+    if (!guard.allowed) return guard.response;
+
+    const maxResults = Math.min(Number(limit) || 15, 20);
+    const cacheKey = searchCacheKey('audit:search', String(query || ''), maxResults);
+    const cached = getCached<any[]>(cacheKey);
+    if (cached) return NextResponse.json({ places: cached });
+
+    /** Cache a non-empty page of results, then answer. */
+    const respond = (places: any[]) => {
+      setCached(cacheKey, places, SEARCH_CACHE_MS);
+      return NextResponse.json({ places });
+    };
+
     // Try the NEW Places API (v1) first if GOOGLE_PLACES_API_KEY exists
     if (placesApiKey) {
       console.log('🔍 Searching via NEW Google Places API (v1) for:', query);
@@ -59,14 +87,14 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           textQuery: query,
-          maxResultCount: Math.min(limit, 20)
+          maxResultCount: maxResults
         })
       });
 
       const data = await res.json();
 
       if (data.places && data.places.length > 0) {
-        const places = data.places.slice(0, limit).map((place: any) => {
+        const places = data.places.slice(0, maxResults).map((place: any) => {
           // Build photo URL from the first photo resource name
           let photoUrl = '';
           if (place.photos && place.photos.length > 0) {
@@ -87,7 +115,7 @@ export async function POST(req: Request) {
         });
 
         console.log(`✅ Found ${places.length} real places for "${query}" via new API`);
-        return NextResponse.json({ places });
+        return respond(places);
       }
 
       // Log if the new API returned an error or empty results
@@ -104,7 +132,7 @@ export async function POST(req: Request) {
       const data = await res.json();
 
       if (data.status === 'OK' && data.results?.length > 0) {
-        const places = data.results.slice(0, limit).map((result: any) => {
+        const places = data.results.slice(0, maxResults).map((result: any) => {
           let photoUrl = '';
           if (result.photos && result.photos.length > 0 && mapsApiKey) {
             photoUrl = `/api/places/photo?ref=${encodeURIComponent(result.photos[0].photo_reference)}&w=400`;
@@ -123,14 +151,14 @@ export async function POST(req: Request) {
         });
 
         console.log(`✅ Found ${places.length} real places for "${query}" via legacy API`);
-        return NextResponse.json({ places });
+        return respond(places);
       }
 
       console.error('Legacy Places API error:', data.status, data.error_message);
     }
 
-    // No results from either API
-    return NextResponse.json({ places: [] });
+    // No results from either API (an empty list is deliberately never cached)
+    return respond([]);
   } catch (error) {
     console.error('Audit Search Error:', error);
     return NextResponse.json({ places: [], error: 'Search failed' }, { status: 500 });

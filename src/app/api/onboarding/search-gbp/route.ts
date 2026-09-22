@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+import { guardPublicRequest, SEARCH_LIMIT } from '@/lib/api-guard';
+import { getCached, searchCacheKey, setCached, SEARCH_CACHE_MS } from '@/lib/places-cache';
+
+/**
+ * Onboarding "find your business" lookup. Public and unauthenticated, so it gets
+ * the same SEARCH_LIMIT guard + 24h query memo as the other search routes.
+ */
+const TOO_MANY_SEARCHES =
+  'Too many business searches from this device — please wait a few minutes and try again.';
 
 export async function POST(req: Request) {
   try {
@@ -28,6 +37,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ places: mockResults, count: mockResults.length, mode: 'mock' });
     }
 
+    // Rate limit BEFORE the paid Google call (mock mode above costs nothing).
+    const guard = await guardPublicRequest(req, 'onboarding:search-gbp', SEARCH_LIMIT, TOO_MANY_SEARCHES);
+    if (!guard.allowed) return guard.response;
+
+    const cacheKey = searchCacheKey('onboarding:search-gbp', String(query || ''));
+    const cached = getCached<any[]>(cacheKey);
+    if (cached) return NextResponse.json({ places: cached, count: cached.length });
+
     // 🌍 REAL GOOGLE API CALL
     const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
     const res = await fetch(url);
@@ -48,6 +65,8 @@ export async function POST(req: Request) {
       googleMapsUri: `https://maps.google.com/?q=${result.place_id}`
     }));
 
+    // Only memoise a page that actually has results (see places-cache).
+    if (places.length > 0) setCached(cacheKey, places, SEARCH_CACHE_MS);
     return NextResponse.json({ places, count: places.length });
 
   } catch (error: any) {
