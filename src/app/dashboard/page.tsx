@@ -10,6 +10,7 @@ import { AgencyClientsPanel } from '@/components/dashboard/AgencyClientsPanel';
 import DomainPanel from '@/components/dashboard/DomainPanel';
 import WebsitePanel, { WebsiteCtaButton } from '@/components/dashboard/WebsitePanel';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
+import DashboardAlerts from '@/components/dashboard/DashboardAlerts';
 import { 
   Sparkles, 
   Smartphone, 
@@ -58,7 +59,7 @@ function renderMessageContent(text: string) {
   // URL regex pattern
   const urlPattern = /(https?:\/\/[^\s]+)/g;
   // Internal path pattern (e.g., /onboarding, /copy/...)
-  const internalPathPattern = /(\/[a-zA-Z0-9\-\/]+)/g;
+  const internalPathPattern = /(\/[a-zA-Z0-9\-/]+)/g;
   
   const parts: (string | ReactElement)[] = [];
   let lastIndex = 0;
@@ -257,7 +258,7 @@ export default function Dashboard() {
       }
 
       // Get phone number from DB profile, auth phone, or auth user metadata
-      let phone = profileData?.phone || user?.phone || user?.user_metadata?.phone || user?.user_metadata?.phone_number;
+      const phone = profileData?.phone || user?.phone || user?.user_metadata?.phone || user?.user_metadata?.phone_number;
 
       // No sandbox auto-link: a phone-less user stays phone-less (quota/trial
       // checks handle a missing phone gracefully) instead of being silently
@@ -1299,6 +1300,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800">
+
+      {/* Outcome of the Google Business Profile connect flow (verified or refused) */}
+      <DashboardAlerts />
       
       {/* Top Header Section */}
       <header className="bg-white border-b border-slate-200/80 py-4 px-6 sticky top-0 z-40 shadow-sm">
