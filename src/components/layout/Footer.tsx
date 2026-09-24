@@ -7,7 +7,7 @@ import { FacebookIcon } from "../ui/FacebookIcon";
 import { InstagramIcon } from "../ui/InstagramIcon";
 import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
-import { isTraderSitePath } from "@/lib/routes";
+import { isTraderSitePath, isTemplateDemoPath } from "@/lib/routes";
 
 // Neerzy's own social profiles, shown in the footer of every marketing page.
 const SOCIAL_LINKS = [
@@ -37,7 +37,8 @@ export default function Footer() {
                      pathname?.startsWith('/checkout') ||
                      pathname?.startsWith('/admin') ||
                      // the trader's own website carries the trader's own footer
-                     isTraderSitePath(pathname);
+                     isTraderSitePath(pathname) ||
+                     isTemplateDemoPath(pathname);
 
   if (hideFooter) return null;
   return (

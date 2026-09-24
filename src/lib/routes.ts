@@ -31,8 +31,10 @@ export const SITE_URL = 'https://www.neerzy.com';
  * footer and support chat are marketing furniture and would leak our branding,
  * navigation and Organization schema into a customer's domain.
  *
- * `/site/templates` is deliberately NOT matched: the template gallery is a
- * Neerzy marketing page.
+ * `/site/templates` itself (the gallery) is deliberately NOT matched - it is a
+ * Neerzy marketing page. The individual demo pages /site/templates/<trade> DO
+ * render the full trader site with its own header/footer, so Header and Footer
+ * additionally hide on them via isTemplateDemoPath().
  */
 export function isTraderSitePath(pathname?: string | null): boolean {
   if (!pathname) return false;
@@ -41,4 +43,16 @@ export function isTraderSitePath(pathname?: string | null): boolean {
     pathname.startsWith('/site/preview') ||
     pathname.startsWith('/site/blog')
   );
+}
+
+/**
+ * True for the shareable template demo pages /site/templates/<trade> (all ten
+ * trades). They render the full TradeSiteTemplate with the trader's own header
+ * and footer, so the Neerzy marketing header/footer must NOT stack on top of
+ * them (that produced a double header and a double footer). The gallery index
+ * /site/templates itself is still a Neerzy marketing page and keeps the chrome.
+ */
+export function isTemplateDemoPath(pathname?: string | null): boolean {
+  if (!pathname) return false;
+  return /^\/site\/templates\/[^/]+/i.test(pathname);
 }
