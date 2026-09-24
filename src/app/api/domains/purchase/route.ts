@@ -20,13 +20,14 @@ const supabaseAdmin = createClient(
 );
 
 /**
- * Number of domains each plan may own.
+ * Number of domains each owner may hold.
+ *   Free    → 1 (the $19 domain is how a free-plan site goes live)
  *   Pro     → 1 (their own custom domain)
  *   Growth  → 1
  *   Agency  → up to 10 (one per trader/client — matches the 10-trader quota)
- *   Free / everything else → 0 (locked card + upgrade prompt in dashboard)
  */
 const DOMAIN_QUOTA: Record<string, number> = {
+  free: 1,
   pro: 1,
   growth: 1,
   agency: 10,
@@ -174,7 +175,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Custom domains are included with the Pro, Growth, and Agency plans. Upgrade to buy your domain.",
+            "Custom domains aren't available on this plan. Upgrade to buy your domain.",
         },
         { status: 403 }
       );

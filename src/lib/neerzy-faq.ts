@@ -55,14 +55,14 @@ Add your customer's name and phone number, and Neerzy writes the review ask for 
 • 25 posts/month (2/day) • 25 review requests/month (2/day)
 • Send jobs by WhatsApp or the app link
 • Your own domain — $19 once
-• Website builder — $99 setup FREE for early adopters
+• Website builder — free build, no setup fee
 • Website hosting — $10/month, first 90 days free
 • AI captions & voice notes • Basic analytics
 
 🚀 **Growth Plan** — $79/mo
 • 60 posts/month (4/day) • 60 review requests/month (4/day)
 • Your own domain — $19 once
-• Website builder — $99 setup FREE for early adopters
+• Website builder — free build, no setup fee
 • Website hosting — $10/month, first 90 days free
 • Facebook + Instagram content • Priority processing
 • Advanced analytics + review tracking
@@ -71,11 +71,11 @@ Add your customer's name and phone number, and Neerzy writes the review ask for 
 • Up to 10 traders — each connects their own WhatsApp
 • 300 posts + 300 review requests/month (30 per trader)
 • One domain per client — $19 each
-• Website builder for every client — setup FREE for early adopters
+• Website builder for every client — free build, no setup fee
 • Google + Facebook + Instagram posts for every trader
 • Agency overview dashboard • Priority processing & support
 
-💡 Your own domain is $19 once. The Free plan gives you Google posts and review asks — no domain or website.
+💡 Your own domain is $19 once. Building a website works on any plan — the domain is the only extra.
 👉 Start here: /onboarding`
   },
   {
@@ -89,7 +89,7 @@ It includes:
 • Send jobs by WhatsApp or the app link
 • **30-day free trial** to explore everything
 
-The Free plan does not include a custom domain or a website. No credit card required to start. 👉 Get started at /onboarding`
+You can build and publish your website on any plan — your own domain is a one-time $19. No credit card required to start. 👉 Get started at /onboarding`
   },
   {
     patterns: ['pro plan', 'pro tier', '$39'],
@@ -99,7 +99,7 @@ The Free plan does not include a custom domain or a website. No credit card requ
 • 25 review requests per month (2 per day)
 • Send jobs by WhatsApp or the app link
 • Your own domain — $19 once
-• Website builder — $99 setup FREE for early adopters
+• Website builder — free build, no setup fee
 • Website hosting — $10/month, first 90 days free
 • AI-powered content & captions
 • Voice note support
@@ -114,7 +114,7 @@ Perfect for individual contractors and small businesses! 👉 /onboarding`
 • 60 posts per month (4 per day)
 • 60 review requests per month (4 per day)
 • Your own domain — $19 once
-• Website builder — $99 setup FREE for early adopters
+• Website builder — free build, no setup fee
 • Website hosting — $10/month, first 90 days free
 • Social content generation (Facebook + Instagram)
 • Priority processing
@@ -129,7 +129,7 @@ Ideal for growing businesses that want to dominate local search. 👉 /onboardin
 • Up to 10 traders — each connects their own WhatsApp
 • 300 posts + 300 review requests per month (30 per trader)
 • One domain per client — $19 each
-• Website builder for every client — setup FREE for early adopters
+• Website builder for every client — free build, no setup fee
 • Google + Facebook + Instagram posts for every trader
 • Agency overview dashboard
 • Priority processing & priority support
@@ -172,10 +172,10 @@ Every domain comes registered in your name, connected to your site, padlock (SSL
 • Local endings work too — .co.uk, .co.nz, .in, or a name + country .com where a registry needs paperwork
 
 Once your domain is live you can tap **Build Website** in your dashboard:
-• **$99 setup fee** — waived FREE for early adopters 🎉
+• **Free build** — no setup fee 🎉
 • **$10/month hosting** — free for your first 90 days, then $10/month
 
-Your website auto-updates every time you post. No website builder needed! 🌐`
+On a paid plan your website auto-updates every time you post. No website builder needed! 🌐`
   },
 
   // ── Trial ──
@@ -336,18 +336,18 @@ You don't need any existing website or technical skills. 👉 /onboarding`
 
 1. First claim your **domain** (one-time $19)
 2. Then tap **Build Website**
-3. **$99 setup fee — FREE for early adopters**
+3. **Free build** — no setup fee
 4. **Hosting $10/month** — free for your first 90 days, then $10/month
 
 Every website is:
-• Automatically updated with every post you create
+• Automatically updated with every post you create (paid plans)
 • SEO-optimized with proper meta tags and schema markup
 • Mobile-responsive design
 • No coding or website builder needed
 
-Once it's built you can edit it whenever you like: the dashboard's **Website Editor** handles your text, photos, services and hours, and you can switch looks any time. Every post keeps the site fresh on its own.
+Once it's built you can edit it whenever you like: the dashboard's **Website Editor** handles your text, photos, services and hours, and you can switch looks any time. On a paid plan every post keeps the site fresh on its own.
 
-The Free plan gives you Google posts and review asks. Your domain and website start on a paid plan.`
+The Free plan gives you Google posts and review asks. Building a website works on any plan — your own domain is a one-time $19, and live sync comes with a paid plan.`
   },
 
   // ── Support / Contact ──
@@ -367,7 +367,7 @@ Pro tip: Growth and Agency plans get priority support! 🚀`
     answer: `Here's a quick comparison to help you choose:
 
 🆓 **Free** - $0/mo: 5 posts + 5 review requests per month. Google posts and review asks, by WhatsApp or the Neerzy link. Includes the 30-day trial.
-💼 **Pro** - $39/mo: Your own domain — $19 once, website builder ($99 setup FREE for early adopters, then $10/mo hosting), 25 posts + 25 review requests per month, AI captions, voice notes, basic analytics. Best for a single contractor posting every day.
+💼 **Pro** - $39/mo: Your own domain — $19 once, website builder (free build, then $10/mo hosting; live sync included), 25 posts + 25 review requests per month, AI captions, voice notes, basic analytics. Best for a single contractor posting every day.
 🚀 **Growth** - $79/mo: Your own domain and website builder on the same terms as Pro, plus 60 posts + 60 review requests per month, Facebook & Instagram posts, priority processing, advanced analytics and review tracking. Best for growing businesses.
 🏢 **Agency** - $199/mo: up to 10 traders, 300 posts + 300 review requests per month (30 per trader), a domain and website for each client, Google + Facebook + Instagram for every trader, agency dashboard. Best for marketing agencies.
 
@@ -414,7 +414,7 @@ Photos help your posts stand out (posts with photos usually perform better), but
     patterns: ['facebook', 'instagram', 'social media', 'social content', 'social posts', 'fb', 'ig', 'linkedin', 'twitter', 'tiktok'],
     answer: `Social posting depends on your plan:
 
-• **Free & Pro** - Google posts (plus your Neerzy website on Pro, once you build it)
+• **Free & Pro** - Google posts (plus your Neerzy website — free to build on any plan, live sync on Pro)
 • **Growth & Agency** - you also get **Facebook + Instagram** posts for the same job
 
 If you want every job shared to Facebook & Instagram automatically, Growth (or Agency) is the plan for you. 👉 /onboarding`
@@ -470,7 +470,7 @@ For questions about customising colours, logos, or specific branding, email supp
     patterns: ['legit', 'legitimate', 'trust', 'trustworthy', 'scam', 'is neerzy real', 'real company', 'safe', 'secure', 'reliable', 'genuine'],
     answer: `Neerzy is a real SaaS company - you'll find our business details on the Contact page. 💙
 
-• Transparent pricing: your own domain is $19 once, the website build is $99 (free for early adopters), and hosting is $10/month after 90 free days
+• Transparent pricing: the website build is free, your own domain is $19 once, and hosting is $10/month after 90 free days — with live sync on paid plans
 • Cancel anytime - no contracts
 • 30-day free trial so you can see results before paying
 • Real support at support@neerzy.com
@@ -491,7 +491,7 @@ If you're based somewhere we don't cover yet or need content in another language
 2. Pick a plan (Free includes a 30-day trial - no credit card needed)
 3. Pay the one-time $19 domain fee to claim your custom domain
 4. Connect WhatsApp and your Google Business Profile
-5. Optional: tap **Build Website** in the dashboard — $99 setup is FREE for early adopters, and hosting is $10/month (free for your first 90 days)
+5. Optional: tap **Build Website** in the dashboard — the build is free, and hosting is $10/month (free for your first 90 days)
 6. Finish your first job → send a photo → type POST 🎉
 
 If you hit any snag, support@neerzy.com is here to help.`

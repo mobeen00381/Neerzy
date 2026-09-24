@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
   openPaddleCheckout,
@@ -11,7 +10,6 @@ import WebsiteEditor from "@/components/dashboard/WebsiteEditor";
 import {
   Globe,
   Loader2,
-  Lock,
   Sparkles,
   RefreshCw,
   AlertCircle,
@@ -40,15 +38,16 @@ type WebsiteRow = {
 
 type WebsiteState = {
   plan: string;
+  /** Always true — the build is free. The custom domain is the real gate. */
   eligible: boolean;
+  /** True on paid plans — those websites live-sync with Google. */
+  syncEligible: boolean;
   hasActiveDomain: boolean;
   domainName: string | null;
-  earlyAdopter: boolean;
   website: WebsiteRow | null;
   freeDaysLeft: number | null;
-  needsSetupPayment: boolean;
   hostingUnpaid: boolean;
-  prices: { setup: number; hosting: number };
+  prices: { hosting: number };
 };
 
 async function fetchState(): Promise<WebsiteState | null> {
@@ -122,9 +121,7 @@ export function WebsiteCtaButton({ onOpen }: { onOpen: () => void }) {
   }
 
   const site = state.website;
-  const priceNote = state.earlyAdopter
-    ? "Free for early adopters · $10/mo hosting after 90 days"
-    : `$${state.prices.setup} setup + $${state.prices.hosting}/mo hosting`;
+  const priceNote = `Free build · $${state.prices.hosting}/mo hosting after 90 days`;
 
   // Already building / live / paused → status chip instead of a price card
   if (site) {
@@ -218,29 +215,10 @@ export default function WebsitePanel() {
         return;
       }
 
-      if (json?.checkoutRequired) {
-        // Latecomer → must pay $99 setup + $10/mo hosting before the build
-        const pay = await postAction("checkout");
-        if (pay.ok && pay.json?.url) {
-          // Open the Paddle overlay in place; only navigate if Paddle.js is
-          // unavailable (the `?_ptxn=` link needs Paddle.js on the target page).
-          const opened = await openPaddleCheckout(pay.json.url);
-          if (!opened) window.location.href = pay.json.url;
-          return;
-        }
-        setError(pay.json?.error || "Could not start checkout. Please try again.");
-        return;
-      }
-
-      setNotice(
-        json?.earlyAdopter
-          ? "🚧 Building your website… this usually takes about a minute."
-          : "Building your website…"
-      );
+      setNotice("🚧 Building your website… this usually takes about a minute.");
       await load();
 
-      // Early adopters build immediately (no payment step). Latecomers were
-      // already routed to checkout above.
+      // The build is free for everyone — no payment step before it runs.
       const built = await postAction("build");
       if (!built.ok) {
         setError(
@@ -324,7 +302,6 @@ export default function WebsitePanel() {
 
   const s = state;
   const site = s?.website || null;
-  const setup = s?.prices.setup ?? 99;
   const hosting = s?.prices.hosting ?? 10;
   const freeDays = s?.freeDaysLeft ?? null;
   const freeEndingSoon = freeDays !== null && freeDays >= 0 && freeDays <= 7;
@@ -364,31 +341,48 @@ export default function WebsitePanel() {
         </div>
       )}
 
-      {/* ── Locked: not on Pro/Growth/Agency ── */}
-      {s && !s.eligible && (
-        <div className="py-6 flex flex-col items-center text-center">
-          <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-            <Lock className="w-6 h-6 text-slate-400" />
+      {/* ── Has domain, no website yet: the offer ── */}
+      {s && s.hasActiveDomain && !site && (
+        <div className="space-y-5">
+          <div className="p-6 rounded-2xl border-2 border-emerald-100 bg-emerald-50/40">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black text-emerald-700 uppercase tracking-widest">
+                  Your website
+                </p>
+                <p className="mt-1 text-3xl font-black text-emerald-700">Free</p>
+                <p className="text-sm font-bold text-slate-500">no setup fee</p>
+              </div>
+              <Sparkles className="w-6 h-6 text-emerald-500 shrink-0" />
+            </div>
+            <ul className="mt-4 space-y-1.5 text-sm font-semibold text-slate-600">
+              <li>🌐 Built on {s.domainName || "your domain"} from your Google profile</li>
+              <li>🔁 First 90 days of hosting free, then {`$${hosting}/month`}</li>
+              {s.syncEligible ? (
+                <li className="text-emerald-700 font-black">
+                  ✅ Live sync on — new photos and reviews update your site automatically
+                </li>
+              ) : (
+                <li>
+                  🔒 Live sync runs on paid plans — your site stays as built until you upgrade
+                </li>
+              )}
+            </ul>
           </div>
-          <h4 className="text-base font-black text-slate-900 mb-1">Build your own website</h4>
-          <p className="text-sm text-slate-500 font-medium max-w-sm mb-5 leading-relaxed">
-            Websites are included with <span className="font-black text-slate-700">Pro</span> and{" "}
-            <span className="font-black text-slate-700">Growth</span> (and{" "}
-            <span className="font-black text-slate-700">Agency</span>). Early adopters get the{" "}
-            {`$${setup}`} setup free — hosting then just {`$${hosting}/month`}.
-          </p>
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-sm font-black hover:bg-slate-800 transition-all active:scale-95"
+
+          <button
+            onClick={start}
+            disabled={busy}
+            className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-sm font-black hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 inline-flex items-center justify-center gap-2"
           >
-            <Sparkles className="w-4 h-4" /> View Pricing
-          </Link>
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            Build my website — Free
+          </button>
         </div>
       )}
 
-
-      {/* ── Eligible but no domain yet: domain is the entry point ── */}
-      {s && s.eligible && !s.hasActiveDomain && (
+      {/* ── No domain yet: the domain is the entry point ── */}
+      {s && !s.hasActiveDomain && (
         <div className="space-y-4">
           <div className="p-5 rounded-2xl border border-slate-200/70 space-y-3">
             <p className="text-sm font-black text-slate-900">① Get your custom domain</p>
@@ -411,56 +405,6 @@ export default function WebsitePanel() {
           </div>
         </div>
       )}
-
-      {/* ── Eligible + domain, no website yet: the offer ── */}
-      {s && s.eligible && s.hasActiveDomain && !site && (
-        <div className="space-y-5">
-          <div className="p-6 rounded-2xl border-2 border-emerald-100 bg-emerald-50/40">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black text-emerald-700 uppercase tracking-widest">
-                  {s.earlyAdopter ? "Early adopter offer" : "Website setup"}
-                </p>
-                {s.earlyAdopter ? (
-                  <p className="mt-1">
-                    <span className="text-2xl font-black text-slate-400 line-through mr-2">
-                      {`$${setup}`}
-                    </span>
-                    <span className="text-3xl font-black text-emerald-700">FREE</span>
-                  </p>
-                ) : (
-                  <p className="mt-1 text-3xl font-black text-slate-900">{`$${setup}`}</p>
-                )}
-              </div>
-              <Sparkles className="w-6 h-6 text-emerald-500 shrink-0" />
-            </div>
-            <ul className="mt-4 space-y-1.5 text-sm font-semibold text-slate-600">
-              <li>🌐 Custom website built on {s.domainName || "your domain"}</li>
-              <li>
-                🔁 Hosting {`$${hosting}/month`}
-                {s.earlyAdopter
-                  ? " — free for your first 90 days, then $10/month"
-                  : " — starts today"}
-              </li>
-              {s.earlyAdopter && (
-                <li className="text-emerald-700 font-black">
-                  🎉 $99 setup fee waived forever (early adopter)
-                </li>
-              )}
-            </ul>
-          </div>
-
-          <button
-            onClick={start}
-            disabled={busy}
-            className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-sm font-black hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50 inline-flex items-center justify-center gap-2"
-          >
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {s.earlyAdopter ? "Build my website — Free" : `Pay ${`$${setup}`} + ${`$${hosting}`}/mo & build`}
-          </button>
-        </div>
-      )}
-
 
       {/* ── Website exists: status + hosting/payment state ── */}
       {s && site && (
@@ -493,14 +437,8 @@ export default function WebsitePanel() {
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1 pt-3 border-t border-slate-100 text-xs font-bold text-slate-500">
               <span>
-                Setup:{" "}
-                <span className="text-slate-900">
-                  {site.setup_waived
-                    ? `${`$${setup}`} waived (early adopter)`
-                    : site.setup_paid
-                    ? `${`$${setup}`} paid`
-                    : `${`$${setup}`} due`}
-                </span>
+                Build:{" "}
+                <span className="text-emerald-700">free — no setup fee</span>
               </span>
               <span>
                 Hosting:{" "}
@@ -573,14 +511,14 @@ export default function WebsitePanel() {
             )}
           </div>
 
-          {/* Hosting ending soon (early adopter, 7 days left) */}
+          {/* Hosting ending soon (7 days left) */}
           {site.hosting_status === "trial" && freeEndingSoon && (
             <div className="p-4 bg-sky-50 rounded-2xl border border-sky-100 text-sm text-sky-900 font-semibold flex items-start gap-3">
               <RefreshCw className="w-4 h-4 mt-0.5 shrink-0 text-sky-600" />
               <div>
                 <p>
                   Your free hosting ends in <span className="font-black">{freeDays} day{freeDays === 1 ? "" : "s"}</span>.
-                  Keep your website live for just {`$${hosting}/month`} — your {`$${setup}`} setup fee stays waived.
+                  Keep your website live for just {`$${hosting}/month`}.
                 </p>
                 <button
                   onClick={pay}
@@ -615,22 +553,12 @@ export default function WebsitePanel() {
             </div>
           )}
 
-          {/* Latecomer awaiting setup payment */}
-          {s.needsSetupPayment && (
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-sm text-slate-700 font-semibold">
-              <p>
-                Complete payment ({`$${setup}`} setup + {`$${hosting}/month`} hosting) to start the build.
-              </p>
-              <button
-                onClick={pay}
-                disabled={busy}
-                className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-black hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
-              >
-                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
-                Complete payment
-              </button>
-            </div>
-          )}
+          {/* Live sync state (paid plans) */}
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600">
+            {s.syncEligible
+              ? "✅ Live sync is on — new Google photos and reviews update your website automatically."
+              : "🔒 Live sync runs on paid plans. Your website stays exactly as built until you upgrade."}
+          </div>
         </div>
       )}
       {/* ── "Make it yours" editor modal ── */}

@@ -1,5 +1,5 @@
-export const DOMAIN_PRICE_ONETIME = 19; // One-time custom domain registration (paid plans)
-export const WEBSITE_SETUP_PRICE = 99; // One-time website build — FREE for early adopters
+export const DOMAIN_PRICE_ONETIME = 19; // One-time custom domain registration
+export const WEBSITE_SETUP_PRICE = 0; // Website build is free — no setup fee
 export const WEBSITE_HOSTING_MONTHLY = 10; // Hosting per month, after the free window
 export const WEBSITE_HOSTING_FREE_DAYS = 90; // Hosting is free for the first 90 days
 export const TRIAL_DAYS = 30; // 30 days free trial
@@ -26,8 +26,9 @@ export const PRICING_PLANS = {
       "25 posts + 25 review requests per month",
       "Send jobs by WhatsApp or the app link",
       "Your own domain — $19 once",
-      "Website builder — $99 setup FREE for early adopters",
+      "Website builder — free build, no setup fee",
       "Website hosting — $10/month, first 90 days free",
+      "Live website sync — new photos & reviews update your site",
       "AI post content, captions & voice notes",
       "Basic analytics"
     ]
@@ -40,8 +41,9 @@ export const PRICING_PLANS = {
     features: [
       "60 posts + 60 review requests per month",
       "Your own domain — $19 once",
-      "Website builder — $99 setup FREE for early adopters",
+      "Website builder — free build, no setup fee",
       "Website hosting — $10/month, first 90 days free",
+      "Live website sync — new photos & reviews update your site",
       "Facebook + Instagram content",
       "Priority processing",
       "Advanced analytics + review tracking"
@@ -56,8 +58,9 @@ export const PRICING_PLANS = {
       "Up to 10 traders — each connects their own WhatsApp",
       "300 posts + 300 review requests per month (30 per trader)",
       "One domain per client — $19 each",
-      "Website builder per client — $99 setup FREE for early adopters",
+      "Website builder per client — free build, no setup fee",
       "Hosting $10/month per site, first 90 days free",
+      "Live website sync — new photos & reviews per site",
       "Google + Facebook + Instagram posts for every trader",
       "Agency overview dashboard + priority support"
     ]
@@ -67,7 +70,7 @@ export const PRICING_PLANS = {
 export const FAQ_ITEMS = [
   {
     question: "What happens after my trial?",
-    answer: "You can stay on the Free plan (5 posts + 5 review asks a month) or upgrade to a paid plan anytime for more posts and your own domain and website."
+    answer: "You can stay on the Free plan (5 posts + 5 review asks a month) or upgrade to a paid plan anytime for more posts and live website sync. You can build and publish your website on any plan — your own domain is $19 once."
   },
   {
     question: "Can I change plans later?",
@@ -79,7 +82,7 @@ export const FAQ_ITEMS = [
   },
   {
     question: "Is the website extra?",
-    answer: "Your domain is $19 once. The website build is $99 — free for early adopters. Hosting is $10/month, with the first 90 days free."
+    answer: "The website build is free. Your domain is $19 once, and hosting is $10/month with the first 90 days free. Live sync of new photos and reviews is included on paid plans."
   },
   {
     question: "Do I need WhatsApp?",

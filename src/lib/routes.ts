@@ -25,6 +25,21 @@ export const ROUTES = {
 export const SITE_URL = 'https://www.neerzy.com';
 
 /**
+ * The "Powered by Neerzy" credit shown in the footer of every trader website
+ * (live domains, previews and the demo template pages).
+ *
+ * It deliberately points at the FREE WEBSITE PREVIEW flow rather than the
+ * homepage: the only people who read a plumber's footer and click "Neerzy" are
+ * other local business owners — exactly the visitor who should be typing their
+ * own business name into the builder. The UTM tags let the funnel attribute
+ * signups that arrived from a customer's site.
+ *
+ * Single source of truth so TradeSiteTemplate (current layout) and SiteRenderer
+ * (legacy layout) can never drift apart.
+ */
+export const POWERED_BY_URL = `${SITE_URL}${ROUTES.WEBSITE_BUILDER}?utm_source=customer-site&utm_medium=footer&utm_campaign=powered-by-neerzy`;
+
+/**
  * True for paths that belong to a TRADER'S own website rather than the Neerzy
  * marketing site: `/site` (their live site on their own domain), `/site/preview/*`
  * and `/site/blog`. Those pages must render with NO Neerzy chrome — header,

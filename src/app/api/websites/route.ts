@@ -5,11 +5,8 @@ import {
   HOSTING_FREE_DAYS,
   HOSTING_PADDLE_PRICE_ID,
   HOSTING_PRICE_USD,
-  WEBSITE_SETUP_PADDLE_PRICE_ID,
-  WEBSITE_SETUP_PRICE_USD,
   hostingDaysLeft,
-  isEarlyAdopterWindowOpen,
-  isWebsiteEligiblePlan,
+  isWebsiteSyncEligiblePlan,
 } from "@/lib/website";
 import { buildWebsite } from "@/lib/website-builder";
 import { guardUserAction, BUILD_LIMIT } from "@/lib/api-guard";
@@ -90,17 +87,18 @@ type AccountContext = {
   plan: string;
   businessName: string;
   phone: string;
+  /** Always true — the build is free. The custom domain is the real gate. */
   eligible: boolean;
+  /** True on Pro/Growth/Agency/Unlimited — those plans live-sync with Google. */
+  syncEligible: boolean;
   domainId: string | null;
   domainName: string | null;
   website: any | null;
-  earlyAdopter: boolean;
 };
 
 /**
- * Loads everything the dashboard needs in one shot:
- * plan eligibility, the user's active custom domain (the hard gate), their
- * website row, and whether they are inside the early-adopter window.
+ * Loads everything the dashboard needs in one shot: the user's plan, their
+ * active custom domain (the hard gate), and their website row.
  */
 async function loadAccountContext(userId: string): Promise<AccountContext> {
   const { data: profile } = await supabaseAdmin
@@ -132,12 +130,13 @@ async function loadAccountContext(userId: string): Promise<AccountContext> {
     plan,
     businessName: profile?.business_name || "",
     phone: profile?.phone || "",
-    eligible: isWebsiteEligiblePlan(plan),
+    // The build is free for every plan — the domain below is what actually
+    // gates it, so `eligible` is always true.
+    eligible: true,
+    syncEligible: isWebsiteSyncEligiblePlan(plan),
     domainId: domain?.id || null,
     domainName: domain?.domain_name || null,
     website: website || null,
-    // Once a website exists its own flag wins (early adopters keep the waiver).
-    earlyAdopter: website?.setup_waived ? true : isEarlyAdopterWindowOpen(),
   };
 }
 
@@ -153,11 +152,7 @@ export async function GET(req: Request) {
     const site = ctx.website;
     const daysLeft = hostingDaysLeft(site?.free_until || null);
 
-    // Latecomer who has not paid yet (or was created before the window closed).
-    const needsSetupPayment =
-      !!site && !site.setup_waived && !site.setup_paid && site.status === "pending";
-
-    // Early adopter whose 90 free hosting days ran out (or hosting was canceled).
+    // Hosting unpaid: the 90 free days ran out (or hosting was canceled).
     const hostingUnpaid =
       !!site &&
       (site.hosting_status === "none" || site.hosting_status === "canceled" || site.hosting_status === "trial") &&
@@ -167,14 +162,13 @@ export async function GET(req: Request) {
     return NextResponse.json({
       plan: ctx.plan,
       eligible: ctx.eligible,
+      syncEligible: ctx.syncEligible,
       hasActiveDomain: !!ctx.domainId,
       domainName: ctx.domainName,
-      earlyAdopter: ctx.earlyAdopter,
       website: site,
       freeDaysLeft: daysLeft,
-      needsSetupPayment,
       hostingUnpaid,
-      prices: { setup: WEBSITE_SETUP_PRICE_USD, hosting: HOSTING_PRICE_USD },
+      prices: { hosting: HOSTING_PRICE_USD },
     });
   } catch (err: any) {
     console.error("❌ Website GET error:", err?.message || err);
@@ -195,16 +189,6 @@ export async function POST(req: Request) {
 
     const ctx = await loadAccountContext(user.id);
 
-    if (!ctx.eligible) {
-      return NextResponse.json(
-        {
-          error:
-            "Custom websites are available on the Pro, Growth, and Agency plans. Upgrade to build your website.",
-        },
-        { status: 403 }
-      );
-    }
-
     // The domain is the hard gate — no domain, no website.
     if (!ctx.domainId) {
       return NextResponse.json(
@@ -216,49 +200,42 @@ export async function POST(req: Request) {
       );
     }
 
-    // ── start: create (or restart) the website row ──
+    // ── start: create (or restart) the website row — the build is free ──
     if (action === "start") {
       const existing = ctx.website;
 
-      // Already running/live → nothing to start; a pending row needs payment.
+      // Already running/live → nothing to start.
       if (existing && existing.status !== "paused") {
-        return NextResponse.json({
-          success: true,
-          website: existing,
-          earlyAdopter: !!existing.setup_waived,
-          checkoutRequired: existing.status === "pending",
-        });
+        return NextResponse.json({ success: true, website: existing });
       }
 
-      const earlyAdopter = isEarlyAdopterWindowOpen();
-      const freeUntil = earlyAdopter
-        ? new Date(Date.now() + HOSTING_FREE_DAYS * 24 * 60 * 60 * 1000).toISOString()
-        : null;
+      // Every website gets the same deal: free build + 90 days free hosting.
+      const freeUntil = new Date(
+        Date.now() + HOSTING_FREE_DAYS * 24 * 60 * 60 * 1000
+      ).toISOString();
 
       const payload: Record<string, unknown> = {
         user_id: user.id,
         domain_id: ctx.domainId,
         domain_name: ctx.domainName,
-        status: earlyAdopter ? "building" : "pending",
-        setup_waived: earlyAdopter,
-        hosting_status: earlyAdopter ? "trial" : "none",
+        status: "building",
+        setup_waived: true, // legacy column — there is no setup fee any more
+        hosting_status: "trial",
         free_until: freeUntil,
         error: null,
       };
 
       let saved: any = null;
       if (existing) {
-        // Restarting a paused website keeps its original waiver + payment state.
+        // Restarting a paused website keeps its hosting state + free window.
         const { data } = await supabaseAdmin
           .from("websites")
           .update({
             ...payload,
-            setup_waived: existing.setup_waived || earlyAdopter,
             setup_paid: existing.setup_paid,
-            hosting_status:
-              existing.hosting_status === "active" ? "active" : earlyAdopter ? "trial" : "none",
+            hosting_status: existing.hosting_status === "active" ? "active" : "trial",
             free_until: existing.free_until || freeUntil,
-            status: existing.setup_paid || existing.setup_waived ? "building" : "pending",
+            status: "building",
           })
           .eq("id", existing.id)
           .select()
@@ -277,57 +254,39 @@ export async function POST(req: Request) {
         saved = data;
       }
 
-      console.log(`🚧 Website ${earlyAdopter ? "started (early adopter — $99 waived)" : "created (payment required)"} for ${user.id}`);
+      console.log(
+        `🚧 Website build started for ${user.id} (free build · ${HOSTING_FREE_DAYS}-day hosting trial)`
+      );
 
-      return NextResponse.json({
-        success: true,
-        website: saved,
-        earlyAdopter,
-        checkoutRequired: !earlyAdopter,
-      });
+      return NextResponse.json({ success: true, website: saved });
     }
 
-    // ── checkout: $99 setup (latecomers) + $10/mo hosting ──
+    // ── checkout: $10/mo hosting (after the free 90 days) ──
     if (action === "checkout") {
       const site = ctx.website;
       if (!site) {
         return NextResponse.json({ error: "Start your website build first." }, { status: 400 });
       }
 
-      const needsSetup = !site.setup_waived && !site.setup_paid;
       const needsHosting = site.hosting_status !== "active";
-
-      const items: { priceId: string; quantity: number }[] = [];
-      if (needsSetup) {
-        if (!WEBSITE_SETUP_PADDLE_PRICE_ID) {
-          return NextResponse.json(
-            { error: "Website checkout isn't configured yet (missing PADDLE_WEBSITE_SETUP_PRICE_ID)." },
-            { status: 500 }
-          );
-        }
-        items.push({ priceId: WEBSITE_SETUP_PADDLE_PRICE_ID, quantity: 1 });
-      }
-      if (needsHosting) {
-        if (!HOSTING_PADDLE_PRICE_ID) {
-          return NextResponse.json(
-            { error: "Website checkout isn't configured yet (missing PADDLE_HOSTING_PRICE_ID)." },
-            { status: 500 }
-          );
-        }
-        items.push({ priceId: HOSTING_PADDLE_PRICE_ID, quantity: 1 });
-      }
-
-      if (items.length === 0) {
+      if (!needsHosting) {
         return NextResponse.json({ success: true, alreadyActive: true });
       }
 
+      if (!HOSTING_PADDLE_PRICE_ID) {
+        return NextResponse.json(
+          { error: "Website checkout isn't configured yet (missing PADDLE_HOSTING_PRICE_ID)." },
+          { status: 500 }
+        );
+      }
+
       const transaction = await paddle.transactions.create({
-        items,
+        items: [{ priceId: HOSTING_PADDLE_PRICE_ID, quantity: 1 }],
         customData: {
           userId: user.id,
           websiteId: site.id,
           source: "website",
-          setupIncluded: needsSetup ? "yes" : "no",
+          setupIncluded: "no",
         },
       });
 
@@ -336,13 +295,12 @@ export async function POST(req: Request) {
         .update({ paddle_transaction_id: transaction.id })
         .eq("id", site.id);
 
-      console.log(`💳 Website checkout created for ${user.id} (setup=${needsSetup ? 99 : 0}, hosting=${needsHosting ? 10 : 0})`);
+      console.log(`💳 Website hosting checkout created for ${user.id}`);
 
       return NextResponse.json({
         success: true,
         url: transaction.checkout?.url || "",
-        setupIncluded: needsSetup,
-        hostingIncluded: needsHosting,
+        hostingIncluded: true,
       });
     }
 
@@ -351,13 +309,6 @@ export async function POST(req: Request) {
       const site = ctx.website;
       if (!site) {
         return NextResponse.json({ error: "Start your website build first." }, { status: 400 });
-      }
-      // Latecomers must pay before the build runs.
-      if (site.status === "pending" && !site.setup_waived && !site.setup_paid) {
-        return NextResponse.json(
-          { error: "Payment is required before we build your website.", needsPayment: true },
-          { status: 402 }
-        );
       }
 
       // One build per 10 minutes per ACCOUNT (keyed on the user, not the IP —

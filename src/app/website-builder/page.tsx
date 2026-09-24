@@ -1,13 +1,8 @@
 import Link from "next/link";
 import { ROUTES, SITE_URL } from "@/lib/routes";
 import { WEBSITE_BUILDER_FAQS } from "@/lib/website-builder-faqs";
-import {
-  HOSTING_FREE_DAYS,
-  HOSTING_PRICE_USD,
-  WEBSITE_EARLY_ADOPTER_ENDS,
-  WEBSITE_SETUP_PRICE_USD,
-  isEarlyAdopterWindowOpen,
-} from "@/lib/website";
+import { HOSTING_FREE_DAYS, HOSTING_PRICE_USD } from "@/lib/website";
+import { TRADE_LANDINGS } from "@/lib/website-builder-trades";
 import PreviewWidget from "./PreviewWidget";
 
 /**
@@ -19,19 +14,17 @@ import PreviewWidget from "./PreviewWidget";
  * with all four JSON-LD blocks (BreadcrumbList, WebPage, SoftwareApplication,
  * FAQPage) — separate scripts, matching /gmb-audit-tool.
  *
- * PRICING: never hardcode a "free" claim. The offer renders from
- * isEarlyAdopterWindowOpen() (src/lib/website.ts) so the copy AND the
- * SoftwareApplication offer switch themselves when the early-adopter window
- * closes. Prerendered + revalidated hourly, so the switch lands within an hour.
+ * PRICING: the model is quoted from src/lib/website.ts so the copy can never
+ * drift from billing — the build is FREE, the domain is $19 once, hosting is
+ * free for the first HOSTING_FREE_DAYS days and then $HOSTING_PRICE_USD/month.
+ * The old $99 early-adopter setup fee was retired. Live Google sync runs on
+ * paid plans only (see WEBSITE_SYNC_ELIGIBLE_PLANS).
  */
 export const revalidate = 3600;
 
 const PAGE_URL = `${SITE_URL}${ROUTES.WEBSITE_BUILDER}`;
 
 export default function WebsiteBuilderPage() {
-  const earlyAdopter = isEarlyAdopterWindowOpen();
-  // Date-only (YYYY-MM-DD) for the offer's priceValidUntil.
-  const offerValidUntil = new Date(WEBSITE_EARLY_ADOPTER_ENDS).toISOString().slice(0, 10);
 
   // Schema.org structured data - BreadcrumbList: Home > Website Builder
   const breadcrumbSchema = {
@@ -49,18 +42,16 @@ export default function WebsiteBuilderPage() {
     "@type": "WebPage",
     "@id": PAGE_URL,
     "url": PAGE_URL,
-    "name": "The Website Builder That Stays in Sync With Your Google Business Profile",
+    "name": "Website Builder for Your Google Business Profile",
     "description":
-      "Build a website from your Google Business Profile in one tap — synced as your profile changes.",
+      "Preview a website built from your Google Business Profile free. Publish for $19, first 90 days hosting free. Stays in sync on any paid plan.",
     "isPartOf": { "@type": "WebSite", "name": "Neerzy", "url": SITE_URL },
     "datePublished": "2026-09-22",
     "dateModified": "2026-09-22"
   };
 
   // Schema.org structured data - SoftwareApplication (the builder itself).
-  // The offer is window-aware: inside the early-adopter window the setup fee is
-  // waived and the first 90 days of hosting are free (price 0 + validUntil);
-  // after it, the standard $10/month hosting price is published instead.
+  // Pricing is flat and honest: free build, $19 domain, 90 days free hosting.
   const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -72,12 +63,10 @@ export default function WebsiteBuilderPage() {
       "A website builder for local service businesses that builds a site in one tap from a connected Google Business Profile and keeps it synced as the profile updates.",
     "offers": {
       "@type": "Offer",
-      "price": earlyAdopter ? "0" : String(HOSTING_PRICE_USD),
+      "price": "0",
       "priceCurrency": "USD",
-      "description": earlyAdopter
-        ? `Setup fee ($${WEBSITE_SETUP_PRICE_USD}) waived and the first ${HOSTING_FREE_DAYS} days of hosting free for early adopters, then $${HOSTING_PRICE_USD}/month. Requires a paid Neerzy plan.`
-        : `Standard pricing: $${HOSTING_PRICE_USD}/month hosting. Requires a paid Neerzy plan.`,
-      ...(earlyAdopter ? { priceValidUntil: offerValidUntil } : {}),
+      "description": `Free website build, $19 one-time custom domain, and the first ${HOSTING_FREE_DAYS} days of hosting free, then $${HOSTING_PRICE_USD}/month. Live Google sync requires a paid Neerzy plan.`,
+      "category": "Free build · paid hosting",
     },
     "publisher": { "@type": "Organization", "name": "Neerzy", "url": SITE_URL }
   };
@@ -94,7 +83,8 @@ export default function WebsiteBuilderPage() {
     }))
   };
 
-  const ctaLabel = earlyAdopter ? "Get My Free Website" : "Build My Website";
+  const ctaLabel = "See My Website Preview — Free";
+  const closingCtaLabel = "Get My Free Website Preview";
 
   return (
     <>
@@ -137,20 +127,18 @@ export default function WebsiteBuilderPage() {
                 marginBottom: "var(--space-3)",
               }}
             >
-              The Website Builder That Stays in Sync With Your Google Business Profile
+              The Website Builder Built From Your Google Business Profile
             </h1>
 
             <p style={{ fontSize: "var(--text-h3-size)", fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "var(--space-2)" }}>
-              Build a real website in one tap. No design skill needed.
-              {earlyAdopter
-                ? ` Setup fee waived and first ${HOSTING_FREE_DAYS} days of hosting free for early adopters.`
-                : ` Setup fee $${WEBSITE_SETUP_PRICE_USD} and hosting $${HOSTING_PRICE_USD}/month.`}
+              Search your business, see your site in under a minute — free. Publish it on your own
+              domain for $19, and it keeps itself in sync with your Google profile on any paid plan.
             </p>
 
             <p style={{ fontSize: "var(--text-body-size)", color: "var(--color-text-secondary)", marginBottom: "var(--space-5)" }}>
-              Most website builders ask you to start from a blank page. Neerzy starts from something
-              you have already built — your Google Business Profile — and keeps your website updated
-              as that profile changes.
+              Most website builders start you from a blank page. Neerzy starts from something you
+              already have — your Google Business Profile — and turns it into a real website, in your
+              business name, in minutes.
             </p>
           </div>
 
@@ -161,6 +149,9 @@ export default function WebsiteBuilderPage() {
             <Link href="/signup" className="btn btn-primary">
               {ctaLabel} →
             </Link>
+            <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
+              Preview only — publishing needs your own domain ($19, once). No card required to preview.
+            </p>
           </div>
         </div>
       </section>
@@ -169,16 +160,15 @@ export default function WebsiteBuilderPage() {
       <section className="section-padding" style={{ backgroundColor: "var(--color-bg-soft)", borderTop: "1px solid var(--color-divider)" }}>
         <div className="container">
           <div className="steps-header">
-            <h2>Most website builders import your profile once. Neerzy keeps syncing.</h2>
+            <h2>Most website builders import your profile once. Neerzy can keep syncing.</h2>
             <p>
-              Plenty of tools can pull your business name, hours, and photos from Google once, at
-              setup. What most of them don&apos;t do is keep that connection alive afterwards — so your
-              website quietly goes stale the first time you add a new photo or your hours change for
-              the holidays.
+              Plenty of tools pull your business name, hours and photos from Google once, at setup —
+              then the connection goes quiet, so your site slowly falls behind your real profile.
             </p>
             <p>
-              Neerzy is built differently: your website stays connected to your Google Business
-              Profile, not just copied from it once.
+              On a paid Neerzy plan, your website stays connected: new job photos, updated hours and
+              new reviews flow through automatically. On the free start, your site is still built from
+              real data — the live sync turns on with a plan.
             </p>
           </div>
 
@@ -198,7 +188,7 @@ export default function WebsiteBuilderPage() {
                   <td>✅</td>
                 </tr>
                 <tr className="highlight">
-                  <td>Updates automatically when your profile changes later</td>
+                  <td>Keeps syncing automatically (paid plans)</td>
                   <td>❌</td>
                   <td>✅</td>
                 </tr>
@@ -223,7 +213,7 @@ export default function WebsiteBuilderPage() {
         <div className="container">
           <div className="steps-header">
             <h2>How it works</h2>
-            <p>Four steps, about a minute of your time, and only one of them involves you tapping anything.</p>
+            <p>Four steps. The first two are free — the site only goes live once you add a domain.</p>
           </div>
 
           <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "var(--space-4)", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
@@ -234,7 +224,7 @@ export default function WebsiteBuilderPage() {
               <p style={{ color: "var(--color-text-secondary)" }}>
                 Sign in with the Google account connected to your{" "}
                 <Link href={ROUTES.AUDIT_TOOL} style={{ color: "var(--color-primary)", fontWeight: 600 }}>
-                  connected Google Business Profile
+                  Google Business Profile
                 </Link>
                 . About 30 seconds.
               </p>
@@ -244,26 +234,25 @@ export default function WebsiteBuilderPage() {
                 2. Pick your trade template
               </h3>
               <p style={{ color: "var(--color-text-secondary)" }}>
-                Neerzy shows templates matched to your business category — plumber, electrician, HVAC,
-                roofer, cleaner, pet groomer and more.
+                Neerzy shows templates matched to your business category.
               </p>
             </li>
             <li className="card" style={{ padding: "var(--space-4)" }}>
               <h3 style={{ fontSize: "var(--text-h3-size)", color: "var(--color-text-primary)", marginBottom: "var(--space-2)" }}>
-                3. Tap “Build My Website”
+                3. Preview it — free
               </h3>
               <p style={{ color: "var(--color-text-secondary)" }}>
-                Your site goes live with your real business name, address, hours, photos and reviews
-                already filled in.
+                See your real name, address, hours, photos and reviews already filled in. Nothing is
+                published yet.
               </p>
             </li>
             <li className="card" style={{ padding: "var(--space-4)" }}>
               <h3 style={{ fontSize: "var(--text-h3-size)", color: "var(--color-text-primary)", marginBottom: "var(--space-2)" }}>
-                4. Keep working
+                4. Publish on your own domain
               </h3>
               <p style={{ color: "var(--color-text-secondary)" }}>
-                New job photo, new review, updated hours — your website reflects it without you
-                touching it again.
+                Register a domain for $19 (once, in your name) and your site goes live. The first{" "}
+                {HOSTING_FREE_DAYS} days of hosting are free.
               </p>
             </li>
           </ol>
@@ -278,14 +267,22 @@ export default function WebsiteBuilderPage() {
           </div>
           <div style={{ maxWidth: "780px", color: "var(--color-text-secondary)", fontSize: "var(--text-body-size)" }}>
             <p style={{ marginBottom: "var(--space-3)" }}>
-              Google used to offer a basic website builder built directly into Google Business
-              Profile. That feature has been discontinued — businesses that relied on it now need to
-              rebuild somewhere else.
+              Google used to offer a basic website builder built into Google Business Profile.{" "}
+              <a
+                href="https://support.google.com/business/answer/14341729"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "var(--color-primary)", fontWeight: 600 }}
+              >
+                That feature was discontinued in March 2024
+              </a>{" "}
+              — businesses that relied on it were redirected back to their plain Business Profile,
+              with no way to edit the old site.
             </p>
             <p>
-              Neerzy picks up exactly where that gap was left, with something more capable than what
-              Google offered: your site is generated from the profile you already have, and it keeps
-              syncing with it. An ongoing connection, not a one-time export.
+              Neerzy picks up where that gap was left: your site is generated from the profile you
+              already have, built for your trade, and — on a paid plan — kept in sync with it going
+              forward.
             </p>
           </div>
         </div>
@@ -297,12 +294,21 @@ export default function WebsiteBuilderPage() {
           <div className="steps-header">
             <h2>Built for your trade, not a generic template</h2>
             <p>
-              A plumber&apos;s website and a pet groomer&apos;s website shouldn&apos;t look the same. Neerzy matches
-              your template to your Google Business Profile category automatically — plumbing,
-              electrical, HVAC, roofing, cleaning, pet grooming and more — instead of handing you a
-              one-size-fits-all layout to fill in yourself.
+              A plumber&apos;s website and a dentist&apos;s website shouldn&apos;t look the same. Neerzy matches
+              your template to your Google Business Profile category automatically:
             </p>
           </div>
+          <p style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", maxWidth: "900px" }}>
+            {TRADE_LANDINGS.map((t) => (
+              <Link
+                key={t.slug}
+                href={`${ROUTES.WEBSITE_BUILDER}/${t.slug}`}
+                style={{ color: "var(--color-primary)", fontWeight: 600 }}
+              >
+                {t.h1.replace("Website Builder for ", "")}
+              </Link>
+            ))}
+          </p>
           <p style={{ marginBottom: "var(--space-4)" }}>
             <Link href="/site/templates" className="btn btn-secondary">
               See example templates →
@@ -311,53 +317,53 @@ export default function WebsiteBuilderPage() {
         </div>
       </section>
 
-      {/* ── Early Adopter Offer (window-aware) ───────────────── */}
+      {/* ── What it costs ────────────────────────────────────── */}
       <section id="offer" className="section-padding" style={{ backgroundColor: "var(--color-bg-soft)", borderTop: "1px solid var(--color-divider)" }}>
         <div className="container">
           <div className="steps-header">
-            <h2>Early Adopter Offer</h2>
+            <h2>What it costs</h2>
+            <p>One price to publish. Nothing to design, nothing to code.</p>
           </div>
 
           <div className="price-card">
             <div className="price-card-main">
-              {earlyAdopter ? (
-                <>
-                  <span className="price-card-strike">${WEBSITE_SETUP_PRICE_USD}</span>
-                  <span className="price-card-amount">FREE</span>
-                  <span className="price-card-once">setup fee, for early adopters</span>
-                </>
-              ) : (
-                <>
-                  <span className="price-card-amount">${WEBSITE_SETUP_PRICE_USD}</span>
-                  <span className="price-card-once">one-time setup, then hosting monthly</span>
-                </>
-              )}
+              <span className="price-card-amount">FREE</span>
+              <span className="price-card-once">to preview your website</span>
             </div>
             <ul className="price-card-list">
-              {earlyAdopter ? (
-                <>
-                  <li>Setup fee waived — yours to keep.</li>
-                  <li>First {HOSTING_FREE_DAYS} days of hosting free.</li>
-                  <li>
-                    Then{" "}
-                    <Link href="/pricing" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
-                      ${HOSTING_PRICE_USD}/month
-                    </Link>{" "}
-                    hosting.
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li>Setup fee ${WEBSITE_SETUP_PRICE_USD} one-time.</li>
-                  <li>Hosting ${HOSTING_PRICE_USD}/month.</li>
-                  <li>Your own domain, $19 once.</li>
-                </>
-              )}
-              <li>Requires a paid Neerzy plan. Custom domain $19 one-time.</li>
+              <li>
+                <strong>Free, to start:</strong> Google Score audit, 5 Google posts + 5 review
+                requests for 30 days, and a website preview — no card.
+              </li>
+              <li>
+                <strong>To publish:</strong> $19 once — your own domain, registered in your name.
+              </li>
+              <li>
+                <strong>Hosting:</strong> free for the first {HOSTING_FREE_DAYS} days, then{" "}
+                <Link href="/pricing" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+                  ${HOSTING_PRICE_USD}/month
+                </Link>
+                .
+              </li>
+              <li>
+                <strong>Live sync:</strong> new photos and reviews update your site automatically on
+                any paid plan.
+              </li>
+              <li>
+                <strong>After day 30:</strong> posting and review requests pause — your website stays
+                live, showing your last update.
+              </li>
+              <li>
+                <strong>After day 90 from publish:</strong> without payment your site goes offline
+                (not deleted) — you have 30 days to bring it back exactly as it was.
+              </li>
             </ul>
             <Link href="/signup" className="btn btn-primary">
-              {earlyAdopter ? "Claim My Free 90 Days" : "Build My Website"} →
+              Build My Website — Free Preview →
             </Link>
+            <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
+              No card required to preview. Domain and hosting costs apply to publish and keep it live.
+            </p>
           </div>
         </div>
       </section>
@@ -409,12 +415,11 @@ export default function WebsiteBuilderPage() {
           <div className="steps-header">
             <h2>Every job can bring the next one.</h2>
             <p>
-              Keep your photos flowing, your Google profile fresh, and now — your website current too.
-              All from one tap.
+              Keep your photos flowing, your Google profile fresh, and your website current too.
             </p>
           </div>
           <Link href="/signup" className="btn btn-primary">
-            {ctaLabel} →
+            {closingCtaLabel} →
           </Link>
         </div>
       </section>

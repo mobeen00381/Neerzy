@@ -8,10 +8,10 @@ export const metadata: Metadata = {
   // brand isn't appended twice (same pattern as gmb-audit-tool/layout.tsx).
   // 55 chars, primary keyword leading, brand trailing.
   title: {
-    absolute: "Website Builder Synced With Your Google Business Profile | Neerzy",
+    absolute: "Website Builder for Your Google Business Profile | Neerzy",
   },
   description:
-    "Build a website from your Google Business Profile in one tap — synced as your profile changes. Setup fee waived and first 90 days of hosting free for early adopters.",
+    "Preview a website built from your Google Business Profile free. Publish for $19, first 90 days hosting free. Stays in sync on any paid plan.",
   keywords: [
     "website builder that syncs with google business profile",
     "build website from google my business profile",
@@ -38,9 +38,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: PAGE_URL,
-    title: "The Website Builder That Stays in Sync With Your Google Business Profile",
+    title: "The Website Builder Built From Your Google Business Profile",
     description:
-      "Build a website from your Google Business Profile in one tap — synced as your profile changes. Setup fee waived and first 90 days of hosting free for early adopters.",
+      "Preview your site free, publish it on your own domain for $19, and keep it in sync with your Google profile on any paid plan.",
     images: [
       {
         url: `${SITE_URL}/og-images/website-builder.jpg`,
@@ -53,9 +53,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Website Builder Synced With Your Google Business Profile",
+    title: "Website Builder for Your Google Business Profile",
     description:
-      "One tap. Synced from Google. Setup fee waived and 90 days of free hosting for early adopters.",
+      "See your site in under a minute — free. Publish on your own domain for $19, first 90 days of hosting free.",
     images: [`${SITE_URL}/og-images/website-builder.jpg`],
   },
 };

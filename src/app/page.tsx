@@ -3,9 +3,8 @@ import Link from 'next/link';
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon';
 import WhatsAppMockup from '@/components/landing/WhatsAppMockup';
 import WebsiteBuildMockup from '@/components/landing/WebsiteBuildMockup';
-import OfferSlides from '@/components/landing/OfferSlides';
 import { CheckIcon, CameraIcon, FileTextIcon, StarIcon, ZapIcon, MessageSquareIcon, SearchIcon, SendIcon, GlobeIcon, SmartphoneIcon, MapPinIcon, EyeIcon, ClipboardListIcon, TrendingUpIcon } from '@/components/ui/Icons';
-import { WEBSITE_EARLY_ADOPTER_ENDS, WEBSITE_SETUP_PRICE_USD, HOSTING_PRICE_USD, HOSTING_FREE_DAYS, isEarlyAdopterWindowOpen } from '@/lib/website';
+import { HOSTING_PRICE_USD, HOSTING_FREE_DAYS } from '@/lib/website';
 
 export const metadata: Metadata = {
   title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
@@ -124,26 +123,6 @@ export default function Page() {
           </div>
         </div>
       </section>
-
-      {/* ============================================
-          Section 1b: Founding-member offer slider (countdown)
-          — $99 setup waived + 90 days free hosting for early adopters,
-            driven by the same deadline the billing code uses.
-            Sits on the hero's mint background (--color-bg-soft) so the dark
-            band inside it is the break before the white section below.
-            Server-side gate: if the window is already closed at build time we
-            never ship the banner; the component also hides itself on the
-            client once the countdown hits zero (covers long-lived tabs and
-            cached HTML).
-          ============================================ */}
-      {isEarlyAdopterWindowOpen() && (
-        <OfferSlides
-          deadline={WEBSITE_EARLY_ADOPTER_ENDS}
-          setupPrice={WEBSITE_SETUP_PRICE_USD}
-          hostingPrice={HOSTING_PRICE_USD}
-          freeDays={HOSTING_FREE_DAYS}
-        />
-      )}
 
       {/* ============================================
           Section 2: Why We Exist (problem only — no solution preview)
@@ -645,7 +624,7 @@ export default function Page() {
               <span className="fallback-btn">Copy Link</span>
             </div>
             <p className="fallback-note">Message ready — just press send.</p>
-            <p className="fallback-note">New 5-star reviews show up on your website by themselves.</p>
+            <p className="fallback-note">New 5-star reviews show up on your website by themselves (paid plans).</p>
           </div>
         </div>
       </section>
@@ -888,20 +867,19 @@ export default function Page() {
               <li>Connect WhatsApp once. One link, no app to download.</li>
               <li>See what&apos;s free and take the name Neerzy picks for you.</li>
               <li>Words, photos and reviews are already in — ten looks to choose from.</li>
-              <li>Live in under a minute. Every new job updates the site by itself.</li>
+              <li>Live in under a minute — on a paid plan, every new job keeps it updated by itself.</li>
             </ul>
           </div>
 
           <div className="price-card">
             <div className="price-card-main">
-              <span className="price-card-strike">$99</span>
               <span className="price-card-amount">FREE</span>
-              <span className="price-card-once">for early adopters</span>
+              <span className="price-card-once">your website, built from your Google profile</span>
             </div>
             <ul className="price-card-list">
-              <li>Setup fee waived — yours to keep.</li>
-              <li>Hosting $10/month.</li>
-              <li>First 90 days of hosting free.</li>
+              <li>No setup fee — yours to keep.</li>
+              <li>Your own domain, $19 once.</li>
+              <li>First {HOSTING_FREE_DAYS} days of hosting free, then ${HOSTING_PRICE_USD}/month.</li>
             </ul>
             {/* Starts the real journey: account → find your business → connect
                 WhatsApp → name → build. /onboarding needs a session, so the

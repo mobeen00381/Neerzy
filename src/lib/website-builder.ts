@@ -19,7 +19,7 @@ import { createClient } from "@supabase/supabase-js";
 import { chatWithFallback } from "@/lib/openai";
 import { sendMetaText } from "@/lib/whatsapp";
 import { TEMPLATE_REGISTRY, type TemplateId } from "@/lib/templates";
-import { WEBSITE_ELIGIBLE_PLANS } from "@/lib/website";
+import { WEBSITE_SYNC_ELIGIBLE_PLANS } from "@/lib/website";
 import { computeServiceAreas } from "@/lib/service-areas";
 import { getTradeSiteTemplate, type StockPair } from "@/lib/site-templates";
 import { phoneVariants, findBusinessProfileByPhone, getBusinessProfileForUser } from "@/lib/business-profile";
@@ -692,10 +692,11 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
 export const REVIEWS_SYNC_DAYS = Math.max(1, Number(process.env.REVIEWS_SYNC_DAYS || 3));
 
 /**
- * Only paid plans with an ACTIVE subscription may spend Google API calls.
- * Plan off / subscription canceled or past-due → false → ZERO API calls.
- * Uses the shared website-plan list so this gate can never drift out of sync
- * with the build gate (src/lib/website.ts).
+ * Only PAID plans with an ACTIVE subscription may spend Google API calls.
+ * Free plan / canceled / past-due subscription → false → ZERO API calls.
+ * (Sites are still built for free-plan users — they just don't auto-update.)
+ * The plan list lives in src/lib/website.ts so this gate and the pricing copy
+ * can never drift apart.
  */
 export async function isReviewSyncAllowed(userId: string): Promise<boolean> {
   try {
@@ -706,7 +707,7 @@ export async function isReviewSyncAllowed(userId: string): Promise<boolean> {
       .maybeSingle();
     if (!p) return false;
     const plan = (p.selected_plan || "free").toLowerCase();
-    if (!WEBSITE_ELIGIBLE_PLANS.includes(plan)) return false;
+    if (!WEBSITE_SYNC_ELIGIBLE_PLANS.includes(plan)) return false;
     return (p.subscription_status || "active").toLowerCase() === "active";
   } catch {
     return false;

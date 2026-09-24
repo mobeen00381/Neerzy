@@ -2,6 +2,7 @@ import React from "react";
 import BeforeAfterSlider from "./blocks/BeforeAfterSlider";
 import SiteMap from "./blocks/SiteMap";
 import type { SiteSectionId, TradeSiteTemplate, StockPair } from "@/lib/site-templates";
+import { POWERED_BY_URL } from "@/lib/routes";
 
 /**
  * Locked trade website layout — the single renderer behind all ten templates
@@ -760,14 +761,23 @@ export default function TradeSiteTemplate({
             © {new Date().getFullYear()} {businessName}
           </span>
           <span>
-            Website by{" "}
+            Powered by{" "}
             <a
-              href="https://www.neerzy.com"
+              href={POWERED_BY_URL}
               className="font-black text-slate-500 hover:underline"
               target="_blank"
               rel="noopener noreferrer"
             >
               Neerzy
+            </a>
+            {" · "}
+            <a
+              href={POWERED_BY_URL}
+              className="font-black text-slate-500 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Get your free website
             </a>
           </span>
         </div>

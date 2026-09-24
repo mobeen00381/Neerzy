@@ -25,8 +25,10 @@ const PLANS = [
       { text: '5 review requests per month', included: true },
       { text: 'Google posts + review asks', included: true },
       { text: 'Send jobs by WhatsApp or the app link', included: true },
-      { text: 'Your own domain ($19 once)', included: false },
-      { text: 'Website builder', included: false },
+      { text: 'Your own domain ($19 once)', included: true },
+      { text: 'Website builder — free build, no setup fee', included: true },
+      { text: 'Website hosting — $10/month, first 90 days free', included: true },
+      { text: 'Live website sync (new photos & reviews)', included: false },
       { text: 'Social posting', included: false },
     ]
   },
@@ -42,8 +44,9 @@ const PLANS = [
       { text: '25 posts + 25 review requests per month', included: true },
       { text: 'Send jobs by WhatsApp or the app link', included: true },
       { text: 'Your own domain — $19 once', included: true },
-      { text: 'Website builder — $99 setup FREE for early adopters', included: true },
+      { text: 'Website builder — free build, no setup fee', included: true },
       { text: 'Website hosting — $10/month, first 90 days free', included: true },
+      { text: 'Live website sync — new photos & reviews', included: true },
       { text: 'AI post content, captions & voice notes', included: true },
       { text: 'Basic analytics', included: true },
     ]
@@ -58,8 +61,9 @@ const PLANS = [
     features: [
       { text: '60 posts + 60 review requests per month', included: true },
       { text: 'Your own domain — $19 once', included: true },
-      { text: 'Website builder — $99 setup FREE for early adopters', included: true },
+      { text: 'Website builder — free build, no setup fee', included: true },
       { text: 'Website hosting — $10/month, first 90 days free', included: true },
+      { text: 'Live website sync — new photos & reviews', included: true },
       { text: 'Facebook + Instagram content', included: true },
       { text: 'Priority processing', included: true },
       { text: 'Advanced analytics + review tracking', included: true },
@@ -76,8 +80,9 @@ const PLANS = [
       { text: 'Up to 10 traders — each connects their own WhatsApp', included: true },
       { text: '300 posts + 300 review requests per month (30 per trader)', included: true },
       { text: 'One domain per client — $19 each', included: true },
-      { text: 'Website builder per client — $99 setup FREE for early adopters', included: true },
+      { text: 'Website builder per client — free build, no setup fee', included: true },
       { text: 'Hosting $10/month per site, first 90 days free', included: true },
+      { text: 'Live website sync — new photos & reviews per site', included: true },
       { text: 'Google + Facebook + Instagram posts for every trader', included: true },
       { text: 'Agency overview dashboard + priority support', included: true },
     ]
@@ -89,8 +94,9 @@ const COMPARISON = [
   { feature: 'Google posts', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Review asks (WhatsApp, SMS or link)', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Your own domain ($19 once)', free: '—', pro: '✓', growth: '✓', agency: '✓ up to 10' },
-  { feature: 'Website builder (setup $99 — FREE for early adopters)', free: '—', pro: '✓', growth: '✓', agency: '✓ up to 10' },
-  { feature: 'Website hosting ($10/month)', free: '—', pro: '90 days free', growth: '90 days free', agency: '90 days free' },
+  { feature: 'Website builder (free build)', free: '✓', pro: '✓', growth: '✓', agency: '✓ up to 10' },
+  { feature: 'Live website sync (new photos & reviews)', free: '—', pro: '✓', growth: '✓', agency: '✓' },
+  { feature: 'Website hosting ($10/month)', free: '90 days free', pro: '90 days free', growth: '90 days free', agency: '90 days free' },
   { feature: 'Voice notes', free: '—', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Social content', free: '—', pro: '—', growth: '✓', agency: '✓' },
   { feature: 'Analytics', free: 'Basic', pro: 'Basic', growth: 'Advanced', agency: 'Advanced' },
@@ -117,12 +123,11 @@ const ADD_ONS = [
     icon: '🖥️',
     name: 'Your website',
     price: 'FREE',
-    strike: '$99',
-    note: 'setup — early adopters',
+    note: 'build — no setup fee',
     bullets: [
       'Built from your Google listing',
       'Live in about one minute',
-      'Every job updates it by itself',
+      'Live sync updates it on paid plans',
       'Google-ready and AI-ready',
     ],
     cta: 'Build My Website — Free',
@@ -168,7 +173,7 @@ const FAQS = [
   },
   {
     q: 'Is the website extra?',
-    a: 'Your own domain is $19 once. The website build is $99 — free for early adopters. Hosting is $10/month, with the first 90 days free. The Free plan gives you Google posts and review asks, without a domain or website.'
+    a: 'The website build is free on every plan. Your own domain is $19 once, and hosting is $10/month with the first 90 days free. Live sync of new photos and reviews is included with Pro, Growth and Agency.'
   },
   {
     q: 'Can I keep my existing website?',
@@ -355,9 +360,6 @@ export default function PricingPage() {
                   {addon.name}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--space-2)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
-                  {addon.strike && (
-                    <span style={{ textDecoration: 'line-through', color: 'var(--color-text-secondary)', fontSize: 'var(--text-body-size)' }}>{addon.strike}</span>
-                  )}
                   <span style={{ fontSize: '36px', fontWeight: 800, color: 'var(--color-primary)', lineHeight: 1 }}>{addon.price}</span>
                   <span style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', fontWeight: 600 }}>{addon.note}</span>
                 </div>

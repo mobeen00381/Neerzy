@@ -1,6 +1,7 @@
 import React from "react";
 import TradeSiteTemplate from "./TradeSiteTemplate";
 import { getTradeSiteTemplate } from "@/lib/site-templates";
+import { POWERED_BY_URL } from "@/lib/routes";
 
 /**
  * Part 2 — Trader website renderer.
@@ -356,9 +357,13 @@ export default function SiteRenderer({ content, posts = [], preview = false }: P
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-400 font-semibold">
           <span>© {new Date().getFullYear()} {businessName}</span>
           <span>
-            Website by{" "}
-            <a href="https://www.neerzy.com" className="font-black text-slate-500 hover:underline" target="_blank" rel="noopener noreferrer">
+            Powered by{" "}
+            <a href={POWERED_BY_URL} className="font-black text-slate-500 hover:underline" target="_blank" rel="noopener noreferrer">
               Neerzy
+            </a>
+            {" · "}
+            <a href={POWERED_BY_URL} className="font-black text-slate-500 hover:underline" target="_blank" rel="noopener noreferrer">
+              Get your free website
             </a>
           </span>
         </div>
