@@ -271,20 +271,23 @@ export default function Dashboard() {
 
       setPhone(phone); // used to detect WhatsApp connection state for the setup card
 
-      // 2. Fetch business profile
+      // 2. Fetch business profile — by OWNER with the session token, because
+      //    email/Google accounts have no phone number and business_profiles is
+      //    not readable from the browser (RLS is service-role only).
       let bData = null;
-      if (phone) {
-        try {
-          const res = await fetch(`/api/business-profile?phone=${encodeURIComponent(phone)}`);
-          if (res.ok) {
-            const json = await res.json();
-            bData = json.data;
-          }
-        } catch (err) {
-          console.error("Failed to fetch business profile from API:", err);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch('/api/business-profile', {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        });
+        if (res.ok) {
+          const json = await res.json();
+          bData = json.data;
         }
-        setBusinessProfile(bData);
+      } catch (err) {
+        console.error("Failed to fetch business profile from API:", err);
       }
+      setBusinessProfile(bData);
 
       // 3. Fetch user posts from posts (web simulator) and pending_posts (WhatsApp drafts)
       let whatsappPosts: any[] = [];

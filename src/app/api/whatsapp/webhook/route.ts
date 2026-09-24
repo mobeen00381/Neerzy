@@ -7,6 +7,7 @@ import { estimateAudioSeconds } from '@/lib/audio-duration';
 import { convertOggOpusToWav } from '@/lib/audio-convert';
 import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
+import { linkPhoneToBusinessProfile } from '@/lib/business-profile';
 import { generateSocialContent } from '@/lib/social-content';
 import { buildPostPrompt, isUsableJobDescription, type PostPromptContext } from '@/lib/post-prompt';
 import { countUserPosts } from '@/lib/post-usage';
@@ -392,6 +393,18 @@ export async function POST(req: Request) {
               );
             }
           }
+          // Email/Google users connect their business BEFORE any WhatsApp number
+          // exists, so their business_profiles row is owned by user_id alone.
+          // Attaching the number here means every phone-based flow (jobs, review
+          // requests, posts) finds that profile from this moment on — "connect
+          // WhatsApp later, if you want to" without a second business setup.
+          const bizLink = await linkPhoneToBusinessProfile(supabase, userId, normalizedPhone);
+          if (bizLink.ok) {
+            console.log(`✅ business_profiles.user_phone linked to ${normalizedPhone} for ${userId}`);
+          } else {
+            console.warn('⚠️ business_profiles phone link failed:', bizLink.error);
+          }
+
           // Wipe stale drafts left by a previous account on this number so the
           // freshly-linked account starts clean — orphaned drafts can't resurface
           // as "No active draft found" or inflate quota counts. (pending_posts is

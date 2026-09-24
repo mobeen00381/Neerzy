@@ -185,15 +185,16 @@ export default function DomainPanel() {
   useEffect(() => {
     (async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        const meta = (user?.user_metadata || {}) as Record<string, string>;
-        const phone = user?.phone || meta.phone_number || meta.phone;
-        if (!phone) return;
-        const { data } = await supabase
-          .from("business_profiles")
-          .select("address")
-          .eq("user_phone", phone)
-          .maybeSingle();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+        // Server route: business_profiles is service-role only, so the previous
+        // direct browser query always returned nothing (the TLD suggestion
+        // silently fell back to .com for every user).
+        const res = await fetch("/api/business-profile", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (!res.ok) return;
+        const { data } = await res.json();
         if (data?.address) setBusinessAddress(data.address);
       } catch {
         // non-fatal: suggestions still work, just .com-first

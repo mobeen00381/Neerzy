@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { readOnboardingPrefill, clearOnboardingPrefill } from '@/lib/onboarding-prefill';
 
 /**
  * Loads a Google Places photo through the authed /api/places/photo proxy.
@@ -69,6 +70,9 @@ function OnboardingContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  // True when the business came from the /website-builder preview instead of a
+  // fresh search here.
+  const [prefilled, setPrefilled] = useState(false);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -81,14 +85,17 @@ function OnboardingContent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const phone = user.phone || user.user_metadata?.phone_number || user.user_metadata?.phone;
-      if (!phone) return;
+      // Read through the server route: business_profiles is service-role only,
+      // so the old direct browser query always returned nothing and this
+      // "already connected → dashboard" redirect never fired for anyone.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
 
-      const { data } = await supabase
-        .from('business_profiles')
-        .select('google_place_id')
-        .eq('user_phone', phone)
-        .maybeSingle();
+      const res = await fetch('/api/business-profile', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) return;
+      const { data } = await res.json();
 
       if (data?.google_place_id) {
         // Update metadata so we don't have to check DB next time
@@ -100,6 +107,25 @@ function OnboardingContent() {
     };
     checkStatus();
   }, [router]);
+
+  // A visitor who picked their business in the /website-builder preview arrives
+  // with it already chosen: no second search, no second guess.
+  useEffect(() => {
+    const prefill = readOnboardingPrefill();
+    if (!prefill) return;
+
+    setSearchQuery(prefill.name);
+    setSelectedBusiness({
+      placeId: prefill.placeId,
+      name: prefill.name,
+      displayName: { text: prefill.name },
+      formattedAddress: prefill.address,
+      primaryType: prefill.primaryType || 'Business',
+      rating: prefill.rating,
+      photoUrl: prefill.photoUrl,
+    });
+    setPrefilled(true);
+  }, []);
 
   // Real-time search as user types
   useEffect(() => {
@@ -192,6 +218,8 @@ function OnboardingContent() {
         throw new Error(data.error || 'Failed to connect your business. Please try again.');
       }
 
+      // The hand-off has served its purpose — don't prefill it again later.
+      clearOnboardingPrefill();
       router.push('/dashboard');
     } catch (err: any) {
       console.error('Connect business error:', err);
@@ -279,6 +307,11 @@ function OnboardingContent() {
           {selectedBusiness && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-900">
               ✅ <strong>Selected:</strong> {selectedBusiness.name}
+              {prefilled && (
+                <div className="mt-1 text-xs text-green-800">
+                  Picked up from your website preview — search above if it&apos;s the wrong one.
+                </div>
+              )}
             </div>
           )}
 

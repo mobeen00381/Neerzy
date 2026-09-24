@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { hasOnboardingPrefill } from '@/lib/onboarding-prefill';
 import { 
   Mail, 
   Lock, 
@@ -25,6 +26,14 @@ function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // A visitor arriving from the website-builder preview has already chosen their
+  // business (saved by PreviewWidget), so send them to onboarding — which
+  // pre-selects it — rather than the dashboard. sessionStorage survives the
+  // Google OAuth round-trip in the same tab.
+  const afterAuthPath = hasOnboardingPrefill()
+    ? `/onboarding?plan=${plan}`
+    : `/dashboard?plan=${plan}`;
+
   const handleGoogleSignup = async () => {
     setLoading(true);
     setError('');
@@ -33,7 +42,7 @@ function SignupForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard?plan=${plan}`,
+          redirectTo: `${window.location.origin}${afterAuthPath}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent'
@@ -61,13 +70,13 @@ function SignupForm() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard?plan=${plan}`
+          emailRedirectTo: `${window.location.origin}${afterAuthPath}`
         }
       });
       
       if (error) throw error;
       // Navigate to dashboard with parameters
-      router.push(`/dashboard?plan=${plan}`);
+      router.push(afterAuthPath);
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
     } finally {

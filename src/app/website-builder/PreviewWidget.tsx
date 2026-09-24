@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { TEMPLATE_LOOKS, type TemplateId } from "@/lib/template-looks";
+import { saveOnboardingPrefill } from "@/lib/onboarding-prefill";
 
 /**
  * Live Google Business Profile preview — the hero interaction on
@@ -431,6 +432,17 @@ export default function PreviewWidget() {
               href={`/signup?placeId=${encodeURIComponent(selected.placeId)}&name=${encodeURIComponent(
                 selected.displayName?.text || selected.name
               )}`}
+              onClick={() =>
+                saveOnboardingPrefill({
+                  placeId: selected.placeId,
+                  name: selected.displayName?.text || selected.name,
+                  address: selected.formattedAddress || "",
+                  primaryType:
+                    (selected.types || []).find((t) => !t.includes("point_of_interest")) || "",
+                  rating: typeof selected.rating === "number" ? selected.rating : null,
+                  photoUrl: selected.photoUrl || null,
+                })
+              }
               className="btn btn-primary"
             >
               Build This Website →

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { syncWebsitePhotosForUser } from '@/lib/website-builder';
+import { saveBusinessProfileForUser } from '@/lib/business-profile';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,33 +24,51 @@ export async function POST(req: Request) {
       }
     }
 
-    if (!targetPhone) {
+    // Email/Google signup is the primary flow, so a missing WhatsApp number is
+    // NO LONGER an error: the profile is owned by user_id and the number is
+    // attached later, if and when the user connects WhatsApp from the
+    // dashboard. Only an account with neither key can't be saved.
+    if (!data.userId && !targetPhone) {
       return NextResponse.json(
-        { error: 'No phone number linked yet. Connect your WhatsApp number first.' },
+        { error: 'We could not tell which account this business belongs to. Please sign in again and retry.' },
         { status: 400 }
       );
     }
 
-    console.log(`🔗 Connecting business listing: "${data.businessName}" to phone: "${targetPhone}"`);
+    console.log(
+      `🔗 Connecting business listing: "${data.businessName}" ` +
+        `(owner: ${data.userId ? `user ${data.userId}` : `phone ${targetPhone}`})`
+    );
 
-    // ✅ Removed user_id - just save the business info using upsert on user_phone to prevent duplicate key crashes
-    const { error } = await supabase
-      .from('business_profiles')
-      .upsert({
-        user_phone: targetPhone,
-        business_name: data.businessName,
-        address: data.address,
-        category: data.category,
-        google_place_id: data.googlePlaceId,
-        google_maps_url: data.googleMapsUrl || `https://www.google.com/maps/place/?q=place_id:${data.googlePlaceId}`,
-        review_link: `https://search.google.com/local/writereview?placeid=${data.googlePlaceId}`,
-        created_at: new Date().toISOString()
-      }, { onConflict: 'user_phone' });
+    // Owner key: user_id when we have it (works with no phone at all), phone
+    // only as the legacy fallback.
+    const saveResult = await saveBusinessProfileForUser(supabase, data.userId, targetPhone, {
+      business_name: data.businessName,
+      address: data.address,
+      category: data.category,
+      google_place_id: data.googlePlaceId,
+      google_maps_url: data.googleMapsUrl || `https://www.google.com/maps/place/?q=place_id:${data.googlePlaceId}`,
+      review_link: `https://search.google.com/local/writereview?placeid=${data.googlePlaceId}`,
+      created_at: new Date().toISOString()
+    });
 
-    if (error) {
-      console.error('Database error:', error);
-      return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
+    if (!saveResult.ok) {
+      console.error('Database error:', saveResult.error);
+      // If the Phase A migration has not been applied yet, say so in plain
+      // language instead of leaking a raw column error to the visitor.
+      const migrationPending =
+        /user_id/i.test(saveResult.error) && /column|does not exist/i.test(saveResult.error);
+      return NextResponse.json(
+        {
+          error: migrationPending
+            ? 'Business profiles are being upgraded right now. Please try again in a few minutes.'
+            : 'Failed to save profile',
+        },
+        { status: 500 }
+      );
     }
+
+    console.log(`✅ Business profile saved (keyed by ${saveResult.keyedBy})`);
 
     let existingProfile: any = null;
 
@@ -66,7 +85,7 @@ export async function POST(req: Request) {
       try {
         await supabase.auth.admin.updateUserById(data.userId, {
           user_metadata: {
-            phone: targetPhone,
+            ...(targetPhone ? { phone: targetPhone } : {}),
             business_name: data.businessName,
             gbp_connected: true,
             gbp_connected_at: new Date().toISOString(),
@@ -86,7 +105,9 @@ export async function POST(req: Request) {
       const profilePayload: Record<string, any> = {
         id: data.userId,
         business_name: data.businessName,
-        phone: targetPhone,
+        // Only when a WhatsApp number exists — writing null here would erase a
+        // number that was linked later.
+        ...(targetPhone ? { phone: targetPhone } : {}),
         selected_plan: data.plan || 'free',
         gbp_connected: true,
         gbp_connected_at: new Date().toISOString(),
@@ -126,7 +147,7 @@ export async function POST(req: Request) {
           // Update metadata via admin (preserve original trial start)
           await supabase.auth.admin.updateUserById(user.id, {
             user_metadata: {
-              phone: targetPhone,
+              ...(targetPhone ? { phone: targetPhone } : {}),
               business_name: data.businessName,
               gbp_connected: true,
               gbp_connected_at: new Date().toISOString(),

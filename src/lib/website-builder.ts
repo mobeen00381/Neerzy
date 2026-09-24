@@ -22,6 +22,7 @@ import { TEMPLATE_REGISTRY, type TemplateId } from "@/lib/templates";
 import { WEBSITE_ELIGIBLE_PLANS } from "@/lib/website";
 import { computeServiceAreas } from "@/lib/service-areas";
 import { getTradeSiteTemplate, type StockPair } from "@/lib/site-templates";
+import { phoneVariants, findBusinessProfileByPhone, getBusinessProfileForUser } from "@/lib/business-profile";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -363,35 +364,6 @@ function toHoursSpec(
   return spec;
 }
 
-/** All the phone formats a profile/business row might use. */
-function phoneVariants(phone: string): string[] {
-  const digits = (phone || "").replace(/\D/g, "");
-  const set = new Set<string>();
-  if (phone) set.add(phone);
-  if (digits) {
-    set.add(digits);
-    set.add(`+${digits}`);
-  }
-  return [...set].filter(Boolean);
-}
-
-/**
- * The WhatsApp connect flow stores `profiles.phone` without a "+", while the
- * onboarding form stores `business_profiles.user_phone` with one — so we try
- * every format before giving up. (This mismatch silently disabled enrichment.)
- */
-async function findBusinessProfileByPhone(phone: string) {
-  for (const v of phoneVariants(phone)) {
-    const { data } = await supabaseAdmin
-      .from("business_profiles")
-      .select("*")
-      .eq("user_phone", v)
-      .maybeSingle();
-    if (data) return data;
-  }
-  return null;
-}
-
 /** Point the trader's legacy `users` row at their website (any phone format). */
 async function setUserWebsiteUrl(phone: string, url: string) {
   const variants = phoneVariants(phone);
@@ -571,7 +543,9 @@ export async function buildWebsite(websiteId: string): Promise<{ ok: boolean; er
       .maybeSingle();
     const phone = profile?.phone || "";
 
-    const biz = phone ? await findBusinessProfileByPhone(phone) : null;
+    // By OWNER first (email/Google accounts have no phone at all), phone only
+    // as the legacy fallback — otherwise the site built with no business data.
+    const biz = await getBusinessProfileForUser(supabaseAdmin, site.user_id, phone);
 
     const businessName = biz?.business_name || profile?.business_name || site.domain_name || "Your Business";
     const category = biz?.category || "";
@@ -771,7 +745,7 @@ export async function syncWebsiteReviewsForUser(userId: string): Promise<{
       .maybeSingle();
     const phone = profile?.phone || "";
 
-    const biz = phone ? await findBusinessProfileByPhone(phone) : null;
+    const biz = phone ? await findBusinessProfileByPhone(supabaseAdmin, phone) : null;
     const placeId = biz?.google_place_id || null;
     if (!placeId) return { ok: false, updated: false, hasNewReview: false, error: "no place id" };
 
@@ -879,7 +853,7 @@ export async function syncWebsitePhotosForUser(userId: string): Promise<{
       .maybeSingle();
     const phone = profile?.phone || "";
 
-    const biz = phone ? await findBusinessProfileByPhone(phone) : null;
+    const biz = phone ? await findBusinessProfileByPhone(supabaseAdmin, phone) : null;
     const placeId = biz?.google_place_id || null;
     if (!placeId) return { ok: false, updated: false, photoCount: 0, error: "no place id" };
 
