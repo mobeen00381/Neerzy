@@ -13,6 +13,9 @@ export interface GuideFrontmatter {
   breadcrumbName: string;
   schemaArticle?: string;
   schemaFaq?: Array<{ q: string; a: string }>;
+  /** Footnote sources, rendered by the [slug] page as the "Sources" list.
+   *  Kept in frontmatter (not MDX scope) because MDX expressions cannot see it. */
+  sources?: Array<{ id: number; text: string }>;
 }
 
 export interface GuideData {

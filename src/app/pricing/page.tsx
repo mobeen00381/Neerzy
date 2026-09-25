@@ -382,7 +382,7 @@ export default function PricingPage() {
             ))}
           </div>
           <p style={{ textAlign: 'center', marginTop: 'var(--space-4)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
-            $19 is paid once per domain. Hosting is $10/month after 90 free days. The website build is $99 — free for early adopters.
+            $19 is paid once per domain. The website build is free, and hosting is $10/month after 90 free days. Live Google sync (new photos and reviews updating your site automatically) is included on paid plans.
           </p>
         </div>
       </section>

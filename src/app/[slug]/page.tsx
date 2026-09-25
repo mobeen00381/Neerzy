@@ -139,6 +139,21 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           }}
         />
         
+        {/* Sources — rendered from frontmatter (MDX expressions cannot read it),
+            so <Footnote id={n} /> anchors in the body resolve to these entries. */}
+        {frontmatter.sources && frontmatter.sources.length > 0 && (
+          <section className="mt-8 pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-bold text-slate-900 mb-3">Sources</h3>
+            <ol className="text-sm text-gray-600 space-y-1 list-decimal pl-5">
+              {frontmatter.sources.map((s) => (
+                <li key={s.id} id={`source-${s.id}`}>
+                  <a href={`#fn-${s.id}`} className="text-[#0F5132] hover:underline">&uarr;</a> {s.text}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
         {/* Hub-and-Spoke Internal Linking Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200">
           <div className="bg-gray-50 rounded-xl p-8 border border-gray-200">
