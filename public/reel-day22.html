@@ -140,19 +140,45 @@ function cross(cx, cy, r, color) {
   ctx.moveTo(cx + r * 0.4, cy - r * 0.4); ctx.lineTo(cx - r * 0.4, cy + r * 0.4);
   ctx.stroke();
 }
-function neerzyWord(cx, cy, k) {
-  const s = 118 * k;
-  rr(cx - 330 * k, cy - s / 2 - 6 * k, s, s, s * 0.3);
-  ctx.fillStyle = C.accent; ctx.fill();
-  setFont(66 * k, 900);
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = C.ink;
-  ctx.fillText('n', cx - 330 * k + s / 2, cy + 2 * k);
-  setFont(112 * k, 900);
-  ctx.textAlign = 'left';
-  ctx.fillStyle = C.white;
-  ctx.fillText('neerzy', cx - 190 * k, cy);
-  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+// Brand logo drawn from public/images/logo-icon.svg (gradient tile + concentric circles).
+function drawLogoIcon(x, y, s) {
+  const g = ctx.createLinearGradient(x, y, x + s, y + s);
+  g.addColorStop(0, '#22C55E'); g.addColorStop(0.55, '#16A34A'); g.addColorStop(1, '#0B3D2E');
+  rr(x, y, s, s, s * 0.283); ctx.fillStyle = g; ctx.fill();
+  const cx = x + s / 2, cy = y + s / 2, u = s / 64;
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 3 * u;
+  ctx.beginPath(); ctx.arc(cx, cy, 18 * u, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 3.5 * u;
+  ctx.beginPath(); ctx.arc(cx, cy, 11 * u, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath(); ctx.arc(cx, cy, 4 * u, 0, Math.PI * 2); ctx.fill();
+}
+// "NEER" white + "ZY" accent, italic 800 - matches logo-white.svg wordmark.
+function brandWord(x, cy, px) {
+  ctx.font = 'italic 800 ' + px + 'px ' + TXT;
+  ctx.letterSpacing = Math.max(1, Math.round(px * 0.016)) + 'px';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText('NEER', x, cy);
+  ctx.fillStyle = C.accent;
+  ctx.fillText('ZY', x + ctx.measureText('NEER').width, cy);
+  ctx.letterSpacing = '0px'; ctx.textAlign = 'center';
+}
+function brandLockup(cx, cy, k) {
+  const s = 150 * k, u = s / 60, gap = 14 * u;
+  ctx.font = 'italic 800 ' + Math.round(31 * u) + 'px ' + TXT;
+  ctx.letterSpacing = Math.max(1, Math.round(0.5 * u)) + 'px';
+  const tw = ctx.measureText('NEERZY').width;
+  ctx.letterSpacing = '0px';
+  const x0 = cx - (s + gap + tw) / 2;
+  drawLogoIcon(x0, cy - s / 2, s);
+  brandWord(x0 + s + gap, cy + 12 * u, Math.round(31 * u));
+}
+function brandChip() {
+  ctx.globalAlpha = 0.96;
+  drawLogoIcon(56, 54, 68);
+  brandWord(140, 102, 44);
+  ctx.globalAlpha = 1;
 }
 function pill(label, cy, k, t, t0) {
   const a = ease(alpha(t, 0, 1, t0, t0 + 0.6));
@@ -186,10 +212,7 @@ function phoneFrame(t, t0) {
   rr(sx, sy, sw, sh, 40); ctx.fillStyle = C.mint; ctx.fill();
   rr(sx, sy, sw, headerH, 40); ctx.fillStyle = C.card; ctx.fill();
   rr(sx, sy + headerH - 30, sw, 30, 0); ctx.fill();
-  ctx.strokeStyle = C.accent; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.arc(sx + 78, sy + headerH / 2, 26, 0, Math.PI * 2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(sx + 78, sy + headerH / 2, 14, 0, Math.PI * 2);
-  ctx.fillStyle = C.accent; ctx.fill();
+  drawLogoIcon(sx + 78 - 27, sy + headerH / 2 - 27, 54);
   setFont(42, 800);
   ctx.textAlign = 'left';
   ctx.fillStyle = C.white;
@@ -541,7 +564,7 @@ function sceneOutro(t, d) {
   let a = ease(alpha(t, 0, 1, 0.05 * d.dur, 0.05 * d.dur + 0.7));
   if (a > 0.01) {
     ctx.globalAlpha = a;
-    neerzyWord(W / 2 + 70, 470, 0.95);
+    brandLockup(W / 2, 470, 1);
     ctx.globalAlpha = 1;
   }
   a = ease(alpha(t, 0, 1, 0.2 * d.dur, 0.2 * d.dur + 0.7));
@@ -585,6 +608,7 @@ function draw(t) {
     if (t >= s.start && t < s.end) { sc = s; break; }
   }
   SCENES[sc.data.kind](t - sc.start, sc.data);
+  if (sc.data.kind !== 'outro') brandChip();
   for (const b of BOUNDS) {
     const d = Math.abs(t - b);
     if (d < 0.28) {
