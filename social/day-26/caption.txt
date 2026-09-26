@@ -1,0 +1,44 @@
+NEERZY - 30 DAY SOCIAL MEDIA PLAN (v3)
+Day 26 | Oct 23, 2026 (Friday) | IG (Reel) | Pillar: Feature Spotlight
+Best time to post: 8:00 AM
+================================================
+
+HOOK (on-screen promise)
+------------------------------------------------
+No apps. No dashboards. No tech skills. Really.
+
+ASSET
+------------------------------------------------
+social/day-26/day-26-reel.mp4  (1080x1920, 9:16, 21.5s)
+Storyboard page: public/reel-day26.html
+
+REEL BEATS (on-screen text)
+------------------------------------------------
+0.0-4.2s    REALLY - "No dashboards." / "No tech skills."
+4.2-12.4s   "You already know how to use it" - left (OTHER TOOLS): Another login, Another dashboard, Another thing to learn | right (NEERZY): Send a message, Tap to post, Done in a minute
+12.4-18.0s  "Use WhatsApp, SMS or a link" - Prefer no WhatsApp? / Sign in with email or Google / Post from the quick-post link
+18.0-21.5s  Logo + CTA "Start free" - neerzy.com - link in bio
+
+------------------------------------------------
+CAPTION
+------------------------------------------------
+You do not have to learn new software to grow online. If you can send a message, you already know how to use Neerzy. Prefer no WhatsApp at all? Sign in with email or Google, post from the quick-post link, and send review asks by SMS or link. That is the whole point - marketing that fits into your day.
+
+------------------------------------------------
+HASHTAGS
+------------------------------------------------
+#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #NoTechSkillsNeeded #SmallBusinessTools #TradesLife
+
+------------------------------------------------
+CALL TO ACTION
+------------------------------------------------
+It really is this simple - link in bio. (neerzy.com/pricing)
+
+------------------------------------------------
+POSTING CHECKLIST
+------------------------------------------------
+[ ] Upload day-26-reel.mp4 to IG Reels (FB Reels optional)
+[ ] Cover frame: pick a frame from the middle scene for the grid preview
+[ ] Caption above into the post body, hashtags appended
+[ ] CTA in the first comment or at the bottom of the caption
+[ ] Best time: 8:00 AM

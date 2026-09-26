@@ -1,0 +1,44 @@
+NEERZY - 30 DAY SOCIAL MEDIA PLAN (v3)
+Day 16 | Oct 13, 2026 (Tuesday) | IG (Reel) | Pillar: Education / Tip
+Best time to post: 11:30 AM
+================================================
+
+HOOK (on-screen promise)
+------------------------------------------------
+What even IS a Google Business Profile?
+
+ASSET
+------------------------------------------------
+social/day-16/day-16-reel.mp4  (1080x1920, 9:16, 22s)
+Storyboard page: public/reel-day16.html
+
+REEL BEATS (on-screen text)
+------------------------------------------------
+0.0-4.4s    THE BASICS - "The box on Google Maps" / "that decides everything."
+4.4-10.6s   "The first thing customers check" - Opening hours and phone / Photos of your work / Reviews and replies
+10.6-17.8s  Score reveal 66/100 (Most profiles land here) - Profile completeness 78% / Reviews 54% / Activity 41% / Photos 62%
+17.8-22.0s  Logo + CTA "Check it free" - neerzy.com - no signup needed
+
+------------------------------------------------
+CAPTION
+------------------------------------------------
+It is the box that pops up on Google Maps with your name, hours, phone number, photos and reviews. It is often the FIRST thing a customer sees about you - before your website, before anything. Our free score tool grades four parts of it: profile completeness, reviews, activity, and photos. Check yours free.
+
+------------------------------------------------
+HASHTAGS
+------------------------------------------------
+#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #GoogleBusinessProfile #LocalSEOExplained #GoogleMaps
+
+------------------------------------------------
+CALL TO ACTION
+------------------------------------------------
+Check yours free with our Google Score tool - link in bio. (neerzy.com/pricing)
+
+------------------------------------------------
+POSTING CHECKLIST
+------------------------------------------------
+[ ] Upload day-16-reel.mp4 to IG Reels (FB Reels optional)
+[ ] Cover frame: pick a frame from the middle scene for the grid preview
+[ ] Caption above into the post body, hashtags appended
+[ ] CTA in the first comment or at the bottom of the caption
+[ ] Best time: 11:30 AM

@@ -1,0 +1,44 @@
+NEERZY - 30 DAY SOCIAL MEDIA PLAN (v3)
+Day 27 | Oct 24, 2026 (Saturday) | IG (Reel) | Pillar: Feature Spotlight
+Best time to post: 6:30 PM
+================================================
+
+HOOK (on-screen promise)
+------------------------------------------------
+Search your business. See your website. Free.
+
+ASSET
+------------------------------------------------
+social/day-27/day-27-reel.mp4  (1080x1920, 9:16, 22s)
+Storyboard page: public/reel-day27.html
+
+REEL BEATS (on-screen text)
+------------------------------------------------
+0.0-4.4s    FREE PREVIEW - "Search your business." / "See your website."
+4.4-11.8s   Chat screen: "Find my business and build my site." -> Neerzy: "Found you - pulling your profile details into your website now." | rows: Name and address in / Hours and phone in / Photos and reviews in
+11.8-18.0s  "Change Google, the site follows" - Synced with your profile / Free build and preview / Publish on your own domain
+18.0-22.0s  Logo + CTA "Free preview" - neerzy.com - $19 domain, first 90 days hosted free
+
+------------------------------------------------
+CAPTION
+------------------------------------------------
+Type your business name into Neerzy and watch your website build itself from your real Google profile - your name, address, hours, photos and reviews, already filled in. It stays in sync as your profile changes, and it is just a preview until you publish it on your own domain. Try it on your own business.
+
+------------------------------------------------
+HASHTAGS
+------------------------------------------------
+#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #WebsiteBuilder #GoogleBusinessProfile #SmallBusinessWebsite
+
+------------------------------------------------
+CALL TO ACTION
+------------------------------------------------
+Try the free preview - link in bio. (neerzy.com/pricing)
+
+------------------------------------------------
+POSTING CHECKLIST
+------------------------------------------------
+[ ] Upload day-27-reel.mp4 to IG Reels (FB Reels optional)
+[ ] Cover frame: pick a frame from the middle scene for the grid preview
+[ ] Caption above into the post body, hashtags appended
+[ ] CTA in the first comment or at the bottom of the caption
+[ ] Best time: 6:30 PM

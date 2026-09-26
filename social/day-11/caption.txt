@@ -1,49 +1,44 @@
-NEERZY — 30 DAY SOCIAL MEDIA PLAN
-Day 11 · Sep 17, 2026 (Thursday) · FB & IG · Feed Post · Pillar: Value (Your Own Domain)
-Best time to post: 7:30 AM
+NEERZY - 30 DAY SOCIAL MEDIA PLAN (v3)
+Day 11 | Oct 08, 2026 (Thursday) | IG (Reel) | Pillar: Education / Tip
+Best time to post: 6:00 PM
 ================================================
+
+HOOK (on-screen promise)
+------------------------------------------------
+Why photos matter more than you think
 
 ASSET
 ------------------------------------------------
-social/day-11/day-11-post.png  (1080x1350, 4:5)
+social/day-11/day-11-reel.mp4  (1080x1920, 9:16, 21.5s)
+Storyboard page: public/reel-day11.html
 
-On-screen: dark green header band ("YOUR OWN DOMAIN") · white body with
-"Your own name online — you own it." · dark price panel with $19 in accent
-green, "once" · three mint rows: we search the name for you / you keep the
-domain / it points at your new site · light footer with CTA "Claim Your Name"
-and "What would your domain be? Drop it below 👇"
+REEL BEATS (on-screen text)
+------------------------------------------------
+0.0-4.2s    BEFORE THEY READ - "Customers see" / "your photos first."
+4.2-12.6s   "Same business. Very different page." - left (FIVE OLD PHOTOS): Looks closed, Looks quiet, Looks out of date | right (FRESH EVERY WEEK): Looks busy, Looks trusted, Looks worth calling
+12.6-18.0s  "Photos are one of the four scores" - Profile completeness / Reviews / Photos and activity
+18.0-21.5s  Logo + CTA "Check your free score" - neerzy.com - free Google score tool
 
 ------------------------------------------------
 CAPTION
 ------------------------------------------------
-Your own .com — $19 once, and it's yours. 🔒
-
-Not rented. Not tied to us. You own the domain, even if you ever leave Neerzy.
-
-We search the name for you, buy it, and point it straight at your new website. No forms to fight, no hosting jargon.
-
-So let's play a game 👇 if you had your own domain today, what would it be? Drop your best one below — we'll tell you if it's still free.
+Google shows customers your photos before they read a word about you. A page with 5 old photos looks closed. A page with fresh, regular photos looks busy and trusted. It is also one of the four things our free score tool grades - photos count, every single time.
 
 ------------------------------------------------
 HASHTAGS
 ------------------------------------------------
-#Neerzy #LocalTrades #SmallBusinessOwner #OwnYourName #HomeServices #WebPresence #Plumber #Electrician #Roofer #HVAC #Handyman #GetOnline
+#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #GoogleBusinessProfile #LocalSEOTips #TradesBusiness #Photography
 
 ------------------------------------------------
 CALL TO ACTION
 ------------------------------------------------
-Claim Your Name → neerzy.com/pricing (link in bio)
-
-FIRST COMMENT (post this right after publishing)
-------------------------------------------------
-What would your domain be? Best one in the comments gets a shout-out. 👇
+Let Neerzy turn your job photos into posts - link in bio. (neerzy.com/pricing)
 
 ------------------------------------------------
 POSTING CHECKLIST
 ------------------------------------------------
-[ ] Upload social/day-11/day-11-post.png  (1080×1350, 4:5)
-[ ] Caption above into the post body
-[ ] Hashtags appended
-[ ] First comment posted with the naming prompt
-[ ] Reply to each domain idea (check availability, reply with the result)
-[ ] Best time: 7:30 AM
+[ ] Upload day-11-reel.mp4 to IG Reels (FB Reels optional)
+[ ] Cover frame: pick a frame from the middle scene for the grid preview
+[ ] Caption above into the post body, hashtags appended
+[ ] CTA in the first comment or at the bottom of the caption
+[ ] Best time: 6:00 PM

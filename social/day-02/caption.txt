@@ -1,46 +1,45 @@
-NEERZY — 30 DAY SOCIAL MEDIA PLAN
-Day 2 · Sep 08, 2026 (Tuesday) · IG (Reel) + FB/IG Feed Post · Pillar: Pain Point
+NEERZY - 30 DAY SOCIAL MEDIA PLAN (v3)
+Day 2 | Sep 29, 2026 (Tuesday) | IG (Reel) | Pillar: Pain Point
 Best time to post: 6:30 PM
 ================================================
 
-REEL COPY (IG)
+HOOK (on-screen promise)
 ------------------------------------------------
-Assets: social/day-02/day-02-reel.mp4  (1080x1920, 9:16, 22.5s)
+Tired after work? So is your marketing
 
-Caption:
-You fix pipes, wires, and roofs all day. By the time you're home, you're too tired to post online. That's normal. Most traders feel this way.
-
-Neerzy fixes it. Send us one job photo on WhatsApp. We turn it into a Google post, a review request, and more. You rest, we work. 👷
-
+ASSET
 ------------------------------------------------
-FEED POST (bonus — for FB feed / IG grid)
+social/day-02/day-02-reel.mp4  (1080x1920, 9:16, 23s)
+Storyboard page: public/reel-day02.html
+
+REEL BEATS (on-screen text)
 ------------------------------------------------
-Assets: social/day-02/day-02-post.png  (1080x1350, 4:5)
-
-Caption:
-Tired after work? So is your marketing. 😅
-
-You fix pipes, wires, and roofs all day. By the time you're home, you're too tired to post online. That's normal.
-
-Neerzy turns ONE job photo on WhatsApp into: your Google post, a review request to your customer, and a website refresh.
-
-You rest. We work.
+0.0-4.4s    AFTER A LONG DAY - "Tired after work?" / "So is your marketing."
+4.4-9.4s    THE PROBLEM - "By the time you are home," / "posting is the last thing"
+9.4-16.4s   Chat screen: "Finished a boiler swap today. Photo attached." -> Neerzy: "Nice one! Here is your Google post, ready to publish." | rows: Google post written / Review request ready / Website updated
+16.4-19.8s  "One message." / "Everything else, handled."
+19.8-23.0s  Logo + CTA "See how easy it is" - Start free at neerzy.com - link in bio
 
 ------------------------------------------------
-HASHTAGS (both posts)
+CAPTION
 ------------------------------------------------
-#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #TradesLife #WorkLifeBalance #Handyman #SmallBusinessMarketing #WhatsAppBusiness
+You fix pipes, wires, and roofs all day. By the time you are home, posting online is the last thing you want to do. Send Neerzy one job photo and we write the Google post, the review request, and the website update for you. You just tap to send it.
+
+------------------------------------------------
+HASHTAGS
+------------------------------------------------
+#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #TradesLife #WorkLifeBalance #SmallBusinessMarketing #WhatsAppBusiness
 
 ------------------------------------------------
 CALL TO ACTION
 ------------------------------------------------
-See how easy it is — link in bio. → neerzy.com/pricing
+See how easy it is - link in bio. (neerzy.com/pricing)
 
 ------------------------------------------------
 POSTING CHECKLIST
 ------------------------------------------------
-[ ] Upload day-02-reel.mp4 to IG (Reels) — 6:30 PM
-[ ] Upload day-02-post.png to FB feed (+ optional IG grid)
-[ ] Caption above into post body
-[ ] Hashtags appended
-[ ] CTA in first comment or caption bottom
+[ ] Upload day-02-reel.mp4 to IG Reels (FB Reels optional)
+[ ] Cover frame: pick a frame from the middle scene for the grid preview
+[ ] Caption above into the post body, hashtags appended
+[ ] CTA in the first comment or at the bottom of the caption
+[ ] Best time: 6:30 PM

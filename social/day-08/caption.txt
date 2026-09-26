@@ -1,53 +1,44 @@
-NEERZY — 30 DAY SOCIAL MEDIA PLAN
-Day 8 · Sep 14, 2026 (Monday) · FB & IG · Feed Post · Pillar: Launch (Website Builder)
-Best time to post: 7:30 AM
+NEERZY - 30 DAY SOCIAL MEDIA PLAN (v3)
+Day 8 | Oct 05, 2026 (Monday) | IG (Reel) | Pillar: Feature Spotlight
+Best time to post: 8:30 AM
 ================================================
+
+HOOK (on-screen promise)
+------------------------------------------------
+Your job photo, turned into a Google post
 
 ASSET
 ------------------------------------------------
-social/day-08/day-08-post.png  (1080x1350, 4:5)
+social/day-08/day-08-reel.mp4  (1080x1920, 9:16, 21.5s)
+Storyboard page: public/reel-day08.html
 
-On-screen: dark green header band ("WEBSITE BUILDER") · light mint body with
-"Tap one button. Get a real website." · three dark step cards (Pick your
-business → Connect WhatsApp → Tap build) · "NO SKILL NEEDED" pill with
-coding / design / setup struck through · dark footer band with CTA
-"Build My Website — Free"
+REEL BEATS (on-screen text)
+------------------------------------------------
+0.0-4.4s    FINISHED JOB - "One photo." / "A live Google page."
+4.4-12.0s   Chat screen: "Bathroom refit finished in Leeds today." -> Neerzy: "Written and ready - Google post and website update, all done." | rows: Photo uploaded / Google post written / Website refreshed
+12.0-17.4s  "A quiet page looks closed" - Google favours active pages / Customers trust fresh work / One photo does it all
+17.4-21.5s  Logo + CTA "Start free" - neerzy.com - free for your first 30 days
 
 ------------------------------------------------
 CAPTION
 ------------------------------------------------
-New: you can build your website in one tap. 🎉
-
-No designer. No coding. No setup weekend.
-
-Step 1 — pick your business (we read it straight from your Google profile).
-Step 2 — connect WhatsApp once.
-Step 3 — tap build.
-
-Your words, photos and reviews are already in. Ten looks to choose from. Live in under a minute — then every new job updates the site by itself.
-
-Question for you 👇 what's stopped you from getting a website up until now? No judgement — the answers help us make it even easier.
+Take a photo of the job you just finished. Send it to Neerzy. In under a minute you have a Google post ready to publish - helping new customers find you while the job is still fresh. That same photo also keeps your website looking alive.
 
 ------------------------------------------------
 HASHTAGS
 ------------------------------------------------
-#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #WebsiteBuilder #Plumber #Electrician #Roofer #HVAC #Handyman #GetOnline
+#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #GooglePosts #LocalSEO #TradesLife
 
 ------------------------------------------------
 CALL TO ACTION
 ------------------------------------------------
-Build My Website — Free → neerzy.com/pricing (link in bio)
-
-FIRST COMMENT (post this right after publishing)
-------------------------------------------------
-What's stopping you from getting online? Drop it below — we'll answer every one. 👇
+Try it free with your next job - link in bio. (neerzy.com/pricing)
 
 ------------------------------------------------
 POSTING CHECKLIST
 ------------------------------------------------
-[ ] Upload social/day-08/day-08-post.png  (1080×1350, 4:5 — feeds both FB & IG)
-[ ] Caption above into the post body
-[ ] Hashtags appended
-[ ] First comment posted with the question
-[ ] Reply to every comment in the first hour
-[ ] Best time: 7:30 AM
+[ ] Upload day-08-reel.mp4 to IG Reels (FB Reels optional)
+[ ] Cover frame: pick a frame from the middle scene for the grid preview
+[ ] Caption above into the post body, hashtags appended
+[ ] CTA in the first comment or at the bottom of the caption
+[ ] Best time: 8:30 AM

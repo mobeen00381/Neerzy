@@ -1,0 +1,44 @@
+NEERZY - 30 DAY SOCIAL MEDIA PLAN (v3)
+Day 22 | Oct 19, 2026 (Monday) | IG (Reel) | Pillar: Free Tool
+Best time to post: 9:00 AM
+================================================
+
+HOOK (on-screen promise)
+------------------------------------------------
+Would your Google page pass this test?
+
+ASSET
+------------------------------------------------
+social/day-22/day-22-reel.mp4  (1080x1920, 9:16, 22.5s)
+Storyboard page: public/reel-day22.html
+
+REEL BEATS (on-screen text)
+------------------------------------------------
+0.0-4.4s    FREE CHECK - "Would your Google page" / "pass this test?"
+4.4-12.8s   Score reveal 66/100 (A typical trade profile) - Profile completeness 74% / Reviews 52% / Activity 38% / Photos 60%
+12.8-18.8s  "You get the fixes, ranked" - What to do first / What to do next / Free, no account needed
+18.8-22.5s  Logo + CTA "Check it free" - neerzy.com - free Google score tool
+
+------------------------------------------------
+CAPTION
+------------------------------------------------
+We check 4 things: how complete your profile is, your reviews, how active you are, and your photos. Type your business name into our free Google Score tool and get your score in about 30 seconds, with the fixes ranked for you. Most traders are surprised by their number.
+
+------------------------------------------------
+HASHTAGS
+------------------------------------------------
+#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #GoogleBusinessProfile #FreeAuditTool #LocalSEO
+
+------------------------------------------------
+CALL TO ACTION
+------------------------------------------------
+Get your free score now - link in bio. (neerzy.com/pricing)
+
+------------------------------------------------
+POSTING CHECKLIST
+------------------------------------------------
+[ ] Upload day-22-reel.mp4 to IG Reels (FB Reels optional)
+[ ] Cover frame: pick a frame from the middle scene for the grid preview
+[ ] Caption above into the post body, hashtags appended
+[ ] CTA in the first comment or at the bottom of the caption
+[ ] Best time: 9:00 AM

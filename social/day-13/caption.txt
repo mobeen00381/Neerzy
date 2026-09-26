@@ -1,52 +1,44 @@
-NEERZY — 30 DAY SOCIAL MEDIA PLAN
-Day 13 · Sep 19, 2026 (Saturday) · FB & IG · Feed Post · Pillar: Proof (Always Fresh)
-Best time to post: 9:00 AM
+NEERZY - 30 DAY SOCIAL MEDIA PLAN (v3)
+Day 13 | Oct 10, 2026 (Saturday) | IG (Reel) | Pillar: Brand Story
+Best time to post: 7:30 PM
 ================================================
+
+HOOK (on-screen promise)
+------------------------------------------------
+Why we built Neerzy
 
 ASSET
 ------------------------------------------------
-social/day-13/day-13-post.png  (1080x1350, 4:5)
+social/day-13/day-13-reel.mp4  (1080x1920, 9:16, 22s)
+Storyboard page: public/reel-day13.html
 
-On-screen: dark green header band ("ALWAYS FRESH") · "Finish the job. Your site
-updates itself." · dark flow cards with arrows — send one photo → your site
-refreshes → Google stays busy · mint pill "You never touch a dashboard. Ever."
-· dark footer band with CTA and "What was the last job you finished? 📸"
+REEL BEATS (on-screen text)
+------------------------------------------------
+0.0-4.6s    OUR REASON - "Great work," / "quiet Google page."
+4.6-12.2s   "Small business vs big budget" - left (WITHOUT A SYSTEM): No time to post, Reviews forgotten, Website stale | right (WITH NEERZY): Post in one message, Review asked instantly, Site stays in sync
+12.2-17.8s  "Built for the tools you already use" - No agency needed / No new software / You own everything
+17.8-22.0s  Logo + CTA "Join free" - neerzy.com - 30 days free, no card
 
 ------------------------------------------------
 CAPTION
 ------------------------------------------------
-A website is only useful if it doesn't look abandoned. This one can't. 🔁
-
-Finish a job, send one photo on WhatsApp, and:
-
-• your website refreshes with the new work
-• your Google page gets a fresh post
-• your customer gets a friendly review request
-
-No dashboard. No logins. Nothing to remember — and nothing to forget.
-
-Saturday question 👇 what was the last job you finished this week? Drop it in the comments (a photo is even better 📸).
+We watched hardworking traders lose customers to bigger companies - not because their work was worse, but because their Google page was quiet. Neerzy exists so skilled traders can compete fairly, without hiring an agency and without learning new software.
 
 ------------------------------------------------
 HASHTAGS
 ------------------------------------------------
-#Neerzy #LocalTrades #SmallBusinessOwner #TradesLife #HomeServices #WebsiteMaintenance #GoogleBusinessProfile #Plumber #Electrician #Roofer #HVAC #Handyman
+#Neerzy #LocalTrades #SmallBusinessOwner #GrowYourBusiness #HomeServices #MissionDriven #SmallBusinessSupport #FairCompetition
 
 ------------------------------------------------
 CALL TO ACTION
 ------------------------------------------------
-Build My Website — Free → neerzy.com/pricing (link in bio)
-
-FIRST COMMENT (post this right after publishing)
-------------------------------------------------
-What was your last job this week? Tell us below — and tag your trade. 👇
+Join traders growing with Neerzy - link in bio. (neerzy.com/pricing)
 
 ------------------------------------------------
 POSTING CHECKLIST
 ------------------------------------------------
-[ ] Upload social/day-13/day-13-post.png  (1080×1350, 4:5)
-[ ] Caption above into the post body
-[ ] Hashtags appended
-[ ] First comment posted with the weekend prompt
-[ ] Reply to every job comment (ask what trade they're in) — this is the relationship-building post
-[ ] Best time: 9:00 AM
+[ ] Upload day-13-reel.mp4 to IG Reels (FB Reels optional)
+[ ] Cover frame: pick a frame from the middle scene for the grid preview
+[ ] Caption above into the post body, hashtags appended
+[ ] CTA in the first comment or at the bottom of the caption
+[ ] Best time: 7:30 PM
