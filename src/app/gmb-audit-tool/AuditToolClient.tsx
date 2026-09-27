@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { ROUTES } from '@/lib/routes';
 import { 
   Building2, 
   Search, 
@@ -291,15 +293,15 @@ export default function AuditToolClient() {
               />
               <FeatureCard 
                 title="Comprehensive GMB Audit"
-                description="We check 5 critical areas: completeness, photos, reviews, engagement, and local SEO optimization."
+                description="We check 5 critical areas: completeness, photos, reviews, engagement, and local SEO optimization. Most GMB SEO tools stop at a score — this one tells you exactly what to fix."
               />
               <FeatureCard 
                 title="Actionable Recommendations"
                 description="Get specific, prioritized action items to improve your local search rankings and attract more customers."
               />
               <FeatureCard 
-                title="Local SEO Checker"
-                description="Identify what's holding your business back from ranking #1 in Google Maps and local search results."
+                title="Free Google My Business Checker"
+                description="Our GBP checker identifies what's holding your business back from ranking #1 in Google Maps and local search results."
               />
               <FeatureCard 
                 title="Mobile-Friendly Audit"
@@ -336,7 +338,7 @@ export default function AuditToolClient() {
               <StepCard 
                 number="4"
                 title="Fix & Improve"
-                description="Follow recommendations or let Neerzy handle it for you"
+                description="Follow the recommendations, or let Neerzy prepare each fix for you — ready to post, one tap."
               />
             </div>
           </div>
@@ -358,6 +360,7 @@ export default function AuditToolClient() {
                   "Business description (750 characters)",
                   "Attributes and services offered"
                 ]}
+                href={ROUTES.GUIDES.COMPLETENESS}
               />
               <AuditCheckCard 
                 category="Visual Content & Photos"
@@ -370,6 +373,7 @@ export default function AuditToolClient() {
                   "Photo diversity (interior, exterior, team)",
                   "Video content presence"
                 ]}
+                href={ROUTES.GUIDES.VISUAL}
               />
               <AuditCheckCard 
                 category="Reviews & Reputation"
@@ -382,6 +386,7 @@ export default function AuditToolClient() {
                   "Review keywords and sentiment",
                   "Star rating distribution"
                 ]}
+                href={ROUTES.GUIDES.REVIEWS}
               />
               <AuditCheckCard 
                 category="Engagement & Activity"
@@ -394,6 +399,7 @@ export default function AuditToolClient() {
                   "Product/service listings",
                   "Booking links and CTAs"
                 ]}
+                href={ROUTES.GUIDES.ENGAGEMENT}
               />
               <AuditCheckCard 
                 category="Local SEO Optimization"
@@ -406,6 +412,7 @@ export default function AuditToolClient() {
                   "NAP consistency across web",
                   "Backlinks from website to GBP"
                 ]}
+                href={ROUTES.GUIDES.LOCAL_SEO}
                 style={{ gridColumn: '1 / -1', maxWidth: '500px', margin: '0 auto' }}
               />
             </div>
@@ -420,11 +427,19 @@ export default function AuditToolClient() {
               A GMB audit (a GBP audit for local SEO) scores the health of your Google Business Profile itself — completeness, photos, reviews, engagement, and local SEO optimization. A full local SEO audit goes further, also covering your website, citations, and overall local search presence, with your Google Business Profile as one piece of the puzzle.
             </p>
             <div className="card-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-              <FeatureCard title="GMB Audit (This Tool)" description="Scores your Google Business Profile across 5 weighted categories and returns a 0–100 score with prioritized fixes — in under 30 seconds." />
-              <FeatureCard title="Full Local SEO Audit" description="Looks beyond your GBP at your website, citations, and content. Start with your free GMB audit above, then widen the scope from there." />
+              <FeatureCard title="GMB Audit (This Tool)" description="Scores your Google Business Profile across 5 weighted categories and returns a 0–100 score with prioritized fixes — in under 30 seconds." href={ROUTES.IMPROVE_SCORE} />
+              <FeatureCard title="Full Local SEO Audit" description="Looks beyond your GBP at your website, citations, and content. Start with your free GMB audit above, then widen the scope from there." href={ROUTES.UNDERSTANDING_SCORE} />
             </div>
             <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', textAlign: 'center', maxWidth: '650px', margin: 'var(--space-5) auto 0' }}>
-              Not sure where to start? Run the free GMB audit above — your Google Business Profile is the highest-impact asset in most local seo strategy work, and it&apos;s the fastest to improve.
+              Not sure where to start? Run the free GMB audit above — your Google Business Profile is the highest-impact asset in most local seo strategy work, and it&apos;s the fastest to improve. Then read{' '}
+              <Link href={ROUTES.UNDERSTANDING_SCORE} style={{ color: 'var(--color-accent)', fontWeight: 700, textDecoration: 'none' }}>
+                how your GBP audit score is calculated
+              </Link>{' '}
+              and follow the step-by-step plan to{' '}
+              <Link href={ROUTES.IMPROVE_SCORE} style={{ color: 'var(--color-accent)', fontWeight: 700, textDecoration: 'none' }}>
+                improve your audit score
+              </Link>
+              .
             </p>
             {/* TODO(seo): Internal link per SEO brief - once the /gmb-seo pillar page is live,
                 add a contextual link here: <a href="/gmb-seo">gmb seo</a> (anchor text: "gmb seo" or "local seo strategy"). */}
@@ -454,8 +469,15 @@ export default function AuditToolClient() {
             <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: '#FFFFFF', marginBottom: 'var(--space-3)', letterSpacing: '-0.02em' }}>
               Ready to Improve Your Local SEO?
             </h2>
-            <p style={{ fontSize: 'var(--text-body-size)', color: 'rgba(255,255,255,0.85)', maxWidth: '500px', margin: '0 auto var(--space-5)' }}>
-              Get your free Google Business Profile audit now and discover what's holding you back from ranking #1. Let Neerzy help you automate the fix.
+            <p style={{ fontSize: 'var(--text-body-size)', color: 'rgba(255,255,255,0.85)', maxWidth: '500px', margin: '0 auto var(--space-3)' }}>
+              Get your free Google Business Profile audit now and discover what's holding you back from ranking #1. Let Neerzy prepare the fix for you.
+            </p>
+            <p style={{ fontSize: 'var(--text-small-size)', color: 'rgba(255,255,255,0.85)', maxWidth: '500px', margin: '0 auto var(--space-5)' }}>
+              Free to start — 5 posts and 5 review requests in your first 30 days, no card required.{' '}
+              <Link href="/pricing" style={{ color: '#FFFFFF', fontWeight: 700, textDecoration: 'underline' }}>
+                See what&apos;s included
+              </Link>
+              .
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', alignItems: 'center' }}>
               <button 
@@ -482,11 +504,20 @@ export default function AuditToolClient() {
 }
 
 // Component: Feature Card
-function FeatureCard({ title, description }: { title: string; description: string }) {
+function FeatureCard({ title, description, href }: { title: string; description: string; href?: string }) {
   return (
     <div className="card" style={{ textAlign: 'center' }}>
       <h3 style={{ fontSize: 'var(--text-h3-size)', lineHeight: 'var(--text-h3-line)', fontWeight: 'var(--text-h3-weight)', color: 'var(--color-text-primary)', marginBottom: 'var(--space-2)' }}>{title}</h3>
       <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', lineHeight: 'var(--text-small-line)', margin: 0 }}>{description}</p>
+      {href && (
+        <Link
+          href={href}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: 'var(--space-3)', fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-accent)', textDecoration: 'none' }}
+        >
+          <span>Read the full guide</span>
+          <ArrowUpRight size={14} />
+        </Link>
+      )}
     </div>
   );
 }
@@ -505,7 +536,7 @@ function StepCard({ number, title, description }: { number: string; title: strin
 }
 
 // Component: Audit Check Card
-function AuditCheckCard({ category, weight, icon, checks, style: customStyle = {} }: { category: string; weight: string; icon: React.ReactNode; checks: string[]; style?: React.CSSProperties }) {
+function AuditCheckCard({ category, weight, icon, checks, href, style: customStyle = {} }: { category: string; weight: string; icon: React.ReactNode; checks: string[]; href?: string; style?: React.CSSProperties }) {
   return (
     <div className="card" style={customStyle as React.CSSProperties}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
@@ -529,6 +560,17 @@ function AuditCheckCard({ category, weight, icon, checks, style: customStyle = {
           </li>
         ))}
       </ul>
+      {/* Hub-and-spoke link: every scored category maps 1:1 to its deep-dive
+          guide, so a visitor who sees a weak category can act on it immediately. */}
+      {href && (
+        <Link
+          href={href}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: 'var(--space-4)', fontSize: 'var(--text-small-size)', fontWeight: 700, color: 'var(--color-accent)', textDecoration: 'none' }}
+        >
+          <span>Learn more: how to improve this score</span>
+          <ArrowUpRight size={14} />
+        </Link>
+      )}
     </div>
   );
 }
@@ -572,18 +614,23 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </span>
       </button>
-      {isOpen && (
-        <div style={{ 
-          padding: '0 var(--space-4) var(--space-4)', 
-          color: 'var(--color-text-secondary)', 
+      {/* The answer is ALWAYS rendered into the DOM — `hidden` toggles
+          visibility instead of conditionally mounting the node. Answers must be
+          present in the server-rendered HTML so crawlers and AI answer engines
+          can read them (FAQPage JSON-LD in page.tsx mirrors this same text). */}
+      <div
+        hidden={!isOpen}
+        style={{
+          padding: '0 var(--space-4) var(--space-4)',
+          color: 'var(--color-text-secondary)',
           fontSize: 'var(--text-body-size)',
           lineHeight: 'var(--text-body-line)',
           borderTop: '1px solid var(--color-border)',
           paddingTop: 'var(--space-3)'
-        }}>
-          {answer}
-        </div>
-      )}
+        }}
+      >
+        {answer}
+      </div>
     </div>
   );
 }

@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 
+// Single source of truth for this page's title. It previously drifted into
+// THREE different strings — `<title>`, og:title and twitter:title each said
+// something different — which is how one page ends up with three competing
+// "canonical" titles. Every consumer below reads this one constant.
+const CANONICAL_TITLE =
+  "Free GMB Audit Tool | Google Business Profile Audit in 30 Seconds";
+
 export const metadata: Metadata = {
   // "absolute" bypasses the root layout "%s | Neerzy" title template so the
-  // brand isn't appended twice. Title is 60 chars with the primary keyword
-  // "GMB Audit Tool" leading (SEO brief, section 2).
+  // brand isn't appended twice. Title leads with the primary keyword
+  // "GMB Audit Tool" (SEO brief, section 2).
   title: {
-    absolute: "Free GMB Audit Tool | Google Business Profile Audit - Neerzy",
+    absolute: CANONICAL_TITLE,
   },
   description:
     "Run a free GMB audit tool scan on any Google Business Profile. Get an instant local SEO audit score, see what's hurting your rankings, and fix it in seconds. No signup required.",
@@ -36,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "https://www.neerzy.com/gmb-audit-tool",
-    title: "Free GMB Audit Tool | Google Business Profile Audit in 30 Seconds",
+    title: CANONICAL_TITLE,
     description:
       "Run a free GMB audit tool scan on any Google Business Profile. Get an instant local SEO audit score and see what's hurting your rankings.",
     images: [
@@ -51,7 +58,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Free GMB Audit Tool | Google Business Profile Audit",
+    title: CANONICAL_TITLE,
     description:
       "Run a free GMB audit tool scan on any Google Business Profile. Instant local SEO audit score, no signup required.",
     images: ["https://www.neerzy.com/og-images/gbp-audit-tool.jpg"],

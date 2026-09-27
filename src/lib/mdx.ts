@@ -11,6 +11,9 @@ export interface GuideFrontmatter {
   featured: boolean;
   guideType: 'pillar' | 'category';
   breadcrumbName: string;
+  /** ISO date of the last meaningful edit. Falls back to `date` in the Article
+   *  schema and the visible "Updated" line — bump it when you edit a guide. */
+  dateModified?: string;
   schemaArticle?: string;
   schemaFaq?: Array<{ q: string; a: string }>;
   /** Footnote sources, rendered by the [slug] page as the "Sources" list.

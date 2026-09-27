@@ -636,7 +636,7 @@ export default function Page() {
         <div className="container">
           <div className="steps-header">
             <h2>Show up higher on Google Maps.</h2>
-            <p>Google shows the businesses that keep posting and keep collecting reviews. Neerzy does both — automatically.</p>
+            <p>Google shows the businesses that keep posting and keep collecting reviews. On a paid plan, Neerzy keeps both going for you — every post prepared, one tap to publish, and review requests sent after each job.</p>
           </div>
 
           {/* Story: one real business, before and after */}

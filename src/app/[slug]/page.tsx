@@ -66,16 +66,21 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const PAGE_URL = `${SITE_URL_EXPORT}/${slug}`;
   
   // ---- Schema.org structured data ----
-  const articleSchema = frontmatter.schemaArticle ? {
+  // Emitted for EVERY guide, not just the three pillars. The 7 category guides
+  // are full articles too, and both search E-E-A-T and AI-citation freshness
+  // depend on headline/author/datePublished/dateModified being present. The
+  // optional `schemaArticle` only overrides the (longer, SEO-tuned) headline.
+  const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: frontmatter.schemaArticle,
+    headline: frontmatter.schemaArticle || frontmatter.title,
     description: frontmatter.meta_description,
     author: { '@type': 'Organization', name: 'Neerzy', url: SITE_URL_EXPORT },
     publisher: { '@type': 'Organization', name: 'Neerzy', url: SITE_URL_EXPORT },
     datePublished: frontmatter.date,
+    dateModified: frontmatter.dateModified || frontmatter.date,
     mainEntityOfPage: PAGE_URL,
-  } : null;
+  };
   
   const faqSchema = frontmatter.schemaFaq ? {
     '@context': 'https://schema.org',
@@ -128,6 +133,20 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6 leading-tight">
           {frontmatter.title}
         </h1>
+
+        {/* Visible freshness signal — mirrors Article.dateModified in the JSON-LD.
+            Bump `dateModified` in the guide frontmatter when you edit the body. */}
+        <p className="text-sm text-gray-500 mb-8">
+          <time dateTime={frontmatter.dateModified || frontmatter.date}>
+            Updated{' '}
+            {new Date(frontmatter.dateModified || frontmatter.date).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              timeZone: 'UTC',
+            })}
+          </time>
+        </p>
         
         <MDXRemote
           source={content}
