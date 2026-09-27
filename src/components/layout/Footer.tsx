@@ -107,9 +107,17 @@ export default function Footer() {
         </div>
         <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-5)', borderTop: '1px solid var(--color-border)' }}>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
-              © {new Date().getFullYear()} Neerzy. All rights reserved.
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+              <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
+                © {new Date().getFullYear()} Neerzy. All rights reserved.
+              </p>
+              {/* Smol Startup's badge is served as a hosted SVG; their directory
+                  verifies this exact embed, so it stays a plain <img>. */}
+              <a href="https://smolstartup.com/projects/neerzy?utm_source=badge" target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="https://smolstartup.com/smolstartup/images/badges/featured-on-light.svg" alt="Featured on Smol Startup" style={{ height: '44px', width: 'auto' }} />
+              </a>
+            </div>
             <div style={{ fontSize: '10px', color: 'var(--color-text-secondary)', maxWidth: '400px', textAlign: 'center', lineHeight: 1.3, fontStyle: 'italic' }}>
               Neerzy is an independent platform and is not affiliated with, endorsed by, or a partner of Google or WhatsApp. Google Business Profile and WhatsApp are trademarks of their respective owners.
             </div>
