@@ -3,14 +3,14 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Pricing | Neerzy – Simple WhatsApp Marketing Plans for Local Businesses",
   description:
-    "Start free with 5 posts. Upgrade to Pro ($39/mo), Growth ($79/mo), or Agency ($199/mo) for unlimited local marketing automation via WhatsApp. No dashboards. No tech skills needed.",
+    "Start free — your first 30 days include 5 Google posts and 5 review requests, no card needed. Then Pro ($39/mo), Growth ($79/mo) or Agency ($199/mo).",
   alternates: {
     canonical: "https://www.neerzy.com/pricing",
   },
   openGraph: {
     title: "Neerzy Pricing | Simple Plans for Local Business Marketing",
     description:
-      "Turn every job into a Google post, website update, and review request via WhatsApp. Free plan available. Upgrade anytime.",
+      "Turn every job into a Google post, website update, and review request via WhatsApp. Start free — your first 30 days include 5 posts and 5 review requests.",
     url: "https://www.neerzy.com/pricing",
     siteName: "Neerzy",
     locale: "en_US",

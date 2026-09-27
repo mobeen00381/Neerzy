@@ -45,11 +45,11 @@ Add your customer's name and phone number, and Neerzy writes the review ask for 
     patterns: ['pricing', 'how much', 'cost', 'price', 'subscription', 'what plans', 'plan options', 'packages'],
     answer: `Here are our plans:
 
-🆓 **Free Plan** — $0/mo
-• 5 posts/month (1/day) • 5 review requests/month (1/day)
+🆓 **Free start — first 30 days** — $0, no card required
+• 5 posts in the first 30 days (1/day) • 5 review requests in the first 30 days (1/day)
 • Google posts + review asks
 • Send jobs by WhatsApp or the app link
-• 30-day free trial
+• After day 30, posting and live sync pause until you pick a plan — nothing is deleted
 
 💼 **Pro Plan** — $39/mo
 • 25 posts/month (2/day) • 25 review requests/month (2/day)
@@ -80,14 +80,14 @@ Add your customer's name and phone number, and Neerzy writes the review ask for 
   },
   {
     patterns: ['free plan', 'free tier', 'free version', 'is it free', 'free trial'],
-    answer: `Yes! Our **Free Plan** is completely free — $0/month! 🎉
+    answer: `Yes! Neerzy starts free: your **first 30 days** cost $0 — no card required to start. 🎉
 
 It includes:
-• 5 posts per month (1/day)
-• 5 review requests per month (1/day)
+• 5 posts in your first 30 days (1/day)
+• 5 review requests in your first 30 days (1/day)
 • Google posts + review asks
 • Send jobs by WhatsApp or the app link
-• **30-day free trial** to explore everything
+• After day 30, posting and live sync pause until you pick a plan — nothing is deleted
 
 You can build and publish your website on any plan — your own domain is a one-time $19. No credit card required to start. 👉 Get started at /onboarding`
   },
@@ -181,15 +181,15 @@ On a paid plan your website auto-updates every time you post. No website builder
   // ── Trial ──
   {
     patterns: ['trial', '30 day', 'try neerzy', 'test it', 'try it'],
-    answer: `The **Free Plan** comes with a **30-day free trial** — no credit card required! 🎉
+    answer: `Your Neerzy account starts with your **first 30 days free** — no credit card required! 🎉
 
-During the trial you get:
-• 5 posts per month
-• 5 review requests per month
+In your first 30 days you get:
+• 5 posts (1/day)
+• 5 review requests (1/day)
 • Google posts + review asks
 • Send jobs by WhatsApp or the app link
 
-After the trial, you can upgrade to Pro ($39/mo), Growth ($79/mo), or Agency ($199/mo) — or stay on Free with your remaining posts. 👉 /onboarding`
+After day 30 you can pick Pro ($39/mo), Growth ($79/mo) or Agency ($199/mo) — posting and live sync pause until you do, and nothing you've created is deleted. 👉 /onboarding`
   },
 
   // ── Cancellation ──
@@ -366,23 +366,23 @@ Pro tip: Growth and Agency plans get priority support! 🚀`
     patterns: ['compare', 'compare plans', 'which plan', 'what plan should', 'best plan for me', 'recommend a plan', 'recommend', 'difference between', 'free vs', 'vs pro', 'vs growth', 'vs agency', 'upgrade', 'downgrade', 'switch plan', 'change plan'],
     answer: `Here's a quick comparison to help you choose:
 
-🆓 **Free** - $0/mo: 5 posts + 5 review requests per month. Google posts and review asks, by WhatsApp or the Neerzy link. Includes the 30-day trial.
+🆓 **Free start** - $0 for your first 30 days: 5 posts + 5 review requests. Google posts and review asks, by WhatsApp or the Neerzy link. No card required; after day 30, posting and live sync pause until you pick a plan.
 💼 **Pro** - $39/mo: Your own domain — $19 once, website builder (free build, then $10/mo hosting; live sync included), 25 posts + 25 review requests per month, AI captions, voice notes, basic analytics. Best for a single contractor posting every day.
 🚀 **Growth** - $79/mo: Your own domain and website builder on the same terms as Pro, plus 60 posts + 60 review requests per month, Facebook & Instagram posts, priority processing, advanced analytics and review tracking. Best for growing businesses.
 🏢 **Agency** - $199/mo: up to 10 traders, 300 posts + 300 review requests per month (30 per trader), a domain and website for each client, Google + Facebook + Instagram for every trader, agency dashboard. Best for marketing agencies.
 
-Starting out? The **Free Plan** with its 30-day trial is the safest pick - you can upgrade anytime. 👉 /onboarding`
+Starting out? Your **first 30 days are free** - the safest pick - and you can upgrade anytime. 👉 /onboarding`
   },
   {
     patterns: ['how many posts', 'post limit', 'posts per day', 'posts per month', 'max posts', 'how many reviews', 'review limit', 'daily limit', 'monthly limit', 'posting limit'],
     answer: `Here are your posting and review limits per plan:
 
-🆓 **Free** - 5 posts/month (1/day) • 5 review requests/month (1/day)
+🆓 **Free (first 30 days)** - 5 posts (1/day) • 5 review requests (1/day)
 💼 **Pro** - 25 posts/month (2/day) • 25 review requests/month (2/day)
 🚀 **Growth** - 60 posts/month (4/day) • 60 review requests/month (4/day)
 🏢 **Agency** - 300 posts + 300 review requests/month across up to 10 traders (30 per trader)
 
-Limits refresh each month. 👉 /onboarding`
+Limits refresh each month on a paid plan; your free start is 5 posts + 5 review requests in the first 30 days. 👉 /onboarding`
   },
   {
     patterns: ['analytics', 'dashboard', 'report', 'reports', 'review tracking', 'see my posts', 'view my posts', 'track my posts', 'stats'],
@@ -488,7 +488,7 @@ If you're based somewhere we don't cover yet or need content in another language
     answer: `Getting started takes about 2 minutes:
 
 1. 👉 Head to /onboarding
-2. Pick a plan (Free includes a 30-day trial - no credit card needed)
+2. Pick a plan (your first 30 days are free - no credit card needed)
 3. Pay the one-time $19 domain fee to claim your custom domain
 4. Connect WhatsApp and your Google Business Profile
 5. Optional: tap **Build Website** in the dashboard — the build is free, and hosting is $10/month (free for your first 90 days)

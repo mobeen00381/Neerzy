@@ -23,8 +23,8 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     totalReviewRequests: 5,
     dailyReviewRequests: 1, // Free trial: 1 review request per day
     features: [
-      '5 posts per month',
-      '5 review requests per month',
+      'First 30 days: 5 posts',
+      'First 30 days: 5 review requests',
       '1 post per day limit',
       'Google posts + review asks',
       'Send jobs by WhatsApp or the app link',

@@ -16,13 +16,13 @@ const PLANS = [
   {
     name: 'Free',
     price: '0',
-    bestFor: 'Trying Neerzy for the first time',
+    bestFor: 'Your first 30 days — no card required',
     cta: 'Start Free',
     href: '/signup?plan=free',
     highlight: false,
     features: [
-      { text: '5 posts per month', included: true },
-      { text: '5 review requests per month', included: true },
+      { text: 'First 30 days: 5 posts', included: true },
+      { text: 'First 30 days: 5 review requests', included: true },
       { text: 'Google posts + review asks', included: true },
       { text: 'Send jobs by WhatsApp or the app link', included: true },
       { text: 'Your own domain ($19 once)', included: true },
@@ -93,7 +93,7 @@ const COMPARISON = [
   { feature: 'Send by WhatsApp or the app link', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Google posts', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Review asks (WhatsApp, SMS or link)', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
-  { feature: 'Your own domain ($19 once)', free: '—', pro: '✓', growth: '✓', agency: '✓ up to 10' },
+  { feature: 'Your own domain ($19 once)', free: '✓', pro: '✓', growth: '✓', agency: '✓ up to 10' },
   { feature: 'Website builder (free build)', free: '✓', pro: '✓', growth: '✓', agency: '✓ up to 10' },
   { feature: 'Live website sync (new photos & reviews)', free: '—', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Website hosting ($10/month)', free: '90 days free', pro: '90 days free', growth: '90 days free', agency: '90 days free' },
@@ -103,7 +103,7 @@ const COMPARISON = [
   { feature: 'Manage 10 traders', free: '—', pro: '—', growth: '—', agency: '✓' },
 ];
 
-/** Add-ons sold on top of any paid plan. */
+/** Add-ons available on any plan. */
 const ADD_ONS = [
   {
     icon: '🌐',
@@ -394,6 +394,9 @@ export default function PricingPage() {
             <h2 style={{ fontSize: 'var(--text-h2-size)', lineHeight: 'var(--text-h2-line)', fontWeight: 'var(--text-h2-weight)', color: 'var(--color-primary)', letterSpacing: '-0.02em' }}>
               Everything you need to stay active online
             </h2>
+            <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', maxWidth: '560px', margin: 'var(--space-3) auto 0' }}>
+              The Free column is your first 30 days — 5 posts and 5 review requests, no card required. After day 30, posting and live Google sync pause until you choose a plan; nothing is deleted.
+            </p>
           </div>
           
           <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
@@ -401,7 +404,7 @@ export default function PricingPage() {
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                   <th style={{ padding: 'var(--space-4)', textAlign: 'left', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-secondary)' }}>Feature</th>
-                  <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>Free</th>
+                  <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>Free (first 30 days)</th>
                   <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-primary)' }}>Pro</th>
                   <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>Growth</th>
                   <th style={{ padding: 'var(--space-4)', textAlign: 'center', fontSize: 'var(--text-small-size)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-primary)' }}>Agency</th>

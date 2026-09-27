@@ -11,8 +11,8 @@ export const PRICING_PLANS = {
     priceMonthly: 0,
     postsPerMonth: 5,
     features: [
-      "5 posts per month",
-      "5 review requests per month",
+      "First 30 days: 5 posts",
+      "First 30 days: 5 review requests",
       "Google posts + review asks",
       "Send jobs by WhatsApp or the app link"
     ]
@@ -70,7 +70,7 @@ export const PRICING_PLANS = {
 export const FAQ_ITEMS = [
   {
     question: "What happens after my trial?",
-    answer: "You can stay on the Free plan (5 posts + 5 review asks a month) or upgrade to a paid plan anytime for more posts and live website sync. You can build and publish your website on any plan — your own domain is $19 once."
+    answer: "Your first 30 days include 5 Google posts and 5 review requests, no card required. After day 30, posting and live Google sync pause until you pick a plan — Pro $39/mo, Growth $79/mo or Agency $199/mo — and nothing you've created is deleted. You can build and publish your website on any plan; your own domain is $19 once."
   },
   {
     question: "Can I change plans later?",

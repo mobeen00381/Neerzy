@@ -310,9 +310,9 @@ export default function DemoPage({ params }: { params: Promise<{ code: string }>
                   className={`p-5 border-2 rounded-xl cursor-pointer relative shadow-sm transition-all ${selectedPlan === "free" ? "border-blue-500 bg-blue-50/20" : "border-slate-200 bg-white hover:border-blue-300"}`}
                 >
                   <div className={`absolute top-4 right-4 h-5 w-5 rounded-full border ${selectedPlan === "free" ? "border-[6px] border-blue-500 bg-white" : "border-slate-300"}`} />
-                  <h3 className="text-xl font-bold text-slate-900">Free Plan</h3>
-                  <div className="text-2xl font-extrabold my-2">$0<span className="text-sm text-slate-500 font-normal">/mo</span></div>
-                  <p className="text-sm text-slate-600">5 WhatsApp posts total to try Neerzy.</p>
+                  <h3 className="text-xl font-bold text-slate-900">Free — first 30 days</h3>
+                  <div className="text-2xl font-extrabold my-2">$0<span className="text-sm text-slate-500 font-normal"> no card required</span></div>
+                  <p className="text-sm text-slate-600">Your first 30 days: 5 posts and 5 review requests.</p>
                 </div>
 
                 <div
