@@ -44,7 +44,12 @@ export function SeoGuideLayout({ title, description, path, children }: SeoGuideL
     name: 'Neerzy',
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
-    sameAs: [],
+    sameAs: [
+      'https://www.facebook.com/profile.php?id=61573222476095',
+      'https://www.instagram.com/neerzy_/',
+      'https://x.com/mobeen00381',
+      'https://www.linkedin.com/in/muhammad-mobeen-5b7592434',
+    ],
   };
 
   const webPageSchema = {

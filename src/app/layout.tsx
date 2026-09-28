@@ -61,6 +61,12 @@ const organizationSchema = {
   "url": "https://www.neerzy.com",
   "logo": "https://www.neerzy.com/images/logo.png",
   "description": "Done-for-you SEO websites and Google Business management for local service businesses via WhatsApp.",
+  "sameAs": [
+    "https://www.facebook.com/profile.php?id=61573222476095",
+    "https://www.instagram.com/neerzy_/",
+    "https://x.com/mobeen00381",
+    "https://www.linkedin.com/in/muhammad-mobeen-5b7592434"
+  ],
   "contactPoint": {
     "@type": "ContactPoint",
     "telephone": "+1-833-887-2999",

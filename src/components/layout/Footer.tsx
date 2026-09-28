@@ -5,6 +5,8 @@ import type { CSSProperties } from "react";
 import { WhatsAppIcon } from "../ui/WhatsAppIcon";
 import { FacebookIcon } from "../ui/FacebookIcon";
 import { InstagramIcon } from "../ui/InstagramIcon";
+import { XIcon } from "../ui/XIcon";
+import { LinkedInIcon } from "../ui/LinkedInIcon";
 import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
 import { isTraderSitePath, isTemplateDemoPath } from "@/lib/routes";
@@ -13,6 +15,8 @@ import { isTraderSitePath, isTemplateDemoPath } from "@/lib/routes";
 const SOCIAL_LINKS = [
   { label: "Facebook", href: "https://www.facebook.com/profile.php?id=61573222476095", Icon: FacebookIcon },
   { label: "Instagram", href: "https://www.instagram.com/neerzy_/", Icon: InstagramIcon },
+  { label: "X (Twitter)", href: "https://x.com/mobeen00381", Icon: XIcon },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/muhammad-mobeen-5b7592434", Icon: LinkedInIcon },
 ];
 
 // External directory & review profiles, shown in the "As Featured On & Reviews" strip.
