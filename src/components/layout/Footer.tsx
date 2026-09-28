@@ -15,6 +15,16 @@ const SOCIAL_LINKS = [
   { label: "Instagram", href: "https://www.instagram.com/neerzy_/", Icon: InstagramIcon },
 ];
 
+// External directory & review profiles, shown in the "As Featured On & Reviews" strip.
+const FEATURED_LINKS = [
+  { label: "Capterra", href: "https://www.capterra.com/p/10185871/Neerzy/" },
+  { label: "Software Advice", href: "https://www.softwareadvice.com/product/693466-Neerzy/" },
+  { label: "Product Hunt", href: "https://www.producthunt.com/products/neerzy?launch=neerzy" },
+  { label: "SaaSHub", href: "https://www.saashub.com/neerzy" },
+  { label: "AlternativeTo", href: "https://alternativeto.net/software/neerzy/about/" },
+  { label: "SmolStartup", href: "https://smolstartup.com/projects/neerzy" },
+];
+
 const socialLinkStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -103,6 +113,24 @@ export default function Footer() {
               <li><Link href="/terms" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Terms of Service</Link></li>
               <li><Link href="/cookies" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Cookie Policy</Link></li>
             </ul>
+          </div>
+        </div>
+        <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-5)', borderTop: '1px solid var(--color-border)' }}>
+          <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>As Featured On & Reviews</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2" style={{ fontSize: 'var(--text-small-size)' }}>
+            {FEATURED_LINKS.map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}
+              >
+                {label}
+              </a>
+            ))}
           </div>
         </div>
         <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-5)', borderTop: '1px solid var(--color-border)' }}>
