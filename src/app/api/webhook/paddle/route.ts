@@ -341,20 +341,21 @@ export async function POST(req: Request) {
         }
       }
 
-      // ── 1b. WEBSITE purchase → $99 setup paid + $10/mo hosting active ──
+      // ── 1b. WEBSITE purchase → domain paid + $10/mo hosting active ──
       // Marked with source:'website' so it never touches plan/quota billing.
       if (serviceSource === 'website' && serviceWebsiteId) {
         const siteUpdate: any = {};
         if (isDomainPayment) {
-          // one-time $99 setup charged (latecomers)
+          // Domain payment ($19 once). The build itself is free — the old $99
+          // early-adopter setup fee was retired (see src/lib/website.ts).
           siteUpdate.setup_paid = true;
           siteUpdate.setup_paid_at = new Date().toISOString();
           siteUpdate.status = 'building';
           if (transactionId) siteUpdate.paddle_transaction_id = transactionId;
         }
         if (isSubscriptionActivation) {
-          // $10/mo hosting subscription created (latecomers pay up-front,
-          // early adopters start it after their free 90 days)
+          // $10/mo hosting subscription created. Hosting is free for the first
+          // HOSTING_FREE_DAYS (90) days, then this keeps it active.
           siteUpdate.hosting_status = 'active';
           if (subscriptionIdFromEvent) siteUpdate.paddle_subscription_id = subscriptionIdFromEvent;
         }
