@@ -1,4 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Neerzy — The Website Builder Built From Your Google Business Profile
+
+[![Official Website](https://img.shields.io/badge/Website-neerzy.com-064E3B?style=for-the-badge)](https://www.neerzy.com/)
+[![Local SEO](https://img.shields.io/badge/Focus-Local_SEO_%26_GBP-10B981?style=for-the-badge)](https://www.neerzy.com/)
+
+[Neerzy](https://www.neerzy.com/) is a zero-dashboard local marketing platform and instant website builder designed for local trade professionals (plumbers, electricians, roofers, HVAC techs).
+
+## 🚀 Platform Overview
+
+* **Auto Google Sync Website Builder:** Automatically generates a live website directly from your Google Business Profile, keeping services, hours, and Google reviews in continuous live sync.
+* **WhatsApp Job Updates & Tap-to-Post:** Field technicians text completed job photos over WhatsApp or a web app link. Neerzy updates the website portfolio instantly and sends a 1-tap link to publish directly to Google Business Profile.
+* **Review Automation:** Sends direct Google review request links to customers via SMS or WhatsApp right after job completion.
+* **Zero Dashboard Friction:** Designed for busy contractors—no complex CMS logins or manual web maintenance required.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Framework:** Next.js (App Router)
+* **Database & Auth:** Supabase
+* **Styling:** Tailwind CSS
+* **Deployment:** Vercel
+* **Infrastructure:** Cloudflare & Twilio / WhatsApp API
+
+---This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
