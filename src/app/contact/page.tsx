@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CONTACT_PHONE_DISPLAY, CONTACT_TEL_HREF, contactWhatsAppHref } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Contact Us | Neerzy",
@@ -37,7 +38,10 @@ export default function ContactPage() {
           <div className="mb-6">
             <h3 className="font-bold text-[#0A2E22]">Phone</h3>
             <p className="text-[#5B6B64]">
-              <a href="tel:+18338872999" className="hover:text-[#0F5132] transition-colors">Toll Free: +1 (833) 887-2999</a>
+              <a href={CONTACT_TEL_HREF} className="hover:text-[#0F5132] transition-colors">Call / SMS: {CONTACT_PHONE_DISPLAY}</a>
+            </p>
+            <p className="text-[#5B6B64]">
+              <a href={contactWhatsAppHref()} target="_blank" rel="noopener noreferrer" className="hover:text-[#0F5132] transition-colors">WhatsApp: {CONTACT_PHONE_DISPLAY}</a>
             </p>
           </div>
           

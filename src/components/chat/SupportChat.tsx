@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Loader2, Sparkles, Bot, Lock } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { MessageSquare, MessageSquareText, X, Send, Sparkles, Bot, Lock } from "lucide-react";
+import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
+import { CONTACT_PHONE_DISPLAY, CONTACT_SMS_HREF, contactWhatsAppHref } from "@/lib/contact";
 
 type Message = {
   role: "user" | "assistant";
@@ -143,15 +144,40 @@ export function SupportChat({
 
   if (!isOpen) {
     return (
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-50 group"
-      >
-        <MessageSquare className="h-6 w-6 group-hover:animate-pulse" />
-        {showBadge && (
-          <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-pulse" />
-        )}
-      </button>
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-3">
+        {/* WhatsApp — live chat with the Neerzy team */}
+        <a
+          href={contactWhatsAppHref("Hi Neerzy! I have a question.")}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Chat with Neerzy on WhatsApp at ${CONTACT_PHONE_DISPLAY}`}
+          title={`WhatsApp us: ${CONTACT_PHONE_DISPLAY}`}
+          className="w-14 h-14 bg-[#25D366] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform"
+        >
+          <WhatsAppIcon size={28} />
+        </a>
+
+        {/* SMS — text us straight from the site */}
+        <a
+          href={CONTACT_SMS_HREF}
+          aria-label={`SMS Neerzy at ${CONTACT_PHONE_DISPLAY}`}
+          title={`SMS us: ${CONTACT_PHONE_DISPLAY}`}
+          className="w-14 h-14 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform"
+        >
+          <MessageSquareText className="h-6 w-6" />
+        </a>
+
+        {/* AI assistant */}
+        <button
+          onClick={() => setIsOpen(true)}
+          className="w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform group relative"
+        >
+          <MessageSquare className="h-6 w-6 group-hover:animate-pulse" />
+          {showBadge && (
+            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-pulse" />
+          )}
+        </button>
+      </div>
     );
   }
 

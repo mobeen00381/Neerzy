@@ -10,6 +10,7 @@ import QueryProvider from "@/components/providers/QueryProvider";
 import PaddleCheckoutLink from "@/components/PaddleCheckoutLink";
 import { initMonitoring } from "@/lib/monitoring";
 import Script from "next/script";
+import { CONTACT_PHONE_E164 } from "@/lib/contact";
 
 initMonitoring();
 
@@ -69,7 +70,7 @@ const organizationSchema = {
   ],
   "contactPoint": {
     "@type": "ContactPoint",
-    "telephone": "+1-833-887-2999",
+    "telephone": CONTACT_PHONE_E164,
     "contactType": "customer service"
   }
 };

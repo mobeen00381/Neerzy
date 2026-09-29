@@ -10,6 +10,7 @@ import { LinkedInIcon } from "../ui/LinkedInIcon";
 import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
 import { isTraderSitePath, isTemplateDemoPath } from "@/lib/routes";
+import { CONTACT_PHONE_DISPLAY, CONTACT_TEL_HREF, contactWhatsAppHref } from "@/lib/contact";
 
 // Neerzy's own social profiles, shown in the footer of every marketing page.
 const SOCIAL_LINKS = [
@@ -65,8 +66,13 @@ export default function Footer() {
               Take a photo after every job. Send it on WhatsApp or the Neerzy link. Neerzy writes the post, asks for the review, and keeps your website fresh.
             </p>
             <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', fontWeight: 500, marginTop: 'var(--space-2)' }}>
-              <a href="tel:+18338872999" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)', textDecoration: 'none' }}>
-                <WhatsAppIcon size={16} className="text-[#22C55E]" /> Toll Free: +1 (833) 887-2999
+              <a href={contactWhatsAppHref()} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)', textDecoration: 'none' }}>
+                <WhatsAppIcon size={16} className="text-[#22C55E]" /> WhatsApp: {CONTACT_PHONE_DISPLAY}
+              </a>
+            </p>
+            <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+              <a href={CONTACT_TEL_HREF} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)', textDecoration: 'none' }}>
+                Call / SMS: {CONTACT_PHONE_DISPLAY}
               </a>
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: 'var(--space-4)' }}>
