@@ -18,10 +18,12 @@ export const metadata: Metadata = {
     siteName: 'Neerzy',
     locale: 'en_US',
     type: 'website',
-    images: [DEFAULT_OG_IMAGE],  },
+    images: [DEFAULT_OG_IMAGE],
+  },
   twitter: {
     card: 'summary_large_image',
-    images: [DEFAULT_OG_IMAGE.url],    title: 'About Us: WhatsApp Marketing for Local Traders',
+    images: [DEFAULT_OG_IMAGE.url],
+    title: 'About Us: WhatsApp Marketing for Local Traders',
     description:
       'Neerzy helps local tradespeople grow online via WhatsApp. No marketing skills needed.',
   },

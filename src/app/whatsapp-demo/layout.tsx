@@ -16,10 +16,12 @@ export const metadata: Metadata = {
     siteName: "Neerzy",
     locale: "en_US",
     type: "website",
-    images: [DEFAULT_OG_IMAGE],  },
+    images: [DEFAULT_OG_IMAGE],
+  },
   twitter: {
     card: "summary_large_image",
-    images: [DEFAULT_OG_IMAGE.url],    title: "Neerzy WhatsApp Marketing Demo",
+    images: [DEFAULT_OG_IMAGE.url],
+    title: "Neerzy WhatsApp Marketing Demo",
     description: "Try it live — send a WhatsApp message and watch AI generate your marketing content instantly.",
   },
 };
