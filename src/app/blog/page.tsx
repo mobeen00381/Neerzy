@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ROUTES, SITE_URL } from '@/lib/routes';
 import { getAllGuides } from '@/lib/mdx';
 import type { GuideFrontmatter } from '@/lib/mdx';
+import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
   title: 'Neerzy Blog: Local SEO, Google Business Profile & Reviews',
@@ -14,6 +15,13 @@ export const metadata: Metadata = {
     description: 'Guides, tips, and strategies for local SEO, Google Business Profile optimization, and review management.',
     url: `${SITE_URL}/blog`,
     type: 'website',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Neerzy Blog: Local SEO, Google Business Profile & Reviews",
+    description: "Guides, tips, and strategies for local SEO, Google Business Profile optimization, and review management.",
+    images: [DEFAULT_OG_IMAGE.url],
   },
 };
 

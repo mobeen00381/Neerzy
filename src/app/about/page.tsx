@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import React from 'react';
 import Link from 'next/link';
+import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
   title: 'About Neerzy | Local Business Marketing Made Simple via WhatsApp',
@@ -17,10 +18,10 @@ export const metadata: Metadata = {
     siteName: 'Neerzy',
     locale: 'en_US',
     type: 'website',
-  },
+    images: [DEFAULT_OG_IMAGE],  },
   twitter: {
     card: 'summary_large_image',
-    title: 'About Neerzy | Marketing for Local Traders',
+    images: [DEFAULT_OG_IMAGE.url],    title: 'About Neerzy | Marketing for Local Traders',
     description:
       'Neerzy helps local tradespeople grow online via WhatsApp. No marketing skills needed.',
   },

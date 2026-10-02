@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { mdxComponents, SITE_URL_EXPORT } from '@/lib/mdx-components';
 import { getGuideBySlug, getAllSlugs } from '@/lib/mdx';
 import { ROUTES } from '@/lib/routes';
+import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 // ---- Route Exclusions ----
 // These folder-based routes exist and must NOT be shadowed by [slug].
@@ -45,10 +46,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: frontmatter.meta_description,
       url: PAGE_URL,
       type: 'article',
-    },
+      images: [DEFAULT_OG_IMAGE],    },
     twitter: {
       card: 'summary_large_image',
-      title: frontmatter.title,
+      images: [DEFAULT_OG_IMAGE.url],      title: frontmatter.title,
       description: frontmatter.meta_description,
     },
   };

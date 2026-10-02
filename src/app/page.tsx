@@ -5,6 +5,7 @@ import WhatsAppMockup from '@/components/landing/WhatsAppMockup';
 import WebsiteBuildMockup from '@/components/landing/WebsiteBuildMockup';
 import { CheckIcon, CameraIcon, FileTextIcon, StarIcon, ZapIcon, MessageSquareIcon, SearchIcon, SendIcon, GlobeIcon, SmartphoneIcon, MapPinIcon, EyeIcon, ClipboardListIcon, TrendingUpIcon } from '@/components/ui/Icons';
 import { HOSTING_PRICE_USD, HOSTING_FREE_DAYS } from '@/lib/website';
+import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
@@ -19,6 +20,13 @@ export const metadata: Metadata = {
     siteName: "Neerzy",
     locale: "en_US",
     type: "website",
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
+    description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request.",
+    images: [DEFAULT_OG_IMAGE.url],
   },
 };
 

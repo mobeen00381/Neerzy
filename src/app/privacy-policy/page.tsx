@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LegalLayout from '@/components/layout/LegalLayout';
+import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Neerzy',
@@ -14,6 +15,13 @@ export const metadata: Metadata = {
     url: 'https://www.neerzy.com/privacy-policy',
     siteName: 'Neerzy',
     type: 'website',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Privacy Policy | Neerzy",
+    description: "Learn how Neerzy handles your data and protects your privacy.",
+    images: [DEFAULT_OG_IMAGE.url],
   },
 };
 

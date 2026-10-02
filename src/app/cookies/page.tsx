@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LegalLayout from '@/components/layout/LegalLayout';
+import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
   title: 'Cookie Policy | Neerzy',
@@ -14,6 +15,13 @@ export const metadata: Metadata = {
     url: 'https://www.neerzy.com/cookies',
     siteName: 'Neerzy',
     type: 'website',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "Cookie Policy | Neerzy",
+    description: "How Neerzy uses cookies to improve your experience on our local business marketing platform.",
+    images: [DEFAULT_OG_IMAGE.url],
   },
 };
 

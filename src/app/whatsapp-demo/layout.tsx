@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Interactive WhatsApp Marketing Demo | Neerzy",
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
     siteName: "Neerzy",
     locale: "en_US",
     type: "website",
-  },
+    images: [DEFAULT_OG_IMAGE],  },
   twitter: {
     card: "summary_large_image",
-    title: "Neerzy WhatsApp Marketing Demo",
+    images: [DEFAULT_OG_IMAGE.url],    title: "Neerzy WhatsApp Marketing Demo",
     description: "Try it live — send a WhatsApp message and watch AI generate your marketing content instantly.",
   },
 };

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Pricing | Neerzy – Simple WhatsApp Marketing Plans for Local Businesses",
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
     siteName: "Neerzy",
     locale: "en_US",
     type: "website",
-  },
+    images: [DEFAULT_OG_IMAGE],  },
   twitter: {
     card: "summary_large_image",
-    title: "Neerzy Pricing | Start Free",
+    images: [DEFAULT_OG_IMAGE.url],    title: "Neerzy Pricing | Start Free",
     description:
       "Start with 5 free posts. No credit card required. Upgrade anytime for more posts and features.",
   },
