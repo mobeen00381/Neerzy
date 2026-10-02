@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 // Single source of truth for this page's title. It previously drifted into
 // THREE different strings — `<title>`, og:title and twitter:title each said
@@ -46,12 +47,14 @@ export const metadata: Metadata = {
     title: CANONICAL_TITLE,
     description:
       "Run a free GMB audit tool scan on any Google Business Profile. Get an instant local SEO audit score and see what's hurting your rankings.",
+    // This pointed at /og-images/gbp-audit-tool.jpg, which was never committed
+    // to the repo — so this page shipped a 404 og:image/twitter:image (broken
+    // social cards, and a dead URL for crawlers). Falls back to the shared
+    // 1200x630 card defined in src/lib/og.ts.
     images: [
       {
-        url: "https://www.neerzy.com/og-images/gbp-audit-tool.jpg",
-        width: 1200,
-        height: 630,
-        alt: "GMB audit tool dashboard showing GBP audit score",
+        ...DEFAULT_OG_IMAGE,
+        alt: "Free GMB audit tool: Google Business Profile score dashboard",
       },
     ],
     siteName: "Neerzy",
@@ -61,7 +64,7 @@ export const metadata: Metadata = {
     title: CANONICAL_TITLE,
     description:
       "Run a free GMB audit tool scan on any Google Business Profile. Instant local SEO audit score, no signup required.",
-    images: ["https://www.neerzy.com/og-images/gbp-audit-tool.jpg"],
+    images: [DEFAULT_OG_IMAGE.url],
   },
 };
 
