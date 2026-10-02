@@ -1,11 +1,28 @@
 import type { Metadata } from "next";
 import { CONTACT_PHONE_DISPLAY, CONTACT_TEL_HREF, contactWhatsAppHref } from "@/lib/contact";
+import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Contact Us",
   description: "Get in touch with the Neerzy team. We're here to help local traders grow their business online via WhatsApp.",
   alternates: {
     canonical: 'https://www.neerzy.com/contact',
+  },
+  openGraph: {
+    title: "Contact Us | Neerzy",
+    description:
+      "Get in touch with the Neerzy team. We're here to help local traders grow their business online via WhatsApp.",
+    url: "/contact",
+    siteName: "Neerzy",
+    type: "website",
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Contact Us | Neerzy",
+    description:
+      "Get in touch with the Neerzy team. We're here to help local traders grow their business online via WhatsApp.",
+    images: [DEFAULT_OG_IMAGE.url],
   },
 };
 

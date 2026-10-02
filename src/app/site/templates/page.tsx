@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TEMPLATE_IDS } from "@/lib/template-looks";
 import { TRADE_SITE_TEMPLATES } from "@/lib/site-templates";
+import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 /**
  * Template gallery — the shareable list of all ten trade sites:
@@ -19,6 +20,22 @@ export const metadata: Metadata = {
     "See all ten Neerzy trade website templates — plumber, electrician, HVAC, roofing, handyman, dentist, grocery, hardware, mechanic and general local services.",
   alternates: { canonical: "https://www.neerzy.com/site/templates" },
   robots: { index: false, follow: true },
+  openGraph: {
+    title: "10 trade website templates | Neerzy",
+    description:
+      "See all ten Neerzy trade website templates — plumber, electrician, HVAC, roofing, handyman, dentist, grocery, hardware, mechanic and general local services.",
+    url: "/site/templates",
+    siteName: "Neerzy",
+    type: "website",
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "10 trade website templates | Neerzy",
+    description:
+      "See all ten Neerzy trade website templates — plumber, electrician, HVAC, roofing, handyman, dentist, grocery, hardware, mechanic and general local services.",
+    images: [DEFAULT_OG_IMAGE.url],
+  },
 };
 
 const LOCKED_BLOCKS = [
