@@ -7,11 +7,11 @@ import type { GuideFrontmatter } from '@/lib/mdx';
 import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
-  title: 'Neerzy Blog: Local SEO, Google Business Profile & Reviews',
+  title: 'Local SEO & Google Business Tips Blog',
   description: 'Guides, tips, and strategies for local SEO, Google Business Profile optimization, and review management — built for local service businesses.',
   alternates: { canonical: `${SITE_URL}/blog` },
   openGraph: {
-    title: 'Neerzy Blog: Local SEO, Google Business Profile & Reviews',
+    title: 'Local SEO & Google Business Tips Blog',
     description: 'Guides, tips, and strategies for local SEO, Google Business Profile optimization, and review management.',
     url: `${SITE_URL}/blog`,
     type: 'website',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Neerzy Blog: Local SEO, Google Business Profile & Reviews",
+    title: "Local SEO & Google Business Tips Blog",
     description: "Guides, tips, and strategies for local SEO, Google Business Profile optimization, and review management.",
     images: [DEFAULT_OG_IMAGE.url],
   },

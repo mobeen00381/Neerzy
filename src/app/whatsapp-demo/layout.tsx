@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 export const metadata: Metadata = {
-  title: "Interactive WhatsApp Marketing Demo | Neerzy",
+  title: "Interactive WhatsApp Marketing Demo",
   description:
-    "Try Neerzy live! Send a message or photo in our interactive WhatsApp simulator and watch AI generate Google posts, website content, and review requests in real-time.",
+    "Try Neerzy live: send a message or photo in our WhatsApp simulator and watch AI generate Google posts, website content, and review requests in real-time.",
   alternates: {
     canonical: "https://www.neerzy.com/whatsapp-demo",
   },

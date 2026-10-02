@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "GMB Audit Report | Neerzy",
+  title: "GMB Audit Report",
   description: "Your Google Business Profile audit report with health score, optimization gaps, and AI recommendations to improve your local search visibility.",
   robots: {
     index: false,

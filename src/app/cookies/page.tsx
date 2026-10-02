@@ -3,7 +3,7 @@ import LegalLayout from '@/components/layout/LegalLayout';
 import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy | Neerzy',
+  title: 'Cookie Policy',
   description:
     'Learn how Neerzy uses cookies to improve your experience. Understand essential and analytics cookies and how to manage your preferences.',
   alternates: {

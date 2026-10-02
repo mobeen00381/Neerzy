@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CONTACT_PHONE_DISPLAY, CONTACT_TEL_HREF, contactWhatsAppHref } from "@/lib/contact";
 
 export const metadata: Metadata = {
-  title: "Contact Us | Neerzy",
+  title: "Contact Us",
   description: "Get in touch with the Neerzy team. We're here to help local traders grow their business online via WhatsApp.",
   alternates: {
     canonical: 'https://www.neerzy.com/contact',

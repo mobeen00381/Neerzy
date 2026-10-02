@@ -7,7 +7,7 @@ import { buildSiteSchemaGraph } from "@/lib/site-schema";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Website preview | Neerzy",
+  title: "Website preview",
   robots: { index: false, follow: false },
 };
 

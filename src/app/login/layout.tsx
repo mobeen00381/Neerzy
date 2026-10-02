@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Log In | Neerzy",
+  title: "Log In",
   description: "Log in to your Neerzy account to access your local business marketing dashboard.",
   robots: {
     index: false,

@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
-  title: 'About Neerzy | Local Business Marketing Made Simple via WhatsApp',
+  title: 'About Us: WhatsApp Marketing for Local Traders',
   description:
-    'Learn how Neerzy helps hardworking local traders grow online. We make marketing simple — send a job photo on WhatsApp and we handle your Google posts, website updates, and review requests.',
+    'Learn how Neerzy helps local traders grow online. Send a job photo on WhatsApp and we handle your Google posts, website updates, and review requests.',
   alternates: {
     canonical: 'https://www.neerzy.com/about',
   },
   openGraph: {
-    title: 'About Neerzy | Built for Local Traders',
+    title: 'About Us: WhatsApp Marketing for Local Traders',
     description:
       'Neerzy makes it simple for local tradespeople to stay visible online. Finish a job, send a WhatsApp message, and stay active consistently.',
     url: 'https://www.neerzy.com/about',
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     images: [DEFAULT_OG_IMAGE],  },
   twitter: {
     card: 'summary_large_image',
-    images: [DEFAULT_OG_IMAGE.url],    title: 'About Neerzy | Marketing for Local Traders',
+    images: [DEFAULT_OG_IMAGE.url],    title: 'About Us: WhatsApp Marketing for Local Traders',
     description:
       'Neerzy helps local tradespeople grow online via WhatsApp. No marketing skills needed.',
   },

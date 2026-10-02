@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 export const metadata: Metadata = {
-  title: "Pricing | Neerzy – Simple WhatsApp Marketing Plans for Local Businesses",
+  title: "WhatsApp Marketing Plans & Pricing",
   description:
     "Start free — your first 30 days include 5 Google posts and 5 review requests, no card needed. Then Pro ($39/mo), Growth ($79/mo) or Agency ($199/mo).",
   alternates: {
     canonical: "https://www.neerzy.com/pricing",
   },
   openGraph: {
-    title: "Neerzy Pricing | Simple Plans for Local Business Marketing",
+    title: "WhatsApp Marketing Plans & Pricing",
     description:
       "Turn every job into a Google post, website update, and review request via WhatsApp. Start free — your first 30 days include 5 posts and 5 review requests.",
     url: "https://www.neerzy.com/pricing",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     images: [DEFAULT_OG_IMAGE],  },
   twitter: {
     card: "summary_large_image",
-    images: [DEFAULT_OG_IMAGE.url],    title: "Neerzy Pricing | Start Free",
+    images: [DEFAULT_OG_IMAGE.url],    title: "WhatsApp Marketing Plans & Pricing",
     description:
       "Start with 5 free posts. No credit card required. Upgrade anytime for more posts and features.",
   },

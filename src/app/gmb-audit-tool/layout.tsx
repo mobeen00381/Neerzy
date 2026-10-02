@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     absolute: CANONICAL_TITLE,
   },
   description:
-    "Run a free GMB audit tool scan on any Google Business Profile. Get an instant local SEO audit score, see what's hurting your rankings, and fix it in seconds. No signup required.",
+    "Run a free 30-second Google Business Profile audit. Get an instant local SEO score covering completeness, reviews, engagement, and photos. No signup required.",
   keywords: [
     "gmb audit tool",
     "gbp audit tool",

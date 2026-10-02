@@ -14,7 +14,7 @@ import { TRADE_SITE_TEMPLATES } from "@/lib/site-templates";
  */
 
 export const metadata: Metadata = {
-  title: "10 trade website templates | Neerzy",
+  title: "10 trade website templates",
   description:
     "See all ten Neerzy trade website templates — plumber, electrician, HVAC, roofing, handyman, dentist, grocery, hardware, mechanic and general local services.",
   alternates: { canonical: "https://www.neerzy.com/site/templates" },

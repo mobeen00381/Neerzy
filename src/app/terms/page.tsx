@@ -3,7 +3,7 @@ import LegalLayout from '@/components/layout/LegalLayout';
 import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | Neerzy',
+  title: 'Terms of Service',
   description:
     'Read the Neerzy Terms of Service. Understand your rights and responsibilities when using our WhatsApp-based local business marketing platform.',
   alternates: {
