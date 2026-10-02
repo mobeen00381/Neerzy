@@ -13,7 +13,7 @@ import Script from "next/script";
 
 import { CONTACT_PHONE_E164 } from "@/lib/contact";
 // Google Analytics 4 measurement ID
-const GA_MEASUREMENT_ID = "G-PJCWXC4BLM";
+const GA_MEASUREMENT_ID = "G-7SB1J0V0P3";
 
 initMonitoring();
 
