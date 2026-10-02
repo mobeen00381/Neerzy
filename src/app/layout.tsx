@@ -10,7 +10,10 @@ import QueryProvider from "@/components/providers/QueryProvider";
 import PaddleCheckoutLink from "@/components/PaddleCheckoutLink";
 import { initMonitoring } from "@/lib/monitoring";
 import Script from "next/script";
+
 import { CONTACT_PHONE_E164 } from "@/lib/contact";
+// Google Analytics 4 measurement ID
+const GA_MEASUREMENT_ID = "G-PJCWXC4BLM";
 
 initMonitoring();
 
@@ -93,6 +96,20 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-white text-slate-900 transition-colors duration-300">
+        {/* Google tag (gtag.js) */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
         <Script 
           src="https://accounts.google.com/gsi/client" 
           strategy="afterInteractive"

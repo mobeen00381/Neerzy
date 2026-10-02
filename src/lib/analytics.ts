@@ -39,8 +39,13 @@ export function trackEvent(name: EventName, properties?: EventProperties) {
     }
   }
 
-  // Future: Send to Google Analytics
-  // gtag('event', name, properties);
+  // Send to Google Analytics (gtag.js is loaded in app/layout.tsx)
+  if (typeof window !== "undefined") {
+    const w = window as unknown as {
+      gtag?: (...args: unknown[]) => void;
+    };
+    w.gtag?.("event", name, properties || {});
+  }
 
   // Future: Send to PostHog
   // posthog.capture(name, properties);
