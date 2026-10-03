@@ -59,6 +59,12 @@ const nextConfig: NextConfig = {
                 https://www.neerzy.com 
                 https://*.supabase.co 
                 https://*.googleapis.com 
+                https://www.google-analytics.com
+                https://*.google-analytics.com
+                https://*.analytics.google.com
+                https://www.googletagmanager.com
+                https://www.google.com
+                https://*.g.doubleclick.net
                 https://vercel.live 
                 https://*.vercel.app 
                 https://analytics.vercel.com;
@@ -68,6 +74,7 @@ const nextConfig: NextConfig = {
                 https://checkout.paddle.com
                 https://*.paddle.com
                 https://sandbox-checkout.paddle.com
+                https://www.googletagmanager.com
                 https://vercel.live;
               child-src 'self'
                 https://checkout.paddle.com
