@@ -219,7 +219,7 @@ export default function AboutPage() {
             </h2>
             <p style={{ fontSize: 'var(--text-body-size)', color: 'var(--color-text-secondary)', maxWidth: '600px', margin: '0 auto' }}>
               When customers are happiest, review response rates are much higher. 
-              Local trust grows naturally when it's built on the spot.
+              Local trust grows naturally when it&apos;s built on the spot.
             </p>
           </div>
           
