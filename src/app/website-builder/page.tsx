@@ -268,14 +268,7 @@ export default function WebsiteBuilderPage() {
           <div style={{ maxWidth: "780px", color: "var(--color-text-secondary)", fontSize: "var(--text-body-size)" }}>
             <p style={{ marginBottom: "var(--space-3)" }}>
               Google used to offer a basic website builder built into Google Business Profile.{" "}
-              <a
-                href="https://support.google.com/business/answer/14341729"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: "var(--color-primary)", fontWeight: 600 }}
-              >
-                That feature was discontinued in March 2024
-              </a>{" "}
+              <strong>That feature was discontinued in March 2024</strong>{" "}
               — businesses that relied on it were redirected back to their plain Business Profile,
               with no way to edit the old site.
             </p>
