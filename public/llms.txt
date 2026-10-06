@@ -1,0 +1,33 @@
+# Neerzy
+
+> Neerzy is a free Google Business Profile audit tool and SEO resource for local service businesses. It scores a business profile out of 100 across five weighted categories — completeness (25%), reviews (25%), visual content (20%), engagement and activity (15%) and local SEO optimization (15%) — and publishes step-by-step guides for plumbers, electricians, HVAC companies and locksmiths.
+
+Free audit tool (no signup): https://www.neerzy.com/gmb-audit-tool
+
+## Guides
+
+- [Understanding Your Google Business Profile Audit Score](https://www.neerzy.com/understanding-your-gbp-audit-score): Understand every part of your Google Business Profile audit score — completeness, reviews, engagement, and visual content — and how to improve each.
+- [Improve Your Google Business Profile Audit Score](https://www.neerzy.com/improve-your-audit-score): Got your audit score back? Here's how to figure out what to fix first, how long it takes, and which guide to read next based on your lowest category.
+- [Google Business Profile Completeness Score Guide](https://www.neerzy.com/completeness-score-guide): Learn what makes a Google Business Profile complete, which fields matter most for rankings, and how to close every gap in minutes.
+- [How to Improve Your Google Reviews Score](https://www.neerzy.com/reviews-score-guide): Learn how your Google review score is calculated and practical ways to get more reviews, respond correctly, and turn feedback into rankings.
+- [Google Business Profile Visual Content Score Guide](https://www.neerzy.com/visual-content-score-guide): See how photos and videos affect your Google Business Profile score, and how many visual updates per week keep your profile ranking.
+- [Google Business Profile Engagement Score Guide](https://www.neerzy.com/engagement-score-guide): Engagement & Activity makes up 15% of your Google Business Profile audit score. Here's what's checked — posts, Q&A, review responses — and how to raise it.
+- [Google Business Profile Local SEO Score Guide](https://www.neerzy.com/local-seo-optimization-score-guide): Learn how the local SEO optimization score works and the fixes that move it most: categories, services, photos, posts, and review velocity.
+- [SEO for Plumbers: The Complete 2026 Guide](https://www.neerzy.com/seo-for-plumbers): The complete guide to SEO for plumbers in 2026 — Google Business Profile, Google Maps, reviews, website SEO, and AI search. Free GBP audit tool included.
+- [SEO for Electricians: The Complete 2026 Guide](https://www.neerzy.com/seo-for-electricians): The complete guide to SEO for electricians in 2026 — Google Business Profile, Google Maps, reviews, AI search, and website SEO. Free GBP audit tool included.
+- [SEO for HVAC Companies: The 2026 Guide](https://www.neerzy.com/seo-for-hvac): Complete 2026 HVAC SEO guide: Google Business Profile optimization, local keywords, reviews, and website tips to get found by homeowners.
+- [Locksmith SEO: Win the Local Pack in 2026](https://www.neerzy.com/locksmith-seo): The complete 2026 locksmith SEO guide: Google Business Profile, local pack rankings, reviews, and AI search visibility for locksmith businesses.
+- [AI Search Visibility for Local Businesses](https://www.neerzy.com/ai-search-visibility-local-business): Make your local business visible in AI search. Optimize your Google Business Profile and website so ChatGPT, Gemini, and AI Overviews recommend you.
+
+## Main pages
+
+- [Neerzy — Free Google Business Profile Audit](https://www.neerzy.com/): Score any Google Business Profile out of 100 in about 30 seconds, see exactly which categories are costing you rankings, and get the fix list.
+- [Free GBP Audit Tool](https://www.neerzy.com/gmb-audit-tool): Enter a business name and city to get an instant Google Business Profile audit score, category breakdown and prioritized recommendations.
+- [Website Builder](https://www.neerzy.com/website-builder): A fast, mobile-first website builder for local businesses, with Google Business Profile and WhatsApp built in.
+- [Pricing](https://www.neerzy.com/pricing): Plans and pricing for Neerzy's website builder and local SEO tools.
+- [About Neerzy](https://www.neerzy.com/about): Who builds Neerzy, why it exists, and how the audit scoring works.
+- [Blog](https://www.neerzy.com/blog): Articles on local SEO, Google Business Profile optimization and AI search visibility.
+- [Contact](https://www.neerzy.com/contact): Get in touch with the Neerzy team.
+- [Terms of Service](https://www.neerzy.com/terms): The terms that govern use of Neerzy.
+- [Privacy Policy](https://www.neerzy.com/privacy-policy): How Neerzy collects, uses and protects data.
+- [Cookie Policy](https://www.neerzy.com/cookies): The cookies Neerzy uses and how to control them.
