@@ -71,13 +71,26 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   // are full articles too, and both search E-E-A-T and AI-citation freshness
   // depend on headline/author/datePublished/dateModified being present. The
   // optional `schemaArticle` only overrides the (longer, SEO-tuned) headline.
+  // Google requires `image` on Article items (Semrush marks the item invalid
+  // without it) and a publisher logo is recommended. Guide frontmatter carries
+  // no per-guide image yet, so every guide falls back to the shared OG card;
+  // SITE_URL_EXPORT keeps the URL absolute. The logo URL is the same asset the
+  // site-wide Organization schema in layout.tsx uses (200 / image/png verified).
+  const articleImageUrl = `${SITE_URL_EXPORT}${DEFAULT_OG_IMAGE.url}`;
+
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: frontmatter.schemaArticle || frontmatter.title,
     description: frontmatter.meta_description,
+    image: [articleImageUrl],
     author: { '@type': 'Organization', name: 'Neerzy', url: SITE_URL_EXPORT },
-    publisher: { '@type': 'Organization', name: 'Neerzy', url: SITE_URL_EXPORT },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Neerzy',
+      url: SITE_URL_EXPORT,
+      logo: { '@type': 'ImageObject', url: `${SITE_URL_EXPORT}/images/logo.png` },
+    },
     datePublished: frontmatter.date,
     dateModified: frontmatter.dateModified || frontmatter.date,
     mainEntityOfPage: PAGE_URL,
