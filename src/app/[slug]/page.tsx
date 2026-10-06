@@ -115,14 +115,31 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
     ],
   };
   
-  // ---- Category guide links (hub-and-spoke) ----
+  // ---- Guide links (hub-and-spoke) ----
+  // Single source of truth for the guide footer: the five scored category guides
+  // plus the trade/AI guides. The group tag splits them across the two headings
+  // below, and the current page is filtered out so a guide never links to itself.
   const categoryGuides = [
-    { href: ROUTES.GUIDES.COMPLETENESS, label: 'Completeness Score Guide (25%)' },
-    { href: ROUTES.GUIDES.REVIEWS, label: 'Reviews Score Guide (25%)' },
-    { href: ROUTES.GUIDES.VISUAL, label: 'Visual Content Score Guide (20%)' },
-    { href: ROUTES.GUIDES.ENGAGEMENT, label: 'Engagement & Activity Score Guide (15%)' },
-    { href: ROUTES.GUIDES.LOCAL_SEO, label: 'Local SEO Optimization Guide (15%)' },
+    { href: ROUTES.GUIDES.COMPLETENESS, label: 'Completeness Score Guide (25%)', group: 'category' },
+    { href: ROUTES.GUIDES.REVIEWS, label: 'Reviews Score Guide (25%)', group: 'category' },
+    { href: ROUTES.GUIDES.VISUAL, label: 'Visual Content Score Guide (20%)', group: 'category' },
+    { href: ROUTES.GUIDES.ENGAGEMENT, label: 'Engagement & Activity Score Guide (15%)', group: 'category' },
+    { href: ROUTES.GUIDES.LOCAL_SEO, label: 'Local SEO Optimization Guide (15%)', group: 'category' },
+    { href: '/seo-for-electricians', label: 'SEO for Electricians: Complete Guide', group: 'trade' },
+    { href: '/seo-for-hvac', label: 'SEO for HVAC Companies: Complete Guide', group: 'trade' },
+    { href: '/locksmith-seo', label: 'Locksmith SEO: Ranking for Emergency Searches', group: 'trade' },
+    { href: '/ai-search-visibility-local-business', label: 'AI Search Visibility for Local Businesses', group: 'trade' },
   ];
+  const pagePath = `/${slug}`;
+  const guideLinks = categoryGuides.filter((g) => g.href !== pagePath);
+  const categoryGuideLinks = guideLinks.filter((g) => g.group === 'category');
+  const tradeGuideLinks = guideLinks.filter((g) => g.group === 'trade');
+
+  // Same self-link guard for the two "Understand Your Results" links.
+  const supportingGuides = [
+    { href: '/understanding-your-gbp-audit-score', label: 'Understanding Your Audit Score' },
+    { href: '/improve-your-audit-score', label: 'How to Improve Your Overall Score' },
+  ].filter((g) => g.href !== pagePath);
   
   
   return (
@@ -196,14 +213,21 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Understand Your Results</h4>
                 <ul className="space-y-2">
-                  <li><Link href="/understanding-your-gbp-audit-score" className="text-[#0F5132] hover:underline">Understanding Your Audit Score</Link></li>
-                  <li><Link href="/improve-your-audit-score" className="text-[#0F5132] hover:underline">How to Improve Your Overall Score</Link></li>
+                  {supportingGuides.map((g) => (
+                    <li key={g.href}><Link href={g.href} className="text-[#0F5132] hover:underline">{g.label}</Link></li>
+                  ))}
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Category Guides</h4>
                 <ul className="space-y-2">
-                  {categoryGuides.map((g) => (
+                  {categoryGuideLinks.map((g) => (
+                    <li key={g.href}><Link href={g.href} className="text-[#0F5132] hover:underline">{g.label}</Link></li>
+                  ))}
+                </ul>
+                <h4 className="font-semibold text-gray-900 mt-6 mb-3">Trade &amp; AI Guides</h4>
+                <ul className="space-y-2">
+                  {tradeGuideLinks.map((g) => (
                     <li key={g.href}><Link href={g.href} className="text-[#0F5132] hover:underline">{g.label}</Link></li>
                   ))}
                 </ul>
