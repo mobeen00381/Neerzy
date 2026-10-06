@@ -9,13 +9,13 @@ import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
-  description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
+  description: "WhatsApp marketing for local businesses: send one job photo and Neerzy prepares your Google post, website update, and review request in a few taps.",
   alternates: {
     canonical: 'https://www.neerzy.com',
   },
   openGraph: {
     title: "Neerzy | Local Business Marketing",
-    description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
+    description: "WhatsApp marketing for local businesses: send one job photo and Neerzy prepares your Google post, website update, and review request in a few taps.",
     url: "https://www.neerzy.com",
     siteName: "Neerzy",
     locale: "en_US",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Neerzy | Turn Every Job into More Calls via WhatsApp",
-    description: "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request.",
+    description: "WhatsApp marketing for local businesses: send one job photo and Neerzy prepares your Google post, website update, and review request in a few taps.",
     images: [DEFAULT_OG_IMAGE.url],
   },
 };
@@ -36,7 +36,7 @@ const jsonLd = {
   "name": "Neerzy",
   "applicationCategory": "BusinessApplication",
   "operatingSystem": "Web",
-  "description": "Take a photo after every job, send via WhatsApp or the web app. Neerzy prepares a Google post, website update, and review request — ready to publish in a few taps.",
+  "description": "WhatsApp marketing for local businesses: send one job photo and Neerzy prepares your Google post, website update, and review request in a few taps.",
   "offers": {
     "@type": "Offer",
     "price": "0",
