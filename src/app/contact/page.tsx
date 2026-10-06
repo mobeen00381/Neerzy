@@ -49,7 +49,15 @@ export default function ContactPage() {
           
           <div className="mb-6">
             <h3 className="font-bold text-[#0A2E22]">Email</h3>
-            <p className="text-[#5B6B64]">support@neerzy.com</p>
+            {/*
+              Plain mailto: — Cloudflare Email Obfuscation is switched off for
+              neerzy.com, so the address ships verbatim in the HTML and there is
+              no /cdn-cgi/l/email-protection script to depend on. Class matches
+              the phone/WhatsApp links below so the hover state is identical.
+            */}
+            <p className="text-[#5B6B64]">
+              <a href="mailto:support@neerzy.com" className="hover:text-[#0F5132] transition-colors">support@neerzy.com</a>
+            </p>
           </div>
           
           <div className="mb-6">
