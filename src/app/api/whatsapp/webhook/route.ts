@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { waitUntil } from '@vercel/functions';
 import { createClient } from '@supabase/supabase-js';
 import { sendMetaText, sendMetaTemplate, sendMetaMedia, sendMetaInteractiveUrlButton, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
@@ -19,7 +20,10 @@ const supabase = createClient(
 );
 
 const META_PHONE_NUMBER_ID = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '1256240127573258';
-const META_VERIFY_TOKEN = process.env.META_WHATSAPP_VERIFY_TOKEN || 'neerzy_webhook_verify_2024';
+
+// NOTE: the webhook verify token has NO hardcoded fallback. It is read from the
+// environment per request inside GET() and the handshake fails closed (403) when
+// META_WHATSAPP_VERIFY_TOKEN is missing or empty.
 
 // GLM-ASR (Z.AI) only accepts .wav/.mp3 — uploading anything else is a guaranteed
 // 400 (code 1214, "file format not supported"). When the OGG→WAV pre-decode fails
@@ -95,12 +99,32 @@ That brings you right back here — then I'll guide you step by step. 😊`;
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const mode = url.searchParams.get('hub.mode');
-  const token = url.searchParams.get('hub.verify_token');
   const challenge = url.searchParams.get('hub.challenge');
+  const receivedToken = (url.searchParams.get('hub.verify_token') ?? '').trim();
 
-  console.log('🔔 Meta Webhook Verification:', { mode, token, challenge });
+  // Fail closed: with no configured verify token there is no way to prove the
+  // caller is Meta, so refuse the handshake. The value itself is never logged —
+  // only the fact that it is missing.
+  const expectedToken = (process.env.META_WHATSAPP_VERIFY_TOKEN ?? '').trim();
+  if (!expectedToken) {
+    console.error('❌ Meta Webhook Verification: META_WHATSAPP_VERIFY_TOKEN is not configured — refusing (403)');
+    return new Response('Verification failed', { status: 403 });
+  }
 
-  if (mode === 'subscribe' && token === META_VERIFY_TOKEN) {
+  // Constant-time comparison; lengths must match before timingSafeEqual (it throws otherwise).
+  const expectedBuf = Buffer.from(expectedToken, 'utf8');
+  const receivedBuf = Buffer.from(receivedToken, 'utf8');
+  const tokenMatched =
+    expectedBuf.length === receivedBuf.length && timingSafeEqual(expectedBuf, receivedBuf);
+
+  // Never log the token itself — only non-sensitive metadata about the attempt.
+  console.log('🔔 Meta Webhook Verification:', {
+    mode,
+    tokenMatched,
+    receivedTokenLength: receivedToken.length,
+  });
+
+  if (mode === 'subscribe' && tokenMatched) {
     console.log('✅ Webhook verified successfully');
     return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } });
   }
