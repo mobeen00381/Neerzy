@@ -102,6 +102,11 @@ export async function GET(req: Request) {
   const challenge = url.searchParams.get('hub.challenge');
   const receivedToken = (url.searchParams.get('hub.verify_token') ?? '').trim();
 
+  // Safe diagnostics: log parameter NAMES only (never values). The token, the
+  // challenge and any prefix of the configured value are never logged.
+  const paramKeys = Array.from(url.searchParams.keys());
+  const userAgent = req.headers.get('user-agent') || '(none)';
+
   // Fail closed: with no configured verify token there is no way to prove the
   // caller is Meta, so refuse the handshake. The value itself is never logged —
   // only the fact that it is missing.
@@ -119,10 +124,24 @@ export async function GET(req: Request) {
 
   // Never log the token itself — only non-sensitive metadata about the attempt.
   console.log('🔔 Meta Webhook Verification:', {
+    paramKeys,
     mode,
     tokenMatched,
     receivedTokenLength: receivedToken.length,
+    expectedTokenLength: expectedBuf.length,
+    expectedStartsWithEAA: expectedToken.startsWith('EAA'),
+    userAgent,
   });
+
+  // Distinct, searchable marker for real Meta handshake attempts
+  // (hub.mode=subscribe) - search Vercel Logs for WEBHOOK_HANDSHAKE_SUBSCRIBE.
+  if (mode === 'subscribe') {
+    console.log('WEBHOOK_HANDSHAKE_SUBSCRIBE:', {
+      tokenMatched,
+      receivedTokenLength: receivedToken.length,
+      expectedTokenLength: expectedBuf.length,
+    });
+  }
 
   if (mode === 'subscribe' && tokenMatched) {
     console.log('✅ Webhook verified successfully');
