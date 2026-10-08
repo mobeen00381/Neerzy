@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { waitUntil } from '@vercel/functions';
 import { createClient } from '@supabase/supabase-js';
 import { sendMetaText, sendMetaTemplate, sendMetaMedia, sendMetaInteractiveUrlButton, getPhoneNumberId, getAccessToken } from '@/lib/whatsapp';
@@ -211,6 +211,41 @@ async function checkGenRateLimit(phone: string): Promise<{ allowed: boolean; rem
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Meta X-Hub-Signature-256 verification
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+/**
+ * Verify Meta's `X-Hub-Signature-256` header against the RAW request body.
+ *
+ * Meta signs every delivery as `sha256=HMAC-SHA256(app_secret, raw_body)`, so the
+ * body must be read as text before any JSON parsing — re-serialising it would
+ * change the bytes and invalidate the digest.
+ *
+ * The app secret comes from META_APP_SECRET and is never logged; neither is the
+ * body nor the received signature. When the secret is not configured this fails
+ * closed (false → 403) rather than accepting an unsigned payload.
+ */
+function verifyMetaSignature(rawBody: string, signatureHeader: string | null): boolean {
+  const appSecret = (process.env.META_APP_SECRET ?? '').trim();
+  if (!appSecret || !signatureHeader) return false;
+
+  const prefix = 'sha256=';
+  if (!signatureHeader.startsWith(prefix)) return false;
+
+  const receivedHex = signatureHeader.slice(prefix.length).trim().toLowerCase();
+  // Digest must be 32 bytes of hex — reject anything else before comparing.
+  if (!/^[0-9a-f]{64}$/.test(receivedHex)) return false;
+
+  const expectedBuf = Buffer.from(
+    createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex'),
+    'utf8'
+  );
+  const receivedBuf = Buffer.from(receivedHex, 'utf8');
+
+  // Constant-time compare — never a plain `===` on secrets.
+  return expectedBuf.length === receivedBuf.length && timingSafeEqual(expectedBuf, receivedBuf);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POST - Meta Webhook Message Handler
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export async function POST(req: Request) {
@@ -220,8 +255,23 @@ export async function POST(req: Request) {
   let senderPhone = '';
 
   try {
+    // ── Authenticity check ──────────────────────────────────────────────
+    // Read the RAW body first: Meta's HMAC is computed over the exact bytes it
+    // sent, so the payload must not be parsed (or re-serialised) before this.
+    const rawBody = await req.text();
+    const signatureHeader = req.headers.get('x-hub-signature-256');
+
+    if (!verifyMetaSignature(rawBody, signatureHeader)) {
+      // Log only non-sensitive facts — never the body, the signature or the secret.
+      console.warn('❌ [%s] Webhook signature verification failed', requestId, {
+        signatureHeaderPresent: Boolean(signatureHeader),
+        appSecretConfigured: Boolean((process.env.META_APP_SECRET ?? '').trim()),
+      });
+      return new Response('Forbidden', { status: 403 });
+    }
+
     // Meta sends: { object: "whatsapp_business_account", entry: [{ changes: [{ value: { messages: [...] } }] }] }
-    webhookData = await req.json();
+    webhookData = JSON.parse(rawBody);
     console.log(`📥 [${requestId}] Webhook payload received, snapshot:`, JSON.stringify(webhookData).substring(0, 500));
 
     const entry = webhookData?.entry?.[0];
