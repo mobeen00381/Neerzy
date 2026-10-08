@@ -107,6 +107,16 @@ export async function GET(req: Request) {
   const paramKeys = Array.from(url.searchParams.keys());
   const userAgent = req.headers.get('user-agent') || '(none)';
 
+  // Meta's dashboard validation can hit the callback URL with no query
+  // string at all (bare connectivity probe) before or instead of the
+  // documented hub.* handshake. Answer it with an empty 200 - the response
+  // discloses nothing, and real handshakes still have to pass the strict
+  // token check below.
+  if (paramKeys.length === 0) {
+    console.log('WEBHOOK_BARE_PROBE_200:', { userAgent });
+    return new Response('', { status: 200 });
+  }
+
   // Fail closed: with no configured verify token there is no way to prove the
   // caller is Meta, so refuse the handshake. The value itself is never logged —
   // only the fact that it is missing.
