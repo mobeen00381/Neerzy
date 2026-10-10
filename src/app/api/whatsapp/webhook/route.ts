@@ -44,6 +44,28 @@ const DEDUP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 // Cache user_id lookups by phone to avoid repeated DB queries
 const userIdCache = new Map<string, string | null>();
 
+// pending_posts.user_id has a FK to auth.users. A profiles/users row whose id is
+// missing from auth.users (the account was deleted, the row survived) must never
+// be handed to saveDraft — writing it raises 23503 and the draft loses its owner.
+const verifiedAuthIds = new Map<string, boolean>();
+
+async function authUserExists(id: string): Promise<boolean> {
+  const hit = verifiedAuthIds.get(id);
+  if (hit !== undefined) return hit;
+  let exists: boolean;
+  try {
+    const { data } = await (supabase.auth.admin as any).getUserById(id);
+    exists = Boolean(data?.user?.id);
+  } catch (err) {
+    // Admin API failure must not unlink every user — assume valid and let the
+    // 23503 backstop in saveDraft() catch a genuinely bad id.
+    console.warn('⚠️ auth user check failed, assuming valid:', id);
+    exists = true;
+  }
+  verifiedAuthIds.set(id, exists);
+  return exists;
+}
+
 // ────────────────────────────────────────────────────────────────
 // First-contact guide copy
 // Kept intentionally child-simple: one numbered instruction per line,
@@ -809,7 +831,7 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
     .limit(1);
   const profile = profileRows?.[0] ?? null;
 
-  if (profile?.id) {
+  if (profile?.id && (await authUserExists(profile.id))) {
     userIdCache.set(phone, profile.id);
     return profile.id;
   }
@@ -823,7 +845,7 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
     .limit(1);
   const userData = userRows?.[0] ?? null;
 
-  if (userData?.id) {
+  if (userData?.id && (await authUserExists(userData.id))) {
     userIdCache.set(phone, userData.id);
     return userData.id;
   }
@@ -841,6 +863,12 @@ async function getUserIdByPhone(phone: string): Promise<string | null> {
 
   userIdCache.set(phone, null);
   return null;
+}
+
+// pending_posts.user_id → auth.users(id) FK. When the referenced account is gone
+// the insert/update fails with 23503; treat that as "this user id is dead".
+function isForeignKeyViolation(err: any): boolean {
+  return Boolean(err && (err.code === '23503' || /foreign key constraint/i.test(err.message || '')));
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -892,6 +920,10 @@ async function saveDraft(phone: string, data: any): Promise<string> {
       const { error: insertErr } = await supabase.from('pending_posts').insert(insertPayload);
       if (insertErr) {
         console.error('❌ saveDraft customer insert failed:', insertErr.message);
+        if (userId && isForeignKeyViolation(insertErr)) {
+          verifiedAuthIds.set(userId, false); // the FK is authoritative: this id is dead
+          userIdCache.delete(phone);          // stop serving it to the next message
+        }
         if (userId) {
           const { error: retryErr } = await supabase.from('pending_posts').insert({
             user_phone: phone,
@@ -912,6 +944,10 @@ async function saveDraft(phone: string, data: any): Promise<string> {
       const { error: updateErr } = await supabase.from('pending_posts').update(updatePayload).eq('id', existing.id);
       if (updateErr) {
         console.error('❌ saveDraft customer update failed:', updateErr.message);
+        if (userId && isForeignKeyViolation(updateErr)) {
+          verifiedAuthIds.set(userId, false); // the FK is authoritative: this id is dead
+          userIdCache.delete(phone);          // stop serving it to the next message
+        }
         if (userId) {
           const { error: retryErr } = await supabase.from('pending_posts').update({
             customer_name: data.customerName,
@@ -935,6 +971,10 @@ async function saveDraft(phone: string, data: any): Promise<string> {
       const { error: insertErr } = await supabase.from('pending_posts').insert(insertPayload);
       if (insertErr) {
         console.error('❌ saveDraft voice_note insert failed:', insertErr.message);
+        if (userId && isForeignKeyViolation(insertErr)) {
+          verifiedAuthIds.set(userId, false); // the FK is authoritative: this id is dead
+          userIdCache.delete(phone);          // stop serving it to the next message
+        }
         if (userId) {
           const { error: retryErr } = await supabase.from('pending_posts').insert({
             user_phone: phone,
@@ -950,6 +990,10 @@ async function saveDraft(phone: string, data: any): Promise<string> {
       const { error: updateErr } = await supabase.from('pending_posts').update(updatePayload).eq('id', existing.id);
       if (updateErr) {
         console.error('❌ saveDraft voice_note update failed:', updateErr.message);
+        if (userId && isForeignKeyViolation(updateErr)) {
+          verifiedAuthIds.set(userId, false); // the FK is authoritative: this id is dead
+          userIdCache.delete(phone);          // stop serving it to the next message
+        }
         if (userId) {
           const { error: retryErr } = await supabase.from('pending_posts').update({ voice_note: data.voice_note }).eq('id', existing.id);
           if (retryErr) console.error('❌ saveDraft voice_note update retry (no user_id) failed:', retryErr.message);
@@ -970,6 +1014,10 @@ async function saveDraft(phone: string, data: any): Promise<string> {
       const { error: insertErr } = await supabase.from('pending_posts').insert(insertPayload);
       if (insertErr) {
         console.error('❌ saveDraft image insert failed:', insertErr.message);
+        if (userId && isForeignKeyViolation(insertErr)) {
+          verifiedAuthIds.set(userId, false); // the FK is authoritative: this id is dead
+          userIdCache.delete(phone);          // stop serving it to the next message
+        }
         if (userId) {
           const { error: retryErr } = await supabase.from('pending_posts').insert({
             user_phone: phone,
@@ -986,6 +1034,10 @@ async function saveDraft(phone: string, data: any): Promise<string> {
       const { error: updateErr } = await supabase.from('pending_posts').update(updatePayload).eq('id', existing.id);
       if (updateErr) {
         console.error('❌ saveDraft image update failed:', updateErr.message);
+        if (userId && isForeignKeyViolation(updateErr)) {
+          verifiedAuthIds.set(userId, false); // the FK is authoritative: this id is dead
+          userIdCache.delete(phone);          // stop serving it to the next message
+        }
         if (userId) {
           const { error: retryErr } = await supabase.from('pending_posts').update({ images: [...currentImages, data.imageUrl] }).eq('id', existing.id);
           if (retryErr) console.error('❌ saveDraft image update retry (no user_id) failed:', retryErr.message);
