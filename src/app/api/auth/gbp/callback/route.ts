@@ -125,6 +125,22 @@ export async function GET(req: Request) {
 
       const location: any = verdict.location;
 
+      // Encrypt the OAuth tokens BEFORE touching the database. If the key is
+      // missing or misconfigured this throws — we must never fall back to
+      // storing plaintext tokens, so surface a generic failure instead.
+      let encryptedAccessToken: string;
+      let encryptedRefreshToken: string;
+      try {
+        encryptedAccessToken = encrypt(tokens.access_token || "");
+        encryptedRefreshToken = encrypt(tokens.refresh_token || "");
+      } catch (encryptionErr) {
+        console.error(
+          "❌ Failed to encrypt Google OAuth tokens:",
+          encryptionErr instanceof Error ? encryptionErr.message : "unknown error"
+        );
+        return NextResponse.redirect(`${APP_URL}/dashboard?gbp_error=encryption_failed`);
+      }
+
       // Store connection in Supabase (verified listing only)
       const { error: dbError } = await supabase.from("gbp_connections").upsert({
         user_id: state, // passed from the frontend as the current user's ID
@@ -132,8 +148,8 @@ export async function GET(req: Request) {
         place_id: location.placeId,
         business_name: location.title,
         review_link: `https://search.google.com/local/writereview?placeid=${location.placeId}`,
-        access_token: encrypt(tokens.access_token || ""),
-        refresh_token: encrypt(tokens.refresh_token || ""),
+        access_token: encryptedAccessToken,
+        refresh_token: encryptedRefreshToken,
         token_expires_at: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
         account_name: String(location.name).split("/locations/")[0],
         business_category: location.profile?.primaryCategory?.displayName
