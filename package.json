@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build",
     "start": "next start",
-    "lint": "eslint",
-    "test:encryption": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test src/lib/encryption.test.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",
