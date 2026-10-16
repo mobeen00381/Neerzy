@@ -23,15 +23,27 @@ export interface WebsiteBuilderFaq {
 }
 
 export const WEBSITE_BUILDER_FAQS: WebsiteBuilderFaq[] = [
+  // The first four are the AEO priority set — the plain-language phrasings owners
+  // (and AI answer engines) actually type. They lead the array so the accordion
+  // opens on the highest-intent question.
   {
-    question: "Is the website free?",
+    question: "How does Neerzy build a website from a Google Business Profile?",
     answer:
-      "Building and previewing your website is free, with no setup fee. To publish it, you register your own domain for $19, once. Your first 90 days of hosting are then free — after that, hosting is $10 per month to keep the site online.",
+      "Neerzy connects directly to your Google Business Profile, pulling your business name, address, hours, photos and customer reviews into a pre-designed trade template in under 60 seconds.",
   },
   {
-    question: "Does my website update automatically when my Google Business Profile changes?",
+    // Phrased to answer the two highest-volume free-intent queries verbatim
+    // ("free google business website", 5,000/mo, +900% YoY) and the
+    // transition-intent cluster ("gmb to website free") that planners can't
+    // size but that converts hardest.
+    question: "Is building a website from my Google Business Profile free?",
     answer:
-      "Yes, on any paid plan. Live sync keeps your site updated with new job photos, hours and reviews automatically. On the free start, your site is still built from your real Google Business Profile data — it just stays exactly as built until you're on a paid plan, so no Google API calls are spent on non-paying accounts.",
+      "Yes. Turning your Google Business Profile (GMB) into a website is free to build and preview — no setup fee — and your free Google Business website includes the first 90 days of hosting free. After that, hosting is $10 per month. To publish it on your own domain you register that domain through Neerzy for $19, once, in your name.",
+  },
+  {
+    question: "Does the website update when I get new Google reviews or photos?",
+    answer:
+      "Yes, on an active paid plan. Live sync keeps your site updated with new job photos, hours and reviews automatically. On the free start, your site is still built from your real Google Business Profile data — it just stays exactly as built until you're on a paid plan, so no Google API calls are spent on non-paying accounts.",
   },
   {
     question: "What happens after my first 30 days?",
@@ -42,6 +54,11 @@ export const WEBSITE_BUILDER_FAQS: WebsiteBuilderFaq[] = [
     question: "What happens after 90 days of hosting?",
     answer:
       "Hosting is $10 per month after the first 90 free days. If you don't continue, your site goes offline — but nothing is deleted. You can bring it back exactly as it was within 30 days by reactivating hosting.",
+  },
+  {
+    question: "Is Neerzy a replacement for Google's discontinued business.site websites?",
+    answer:
+      "Yes. Following the discontinuation of Google Business Profile websites in March 2024, Neerzy serves as an automated alternative: it publishes your site on your own custom domain and, on a paid plan, keeps the content synced with your profile continuously.",
   },
   {
     question: "Does Google offer a free website builder for Google Business Profiles?",
