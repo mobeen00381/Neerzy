@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Inter is self-hosted through next/font (see src/app/layout.tsx) and exposed as
+   the --font-inter CSS variable. An extra Google Fonts @import here would add a
+   render-blocking request chain (CSS -> fonts.googleapis.com -> font files),
+   so it must not be reintroduced. */
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
@@ -10,7 +13,7 @@
 @theme inline {
   --color-background: #FFFFFF;
   --color-foreground: #0A2E22;
-  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-sans: var(--font-inter), 'Inter', -apple-system, sans-serif;
 }
 
 :root {
@@ -24,6 +27,10 @@
   --color-accent-soft: #DCFCE7;
   --color-accent-bright: #4ADE80;
   --color-gold: #B8860B;
+  /* Text-safe gold: same hue, dark enough to clear WCAG AA (4.5:1) on the
+     light surfaces where the ★ rating glyphs are rendered (#FFFFFF, #F7F9F8,
+     #DCFCE7). #B8860B only reaches ~3:1 on those backgrounds. */
+  --color-gold-ink: #8A6508;
 
   /* Neutrals */
   --color-bg: #FFFFFF;
@@ -86,7 +93,7 @@
 
 @layer base {
   body {
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: var(--font-inter), 'Inter', -apple-system, sans-serif;
     background-color: var(--color-bg);
     color: var(--color-text-primary);
     @apply antialiased;
@@ -143,7 +150,9 @@
 
 .btn-primary {
   background-color: var(--color-accent);
-  color: #FFFFFF;
+  /* Dark ink, not white: white on #22C55E is ~2.3:1 and fails WCAG AA.
+     #06251B on the accent green is ~7:1 and matches the design system. */
+  color: var(--color-primary-deep);
 }
 
 .btn-primary:hover {
@@ -693,7 +702,7 @@
   border: 2px solid var(--color-border);
   border-radius: var(--radius-pill);
   font-size: var(--text-body-size);
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: var(--font-inter), 'Inter', -apple-system, sans-serif;
   color: var(--color-text-primary);
   background: var(--color-bg);
   outline: none;
@@ -766,7 +775,7 @@
   justify-content: center;
   font-size: 18px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--color-primary-deep);
   background: var(--color-accent);
   flex-shrink: 0;
 }
@@ -1150,7 +1159,7 @@
 }
 
 .compare-card-label.with {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .compare-steps {
@@ -1241,7 +1250,7 @@
 }
 
 .compare-outcome.with {
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 @media (max-width: 768px) {
@@ -1547,7 +1556,7 @@
 
 .cta-final .btn-primary {
   background-color: var(--color-accent);
-  color: #FFFFFF;
+  color: var(--color-primary-deep);
   font-size: 18px;
   padding: 14px 36px;
 }
@@ -1871,7 +1880,7 @@ main {
 .gmaps-stars {
   font-size: 11px;
   letter-spacing: 1px;
-  color: var(--color-gold);
+  color: var(--color-gold-ink);
 }
 
 .gmaps-score {
@@ -2876,7 +2885,7 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #B8860B !important;
+  color: var(--color-gold-ink) !important;
   font-weight: 800 !important;
 }
 
@@ -3367,7 +3376,7 @@ main {
   gap: 4px;
   font-size: 9px;
   font-weight: 800;
-  color: var(--color-gold);
+  color: var(--color-gold-ink);
 }
 
 .phone-site-quote {
@@ -3721,7 +3730,7 @@ main {
   gap: 3px;
   font-size: 8px;
   font-weight: 800;
-  color: var(--color-gold);
+  color: var(--color-gold-ink);
 }
 
 .laptop-quote {

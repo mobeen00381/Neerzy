@@ -82,8 +82,17 @@ export default function LaptopMockup({
             <div className="laptop-hero">
               {heroImage && (
                 // Illustrative job photo — decorative inside a device mockup.
+                // width/height give the browser an aspect ratio before bytes
+                // arrive; the CSS (.laptop-hero-img) still drives the final size.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img className="laptop-hero-img" src={heroImage} alt="" loading="lazy" />
+                <img
+                  className="laptop-hero-img"
+                  src={heroImage}
+                  alt=""
+                  width={1600}
+                  height={900}
+                  loading="lazy"
+                />
               )}
               <div className="laptop-hero-scrim" aria-hidden="true" />
               <div className="laptop-hero-body">

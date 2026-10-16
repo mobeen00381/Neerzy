@@ -100,7 +100,7 @@ export default function Footer() {
             </div>
           </div>
           <div>
-            <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Product</h4>
+            <h3 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Product</h3>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
               <li><Link href="/" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Features</Link></li>
               <li><Link href="/pricing" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Pricing</Link></li>
@@ -109,7 +109,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Company</h4>
+            <h3 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Company</h3>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
               <li><Link href="/about" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>About Us</Link></li>
               <li><Link href="/blog" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Blog</Link></li>
@@ -117,7 +117,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Legal</h4>
+            <h3 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>Legal</h3>
             <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
               <li><Link href="/privacy-policy" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Privacy Policy</Link></li>
               <li><Link href="/terms" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'color 0.2s ease' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'} onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}>Terms of Service</Link></li>
@@ -126,7 +126,7 @@ export default function Footer() {
           </div>
         </div>
         <div style={{ marginTop: 'var(--space-6)', paddingTop: 'var(--space-5)', borderTop: '1px solid var(--color-border)' }}>
-          <h4 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>As Featured On & Reviews</h4>
+          <h3 style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-body-size)' }}>As Featured On & Reviews</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2" style={{ fontSize: 'var(--text-small-size)' }}>
             {FEATURED_LINKS.map(({ label, href }) => (
               <a

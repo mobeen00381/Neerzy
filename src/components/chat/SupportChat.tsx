@@ -170,6 +170,7 @@ export function SupportChat({
         {/* AI assistant */}
         <button
           onClick={() => setIsOpen(true)}
+          aria-label="Ask the Neerzy product expert AI"
           className="w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform group relative"
         >
           <MessageSquare className="h-6 w-6 group-hover:animate-pulse" />
@@ -202,6 +203,7 @@ export function SupportChat({
         </div>
         <button 
           onClick={() => setIsOpen(false)}
+          aria-label="Close chat"
           className="text-blue-100 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors"
         >
           <X className="h-5 w-5" />
@@ -261,6 +263,7 @@ export function SupportChat({
           />
           <button 
             type="submit"
+            aria-label="Send message"
             disabled={!input.trim() || isTyping || isLocked}
             className="absolute right-1.5 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:hover:bg-blue-600 shadow-sm"
           >

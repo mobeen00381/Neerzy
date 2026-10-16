@@ -90,9 +90,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        {/* Inter is self-hosted by next/font, so no fonts.googleapis.com /
+            fonts.gstatic.com preconnect is needed (or wanted — it used to be a
+            render-blocking hop on every page). */}
         <link rel="preconnect" href="https://cdn.paddle.com" />
-        <link rel="preconnect" href="https://accounts.google.com" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-white text-slate-900 transition-colors duration-300">
@@ -110,10 +111,9 @@ export default function RootLayout({
             gtag('config', '${GA_MEASUREMENT_ID}');
           `}
         </Script>
-        <Script 
-          src="https://accounts.google.com/gsi/client" 
-          strategy="afterInteractive"
-        />
+        {/* Google Identity Services is only needed where Google Sign-In is
+            actually offered (src/components/auth/GoogleOneTap.tsx). Loading it
+            site-wide added a third-party request to every page for nothing. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}

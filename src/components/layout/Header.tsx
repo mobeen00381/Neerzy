@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Button } from "../ui/Button";
-import { ThemeToggle } from "./ThemeToggle";
 import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
 import { isTraderSitePath, isTemplateDemoPath, ROUTES } from "@/lib/routes";
@@ -73,7 +72,7 @@ export default function Header() {
         <div className="flex items-center gap-2 sm:gap-4">
           {isLoggedIn ? (
             <Link href="/dashboard">
-              <Button className="bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-md transition-all font-medium border-none rounded-full px-6">Dashboard</Button>
+              <Button className="bg-[#22C55E] hover:bg-[#16A34A] text-[#06251B] shadow-md transition-all font-medium border-none rounded-full px-6">Dashboard</Button>
             </Link>
           ) : (
             <>
@@ -81,7 +80,7 @@ export default function Header() {
                 <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10 font-medium">Log in</Button>
               </Link>
               <Link href="/pricing#plans">
-                <Button className="bg-[#22C55E] hover:bg-[#16A34A] text-white shadow-md transition-all font-medium border-none rounded-full px-6">Get Started</Button>
+                <Button className="bg-[#22C55E] hover:bg-[#16A34A] text-[#06251B] shadow-md transition-all font-medium border-none rounded-full px-6">Get Started</Button>
               </Link>
             </>
           )}

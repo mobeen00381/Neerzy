@@ -204,8 +204,17 @@ export function PhoneSite(props: PhoneSiteProps = {}) {
       <div className={`phone-site-hero${heroImage ? " has-photo" : ""}`}>
         {heroImage && (
           // Illustrative job photo — decorative inside a device mockup.
+          // width/height give the browser an aspect ratio before bytes arrive;
+          // the CSS (.phone-site-hero-img) still drives the final size.
           // eslint-disable-next-line @next/next/no-img-element
-          <img className="phone-site-hero-img" src={heroImage} alt="" loading="lazy" />
+          <img
+            className="phone-site-hero-img"
+            src={heroImage}
+            alt=""
+            width={1200}
+            height={800}
+            loading="lazy"
+          />
         )}
         <div className="phone-site-hero-scrim" aria-hidden="true" />
         <div className="phone-site-hero-body">
