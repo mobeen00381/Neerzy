@@ -63,6 +63,14 @@ export const BUILD_LIMIT: LimitPreset = { max: 1, windowMs: 10 * MINUTE_MS, bloc
  */
 export const TRANSCRIBE_LIMIT: LimitPreset = { max: 10, windowMs: HOUR_MS, blockMs: HOUR_MS };
 
+/**
+ * Owner-initiated GMB copy: generating a Google post or a review request costs
+ * one LLM call per request. It is an authenticated action on a single business,
+ * so an owner runs it a handful of times per working day — 5/hour per ACCOUNT
+ * (not per IP) is generous for people and hard on scripts.
+ */
+export const GMB_ACTION_LIMIT: LimitPreset = { max: 5, windowMs: HOUR_MS, blockMs: HOUR_MS };
+
 export type GuardResult =
   | { allowed: true; remaining: number }
   | { allowed: false; response: NextResponse };

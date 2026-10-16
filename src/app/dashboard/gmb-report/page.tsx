@@ -2,11 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { 
   Shield, AlertCircle, CheckCircle2, 
   ArrowRight, Loader2, Star, MapPin, Globe, Phone,
-  Camera, MessageSquare, Gauge, Search
+  Camera, MessageSquare, Gauge, Search, Copy
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -18,13 +19,17 @@ function ReportContent() {
   
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<any>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  // null = still checking the session; false = logged out, so the actions stay locked.
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [generated, setGenerated] = useState<{ action: string; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ kind: 'info' | 'success' | 'error'; text: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
 
       if (placeId) {
         try {
@@ -34,7 +39,7 @@ function ReportContent() {
             body: JSON.stringify({ 
               placeId, 
               businessName,
-              userId: user?.id 
+              userId: session?.user?.id 
             })
           });
           const data = await res.json();
@@ -49,28 +54,63 @@ function ReportContent() {
     init();
   }, [placeId, businessName]);
 
-  const handleWhatsAppAction = async (action: string) => {
+  const handleAction = async (action: 'generate_post' | 'send_review') => {
     setActionLoading(action);
+    setNotice(null);
+    setGenerated(null);
+    setCopied(false);
     try {
+      // The route authenticates on this Supabase session token; without one the
+      // request is a 401 (and the buttons below are already locked).
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setIsLoggedIn(false);
+        setNotice({ kind: 'info', text: 'Log in to use this.' });
+        return;
+      }
+
       const res = await fetch('/api/whatsapp/send-gmb-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          placeId,
-          action,
-          phoneNumber: result.phone || "+1234567890" 
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
+        // No phoneNumber: the recipient is the number saved on the account, and
+        // WhatsApp delivery is an optional extra.
+        body: JSON.stringify({ placeId, action })
       });
-      const data = await res.json();
-      if (data.success) {
-        alert(`✅ Success! WhatsApp message sent to ${data.sentTo}`);
-      } else {
-        throw new Error(data.error);
+      const data = await res.json().catch(() => null);
+
+      // The generated text is always returned — show it even when WhatsApp is
+      // not set up, so accounts with no phone number still get the feature.
+      if (data?.generatedMessage) {
+        setGenerated({ action, text: data.generatedMessage });
       }
-    } catch (err: any) {
-      alert(err.message || "Failed to send WhatsApp message");
+
+      if (!res.ok) {
+        setNotice({
+          kind: res.status === 400 ? 'info' : 'error',
+          text: data?.message || data?.error || 'Could not generate that right now — please try again.'
+        });
+        return;
+      }
+
+      setNotice({ kind: 'success', text: data?.message || 'Done.' });
+    } catch {
+      setNotice({ kind: 'error', text: 'Could not generate that right now — please try again.' });
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!generated) return;
+    try {
+      await navigator.clipboard.writeText(generated.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setNotice({ kind: 'error', text: 'Copy failed — select the text and copy it manually.' });
     }
   };
 
@@ -88,7 +128,7 @@ function ReportContent() {
       <div className="text-center py-20">
         <AlertCircle className="h-20 w-20 text-red-500 mx-auto mb-6" />
         <h2 className="text-3xl font-black text-slate-900 mb-2">Report Failed</h2>
-        <p className="text-slate-500 mb-8">We couldn't generate the audit for this business.</p>
+        <p className="text-slate-500 mb-8">{"We couldn't generate the audit for this business."}</p>
         <Button onClick={() => router.push('/gmb-audit-tool')}>Try again</Button>
       </div>
     );
@@ -218,27 +258,83 @@ function ReportContent() {
           </div>
 
           <div className="space-y-4">
-            <Button 
-              onClick={() => handleWhatsAppAction('generate_post')}
-              disabled={!!actionLoading}
-              className="w-full bg-white text-blue-600 hover:bg-blue-50 h-14 rounded-2xl font-black text-lg group shadow-lg disabled:opacity-50"
-            >
-              {actionLoading === 'generate_post' ? <Loader2 className="animate-spin" /> : (
-                <>Generate AI Post <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
-              )}
-            </Button>
-            <Button 
-              onClick={() => handleWhatsAppAction('send_review')}
-              disabled={!!actionLoading}
-              className="w-full bg-blue-700 text-white hover:bg-blue-800 h-14 rounded-2xl font-black text-lg group border-none disabled:opacity-50 shadow-inner"
-            >
-              {actionLoading === 'send_review' ? <Loader2 className="animate-spin" /> : (
-                <>Send Review Request <MessageSquare className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
-              )}
-            </Button>
+            {isLoggedIn === false ? (
+              <div className="bg-blue-50/10 border border-white/20 rounded-2xl p-5 text-center space-y-4">
+                <p className="text-blue-50 font-bold text-sm leading-relaxed">
+                  Log in to use this — generating posts and review requests is saved to your account.
+                </p>
+                <Link href="/login" className="block">
+                  <Button className="w-full bg-white text-blue-600 hover:bg-blue-50 h-12 rounded-2xl font-black text-base">
+                    Log in
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Button 
+                  onClick={() => handleAction('generate_post')}
+                  disabled={!!actionLoading || isLoggedIn === null}
+                  className="w-full bg-white text-blue-600 hover:bg-blue-50 h-14 rounded-2xl font-black text-lg group shadow-lg disabled:opacity-50"
+                >
+                  {actionLoading === 'generate_post' ? <Loader2 className="animate-spin" /> : (
+                    <>Generate AI Post <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
+                  )}
+                </Button>
+                <Button 
+                  onClick={() => handleAction('send_review')}
+                  disabled={!!actionLoading || isLoggedIn === null}
+                  className="w-full bg-blue-700 text-white hover:bg-blue-800 h-14 rounded-2xl font-black text-lg group border-none disabled:opacity-50 shadow-inner"
+                >
+                  {actionLoading === 'send_review' ? <Loader2 className="animate-spin" /> : (
+                    <>Send Review Request <MessageSquare className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" /></>
+                  )}
+                </Button>
+              </>
+            )}
+
+            {notice && (
+              <div className={`text-sm font-bold p-4 rounded-2xl flex items-center gap-2 ${
+                notice.kind === 'error'
+                  ? 'bg-red-500/20 text-red-50'
+                  : notice.kind === 'success'
+                    ? 'bg-green-500/20 text-green-50'
+                    : 'bg-white/10 text-blue-50'
+              }`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-current flex-shrink-0" />
+                {notice.text}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {generated && (
+        <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-lg shadow-slate-100/50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              {generated.action === 'generate_post'
+                ? <Search className="h-6 w-6 text-blue-600" />
+                : <MessageSquare className="h-6 w-6 text-blue-600" />}
+              <h3 className="text-xl font-black text-slate-900">
+                {generated.action === 'generate_post' ? 'Your Google Post' : 'Your Review Request'}
+              </h3>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleCopy}
+              className="rounded-2xl border-slate-300 text-slate-700 font-black"
+            >
+              {copied ? 'Copied!' : (<><Copy className="mr-2 h-4 w-4" /> Copy</>)}
+            </Button>
+          </div>
+          <p className="text-sm font-bold text-slate-500 mb-4">
+            Copy this into Google, or add your WhatsApp number in Account settings to have it sent to you.
+          </p>
+          <pre className="whitespace-pre-wrap font-sans text-slate-700 font-semibold leading-relaxed bg-slate-50 rounded-2xl p-6 border border-slate-100">
+            {generated.text}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
