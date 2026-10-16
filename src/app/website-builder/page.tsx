@@ -19,6 +19,18 @@ import PreviewWidget from "./PreviewWidget";
  * free for the first HOSTING_FREE_DAYS days and then $HOSTING_PRICE_USD/month.
  * The old $99 early-adopter setup fee was retired. Live Google sync runs on
  * paid plans only (see WEBSITE_SYNC_ELIGIBLE_PLANS).
+ *
+ * AEO STRUCTURE: the page is deliberately shaped as a question-shaped H2
+ * ("Why Local Businesses & Trades Switch to Neerzy") with named, self-contained
+ * H3 benefit claims underneath, then a three-point pricing block and an FAQ,
+ * because that is the shape Google AI Overviews and LLMs chunk most reliably.
+ * Heading order is H1 → H2 → H3, never skipping a level.
+ *
+ * NO aggregateRating. Deliberate, not an oversight: the page shows no reviews
+ * of its own, so a self-serving star rating in SoftwareApplication schema would
+ * be an unverifiable claim — a structured-data policy risk on Google and a
+ * trust penalty with AI answer engines that cross-check schema against content.
+ * Add it only when real, on-page reviews exist.
  */
 export const revalidate = 3600;
 
@@ -42,20 +54,21 @@ export default function WebsiteBuilderPage() {
     "@type": "WebPage",
     "@id": PAGE_URL,
     "url": PAGE_URL,
-    "name": "Website Builder for Your Google Business Profile",
+    "name": "The Instant Google Business Profile Website Builder",
     "description":
-      "Preview a website built from your Google Business Profile free. Publish for $19, first 90 days hosting free. Stays in sync on any paid plan.",
+      "Build a free website from your Google Business Profile in 60s. Pulls in reviews, photos & hours. First 90 days hosting free. No coding needed.",
     "isPartOf": { "@type": "WebSite", "name": "Neerzy", "url": SITE_URL },
     "datePublished": "2026-09-22",
-    "dateModified": "2026-09-22"
+    "dateModified": "2026-10-16"
   };
 
   // Schema.org structured data - SoftwareApplication (the builder itself).
   // Pricing is flat and honest: free build, $19 domain, 90 days free hosting.
+  // No aggregateRating — see the file header for why.
   const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "Neerzy Website Builder",
+    "name": "Neerzy Google Business Profile Website Builder",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
     "url": PAGE_URL,
@@ -63,9 +76,9 @@ export default function WebsiteBuilderPage() {
       "A website builder for local service businesses that builds a site in one tap from a connected Google Business Profile and keeps it synced as the profile updates.",
     "offers": {
       "@type": "Offer",
-      "price": "0",
+      "price": "0.00",
       "priceCurrency": "USD",
-      "description": `Free website build, $19 one-time custom domain, and the first ${HOSTING_FREE_DAYS} days of hosting free, then $${HOSTING_PRICE_USD}/month. Live Google sync requires a paid Neerzy plan.`,
+      "description": `Free website build with ${HOSTING_FREE_DAYS} days of free hosting. Optional custom domain for $19 once; hosting is then $${HOSTING_PRICE_USD}/month. Live Google sync requires a paid Neerzy plan.`,
       "category": "Free build · paid hosting",
     },
     "publisher": { "@type": "Organization", "name": "Neerzy", "url": SITE_URL }
@@ -83,8 +96,8 @@ export default function WebsiteBuilderPage() {
     }))
   };
 
-  const ctaLabel = "See My Website Preview — Free";
-  const closingCtaLabel = "Get My Free Website Preview";
+  const ctaLabel = "Build My Free Website";
+  const closingCtaLabel = "Build My Free Website";
 
   return (
     <>
@@ -127,18 +140,19 @@ export default function WebsiteBuilderPage() {
                 marginBottom: "var(--space-3)",
               }}
             >
-              The Website Builder Built From Your Google Business Profile
+              The Instant Google Business Profile Website Builder
             </h1>
 
             <p style={{ fontSize: "var(--text-h3-size)", fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "var(--space-2)" }}>
-              Search your business, see your site in under a minute — free. Publish it on your own
-              domain for $19, and it keeps itself in sync with your Google profile on any paid plan.
+              Turn your Google Business Profile into a fast, mobile-friendly website in 60 seconds —
+              pulling in your reviews, services, hours and job photos. Free setup with 90 days of free
+              hosting.
             </p>
 
             <p style={{ fontSize: "var(--text-body-size)", color: "var(--color-text-secondary)", marginBottom: "var(--space-5)" }}>
               Most website builders start you from a blank page. Neerzy starts from something you
               already have — your Google Business Profile — and turns it into a real website, in your
-              business name, in minutes.
+              business name, in minutes. Live sync then keeps it current on a paid plan.
             </p>
           </div>
 
@@ -146,29 +160,48 @@ export default function WebsiteBuilderPage() {
           <PreviewWidget />
 
           <div style={{ marginTop: "var(--space-5)" }}>
-            <Link href="/signup" className="btn btn-primary">
+            <Link href="/signup?plan=free" className="btn btn-primary">
               {ctaLabel} →
             </Link>
             <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
-              Preview only — publishing needs your own domain ($19, once). No card required to preview.
+              No credit card required • First {HOSTING_FREE_DAYS} days hosting free • Live in 60s
+            </p>
+            <p style={{ marginTop: "var(--space-2)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
+              Previewing is free — publishing on your own domain is $19, once, registered in your name.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── Why sync beats a one-time import ─────────────────── */}
+      {/* ── Section 1: Why Local Businesses & Trades Switch to Neerzy ──── */}
+      {/* One H2 with three named H3 benefit claims — the shape Google AI
+          Overviews and LLMs chunk most reliably. The comparison table, the
+          trade links and the business.site copy all live under their H3, so
+          nothing was lost in the restructure. */}
       <section className="section-padding" style={{ backgroundColor: "var(--color-bg-soft)", borderTop: "1px solid var(--color-divider)" }}>
         <div className="container">
           <div className="steps-header">
-            <h2>Most website builders import your profile once. Neerzy can keep syncing.</h2>
+            <h2>Why Local Businesses &amp; Trades Switch to Neerzy</h2>
             <p>
-              Plenty of tools pull your business name, hours and photos from Google once, at setup —
-              then the connection goes quiet, so your site slowly falls behind your real profile.
+              Three reasons owners leave blank-page builders behind — and what happens to the site
+              Google used to give them.
             </p>
-            <p>
-              On a paid Neerzy plan, your website stays connected: new job photos, updated hours and
-              new reviews flow through automatically. On the free start, your site is still built from
-              real data — the live sync turns on with a plan.
+          </div>
+
+          <div style={{ maxWidth: "900px" }}>
+            <h3
+              id="automatic-sync"
+              style={{ fontSize: "var(--text-h3-size)", fontWeight: 700, color: "var(--color-text-primary)", marginBottom: "var(--space-2)" }}
+            >
+              Zero-Click Automatic Sync
+            </h3>
+            <p style={{ color: "var(--color-text-secondary)", marginBottom: "var(--space-3)" }}>
+              New job photos, updated business hours and fresh Google reviews flow onto your live site
+              automatically — no dashboard, no re-import, no manual edits. Plenty of tools pull your
+              details from Google once, at setup, then the connection goes quiet and your site slowly
+              falls behind your real profile. On a paid Neerzy plan your website stays connected; on
+              the free start it is still built from real Google Business Profile data, and live sync
+              turns on with a plan.
             </p>
           </div>
 
@@ -204,6 +237,56 @@ export default function WebsiteBuilderPage() {
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div style={{ maxWidth: "900px", marginTop: "var(--space-6)" }}>
+            <h3
+              id="tailored-templates"
+              style={{ fontSize: "var(--text-h3-size)", fontWeight: 700, color: "var(--color-text-primary)", marginBottom: "var(--space-2)" }}
+            >
+              Tailored to Your Trade
+            </h3>
+            <p style={{ color: "var(--color-text-secondary)", marginBottom: "var(--space-3)" }}>
+              A plumber&apos;s website and a dentist&apos;s website shouldn&apos;t look the same. Neerzy matches
+              your template to your Google Business Profile category automatically — specific designs
+              for plumbers, HVAC contractors, electricians, cleaners, roofers and more:
+            </p>
+            <p style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+              {TRADE_LANDINGS.map((t) => (
+                <Link
+                  key={t.slug}
+                  href={`${ROUTES.WEBSITE_BUILDER}/${t.slug}`}
+                  style={{ color: "var(--color-primary)", fontWeight: 600 }}
+                >
+                  {t.h1.replace("Website Builder for ", "")}
+                </Link>
+              ))}
+            </p>
+            <p>
+              <Link href="/site/templates" className="btn btn-secondary">
+                See example templates →
+              </Link>
+            </p>
+          </div>
+
+          <div style={{ maxWidth: "900px", marginTop: "var(--space-6)" }}>
+            <h3
+              id="business-site-alternative"
+              style={{ fontSize: "var(--text-h3-size)", fontWeight: 700, color: "var(--color-text-primary)", marginBottom: "var(--space-2)" }}
+            >
+              Discontinued Google business.site Alternative
+            </h3>
+            <p style={{ color: "var(--color-text-secondary)", marginBottom: "var(--space-3)" }}>
+              Google used to offer a basic website builder built into Google Business Profile.{" "}
+              <strong>That feature was discontinued in March 2024</strong>{" "}
+              — businesses that relied on it were redirected back to their plain Business Profile,
+              with no way to edit the old site.
+            </p>
+            <p style={{ color: "var(--color-text-secondary)" }}>
+              Neerzy picks up where that gap was left: your site is generated from the profile you
+              already have, built for your trade, and — on a paid plan — kept in sync with it going
+              forward, on a custom domain registered in your name.
+            </p>
           </div>
         </div>
       </section>
@@ -259,84 +342,50 @@ export default function WebsiteBuilderPage() {
         </div>
       </section>
 
-      {/* ── Google shut its own tool down ─────────────────────── */}
-      <section className="section-padding" style={{ backgroundColor: "var(--color-bg-soft)", borderTop: "1px solid var(--color-divider)" }}>
-        <div className="container">
-          <div className="steps-header">
-            <h2>Why Google shutting down its own website tool is your opportunity</h2>
-          </div>
-          <div style={{ maxWidth: "780px", color: "var(--color-text-secondary)", fontSize: "var(--text-body-size)" }}>
-            <p style={{ marginBottom: "var(--space-3)" }}>
-              Google used to offer a basic website builder built into Google Business Profile.{" "}
-              <strong>That feature was discontinued in March 2024</strong>{" "}
-              — businesses that relied on it were redirected back to their plain Business Profile,
-              with no way to edit the old site.
-            </p>
-            <p>
-              Neerzy picks up where that gap was left: your site is generated from the profile you
-              already have, built for your trade, and — on a paid plan — kept in sync with it going
-              forward.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Built for your trade ─────────────────────────────── */}
-      <section className="section-padding" style={{ backgroundColor: "var(--color-bg)", borderTop: "1px solid var(--color-divider)" }}>
-        <div className="container">
-          <div className="steps-header">
-            <h2>Built for your trade, not a generic template</h2>
-            <p>
-              A plumber&apos;s website and a dentist&apos;s website shouldn&apos;t look the same. Neerzy matches
-              your template to your Google Business Profile category automatically:
-            </p>
-          </div>
-          <p style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", maxWidth: "900px" }}>
-            {TRADE_LANDINGS.map((t) => (
-              <Link
-                key={t.slug}
-                href={`${ROUTES.WEBSITE_BUILDER}/${t.slug}`}
-                style={{ color: "var(--color-primary)", fontWeight: 600 }}
-              >
-                {t.h1.replace("Website Builder for ", "")}
-              </Link>
-            ))}
-          </p>
-          <p style={{ marginBottom: "var(--space-4)" }}>
-            <Link href="/site/templates" className="btn btn-secondary">
-              See example templates →
-            </Link>
-          </p>
-        </div>
-      </section>
-
-      {/* ── What it costs ────────────────────────────────────── */}
+      {/* ── Section 2: transparent pricing ───────────────────── */}
       <section id="offer" className="section-padding" style={{ backgroundColor: "var(--color-bg-soft)", borderTop: "1px solid var(--color-divider)" }}>
         <div className="container">
           <div className="steps-header">
-            <h2>What it costs</h2>
-            <p>One price to publish. Nothing to design, nothing to code.</p>
+            <h2>Transparent, Zero-Friction Pricing</h2>
+            {/* "free Google Business website" is placed verbatim: it is the
+                fastest-growing query in the cluster (+900% YoY worldwide), and
+                the pricing intro is the chunk AI answers quote numbers from. */}
+            <p>
+              Three numbers: a free Google Business website build, a $19 domain, and $
+              {HOSTING_PRICE_USD}/month hosting after the first {HOSTING_FREE_DAYS} days — no setup
+              fee, nothing to design or code. They match our{" "}
+              <Link href="/pricing" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+                pricing page
+              </Link>{" "}
+              exactly.
+            </p>
           </div>
 
           <div className="price-card">
             <div className="price-card-main">
               <span className="price-card-amount">FREE</span>
-              <span className="price-card-once">to preview your website</span>
+              <span className="price-card-once">to build &amp; preview your website</span>
             </div>
+            {/* The three headline points lead the list — build, hosting, domain —
+                so the numbers a snippet or an AI answer would quote are the first
+                three things it reads. Everything after them is the fine print
+                that keeps the page honest. All figures come from
+                src/lib/website.ts so they can never drift from billing. */}
             <ul className="price-card-list">
               <li>
-                <strong>Free, to start:</strong> Google Score audit, 5 Google posts + 5 review
-                requests for 30 days, and a website preview — no card.
+                <strong>Website build: 100% free.</strong> No setup fees. Your site is generated from
+                your Google Business Profile — with the free Google Score audit, 5 Google posts and 5
+                review requests for 30 days — and you can preview it as often as you like, no card.
               </li>
               <li>
-                <strong>To publish:</strong> $19 once — your own domain, registered in your name.
+                <strong>Hosting: first {HOSTING_FREE_DAYS} days free</strong>, then $
+                {HOSTING_PRICE_USD}/month, cancel anytime. The free window starts the day you publish
+                and runs for the full {HOSTING_FREE_DAYS} days.
               </li>
               <li>
-                <strong>Hosting:</strong> free for the first {HOSTING_FREE_DAYS} days, then{" "}
-                <Link href="/pricing" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
-                  ${HOSTING_PRICE_USD}/month
-                </Link>
-                .
+                <strong>Custom domain: $19 one-time.</strong> Registered in your name, yours to keep.
+                This is the one payment that unlocks publishing — connecting a domain you already own
+                isn&apos;t available yet.
               </li>
               <li>
                 <strong>Live sync:</strong> new photos and reviews update your site automatically on
@@ -351,21 +400,22 @@ export default function WebsiteBuilderPage() {
                 (not deleted) — you have 30 days to bring it back exactly as it was.
               </li>
             </ul>
-            <Link href="/signup" className="btn btn-primary">
-              Build My Website — Free Preview →
+            <Link href="/signup?plan=free" className="btn btn-primary">
+              {ctaLabel} →
             </Link>
             <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
-              No card required to preview. Domain and hosting costs apply to publish and keep it live.
+              No credit card required to build and preview. Domain and hosting costs apply to publish
+              and keep it live.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── FAQs ─────────────────────────────────────────────── */}
+      {/* ── Section 3: FAQ ───────────────────────────────────── */}
       <section id="faqs" className="section-padding" style={{ backgroundColor: "var(--color-bg)", borderTop: "1px solid var(--color-divider)" }}>
         <div className="container">
           <div className="steps-header">
-            <h2>FAQs</h2>
+            <h2>Frequently Asked Questions</h2>
           </div>
 
           {/* Rendered from WEBSITE_BUILDER_FAQS — the same array the FAQPage
@@ -411,7 +461,7 @@ export default function WebsiteBuilderPage() {
               Keep your photos flowing, your Google profile fresh, and your website current too.
             </p>
           </div>
-          <Link href="/signup" className="btn btn-primary">
+          <Link href="/signup?plan=free" className="btn btn-primary">
             {closingCtaLabel} →
           </Link>
         </div>
