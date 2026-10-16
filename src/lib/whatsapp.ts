@@ -76,7 +76,9 @@ async function callMetaAPI(endpoint: string, body: Record<string, unknown>): Pro
   const token = getAccessToken();
 
   console.log(`📤 [Meta WhatsApp] POST ${url}`);
-  console.log(`📤 [Meta WhatsApp] Body:`, JSON.stringify(body).substring(0, 200));
+  // The body carries the customer's phone number in `to` — log the call shape
+  // without the recipient so no phone number ever lands in server logs.
+  console.log(`📤 [Meta WhatsApp] Body:`, JSON.stringify({ ...body, to: "[redacted]" }).substring(0, 200));
 
   const response = await fetch(url, {
     method: "POST",
