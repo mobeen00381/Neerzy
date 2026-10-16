@@ -40,7 +40,12 @@ const STATIC_PAGES: Entry[] = [
   { url: `${SITE_URL}/privacy-policy`, lastModified: '2026-05-26', changeFrequency: 'yearly', priority: 0.5 },
   { url: `${SITE_URL}/cookies`, lastModified: '2026-05-26', changeFrequency: 'yearly', priority: 0.3 },
   // Website builder cluster, added 2026-09-25 together with its ten trade pages.
-  { url: `${SITE_URL}/website-builder`, lastModified: '2026-09-25', changeFrequency: 'monthly', priority: 0.9 },
+  // /website-builder itself moved to 2026-10-16: the SEO/AEO rewrite (new title,
+  // description, H1, heading hierarchy and FAQ set) shipped that day, and the
+  // page's own WebPage schema dateModified says 2026-10-16 — the two must agree
+  // or the sitemap date contradicts the page. The ten trade pages are unchanged,
+  // so they keep the original date.
+  { url: `${SITE_URL}/website-builder`, lastModified: '2026-10-16', changeFrequency: 'monthly', priority: 0.9 },
   { url: `${SITE_URL}/website-builder/plumber`, lastModified: '2026-09-25', changeFrequency: 'monthly', priority: 0.7 },
   { url: `${SITE_URL}/website-builder/electrician`, lastModified: '2026-09-25', changeFrequency: 'monthly', priority: 0.7 },
   { url: `${SITE_URL}/website-builder/hvac`, lastModified: '2026-09-25', changeFrequency: 'monthly', priority: 0.7 },
