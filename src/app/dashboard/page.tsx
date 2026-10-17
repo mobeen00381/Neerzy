@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, type ReactElement } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from "@/lib/supabase";
-import { PLAN_LIMITS, getPlan, getRemainingDays, getCycleStartIso } from '@/lib/plans';
+import { getPlan, getRemainingDays, getCycleStartIso } from '@/lib/plans';
 import { FallbackReviewModal } from '@/components/dashboard/FallbackReviewModal';
 import { AnalyticsPanel } from '@/components/dashboard/AnalyticsPanel';
 import { AgencyClientsPanel } from '@/components/dashboard/AgencyClientsPanel';
@@ -52,6 +52,33 @@ interface Message {
   generatedText?: string;
   platform?: 'google' | 'facebook' | 'instagram';
   openLink?: string;
+}
+
+// Server snapshot from GET /api/usage — the dashboard never invents quota
+// numbers any more. Everything quota-related on this page reads from here.
+interface UsagePayload {
+  ok: boolean;
+  plan: string;
+  planName: string;
+  connected: boolean;
+  businessName: string | null;
+  trialExpired: boolean;
+  daysLeft: number;
+  cycleStart: string;
+  resetsAt: string;
+  usage: { total: number; daily: number };
+  limits: {
+    totalPosts: number;
+    dailyPosts: number;
+    trialDays: number;
+    totalReviewRequests: number;
+    dailyReviewRequests: number;
+    price: string;
+  };
+  remaining: { total: number | null; daily: number | null };
+  canPost: boolean;
+  reason: string;
+  message: string;
 }
 
 // Helper function to render message content with clickable links
@@ -156,6 +183,11 @@ export default function Dashboard() {
   
   // Stats
   const [stats, setStats] = useState({ total: 0, daily: 0, reviewCount: 0 });
+  // Server-authoritative usage snapshot (GET /api/usage). Null only while the
+  // first load is in flight or if the endpoint is unreachable — in that case the
+  // page falls back to the locally counted numbers, and the post itself is still
+  // gated by create_post_with_quota().
+  const [postUsage, setPostUsage] = useState<UsagePayload | null>(null);
   
   // Review stats
   const [reviewStats, setReviewStats] = useState<{
@@ -288,6 +320,27 @@ export default function Dashboard() {
         console.error("Failed to fetch business profile from API:", err);
       }
       setBusinessProfile(bData);
+
+      // 2b. Usage snapshot — the SAME four gates that decide whether a post is
+      //     allowed (connected → trial → monthly → daily), in the same order.
+      //     This is what the chips, the usage card and the composer read, so the
+      //     dashboard can never show "1 of 5 left" while the server says 403.
+      let usageSnapshot: UsagePayload | null = null;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const res = await fetch('/api/usage', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+            cache: 'no-store',
+          });
+          if (res.ok) {
+            usageSnapshot = (await res.json()) as UsagePayload;
+            setPostUsage(usageSnapshot);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load usage snapshot:', err);
+      }
 
       // 3. Fetch user posts from posts (web simulator) and pending_posts (WhatsApp drafts)
       let whatsappPosts: any[] = [];
@@ -470,12 +523,21 @@ export default function Dashboard() {
       const totalPostCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= cycleStart).length
         + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= cycleStart && isCompletedWhatsappPost(p)).length;
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const dailyPostCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= today).length
-        + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= today && isCompletedWhatsappPost(p)).length;
+      const todayStart = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+      );
+      const dailyPostCount = (postsData || []).filter((p: any) => new Date(p.created_at) >= todayStart).length
+        + (whatsappPosts || []).filter((p: any) => new Date(p.created_at) >= todayStart && isCompletedWhatsappPost(p)).length;
       const reviewCount = (reviewRequests || []).filter((r: any) => new Date(r.sent_at || r.created_at) >= cycleStart).length;
 
-      setStats({ total: totalPostCount, daily: dailyPostCount, reviewCount });
+      // The API's numbers win: they come from the same two tables with the same
+      // filter (and the same UTC day boundary) as the quota gate. The local
+      // counts above are only the fallback when /api/usage is unreachable.
+      setStats({
+        total: usageSnapshot ? usageSnapshot.usage.total : totalPostCount,
+        daily: usageSnapshot ? usageSnapshot.usage.daily : dailyPostCount,
+        reviewCount,
+      });
 
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -784,21 +846,20 @@ export default function Dashboard() {
       return;
     }
 
-    // Plan quota pre-check (client-side UX; /api/generate-post also enforces server-side)
-    if (planLimits.totalPosts !== -1 && stats.total >= planLimits.totalPosts) {
+    // Quota pre-check — a UX shortcut only. `/api/usage` evaluates the exact
+    // gates the database function enforces, so we can answer in the chat without
+    // a generation round-trip; `create_post_with_quota()` is still the authority.
+    const blockedMessage = postingBlocked || (
+      postLimits.totalPosts !== -1 && stats.total >= postLimits.totalPosts
+        ? `You have used all ${postLimits.totalPosts} posts included in your plan this month.`
+        : postLimits.dailyPosts !== -1 && stats.daily >= postLimits.dailyPosts
+          ? `Daily limit reached. Try again after ${dailyResetsLabel}.`
+          : null
+    );
+    if (blockedMessage) {
       const limitMsg: Message = {
         id: `limit-${Date.now()}`,
-        text: `⚠️ *Post limit reached.*\n\nYour ${plan} plan allows ${planLimits.totalPosts} posts total. Upgrade to continue posting.`,
-        sender: 'bot',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev, limitMsg]);
-      return;
-    }
-    if (planLimits.dailyPosts > 0 && stats.daily >= planLimits.dailyPosts) {
-      const limitMsg: Message = {
-        id: `limit-${Date.now()}`,
-        text: `⚠️ *Daily post limit reached.*\n\nYour ${plan} plan allows ${planLimits.dailyPosts} post${planLimits.dailyPosts !== 1 ? 's' : ''} per day. Try again tomorrow.`,
+        text: `⚠️ ${blockedMessage}`,
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
@@ -823,30 +884,44 @@ export default function Dashboard() {
     setMessages(prev => [...prev, thinkingMsg]);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Please sign in again to generate a post.');
+      }
+
       const aiRes = await fetch('/api/generate-post', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
           description: draftDescription || 'Photo update',
           businessName: bizName,
           imageUrl: draftImages[0] || null,
-          userId: user.id,
         }),
       });
 
-      if (aiRes.status === 403) {
+      if (aiRes.status === 401 || aiRes.status === 403 || aiRes.status === 409 || aiRes.status === 503) {
+        // The server gate is the only authority on quota denials. Its message
+        // already includes the reset time for daily caps.
         const errData = await aiRes.json().catch(() => ({}));
+        const denialText = aiRes.status === 401
+          ? 'Your session expired. Please sign in again.'
+          : (errData.message || errData.error || 'You cannot post right now.');
         setMessages(prev => {
           const filtered = prev.filter(m => m.id !== thinkingMsg.id);
           const limitMsg: Message = {
             id: `limit-${Date.now()}`,
-            text: `⚠️ ${errData.error || 'Plan limit reached.'}`,
+            text: `⚠️ ${denialText}`,
             sender: 'bot',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           };
           return [...filtered, limitMsg];
         });
         setIsGenerating(false);
+        // Usage may have changed elsewhere (WhatsApp, another tab) — resync.
+        await loadDashboardData();
         return;
       }
 
@@ -865,23 +940,8 @@ export default function Dashboard() {
         ? `${aiData.social.instagram.caption}\n\n${aiData.social.instagram.hashtags}`.trim()
         : null;
 
-      // Save generated post ONLY after successful generation (blocked/failed attempts don't count)
-      const { error } = await supabase
-        .from('posts')
-        .insert({
-          user_id: user.id,
-          content: draftDescription || 'Photo update',
-          image_url: draftImages[0] || null,
-          status: 'published',
-          ai_reply: aiData.fullText,
-          social_facebook: socialFb,
-          social_instagram: socialIg,
-        });
-
-      if (error) {
-        console.error('Failed to save post:', error);
-        throw new Error('Failed to save post');
-      }
+      // No client-side INSERT any more: the post row (and its quota slot) is
+      // created server-side by the quota gate before generation starts.
 
       // Clear draft state
       setDraftImages([]);
@@ -1264,21 +1324,52 @@ export default function Dashboard() {
   const bLocation = businessProfile?.address || 'Not connected';
   const ownerName = user?.user_metadata?.owner_name || user?.user_metadata?.full_name || 'Business Owner';
   
-  const plan = profile?.selected_plan || user?.user_metadata?.selected_plan || 'free';
+  const plan = postUsage?.plan || profile?.selected_plan || user?.user_metadata?.selected_plan || 'free';
   const planLimits = getPlan(plan);
-  
+  // Post counters come from the server snapshot when we have one; the plan
+  // table is only the fallback (e.g. /api/usage unreachable on first paint).
+  const postLimits = {
+    totalPosts: postUsage?.limits.totalPosts ?? planLimits.totalPosts,
+    dailyPosts: postUsage?.limits.dailyPosts ?? planLimits.dailyPosts,
+    trialDays: postUsage?.limits.trialDays ?? planLimits.trialDays,
+  };
+  // Review-request quota is a separate allowance and is never affected by a post
+  // cap, so it is read independently of `canPost`.
+  const reviewLimits = {
+    total: postUsage?.limits.totalReviewRequests ?? planLimits.totalReviewRequests,
+    daily: postUsage?.limits.dailyReviewRequests ?? planLimits.dailyReviewRequests,
+  };
+
   // trial_started_at: prefer DB profile, fall back to user_metadata (set during onboarding),
   // then auth user creation date, then now() as last resort
   const trialStart = profile?.trial_started_at || profile?.created_at || user?.user_metadata?.trial_started_at || user?.created_at || new Date().toISOString();
-  const daysLeft = planLimits.trialDays > 0 ? getRemainingDays(trialStart, planLimits.trialDays) : 30;
-  const daysCountdown = planLimits.trialDays > 0 ? `${daysLeft} days left` : 'Unlimited';
-  const trialExpired = planLimits.trialDays > 0 && daysLeft <= 0;
+  const daysLeft = postUsage
+    ? postUsage.daysLeft
+    : postLimits.trialDays > 0 ? getRemainingDays(trialStart, postLimits.trialDays) : 30;
+  const daysCountdown = postLimits.trialDays > 0 ? `${daysLeft} days left` : 'Unlimited';
+  const trialExpired = postUsage ? postUsage.trialExpired : postLimits.trialDays > 0 && daysLeft <= 0;
 
-  const totalRemaining = planLimits.totalPosts === -1 ? 'Unlimited' : Math.max(0, planLimits.totalPosts - stats.total);
-  const totalCountdown = planLimits.totalPosts === -1 ? 'Unlimited' : `${totalRemaining}/${planLimits.totalPosts} remaining`;
+  const totalRemaining = postLimits.totalPosts === -1 ? 'Unlimited' : Math.max(0, postLimits.totalPosts - stats.total);
+  const totalCountdown = postLimits.totalPosts === -1 ? 'Unlimited' : `${totalRemaining}/${postLimits.totalPosts} remaining`;
   
-  const dailyRemaining = planLimits.dailyPosts === -1 ? 'Unlimited' : Math.max(0, planLimits.dailyPosts - stats.daily);
-  const dailyCountdown = planLimits.dailyPosts === -1 ? 'Unlimited' : `${dailyRemaining}/${planLimits.dailyPosts} left`;
+  const dailyRemaining = postLimits.dailyPosts === -1 ? 'Unlimited' : Math.max(0, postLimits.dailyPosts - stats.daily);
+  const dailyCountdown = postLimits.dailyPosts === -1 ? 'Unlimited' : `${dailyRemaining}/${postLimits.dailyPosts} left`;
+
+  // Why posting is paused, straight from the server gate's wording. Null = allowed.
+  const postingBlocked = postUsage && !postUsage.canPost ? postUsage.message : null;
+  // Lock the composer only when nothing in the chat can succeed anyway: no Google
+  // listing means no post and no review link, and an ended trial blocks review
+  // requests too. On a daily/monthly post cap the composer stays open so the
+  // trader can still send review requests (a separate quota).
+  const composerLocked = Boolean(
+    postUsage &&
+    !postUsage.canPost &&
+    (postUsage.reason === 'trial_expired' || postUsage.reason === 'not_connected')
+  );
+  // Next UTC midnight, shown in the usage card / tooltips.
+  const dailyResetsLabel = postUsage
+    ? `${new Date(postUsage.resetsAt).toISOString().slice(11, 16)} UTC`
+    : 'UTC midnight';
 
   if (loading) {
     return (
@@ -1292,7 +1383,11 @@ export default function Dashboard() {
   // Connection state for the setup card (drives the big connect CTAs)
   const gbpConnected = !!(profile?.gbp_connected || businessProfile?.google_place_id);
   const whatsAppConnected = !!phone;
-  const showSetupCard = !gbpConnected || !whatsAppConnected;
+  // The gate decides "connected" from a Google place id, so when the server says
+  // not connected we show the setup card even if the profile flag disagrees —
+  // otherwise the composer would be locked with no CTA to fix it.
+  const needsGoogle = !gbpConnected || Boolean(postUsage && !postUsage.connected);
+  const showSetupCard = needsGoogle || !whatsAppConnected;
 
   // Connect Google Profile — sends the user to the search-and-select flow where
   // they type their business name and pick their exact Google listing. No OAuth
@@ -1391,21 +1486,35 @@ export default function Dashboard() {
               <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded uppercase tracking-wider font-black">
                 {plan} Plan
               </span>
+              {postUsage && !postUsage.canPost && (
+                <span
+                  className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded uppercase tracking-wider font-black"
+                  title={postingBlocked || 'Posting is paused'}
+                >
+                  Posting paused
+                </span>
+              )}
               <span className="hidden sm:inline border-r border-slate-200 h-3" />
               <span className="flex items-center gap-0.5" title="Remaining Subscription Days">
                 ⏳ {daysCountdown}
               </span>
               <span className="hidden sm:inline border-r border-slate-200 h-3" />
-              <span className="flex items-center gap-0.5" title="Total Posts Count">
+              <span
+                className="flex items-center gap-0.5"
+                title={`Posts this cycle: ${stats.total}${postLimits.totalPosts === -1 ? '' : ` of ${postLimits.totalPosts}`}`}
+              >
                 📝 {totalCountdown}
               </span>
               <span className="hidden sm:inline border-r border-slate-200 h-3" />
-              <span className="flex items-center gap-0.5" title="Daily Posts Count">
+              <span
+                className="flex items-center gap-0.5"
+                title={`Posts today: ${stats.daily}${postLimits.dailyPosts === -1 ? '' : ` of ${postLimits.dailyPosts}`} · resets ${dailyResetsLabel}`}
+              >
                 ⚡ Daily: {dailyCountdown}
               </span>
               <span className="hidden sm:inline border-r border-slate-200 h-3" />
               <span className="flex items-center gap-0.5 text-amber-600" title="Review Requests">
-                ⭐ {planLimits.totalReviewRequests === -1 ? 'Unlimited' : `${planLimits.totalReviewRequests} reviews`}
+                ⭐ {reviewLimits.total === -1 ? 'Unlimited' : `${reviewLimits.total} reviews`}
               </span>
             </div>
           </div>
@@ -1511,7 +1620,7 @@ export default function Dashboard() {
               {/* SETUP CARD: Connect Google Profile + WhatsApp (hidden once both connected) */}
               {showSetupCard && (
                 <div className="bg-gradient-to-r from-[#0F5C4D] to-emerald-700 px-5 py-5 md:px-6 border-b border-emerald-900/30 shadow-inner">
-                  <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                  <div className="max-w-4xl mx-auto flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base md:text-lg font-black tracking-tight flex items-center gap-2">
                         <Sparkles className="w-5 h-5 text-emerald-300" /> Get started in under a minute
@@ -1520,11 +1629,11 @@ export default function Dashboard() {
                         Connect your Google Profile and WhatsApp so Neerzy can post to your listing and send review requests automatically.
                       </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 shrink-0">
-                      {!gbpConnected && (
+                    <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap lg:w-auto lg:shrink-0 lg:justify-end">
+                      {needsGoogle && (
                         <button
                           onClick={handleConnectGBP}
-                          className="flex items-center justify-center gap-2.5 px-6 py-4 bg-white text-emerald-900 rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-emerald-50 hover:shadow-xl transition-all active:scale-95 cursor-pointer"
+                          className="flex w-full items-center justify-center gap-2.5 px-6 py-4 bg-white text-emerald-900 rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-emerald-50 hover:shadow-xl transition-all active:scale-95 cursor-pointer sm:w-auto"
                         >
                           <Store className="w-5 h-5 text-[#4285F4]" />
                           Connect Google Profile
@@ -1536,7 +1645,7 @@ export default function Dashboard() {
                           href={`https://wa.me/923206291617?text=${encodeURIComponent(`Hi Neerzy! I want to connect my WhatsApp profile. CONNECT:${user?.id || ""}`)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2.5 px-6 py-4 bg-[#25D366] text-white rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-[#20ba56] hover:shadow-xl transition-all active:scale-95"
+                          className="flex w-full items-center justify-center gap-2.5 px-6 py-4 bg-[#25D366] text-white rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-[#20ba56] hover:shadow-xl transition-all active:scale-95 sm:w-auto"
                         >
                           <MessageSquare className="w-5 h-5" />
                           Connect WhatsApp
@@ -1681,6 +1790,18 @@ export default function Dashboard() {
 
               {/* WhatsApp message composer */}
               <div className="bg-[#f0f2f5] p-3 flex flex-col gap-2 border-t border-slate-200">
+                {/* Gate banner: the reason the server would deny this post, in the
+                    server's own words (trial expiry already has the banner on top). */}
+                {postingBlocked && postUsage?.reason !== 'trial_expired' && (
+                  <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-900">
+                    <span aria-hidden>⛔</span>
+                    <span className="flex-1">{postingBlocked}</span>
+                    <a href="/pricing" className="whitespace-nowrap font-black underline">
+                      Upgrade
+                    </a>
+                  </div>
+                )}
+
                 {/* Pending Image Preview overlay */}
                 {pendingImage && (
                   <div className="bg-white rounded-xl p-3 flex items-center justify-between border border-slate-200 shadow-md">
@@ -1706,12 +1827,17 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   
                   {/* File attach button (+) */}
-                  <label className="p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full cursor-pointer transition-all shrink-0">
+                  <label
+                    className={`p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full transition-all shrink-0 ${
+                      composerLocked ? 'cursor-not-allowed opacity-40 pointer-events-none' : 'cursor-pointer'
+                    }`}
+                  >
                     <Plus className="w-6 h-6" />
                     <input 
                       type="file" 
                       accept="image/*" 
                       onChange={handleFileChange} 
+                      disabled={composerLocked}
                       className="hidden" 
                     />
                   </label>
@@ -1719,8 +1845,9 @@ export default function Dashboard() {
                   {/* Camera icon */}
                   <button 
                     onClick={startCamera}
-                    title="Take Snapshot"
-                    className="p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full transition-all shrink-0"
+                    disabled={composerLocked}
+                    title={composerLocked ? postingBlocked || 'Posting is paused' : 'Take Snapshot'}
+                    className="p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
                   >
                     <Camera className="w-6 h-6" />
                   </button>
@@ -1736,8 +1863,16 @@ export default function Dashboard() {
                           handleSendMessage(inputValue, pendingImage || undefined);
                         }
                       }}
-                      disabled={isRecording || isTranscribing}
-                      placeholder={isTranscribing ? "Transcribing voice note..." : isRecording ? "Recording voice message..." : "Type your Google Business post caption..."}
+                      disabled={isRecording || isTranscribing || composerLocked}
+                      placeholder={
+                        composerLocked
+                          ? postingBlocked || 'Posting is paused'
+                          : isTranscribing
+                            ? "Transcribing voice note..."
+                            : isRecording
+                              ? "Recording voice message..."
+                              : "Type your Google Business post caption..."
+                      }
                       className="w-full bg-white px-4 py-3 rounded-full outline-none text-sm text-slate-800 shadow-sm border border-slate-200/50 focus:border-emerald-500 transition-all font-semibold"
                     />
                   </div>
@@ -1775,8 +1910,9 @@ export default function Dashboard() {
                   ) : (
                     <button
                       onClick={startRecording}
-                      title="Record Voice Note"
-                      className="p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full transition-all shrink-0"
+                      disabled={composerLocked}
+                      title={composerLocked ? postingBlocked || 'Posting is paused' : 'Record Voice Note'}
+                      className="p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
                     >
                       <Mic className="w-6 h-6" />
                     </button>
@@ -1786,7 +1922,8 @@ export default function Dashboard() {
                   {!isRecording && !isTranscribing && (
                     <button
                       onClick={() => handleSendMessage(inputValue, pendingImage || undefined)}
-                      disabled={!inputValue.trim() && !pendingImage && draftImages.length === 0}
+                      disabled={composerLocked || (!inputValue.trim() && !pendingImage && draftImages.length === 0)}
+                      title={composerLocked ? postingBlocked || 'Posting is paused' : 'Send'}
                       className="p-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-all shadow-md hover:shadow-emerald-600/10 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none shrink-0"
                     >
                       <Send className="w-4 h-4 fill-current" />
@@ -1959,37 +2096,68 @@ export default function Dashboard() {
                       <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
                         {plan} plan
                       </span>
-                      <h4 className="font-extrabold text-slate-900 mt-2 text-base">{planLimits.name} Tier Subscription</h4>
-                      <p className="text-xs text-slate-500 font-semibold mt-0.5">Trial period: {planLimits.trialDays} Days total</p>
+                      <h4 className="font-extrabold text-slate-900 mt-2 text-base">{postUsage?.planName || planLimits.name} Tier Subscription</h4>
+                      <p className="text-xs text-slate-500 font-semibold mt-0.5">Trial period: {postLimits.trialDays} Days total</p>
                     </div>
 
                     <div className="text-right">
-                      <span className="text-2xl font-black text-slate-950">{planLimits.price}</span>
+                      <span className="text-2xl font-black text-slate-950">{postUsage?.limits.price || planLimits.price}</span>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Recurring billing</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest block">Quota Details</span>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest block">Quota Details</span>
+                      <span
+                        className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+                          postUsage && !postUsage.canPost
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                        }`}
+                        title={postingBlocked || 'Posting is allowed'}
+                      >
+                        {postUsage ? (postUsage.canPost ? 'Posting allowed' : 'Posting paused') : 'Quota loading'}
+                      </span>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-bold text-slate-600">
                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="block text-slate-400 text-[10px] uppercase">Subscription Left</span>
                         <span className="block text-slate-900 text-base font-black mt-1">{daysCountdown}</span>
+                        {postLimits.trialDays > 0 && (
+                          <span className="block text-slate-400 text-[10px] font-bold mt-0.5">
+                            {trialExpired ? 'Trial ended' : `${postLimits.trialDays}-day cycle`}
+                          </span>
+                        )}
                       </div>
                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="block text-slate-400 text-[10px] uppercase">Posts Remaining</span>
                         <span className="block text-slate-900 text-base font-black mt-1">{totalCountdown}</span>
+                        <span className="block text-slate-400 text-[10px] font-bold mt-0.5">
+                          {stats.total} used{postLimits.totalPosts === -1 ? '' : ` of ${postLimits.totalPosts}`}
+                        </span>
                       </div>
                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                         <span className="block text-slate-400 text-[10px] uppercase">Daily Post Limit</span>
                         <span className="block text-slate-900 text-base font-black mt-1">{dailyCountdown}</span>
+                        <span className="block text-slate-400 text-[10px] font-bold mt-0.5">
+                          {stats.daily} today · resets {dailyResetsLabel}
+                        </span>
                       </div>
                       <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
                         <span className="block text-amber-500 text-[10px] uppercase">Review Requests</span>
-                        <span className="block text-slate-900 text-base font-black mt-1">{planLimits.totalReviewRequests === -1 ? 'Unlimited' : `${planLimits.totalReviewRequests} total`}</span>
-                        <span className="block text-amber-600 text-[10px] font-bold mt-0.5">{planLimits.dailyReviewRequests === -1 ? 'Unlimited' : `${planLimits.dailyReviewRequests}/day`}</span>
+                        <span className="block text-slate-900 text-base font-black mt-1">{reviewLimits.total === -1 ? 'Unlimited' : `${reviewLimits.total} total`}</span>
+                        <span className="block text-amber-600 text-[10px] font-bold mt-0.5">{reviewLimits.daily === -1 ? 'Unlimited' : `${reviewLimits.daily}/day`}</span>
                       </div>
                     </div>
+                    {postingBlocked && (
+                      <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+                        <span>{postingBlocked}</span>
+                        <a href="/pricing" className="font-black underline whitespace-nowrap">
+                          View plans
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
 

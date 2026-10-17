@@ -113,7 +113,7 @@ export function WebsiteCtaButton({ onOpen }: { onOpen: () => void }) {
     return (
       <button
         disabled
-        className="flex items-center justify-center gap-2.5 px-6 py-4 bg-white/60 text-emerald-900/60 rounded-2xl text-sm font-black cursor-wait"
+        className="flex w-full items-center justify-center gap-2.5 px-6 py-4 bg-white/60 text-emerald-900/60 rounded-2xl text-sm font-black cursor-wait sm:w-auto"
       >
         <Loader2 className="w-5 h-5 animate-spin" /> Website…
       </button>
@@ -128,7 +128,7 @@ export function WebsiteCtaButton({ onOpen }: { onOpen: () => void }) {
     return (
       <button
         onClick={onOpen}
-        className="flex flex-col items-start gap-0.5 px-6 py-4 bg-white text-emerald-900 rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-emerald-50 transition-all active:scale-95"
+        className="flex w-full flex-col items-start gap-0.5 px-6 py-4 bg-white text-emerald-900 rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-emerald-50 transition-all active:scale-95 text-left sm:w-auto"
       >
         <span className="flex items-center gap-2.5">
           <Globe className="w-5 h-5 text-emerald-600" /> Website: {site.status === "paused" ? "Paused" : site.status === "live" ? "Live" : "Building"}
@@ -149,7 +149,7 @@ export function WebsiteCtaButton({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className="flex flex-col items-start gap-0.5 px-6 py-4 bg-white text-emerald-900 rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-emerald-50 transition-all active:scale-95"
+      className="flex w-full flex-col items-start gap-0.5 px-6 py-4 bg-white text-emerald-900 rounded-2xl text-sm font-black shadow-lg shadow-emerald-900/20 hover:bg-emerald-50 transition-all active:scale-95 text-left sm:w-auto"
     >
       <span className="flex items-center gap-2.5">
         <Globe className="w-5 h-5 text-[#0F5C4D]" /> Build Website

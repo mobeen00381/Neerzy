@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { chatWithFallback } from '@/lib/openai';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { buildPostPrompt, type PostPromptContext } from '@/lib/post-prompt';
-import { countUserPosts } from '@/lib/post-usage';
 import { generateSocialContent } from '@/lib/social-content';
-import { PLAN_LIMITS, getCycleStartIso, getRemainingDays } from '@/lib/plans';
+import { getBusinessProfileForUser } from '@/lib/business-profile';
+import { checkPostGate, postGateResponse } from '@/lib/post-gate';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -31,9 +31,27 @@ function isVagueDescription(description: string | null | undefined): boolean {
 }
 
 export async function POST(req: Request) {
+  // Declared outside the try so a failure AFTER the quota was consumed can
+  // hand the post back (delete the row) instead of silently burning a credit.
+  let createdPostId: string | null = null;
+
   try {
     const body = await req.json();
-    const { description, businessName, imageUrl, userId } = body;
+    const { description, businessName, imageUrl } = body;
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Identity comes from the session, never from the request body — `userId`
+    // used to be trusted here, so any client could post as anyone.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const token = (req.headers.get('authorization') || '').replace('Bearer ', '').trim();
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    const userId: string | undefined = authData?.user?.id;
+    if (authError || !userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     if (!description && !businessName) {
       return NextResponse.json({ error: 'Missing description or business name' }, { status: 400 });
@@ -48,53 +66,46 @@ export async function POST(req: Request) {
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Plan quota check — posts from WhatsApp + web dashboard count together
+    // Plan + account identity
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     let profilePhone: string | null = null;
-    let growthTier = false;
-    if (userId) {
-      try {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('selected_plan, phone, plan_started_at, trial_started_at, created_at')
-          .eq('id', userId)
-          .maybeSingle();
-        profilePhone = profileData?.phone || null;
-
-        const planTier = profileData?.selected_plan || 'free';
-        const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
-        const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
-
-        // Growth/Agency/Unlimited → also write Facebook + Instagram posts (same as WhatsApp flow).
-        if (planTier === 'growth' || planTier === 'agency' || planTier === 'unlimited') growthTier = true;
-
-        if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
-          return NextResponse.json(
-            { error: 'Your 30-day free trial has ended. Upgrade to continue posting.' },
-            { status: 403 }
-          );
-        }
-
-        const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
-        const usage = await countUserPosts(userId, profileData?.phone || null, cycleStartIso);
-
-        if (quota.totalPosts !== -1 && usage.total >= quota.totalPosts) {
-          return NextResponse.json(
-            { error: `You've reached your plan limit of ${quota.totalPosts} posts per month. Upgrade to post more.` },
-            { status: 403 }
-          );
-        }
-
-        if (quota.dailyPosts > 0 && usage.daily >= quota.dailyPosts) {
-          return NextResponse.json(
-            { error: `Daily limit of ${quota.dailyPosts} post${quota.dailyPosts !== 1 ? 's' : ''} reached. Try again tomorrow.` },
-            { status: 403 }
-          );
-        }
-      } catch (quotaErr) {
-        console.warn('⚠️ Could not check post quota:', quotaErr);
-      }
+    let planTier = 'free';
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('selected_plan, phone')
+        .eq('id', userId)
+        .maybeSingle();
+      profilePhone = profileData?.phone || authData?.user?.phone || null;
+      planTier = profileData?.selected_plan || 'free';
+    } catch (profileErr) {
+      console.warn('⚠️ Could not load profile:', profileErr);
     }
+
+    // Growth/Agency/Unlimited → also write Facebook + Instagram posts (same as WhatsApp flow).
+    const growthTier = planTier === 'growth' || planTier === 'agency' || planTier === 'unlimited';
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Unified quota gate — checks the plan AND creates the `posts` row in one
+    // serialized transaction, so two parallel requests can never both pass.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const gate = await checkPostGate({
+      userId,
+      phone: profilePhone,
+      source: 'dashboard',
+      payload: {
+        content: description?.trim() || 'Photo update',
+        image_url: imageUrl || null,
+        status: 'published',
+      },
+    });
+
+    if (!gate.allowed) {
+      console.log(`🚫 generate-post denied for ${userId}: ${gate.reason}`);
+      return postGateResponse(gate);
+    }
+
+    createdPostId = gate.postId;
 
     const jobDescription = description?.trim() || 'Completed job';
     const bizName = businessName?.trim() || 'Local Business';
@@ -105,17 +116,11 @@ export async function POST(req: Request) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const postCtx: PostPromptContext = { businessName: bizName };
     try {
-      if (profilePhone) {
-        const { data: biz } = await supabase
-          .from('business_profiles')
-          .select('business_name, address, category')
-          .eq('user_phone', profilePhone)
-          .maybeSingle();
-        if (biz) {
-          postCtx.businessName = biz.business_name || bizName;
-          postCtx.category = biz.category || null;
-          postCtx.locationHint = biz.address || null;
-        }
+      const biz = await getBusinessProfileForUser(supabase, userId, profilePhone);
+      if (biz) {
+        postCtx.businessName = biz.business_name || bizName;
+        postCtx.category = biz.category || null;
+        postCtx.locationHint = biz.address || null;
       }
     } catch (ctxErr) {
       console.warn('⚠️ Could not load business context:', ctxErr);
@@ -162,8 +167,37 @@ export async function POST(req: Request) {
       }
     }
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Persist the generated copy on the row the gate already created. The post
+    // counts toward the quota from the moment of insertion, so it must never be
+    // left without the AI output.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const socialFb = social?.facebook
+      ? `${social.facebook.postText}\n\n${social.facebook.hashtags}`.trim()
+      : null;
+    const socialIg = social?.instagram
+      ? `${social.instagram.caption}\n\n${social.instagram.hashtags}`.trim()
+      : null;
+
+    if (createdPostId) {
+      const { error: saveError } = await supabase
+        .from('posts')
+        .update({
+          ai_reply: fullText,
+          social_facebook: socialFb,
+          social_instagram: socialIg,
+        })
+        .eq('id', createdPostId);
+
+      if (saveError) {
+        // The post exists and is published; only the copy failed to save.
+        console.error('⚠️ Could not save generated post content:', saveError.message);
+      }
+    }
+
     return NextResponse.json({
       success: true,
+      postId: createdPostId,
       headline,
       body: bodyText,
       cta,
@@ -177,6 +211,19 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error('❌ generate-post error:', error);
+
+    // Generation failed after the quota was consumed — hand the post back so
+    // the trader isn't charged for a post they never received.
+    if (createdPostId) {
+      const { error: cleanupError } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', createdPostId);
+      if (cleanupError) {
+        console.error('⚠️ Could not roll back post row (quota stays consumed):', cleanupError.message);
+      }
+    }
+
     return NextResponse.json({ error: error.message || 'Generation failed' }, { status: 500 });
   }
 }

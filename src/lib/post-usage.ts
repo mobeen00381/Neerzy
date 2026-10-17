@@ -11,7 +11,10 @@ import { createClient } from '@supabase/supabase-js';
  *
  * `cycleStartIso` (start of the user's 30-day billing cycle) limits the "total"
  * count to the current cycle — matching the plan's per-month quota. The daily
- * count always uses "today".
+ * count always uses "today", and "today" means UTC midnight — exactly the
+ * boundary `create_post_with_quota()` uses (`date_trunc('day', now() at time
+ * zone 'utc')`). A server-local midnight would reset the counter hours away
+ * from the gate and show a trader "1/1 left" while the gate answers 403.
  *
  * IMPORTANT: only COMPLETED posts count toward quota. WhatsApp `pending_posts`
  * rows start life as `status = 'draft'` the moment a photo/description/customer
@@ -32,9 +35,10 @@ export async function countUserPosts(
     process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   );
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayIso = today.toISOString();
+  const now = new Date();
+  const todayIso = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  ).toISOString();
   const totalSince = cycleStartIso || '1970-01-01T00:00:00.000Z';
 
   let total = 0;

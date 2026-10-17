@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { chatWithFallback } from "@/lib/openai";
 import { getClientIp } from "@/lib/rate-limit";
+import { checkPostGate, postGateResponse } from "@/lib/post-gate";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co",
@@ -119,7 +120,28 @@ export async function POST(req: Request) {
       rawContentToProcess = `[Text Input]: ${content}`;
     }
 
-    // 3. Generate Post with AI
+    // 3. Unified quota gate — creates the `posts` row (provisional content) and
+    //    reserves the credit BEFORE any AI spend, so parallel quick-post clicks
+    //    can never exceed the plan.
+    const gate = await checkPostGate({
+      userId,
+      phone: null, // the RPC falls back to profiles.phone
+      source: 'quick_post',
+      payload: {
+        title: 'Recent Update',
+        content: `<p>${rawContentToProcess}</p>`,
+        status: 'published',
+      },
+    });
+
+    if (!gate.allowed) {
+      console.log(`🚫 posts/create denied for ${userId}: ${gate.reason}`);
+      return postGateResponse(gate);
+    }
+
+    const createdPostId = gate.postId;
+
+    // 4. Generate Post with AI
     let title = "Recent Update";
     let htmlContent = `<p>${rawContentToProcess}</p>`;
     let gmbOutput = rawContentToProcess;
@@ -150,28 +172,31 @@ export async function POST(req: Request) {
       htmlContent = `<p>${rawContentToProcess}</p>`;
     }
 
-    // 4. Save to Supabase Posts Table
-    // If we have a userId, link it. Otherwise save as unlinked demo post
-    const { error: insertError } = await supabase.from("posts").insert([
-      {
-        user_id: userId,
-        title: title,
-        content: htmlContent,
-        status: "published"
-      }
-    ]);
+    // 5. Save the generated content on the row the gate created
+    if (createdPostId) {
+      const { error: updateError } = await supabase
+        .from("posts")
+        .update({
+          title: title,
+          content: htmlContent,
+        })
+        .eq("id", createdPostId);
 
-    if (insertError) {
-      console.error("Failed to insert post into Supabase:", insertError);
+      if (updateError) {
+        console.error("Failed to save generated post content:", updateError);
+      } else {
+        console.log("✅ Post saved to database.");
+      }
     } else {
-      console.log("✅ Post saved to database.");
+      console.error("Gate returned no post id — generated content was not saved.");
     }
 
-    // 5. Fire to Google My Business (Mocked for MVP until OAuth verified)
+    // 6. Fire to Google My Business (Mocked for MVP until OAuth verified)
     console.log("📡 Firing payload to Google Business Profile API...");
 
     return NextResponse.json({ 
       success: true, 
+      postId: createdPostId,
       post: {
         title,
         content: htmlContent,

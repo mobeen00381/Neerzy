@@ -11,7 +11,7 @@ import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
 import { linkPhoneToBusinessProfile } from '@/lib/business-profile';
 import { generateSocialContent } from '@/lib/social-content';
 import { buildPostPrompt, isUsableJobDescription, type PostPromptContext } from '@/lib/post-prompt';
-import { countUserPosts } from '@/lib/post-usage';
+import { checkPostGate, releasePostGate, type PostGateReason, type PostGateResult } from '@/lib/post-gate';
 import { getAgencyByClientPhone, getAgencyClientPhones, countAgencyTraderPosts, countAgencyPoolPosts, countAgencyTraderReviews, countAgencyPoolReviews, AGENCY_TRADER, AGENCY_POOL } from '@/lib/agency';
 
 const supabase = createClient(
@@ -485,9 +485,12 @@ export async function POST(req: Request) {
           const upsertPayload: Record<string, any> = {
             id: userId,
             phone: normalizedPhone,
-            gbp_connected: true,
             updated_at: new Date().toISOString(),
           };
+          // NOTE: `gbp_connected` is deliberately NOT set here. Linking a
+          // WhatsApp number says nothing about the Google listing; that flag is
+          // owned by the real GBP connect flow (/api/gbp/connect, onboarding),
+          // and the post gate checks business_profiles.google_place_id.
 
           // If no profile row exists yet (Google/email signups have none),
           // anchor the trial to the auth account's creation date instead of
@@ -505,7 +508,7 @@ export async function POST(req: Request) {
             const { error: retryErr } = await supabase
               .from('profiles')
               .upsert(
-                { id: userId, phone: normalizedPhone, gbp_connected: true, updated_at: new Date().toISOString() },
+                { id: userId, phone: normalizedPhone, updated_at: new Date().toISOString() },
                 { onConflict: 'id' }
               );
             if (retryErr) {
@@ -1052,7 +1055,29 @@ async function saveDraft(phone: string, data: any): Promise<string> {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Post generation workflow
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** WhatsApp copy for a quota-gate denial (the gate's own text is plain). */
+function formatGateDenial(gate: PostGateResult): string {
+  const titles: Partial<Record<PostGateReason, string>> = {
+    no_account: 'Account not found',
+    not_connected: 'Connect your Google business',
+    trial_expired: 'Free trial ended',
+    monthly_limit: 'Post limit reached',
+    daily_limit: 'Daily post limit reached',
+    in_progress: 'Post already in progress',
+    no_draft: 'No active draft found',
+    gate_unavailable: 'Please try again',
+  };
+  const title = titles[gate.reason] || 'Cannot post right now';
+  return `⚠️ *${title}*\n\n${gate.message}`;
+}
+
 async function handleGeneratePost(phone: string, fromNumber?: string) {
+  // Set only when this run actually claimed the one in-flight slot, so
+  // `finally` releases it — a failure must never lock the account for 15 min.
+  let gateReservedFor: string | null = null;
+  let gateDraftId: string | null = null;
+
   try {
     console.log('🔍 Fetching draft for:', phone);
 
@@ -1135,53 +1160,43 @@ async function handleGeneratePost(phone: string, fromNumber?: string) {
       }
     }
 
-    // ── Standard user path ──
+    // ── Standard user path: the ONE quota gate ──
+    // Atomic: it reserves the slot, rejects a parallel POST and re-validates the
+    // draft status in one serialized transaction, so two messages arriving
+    // together can never publish two posts on a one-post-per-day plan.
+    //
+    // Agency traders are deliberately excluded here: they are billed through the
+    // per-trader + agency-pool caps checked above, and sharing the owner's
+    // single in-flight reservation would stop two traders posting at once.
     if (!agencyCtx && userIdForQuota) {
+      // Tier decides the reply format only (Google vs Google + Facebook + Instagram).
       try {
-        const { data: profileData } = await supabase
+        const { data: planRow } = await supabase
           .from('profiles')
-          .select('selected_plan, plan_started_at, trial_started_at, created_at')
+          .select('selected_plan')
           .eq('id', userIdForQuota)
           .maybeSingle();
-
-        const planTier = profileData?.selected_plan || 'free';
-        const quota = PLAN_LIMITS[planTier as keyof typeof PLAN_LIMITS] || PLAN_LIMITS.free;
-        const trialStart = profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at;
-        console.log(`[trial-check post] phone=${phone} user=${userIdForQuota} plan=${planTier} trialStart=${trialStart} daysLeft=${trialStart ? getRemainingDays(trialStart, quota.trialDays) : 'n/a'}`);
-
-        // Tier-based reply: Growth/Agency/Unlimited → send FB + IG posts after the Google post.
-        if (planTier === 'growth' || planTier === 'agency' || planTier === 'unlimited') growthTier = true;
-
-        if (quota.trialDays > 0 && trialStart && getRemainingDays(trialStart, quota.trialDays) <= 0) {
-          return await sendWhatsappText(
-            phone,
-            `⚠️ *Your 30-day free trial has ended.*\n\nUpgrade to continue posting.`,
-            fromNumber
-          );
-        }
-
-        const cycleStartIso = getCycleStartIso(profileData?.plan_started_at || profileData?.trial_started_at || profileData?.created_at);
-        const usage = await countUserPosts(userIdForQuota, phone, cycleStartIso);
-
-        if (quota.totalPosts !== -1 && usage.total >= quota.totalPosts) {
-          return await sendWhatsappText(
-            phone,
-            `⚠️ *Post limit reached.*\n\nYour ${planTier} plan allows ${quota.totalPosts} posts per month. Upgrade to continue posting.`,
-            fromNumber
-          );
-        }
-
-        if (quota.dailyPosts > 0 && usage.daily >= quota.dailyPosts) {
-          return await sendWhatsappText(
-            phone,
-            `⚠️ *Daily post limit reached.*\n\nYour ${planTier} plan allows ${quota.dailyPosts} post${quota.dailyPosts !== 1 ? 's' : ''} per day. Try again tomorrow.`,
-            fromNumber
-          );
-        }
-      } catch (quotaErr) {
-        console.warn('⚠️ Could not check post quota:', quotaErr);
-        // Soft check: continue even if quota lookup fails
+        const planTier = planRow?.selected_plan || 'free';
+        growthTier = planTier === 'growth' || planTier === 'agency' || planTier === 'unlimited';
+      } catch (planErr) {
+        console.warn('⚠️ Could not read plan for reply format:', planErr);
       }
+
+      const gate = await checkPostGate({
+        userId: userIdForQuota,
+        phone,
+        source: 'whatsapp',
+        draftId: draft.id,
+      });
+
+      if (!gate.allowed) {
+        console.log(`🚫 WhatsApp post denied for ${userIdForQuota}: ${gate.reason}`);
+        return await sendWhatsappText(phone, formatGateDenial(gate), fromNumber);
+      }
+
+      // Reserved — released in `finally`, whatever happens next.
+      gateReservedFor = userIdForQuota;
+      gateDraftId = draft.id;
     }
 
     console.log('📊 Found draft with', draft.images.length, 'images. Generating post...');
@@ -1419,6 +1434,12 @@ Type *DONE* when published.`;
   } catch (error: any) {
     console.error('❌ handleGeneratePost error:', error);
     return await sendWhatsappText(phone, `❌ Error: ${error.message}\n\nPlease try again.`, fromNumber);
+  } finally {
+    // Hand the in-flight slot back as soon as generation ends (success or not);
+    // the draft itself is only counted once it reaches 'generated'.
+    if (gateReservedFor) {
+      await releasePostGate(gateReservedFor, gateDraftId);
+    }
   }
 }
 
