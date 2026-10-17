@@ -483,10 +483,20 @@ SELECT policyname, cmd
 -- 1) posts policies: expect NO row with cmd = 'INSERT'.
 --    SELECT / UPDATE / DELETE / ALL stay: history reads, ai_reply save,
 --    cleanup-on-failure delete, and the gate's service-role INSERT.
-SELECT policyname, cmd
+SELECT policyname, cmd, roles
   FROM pg_policies
  WHERE schemaname = 'public' AND tablename = 'posts'
  ORDER BY cmd;
+
+-- 1b) the crisp version: expect 0. Counts INSERT/ALL policies that apply to
+--     a browser role. Dashboard-created "service role only" policies are
+--     excluded, because they cannot be reached from the anon/authenticated role.
+SELECT count(*) AS browser_insert_policies
+  FROM pg_policies
+ WHERE schemaname = 'public'
+   AND tablename  = 'posts'
+   AND cmd IN ('INSERT', 'ALL')
+   AND roles && ARRAY['public'::name, 'anon'::name, 'authenticated'::name];
 
 -- 2) the gate functions: expect exactly two rows.
 SELECT p.proname

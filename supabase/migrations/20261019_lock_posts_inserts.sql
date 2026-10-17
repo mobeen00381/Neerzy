@@ -29,8 +29,10 @@
 
 DROP POLICY IF EXISTS "Users can create their own posts" ON public.posts;
 
--- Verification — expect 0 rows: anon/authenticated can no longer INSERT.
-SELECT policyname, cmd
+-- Verification — expect zero rows for a browser-facing role. A policy that is
+-- TO service_role only is harmless (service_role bypasses RLS anyway), so the
+-- check is on roles, never on the policy's name.
+SELECT policyname, cmd, roles
   FROM pg_policies
  WHERE schemaname = 'public'
    AND tablename  = 'posts'
