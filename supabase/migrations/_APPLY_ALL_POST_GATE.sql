@@ -2,8 +2,9 @@
 -- Paste this whole file into the Supabase SQL Editor and run it ONCE, top to bottom.
 -- Order matters: the quota function must exist before the INSERT policy is dropped,
 -- otherwise every post path fails closed with 503 until it does.
--- Generated from 20261018_create_post_with_quota.sql + 20261019_lock_posts_inserts.sql.
--- Copy of record only - edit those two migrations, not this file.
+-- Generated from 20261018_create_post_with_quota.sql + 20261019_lock_posts_inserts.sql
+-- + 20261020_tighten_posts_policies.sql.
+-- Copy of record only - edit those migrations, not this file.
 
 -- ------------------------ 20261018_create_post_with_quota.sql ------------------------
 
@@ -477,11 +478,57 @@ SELECT policyname, cmd
 -- CREATE POLICY "Users can create their own posts" ON public.posts
 --   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+-- ------------------------ 20261020_tighten_posts_policies.sql ------------------------
+
+-- ============================================================
+-- Tighten posts policies: role membership instead of JWT claims
+-- ============================================================
+-- Why this exists
+--   Dashboard-created policies on posts gated access on
+--   auth.role() = 'service_role' (a claim inside the JWT) while being granted
+--   TO public. That works for normal traffic, but it fails open if the JWT
+--   secret ever leaks: anyone could self-sign role = 'service_role' and get
+--   full write access. Restricting them to the service_role role removes that
+--   class of failure, because a browser cannot become a member of that role.
+--
+--   Behaviour for the gate is unchanged: create_post_with_quota() is
+--   SECURITY DEFINER and service_role bypasses RLS entirely, so neither policy
+--   was ever load-bearing for posting.
+--
+--   The guards matter: on a database built from these migrations the two
+--   policies do not exist (they were created in the dashboard), and an
+--   unguarded ALTER POLICY would abort the migration.
+-- ============================================================
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+     WHERE schemaname = 'public'
+       AND tablename  = 'posts'
+       AND policyname = 'Service role full access on posts'
+  ) THEN
+    EXECUTE 'ALTER POLICY "Service role full access on posts" ON public.posts TO service_role';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+     WHERE schemaname = 'public'
+       AND tablename  = 'posts'
+       AND policyname = 'Service role can insert posts'
+  ) THEN
+    EXECUTE 'ALTER POLICY "Service role can insert posts" ON public.posts TO service_role';
+  END IF;
+END
+$$;
+
 -- ============================================================
 -- VERIFY - run right after the script above
 -- ============================================================
--- 1) posts policies: expect NO row with cmd = 'INSERT'.
---    SELECT / UPDATE / DELETE / ALL stay: history reads, ai_reply save,
+-- 1) posts policies: expect NO INSERT/ALL row whose roles include public,
+--    anon or authenticated. Leftover service_role-only policies may appear;
+--    they are unreachable from a browser and change nothing.
+--    SELECT / UPDATE / DELETE stay: history reads, ai_reply save,
 --    cleanup-on-failure delete, and the gate's service-role INSERT.
 SELECT policyname, cmd, roles
   FROM pg_policies
