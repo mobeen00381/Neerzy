@@ -307,6 +307,9 @@ export default function Dashboard() {
   // page falls back to the locally counted numbers, and the post itself is still
   // gated by create_post_with_quota().
   const [postUsage, setPostUsage] = useState<UsagePayload | null>(null);
+  // Distinguishes "still checking" from "the check failed" so the locked
+  // composer says which one it is instead of showing a spinner message forever.
+  const [usageError, setUsageError] = useState(false);
   
   // Review stats
   const [reviewStats, setReviewStats] = useState<{
@@ -388,20 +391,28 @@ export default function Dashboard() {
   // Ask /api/usage for the same numbers the post gate enforces. Returns null
   // when the endpoint is unreachable so callers can keep the local fallback.
   const refreshUsageSnapshot = async (): Promise<UsagePayload | null> => {
+    setUsageError(false);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return null;
+      if (!session?.access_token) {
+        setUsageError(true);
+        return null;
+      }
       const res = await fetch('/api/usage', {
         headers: { Authorization: `Bearer ${session.access_token}` },
         cache: 'no-store',
       });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        setUsageError(true);
+        return null;
+      }
       const snapshot = (await res.json()) as UsagePayload;
       setPostUsage(snapshot);
       setStats(prev => ({ ...prev, total: snapshot.usage.total, daily: snapshot.usage.daily }));
       return snapshot;
     } catch (err) {
       console.warn('Could not refresh usage snapshot:', err);
+      setUsageError(true);
       return null;
     }
   };
@@ -1523,11 +1534,13 @@ export default function Dashboard() {
   );
   const composerLockReason = !user
     ? 'Please sign in again to keep posting.'
-    : !postUsage
-      ? 'Checking your post allowance…'
-      : usageBlocksComposer
-        ? postingBlocked
-        : null;
+    : usageError && !postUsage
+      ? "We couldn't check your post allowance. Tap Retry to try again."
+      : !postUsage
+        ? 'Checking your post allowance…'
+        : usageBlocksComposer
+          ? postingBlocked
+          : null;
   const composerLocked = composerLockReason !== null;
   // Next UTC midnight, shown in the usage card / tooltips.
   const dailyResetsLabel = postUsage
@@ -1957,7 +1970,7 @@ export default function Dashboard() {
                     so a failed snapshot is recoverable instead of a dead input. */}
                 {!postUsage && (
                   <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold leading-relaxed text-slate-700">
-                    <span aria-hidden>{user ? '⏳' : '🔒'}</span>
+                    <span aria-hidden>{user ? (usageError ? '⚠️' : '⏳') : '🔒'}</span>
                     <span className="flex-1">{composerLockReason}</span>
                     {user && (
                       <button
