@@ -13,6 +13,77 @@ const supabase = createClient(
 );
 
 /**
+ * Every way this route can refuse to return a post, with the HTTP status and
+ * the trader-facing sentence. The code is also put in the JSON body (`reason`)
+ * and in exactly one log line, so a support report ("I got MISSING_INPUT") can
+ * be traced without reading request bodies — which may contain the trader's
+ * phone number or job description and must never be logged.
+ */
+const FAILURES = {
+  INVALID_JSON: {
+    status: 400,
+    message: 'Could not read that post request. Please try again.',
+  },
+  MISSING_TOKEN: {
+    status: 401,
+    message: 'Please sign in again.',
+  },
+  INVALID_TOKEN: {
+    status: 401,
+    message: 'Your session expired. Please sign in again.',
+  },
+  MISSING_INPUT: {
+    status: 400,
+    message: 'Add a short description of the job before posting.',
+  },
+  VAGUE_DESCRIPTION: {
+    status: 422,
+    message: 'Please provide a short description of the job you completed before generating a post.',
+  },
+  GENERATION_FAILED: {
+    status: 500,
+    message: 'Something went wrong while generating your post. Please try again.',
+  },
+} as const;
+
+type FailureCode = keyof typeof FAILURES;
+
+/**
+ * One line per request outcome, no free-form message. Provider/SQL error text
+ * can echo the prompt or a phone number, so only a coarse tag (error name,
+ * provider code, HTTP status) is recorded.
+ */
+function errorTag(err: unknown): string {
+  if (!err || typeof err !== 'object') return typeof err;
+  const e = err as { name?: unknown; code?: unknown; status?: unknown };
+  const bits = [e.name, e.code, e.status]
+    .filter((bit): bit is string | number => typeof bit === 'string' || typeof bit === 'number')
+    .map(String);
+  // Never allow a provider message/newline into the log line.
+  return (bits.length ? bits.join(':') : 'error').replace(/\s+/g, '_').slice(0, 80);
+}
+
+function logFailure(code: string, status: number, userId?: string | null, detail?: string): void {
+  const line = `[generate-post] ${code} status=${status} user=${userId || 'anonymous'}${detail ? ` detail=${detail}` : ''}`;
+  if (status >= 500) console.error(line);
+  else console.warn(line);
+}
+
+/** A degraded-but-successful path (post still returned): warn without a body. */
+function logWarning(code: string, userId?: string | null, detail?: string): void {
+  console.warn(`[generate-post] ${code} user=${userId || 'anonymous'}${detail ? ` detail=${detail}` : ''}`);
+}
+
+function failureResponse(code: FailureCode, userId?: string | null, detail?: string) {
+  const { status, message } = FAILURES[code];
+  logFailure(code, status, userId, detail);
+  return NextResponse.json(
+    { error: message, message, reason: code },
+    { status, headers: { 'Cache-Control': 'no-store' } }
+  );
+}
+
+/**
  * List of words/text that indicate the user hasn't given a real description
  */
 const VAGUE_INPUTS = [
@@ -26,43 +97,57 @@ function isVagueDescription(description: string | null | undefined): boolean {
   if (cleaned.length < 5) return true;
   if (VAGUE_INPUTS.includes(cleaned)) return true;
   // If it's only a phone number or numeric
-  if (/^[\+\d\s\-\(\)]+$/.test(cleaned)) return true;
+  if (/^[+\d\s()-]+$/.test(cleaned)) return true;
   return false;
 }
 
 export async function POST(req: Request) {
   // Declared outside the try so a failure AFTER the quota was consumed can
-  // hand the post back (delete the row) instead of silently burning a credit.
+  // hand the post back (delete the row) instead of silently burning a credit,
+  // and so the catch can log which account failed without re-reading the body.
   let createdPostId: string | null = null;
+  let requestUserId: string | undefined;
 
   try {
-    const body = await req.json();
-    const { description, businessName, imageUrl } = body;
-
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Identity comes from the session, never from the request body — `userId`
-    // used to be trusted here, so any client could post as anyone.
+    // used to be trusted here, so any client could post as anyone. Auth is
+    // checked before the body is read so a signed-out request never parses (or
+    // logs) trader content.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const token = (req.headers.get('authorization') || '').replace('Bearer ', '').trim();
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return failureResponse('MISSING_TOKEN');
     }
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
     const userId: string | undefined = authData?.user?.id;
     if (authError || !userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return failureResponse('INVALID_TOKEN', null, errorTag(authError));
+    }
+    requestUserId = userId;
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch (jsonErr) {
+      return failureResponse('INVALID_JSON', userId, errorTag(jsonErr));
+    }
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return failureResponse('INVALID_JSON', userId);
     }
 
+    const raw = body as { description?: unknown; businessName?: unknown; imageUrl?: unknown };
+    const description = typeof raw.description === 'string' ? raw.description : null;
+    const businessName = typeof raw.businessName === 'string' ? raw.businessName : null;
+    const imageUrl = typeof raw.imageUrl === 'string' ? raw.imageUrl : null;
+
     if (!description && !businessName) {
-      return NextResponse.json({ error: 'Missing description or business name' }, { status: 400 });
+      return failureResponse('MISSING_INPUT', userId);
     }
 
     // Block vague descriptions — force user to provide real job details
     if (isVagueDescription(description) && !imageUrl) {
-      return NextResponse.json(
-        { error: 'VAGUE_DESCRIPTION', message: 'Please provide a short description of the job you completed before generating a post.' },
-        { status: 422 }
-      );
+      return failureResponse('VAGUE_DESCRIPTION', userId);
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -79,7 +164,8 @@ export async function POST(req: Request) {
       profilePhone = profileData?.phone || authData?.user?.phone || null;
       planTier = profileData?.selected_plan || 'free';
     } catch (profileErr) {
-      console.warn('⚠️ Could not load profile:', profileErr);
+      // Plan/phone are best-effort here: the gate itself is authoritative.
+      logWarning('PROFILE_LOOKUP_FAILED', userId, errorTag(profileErr));
     }
 
     // Growth/Agency/Unlimited → also write Facebook + Instagram posts (same as WhatsApp flow).
@@ -101,7 +187,8 @@ export async function POST(req: Request) {
     });
 
     if (!gate.allowed) {
-      console.log(`🚫 generate-post denied for ${userId}: ${gate.reason}`);
+      // Gate denials already carry a trader sentence + reason code in the JSON.
+      logFailure(gate.reason.toUpperCase(), gate.status, userId);
       return postGateResponse(gate);
     }
 
@@ -123,7 +210,7 @@ export async function POST(req: Request) {
         postCtx.locationHint = biz.address || null;
       }
     } catch (ctxErr) {
-      console.warn('⚠️ Could not load business context:', ctxErr);
+      logWarning('BUSINESS_CONTEXT_FAILED', userId, errorTag(ctxErr));
     }
 
     const { system, user } = buildPostPrompt(postCtx, { jobDescription, hasImage: !!imageUrl });
@@ -162,8 +249,8 @@ export async function POST(req: Request) {
           businessCategory: postCtx.category || 'Local Service',
           priority: growthTier,
         });
-      } catch (socialErr: any) {
-        console.warn('⚠️ generate-post social content failed (Google post still returned):', socialErr?.message || socialErr);
+      } catch (socialErr: unknown) {
+        logWarning('SOCIAL_GENERATION_FAILED', userId, errorTag(socialErr));
       }
     }
 
@@ -191,7 +278,7 @@ export async function POST(req: Request) {
 
       if (saveError) {
         // The post exists and is published; only the copy failed to save.
-        console.error('⚠️ Could not save generated post content:', saveError.message);
+        logWarning('POST_SAVE_FAILED', userId, `post=${createdPostId} ${errorTag(saveError)}`);
       }
     }
 
@@ -209,9 +296,7 @@ export async function POST(req: Request) {
       social,
       growthTier
     });
-  } catch (error: any) {
-    console.error('❌ generate-post error:', error);
-
+  } catch (error: unknown) {
     // Generation failed after the quota was consumed — hand the post back so
     // the trader isn't charged for a post they never received.
     if (createdPostId) {
@@ -220,10 +305,10 @@ export async function POST(req: Request) {
         .delete()
         .eq('id', createdPostId);
       if (cleanupError) {
-        console.error('⚠️ Could not roll back post row (quota stays consumed):', cleanupError.message);
+        logWarning('POST_ROLLBACK_FAILED', requestUserId, `post=${createdPostId} ${errorTag(cleanupError)}`);
       }
     }
 
-    return NextResponse.json({ error: error.message || 'Generation failed' }, { status: 500 });
+    return failureResponse('GENERATION_FAILED', requestUserId, errorTag(error));
   }
 }
