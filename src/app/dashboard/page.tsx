@@ -53,6 +53,12 @@ interface Message {
   generatedText?: string;
   platform?: 'google' | 'facebook' | 'instagram';
   openLink?: string;
+  // The `posts` row this message belongs to. Set on live messages as soon as
+  // /api/generate-post returns, and on every message rebuilt from the DB, so a
+  // post that is already on screen is never rendered twice by a feed refresh.
+  postId?: string;
+  // Only set on messages rebuilt from `posts`; used to sort the initial feed.
+  created_at?: Date;
 }
 
 // Server snapshot from GET /api/usage — the dashboard never invents quota
@@ -108,6 +114,90 @@ function friendlyPostError(status: number, payload: PostErrorPayload | null): st
   // or library string that means nothing to the user.
   if ((status === 403 || status === 429) && serverMessage) return serverMessage;
   return POST_ERROR_FALLBACKS[status] || serverMessage || 'Could not generate your post. Please try again.';
+}
+
+function gbpLinkFor(placeId?: string | null): string {
+  return placeId
+    ? `https://www.google.com/maps/place/?q=place_id:${placeId}`
+    : 'https://business.google.com/';
+}
+
+// A bot "social post" message (Facebook / Instagram) for a post restored from
+// the database — same shape as the live dashboard generation messages.
+function buildSocialBotMessage(
+  id: string,
+  platform: 'facebook' | 'instagram',
+  copyText: string,
+  baseDate: Date,
+  postId?: string
+): Message {
+  return {
+    id,
+    text:
+      platform === 'facebook'
+        ? `✅ *Post 2 of 3 — FACEBOOK*\nCopy the text below:\n\n${copyText}\n\n📌 *Steps:* copy above → open Facebook → paste → tap Post.`
+        : `✅ *Post 3 of 3 — INSTAGRAM*\nCopy the caption below:\n\n${copyText}\n\n📌 *Steps:* copy above → open Instagram → add your photo → paste → tap Share.`,
+    sender: 'bot',
+    timestamp: new Date(baseDate.getTime() + (platform === 'facebook' ? 2000 : 3000)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    date: new Date(baseDate).toLocaleDateString(),
+    created_at: new Date(baseDate.getTime() + (platform === 'facebook' ? 2000 : 3000)),
+    status: 'published',
+    platform,
+    openLink: platform === 'facebook' ? 'https://www.facebook.com/' : 'https://www.instagram.com/',
+    generatedText: copyText,
+    source: 'webapp',
+    postId,
+  };
+}
+
+// Rebuild the web-post part of the chat from `posts` rows. Used by both the
+// initial dashboard load and the post-success feed refresh, so the two can
+// never drift apart.
+function buildWebPostMessages(posts: any[], gbpLink: string): Message[] {
+  const mapped: Message[] = [];
+  (posts || []).forEach((p: any) => {
+    const rowDate = new Date(p.created_at);
+
+    // User message (original description)
+    mapped.push({
+      id: p.id,
+      text: p.content ? p.content.replace(/<[^>]*>/g, '') : '', // strip HTML
+      image: p.image_url,
+      sender: 'user',
+      timestamp: rowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: rowDate.toLocaleDateString(),
+      created_at: rowDate,
+      status: p.status || 'published',
+      source: 'webapp',
+      postId: p.id,
+    });
+
+    // Bot reply — restored from ai_reply (persists across refreshes)
+    if (p.ai_reply) {
+      mapped.push({
+        id: `bot-${p.id}`,
+        text: `✅ *Post Ready!*\n\n${p.ai_reply}`,
+        sender: 'bot',
+        timestamp: rowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: rowDate.toLocaleDateString(),
+        created_at: new Date(rowDate.getTime() + 1000), // 1s after user msg for correct sort order
+        postReady: true,
+        gbpLink,
+        generatedText: p.ai_reply,
+        source: 'webapp',
+        postId: p.id,
+      });
+    }
+
+    // Growth: restored Facebook + Instagram posts (persist across refreshes)
+    if (p.social_facebook) {
+      mapped.push(buildSocialBotMessage(`bot-fb-${p.id}`, 'facebook', p.social_facebook, rowDate, p.id));
+    }
+    if (p.social_instagram) {
+      mapped.push(buildSocialBotMessage(`bot-ig-${p.id}`, 'instagram', p.social_instagram, rowDate, p.id));
+    }
+  });
+  return mapped;
 }
 
 // Helper function to render message content with clickable links
@@ -295,6 +385,62 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  // Ask /api/usage for the same numbers the post gate enforces. Returns null
+  // when the endpoint is unreachable so callers can keep the local fallback.
+  const refreshUsageSnapshot = async (): Promise<UsagePayload | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return null;
+      const res = await fetch('/api/usage', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: 'no-store',
+      });
+      if (!res.ok) return null;
+      const snapshot = (await res.json()) as UsagePayload;
+      setPostUsage(snapshot);
+      setStats(prev => ({ ...prev, total: snapshot.usage.total, daily: snapshot.usage.daily }));
+      return snapshot;
+    } catch (err) {
+      console.warn('Could not refresh usage snapshot:', err);
+      return null;
+    }
+  };
+
+  // Re-read `posts` and append anything the chat is not already showing. Live
+  // messages carry their postId, so the post that just generated is never
+  // duplicated; posts created in another tab (or by WhatsApp) still appear
+  // without a full dashboard reload.
+  const refreshPostFeed = async (): Promise<void> => {
+    if (!user?.id) return;
+    try {
+      const { data: postsData, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+      if (error || !postsData) {
+        if (error) console.warn('Could not refresh post feed:', error);
+        return;
+      }
+      const dbMessages = buildWebPostMessages(postsData, gbpLinkFor(businessProfile?.google_place_id));
+      setMessages(prev => {
+        const postIdsOnScreen = new Set(prev.map(m => m.postId).filter(Boolean) as string[]);
+        const additions = dbMessages.filter(m => m.postId && !postIdsOnScreen.has(m.postId));
+        return additions.length ? [...prev, ...additions] : prev;
+      });
+    } catch (err) {
+      console.warn('Could not refresh post feed:', err);
+    }
+  };
+
+  // Runs immediately after /api/generate-post succeeds: the row already exists,
+  // so move the chips at once and then reconcile with the server snapshot.
+  const refreshAfterPost = async (postId?: string | null): Promise<void> => {
+    if (!postId) return;
+    setStats(prev => ({ ...prev, total: prev.total + 1, daily: prev.daily + 1 }));
+    await Promise.all([refreshUsageSnapshot(), refreshPostFeed()]);
+  };
+
   // Load user data, profile, and business details
   const loadDashboardData = async () => {
     try {
@@ -354,22 +500,7 @@ export default function Dashboard() {
       //     allowed (connected → trial → monthly → daily), in the same order.
       //     This is what the chips, the usage card and the composer read, so the
       //     dashboard can never show "1 of 5 left" while the server says 403.
-      let usageSnapshot: UsagePayload | null = null;
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const res = await fetch('/api/usage', {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-            cache: 'no-store',
-          });
-          if (res.ok) {
-            usageSnapshot = (await res.json()) as UsagePayload;
-            setPostUsage(usageSnapshot);
-          }
-        }
-      } catch (err) {
-        console.warn('Could not load usage snapshot:', err);
-      }
+      const usageSnapshot = await refreshUsageSnapshot();
 
       // 3. Fetch user posts from posts (web simulator) and pending_posts (WhatsApp drafts)
       let whatsappPosts: any[] = [];
@@ -406,73 +537,9 @@ export default function Dashboard() {
         .order('created_at', { ascending: true });
 
       // Build GBP link for restoring bot replies
-      const gbpLinkForReplies = bData?.google_place_id 
-        ? `https://www.google.com/maps/place/?q=place_id:${bData.google_place_id}`
-        : 'https://business.google.com/';
+      const gbpLinkForReplies = gbpLinkFor(bData?.google_place_id);
 
-      // Helper: build a bot "social post" chat message (Facebook / Instagram) for
-      // history — same shape as the live dashboard generation messages.
-      const socialBotMessage = (
-        id: string,
-        platform: 'facebook' | 'instagram',
-        copyText: string,
-        baseDate: Date
-      ) => ({
-        id,
-        text:
-          platform === 'facebook'
-            ? `✅ *Post 2 of 3 — FACEBOOK*\nCopy the text below:\n\n${copyText}\n\n📌 *Steps:* copy above → open Facebook → paste → tap Post.`
-            : `✅ *Post 3 of 3 — INSTAGRAM*\nCopy the caption below:\n\n${copyText}\n\n📌 *Steps:* copy above → open Instagram → add your photo → paste → tap Share.`,
-        sender: 'bot' as const,
-        timestamp: new Date(baseDate.getTime() + (platform === 'facebook' ? 2000 : 3000)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: new Date(baseDate).toLocaleDateString(),
-        created_at: new Date(baseDate.getTime() + (platform === 'facebook' ? 2000 : 3000)),
-        status: 'published',
-        platform,
-        openLink: platform === 'facebook' ? 'https://www.facebook.com/' : 'https://www.instagram.com/',
-        generatedText: copyText,
-        source: 'webapp' as const,
-      });
-
-      const mappedWebMessages: any[] = [];
-      (postsData || []).forEach((p: any) => {
-        // User message (original description)
-        mappedWebMessages.push({
-          id: p.id,
-          text: p.content ? p.content.replace(/<[^>]*>/g, '') : '', // strip HTML
-          image: p.image_url,
-          sender: 'user' as const,
-          timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          date: new Date(p.created_at).toLocaleDateString(),
-          created_at: new Date(p.created_at),
-          status: p.status || 'published',
-          source: 'webapp' as const
-        });
-
-        // Bot reply — restored from ai_reply column (persists across refreshes)
-        if (p.ai_reply) {
-          mappedWebMessages.push({
-            id: `bot-${p.id}`,
-            text: `✅ *Post Ready!*\n\n${p.ai_reply}`,
-            sender: 'bot' as const,
-            timestamp: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            date: new Date(p.created_at).toLocaleDateString(),
-            created_at: new Date(new Date(p.created_at).getTime() + 1000), // 1s after user msg for correct sort order
-            postReady: true,
-            gbpLink: gbpLinkForReplies,
-            generatedText: p.ai_reply,
-          });
-        }
-
-        // Growth: restored Facebook + Instagram posts (persist across refreshes)
-        const rowDate = new Date(p.created_at);
-        if (p.social_facebook) {
-          mappedWebMessages.push(socialBotMessage(`bot-fb-${p.id}`, 'facebook', p.social_facebook, rowDate));
-        }
-        if (p.social_instagram) {
-          mappedWebMessages.push(socialBotMessage(`bot-ig-${p.id}`, 'instagram', p.social_instagram, rowDate));
-        }
-      });
+      const mappedWebMessages = buildWebPostMessages(postsData || [], gbpLinkForReplies);
 
       const mappedWAMessages: any[] = [];
       (whatsappPosts || []).forEach((p: any) => {
@@ -499,10 +566,10 @@ export default function Dashboard() {
         // Growth: restored Facebook + Instagram posts from WhatsApp flow
         const waDate = new Date(p.created_at);
         if (p.social_facebook) {
-          mappedWAMessages.push(socialBotMessage(`wa-fb-${p.id}`, 'facebook', p.social_facebook, waDate));
+          mappedWAMessages.push(buildSocialBotMessage(`wa-fb-${p.id}`, 'facebook', p.social_facebook, waDate));
         }
         if (p.social_instagram) {
-          mappedWAMessages.push(socialBotMessage(`wa-ig-${p.id}`, 'instagram', p.social_instagram, waDate));
+          mappedWAMessages.push(buildSocialBotMessage(`wa-ig-${p.id}`, 'instagram', p.social_instagram, waDate));
         }
       });
 
@@ -1008,6 +1075,7 @@ export default function Dashboard() {
           postReady: true,
           gbpLink,
           generatedText: aiData.fullText,
+          postId: aiData.postId || undefined,
         };
         const withReady = [...filtered, readyMsg];
 
@@ -1021,6 +1089,7 @@ export default function Dashboard() {
               text: extraBits.join('\n\n'),
               sender: 'bot',
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              postId: aiData.postId || undefined,
             }]
           : [];
 
@@ -1035,6 +1104,7 @@ export default function Dashboard() {
             platform: 'facebook',
             openLink: 'https://www.facebook.com/',
             generatedText: socialFb,
+            postId: aiData.postId || undefined,
           });
         }
         if (socialIg) {
@@ -1046,6 +1116,7 @@ export default function Dashboard() {
             platform: 'instagram',
             openLink: 'https://www.instagram.com/',
             generatedText: socialIg,
+            postId: aiData.postId || undefined,
           });
         }
         if (!socialFb && !socialIg && plan !== 'growth' && plan !== 'agency' && plan !== 'unlimited') {
@@ -1055,14 +1126,18 @@ export default function Dashboard() {
             text: `🚀 *Growth plan tip:* with the Growth plan, every post also comes ready for *Facebook* and *Instagram* — 3 posts from one job.\n\nSee plans: https://www.neerzy.com/pricing`,
             sender: 'bot',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            postId: aiData.postId || undefined,
           });
         }
 
         return [...withReady, ...guidanceMsgs, ...socialMsgs];
       });
 
-      // Refresh dashboard data to update counts from DB
-      await loadDashboardData();
+      // Refresh the feed + quota chips from the server immediately. This is a
+      // targeted refresh, not loadDashboardData(): the live chat (including the
+      // Google/Facebook/Instagram guidance) stays on screen, only the counts and
+      // any posts created elsewhere are pulled in.
+      await refreshAfterPost(aiData.postId);
     } catch (aiErr: any) {
       console.error('AI generation error:', aiErr);
       const message = String(aiErr?.message || '');
