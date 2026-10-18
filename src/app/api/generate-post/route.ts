@@ -152,7 +152,38 @@ export async function POST(req: Request) {
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Plan + account identity
+    //
+    // A signed-in user can still be missing their `profiles` row: email signup
+    // only creates an auth user, and the row is otherwise written by the Google
+    // connect step. `create_post_with_quota()` refuses that user with
+    // `no_account`, which looks like a broken login even though the session is
+    // valid. Insert the row here (before the gate reads it) from the identity we
+    // already authenticated.
+    //
+    // `ignoreDuplicates` turns this into `ON CONFLICT (id) DO NOTHING`: an
+    // existing profile is never touched, so plan, phone and trial anchor set by
+    // onboarding/paddle/WhatsApp stay exactly as they are.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const metadata = (authData?.user?.user_metadata || {}) as Record<string, unknown>;
+    const metadataPhone =
+      typeof metadata.phone === 'string'
+        ? metadata.phone
+        : typeof metadata.phone_number === 'string'
+          ? metadata.phone_number
+          : null;
+
+    const { error: profileUpsertError } = await supabase
+      .from('profiles')
+      .upsert(
+        { id: userId, phone: authData?.user?.phone || metadataPhone || null },
+        { onConflict: 'id', ignoreDuplicates: true }
+      );
+    if (profileUpsertError) {
+      // Best-effort: if the insert fails the gate will deny with its own
+      // friendly `no_account` sentence instead of this route inventing one.
+      logWarning('PROFILE_UPSERT_FAILED', userId, errorTag(profileUpsertError));
+    }
+
     let profilePhone: string | null = null;
     let planTier = 'free';
     try {
@@ -161,7 +192,7 @@ export async function POST(req: Request) {
         .select('selected_plan, phone')
         .eq('id', userId)
         .maybeSingle();
-      profilePhone = profileData?.phone || authData?.user?.phone || null;
+      profilePhone = profileData?.phone || authData?.user?.phone || metadataPhone || null;
       planTier = profileData?.selected_plan || 'free';
     } catch (profileErr) {
       // Plan/phone are best-effort here: the gate itself is authoritative.

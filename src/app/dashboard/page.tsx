@@ -1035,6 +1035,12 @@ export default function Dashboard() {
         // gate's 403/429 sentence already includes the reset time.
         const errData = (await aiRes.json().catch(() => null)) as PostErrorPayload | null;
         const friendly = friendlyPostError(aiRes.status, errData);
+        // A quota denial means this page's snapshot disagrees with the server
+        // (another tab/device posted). Re-read it so the chips and the composer
+        // catch up instead of letting the trader retry into the same 403.
+        if (aiRes.status === 403 || aiRes.status === 429) {
+          void refreshUsageSnapshot();
+        }
         setMessages(prev => {
           const filtered = prev.filter(m => m.id !== thinkingMsg.id);
           const errMsg: Message = {
@@ -1170,6 +1176,19 @@ export default function Dashboard() {
     const textContent = text.trim();
     if (!textContent && !imageBase64) return;
     if (!user) return;
+
+    // Defense in depth: the controls above are disabled while locked, but a
+    // keyboard/voice path must never slip past the same session + usage gate.
+    if (composerLocked) {
+      const lockMsg: Message = {
+        id: `lock-${Date.now()}`,
+        text: `⛔ ${composerLockReason || 'Posting is paused.'}`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, lockMsg]);
+      return;
+    }
 
     setInputValue('');
     setPendingImage(null);
@@ -1491,15 +1510,25 @@ export default function Dashboard() {
 
   // Why posting is paused, straight from the server gate's wording. Null = allowed.
   const postingBlocked = postUsage && !postUsage.canPost ? postUsage.message : null;
-  // Lock the composer only when nothing in the chat can succeed anyway: no Google
-  // listing means no post and no review link, and an ended trial blocks review
-  // requests too. On a daily/monthly post cap the composer stays open so the
-  // trader can still send review requests (a separate quota).
-  const composerLocked = Boolean(
+  // The composer only opens once we know WHO is posting (auth session) and WHAT
+  // the server will allow (`/api/usage`). Before this it rendered with a null
+  // snapshot and fell back to locally counted numbers, so a signed-out or
+  // quota-denied user could type a whole post only to be refused by the gate.
+  // A monthly/daily cap still leaves the composer open (review requests are a
+  // separate allowance) — those are surfaced by the amber banner instead.
+  const usageBlocksComposer = Boolean(
     postUsage &&
     !postUsage.canPost &&
     (postUsage.reason === 'trial_expired' || postUsage.reason === 'not_connected')
   );
+  const composerLockReason = !user
+    ? 'Please sign in again to keep posting.'
+    : !postUsage
+      ? 'Checking your post allowance…'
+      : usageBlocksComposer
+        ? postingBlocked
+        : null;
+  const composerLocked = composerLockReason !== null;
   // Next UTC midnight, shown in the usage card / tooltips.
   const dailyResetsLabel = postUsage
     ? `${new Date(postUsage.resetsAt).toISOString().slice(11, 16)} UTC`
@@ -1924,6 +1953,24 @@ export default function Dashboard() {
 
               {/* WhatsApp message composer */}
               <div className="bg-[#f0f2f5] p-3 flex flex-col gap-2 border-t border-slate-200">
+                {/* Usage banner: the composer stays shut until /api/usage answers,
+                    so a failed snapshot is recoverable instead of a dead input. */}
+                {!postUsage && (
+                  <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold leading-relaxed text-slate-700">
+                    <span aria-hidden>{user ? '⏳' : '🔒'}</span>
+                    <span className="flex-1">{composerLockReason}</span>
+                    {user && (
+                      <button
+                        type="button"
+                        onClick={() => { void refreshUsageSnapshot(); }}
+                        className="whitespace-nowrap font-black text-emerald-700 underline"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Gate banner: the reason the server would deny this post, in the
                     server's own words (trial expiry already has the banner on top). */}
                 {postingBlocked && postUsage?.reason !== 'trial_expired' && (
@@ -1980,7 +2027,7 @@ export default function Dashboard() {
                   <button 
                     onClick={startCamera}
                     disabled={composerLocked || isCompressingImage}
-                    title={composerLocked ? postingBlocked || 'Posting is paused' : 'Take Snapshot'}
+                    title={composerLocked ? composerLockReason || 'Posting is paused' : 'Take Snapshot'}
                     className="p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
                   >
                     <Camera className="w-6 h-6" />
@@ -2000,7 +2047,7 @@ export default function Dashboard() {
                       disabled={isRecording || isTranscribing || composerLocked}
                       placeholder={
                         composerLocked
-                          ? postingBlocked || 'Posting is paused'
+                          ? composerLockReason || 'Posting is paused'
                           : isTranscribing
                             ? "Transcribing voice note..."
                             : isRecording
@@ -2045,7 +2092,7 @@ export default function Dashboard() {
                     <button
                       onClick={startRecording}
                       disabled={composerLocked}
-                      title={composerLocked ? postingBlocked || 'Posting is paused' : 'Record Voice Note'}
+                      title={composerLocked ? composerLockReason || 'Posting is paused' : 'Record Voice Note'}
                       className="p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
                     >
                       <Mic className="w-6 h-6" />
@@ -2059,7 +2106,7 @@ export default function Dashboard() {
                       disabled={composerLocked || isCompressingImage || (!inputValue.trim() && !pendingImage && draftImages.length === 0)}
                       title={
                         composerLocked
-                          ? postingBlocked || 'Posting is paused'
+                          ? composerLockReason || 'Posting is paused'
                           : isCompressingImage
                             ? 'Optimizing photo...'
                             : 'Send'
