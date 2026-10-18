@@ -10,6 +10,7 @@ import { AgencyClientsPanel } from '@/components/dashboard/AgencyClientsPanel';
 import DomainPanel from '@/components/dashboard/DomainPanel';
 import WebsitePanel, { WebsiteCtaButton } from '@/components/dashboard/WebsitePanel';
 import { parsePostContent, buildCleanPost } from '@/lib/post-parser';
+import { captureVideoFrame, compressImageFile, readFileAsDataUrl } from '@/lib/image-compress';
 import DashboardAlerts from '@/components/dashboard/DashboardAlerts';
 import { 
   Sparkles, 
@@ -649,36 +650,60 @@ export default function Dashboard() {
     }
   };
 
-  // Image upload handler — adds directly to draftImages with confirmation
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image upload handler — compresses in the browser, then adds to draftImages.
+  // Without this a single modern phone photo could exceed the request body
+  // limit and fail the whole post after the trader typed the description.
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const imgData = reader.result as string;
-        const newImages = [...draftImages, imgData];
-        setDraftImages(newImages);
+    // Let the same file be picked again after a failed post.
+    e.target.value = '';
+    if (!file || isCompressingImage) return;
 
-        // Show the image in chat immediately
-        const imgMsg: Message = {
-          id: `user-${Date.now()}`,
-          text: '📸 Photo',
-          image: imgData,
-          sender: 'user',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-        setMessages(prev => [...prev, imgMsg]);
+    setIsCompressingImage(true);
+    try {
+      let imgData: string;
+      try {
+        const compressed = await compressImageFile(file);
+        imgData = compressed.dataUrl;
+      } catch (compressionError) {
+        // An undecodable format should not block the workflow; send the
+        // original and let the server decide.
+        console.error('Image compression failed; using the original file:', compressionError);
+        imgData = await readFileAsDataUrl(file);
+      }
 
-        // Show confirmation
-        const confirmMsg: Message = {
-          id: `bot-${Date.now()}`,
-          text: `✅ *Image received & saved!* 📸 (${newImages.length} photo${newImages.length !== 1 ? 's' : ''})\n\n_Send a short description of the job, then type *POST* to generate._`,
-          sender: 'bot',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-        setMessages(prev => [...prev, confirmMsg]);
+      const newImages = [...draftImages, imgData];
+      setDraftImages(newImages);
+
+      // Show the image in chat immediately
+      const imgMsg: Message = {
+        id: `user-${Date.now()}`,
+        text: '📸 Photo',
+        image: imgData,
+        sender: 'user',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      reader.readAsDataURL(file);
+      setMessages(prev => [...prev, imgMsg]);
+
+      // Show confirmation
+      const confirmMsg: Message = {
+        id: `bot-${Date.now() + 1}`,
+        text: `✅ *Image received & saved!* 📸 (${newImages.length} photo${newImages.length !== 1 ? 's' : ''})\n\n_Send a short description of the job, then type *POST* to generate._`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, confirmMsg]);
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      const errMsg: Message = {
+        id: `img-err-${Date.now()}`,
+        text: '⚠️ Could not read that photo. Please try a different image.',
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, errMsg]);
+    } finally {
+      setIsCompressingImage(false);
     }
   };
 
@@ -710,16 +735,9 @@ export default function Dashboard() {
 
   const captureSnapshot = () => {
     if (videoRef.current) {
-      const video = videoRef.current;
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg');
-        setPendingImage(dataUrl);
-      }
+      // Same 1600 px / JPEG 0.8 bounds as gallery uploads.
+      const snapshot = captureVideoFrame(videoRef.current);
+      if (snapshot) setPendingImage(snapshot.dataUrl);
       stopCamera();
     }
   };
@@ -817,6 +835,7 @@ export default function Dashboard() {
   const [draftImages, setDraftImages] = useState<string[]>([]);
   const [draftDescription, setDraftDescription] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
   
   // Customer state for review flow
   const [customerName, setCustomerName] = useState<string>('');
@@ -859,6 +878,19 @@ export default function Dashboard() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages(prev => [...prev, trialMsg]);
+      return;
+    }
+
+    // A photo is still being decoded/re-encoded; POST must wait so the image
+    // is not silently missing from the request.
+    if (isCompressingImage) {
+      const waitMsg: Message = {
+        id: `compress-${Date.now()}`,
+        text: '⏳ *Still preparing your photo.*\n\nGive it a moment, then type *POST* again.',
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages(prev => [...prev, waitMsg]);
       return;
     }
 
@@ -1864,7 +1896,7 @@ export default function Dashboard() {
                       type="file" 
                       accept="image/*" 
                       onChange={handleFileChange} 
-                      disabled={composerLocked}
+                      disabled={composerLocked || isCompressingImage}
                       className="hidden" 
                     />
                   </label>
@@ -1872,7 +1904,7 @@ export default function Dashboard() {
                   {/* Camera icon */}
                   <button 
                     onClick={startCamera}
-                    disabled={composerLocked}
+                    disabled={composerLocked || isCompressingImage}
                     title={composerLocked ? postingBlocked || 'Posting is paused' : 'Take Snapshot'}
                     className="p-2.5 text-slate-500 hover:bg-slate-200/60 hover:text-slate-800 rounded-full transition-all shrink-0 disabled:opacity-40 disabled:hover:bg-transparent"
                   >
@@ -1949,8 +1981,14 @@ export default function Dashboard() {
                   {!isRecording && !isTranscribing && (
                     <button
                       onClick={() => handleSendMessage(inputValue, pendingImage || undefined)}
-                      disabled={composerLocked || (!inputValue.trim() && !pendingImage && draftImages.length === 0)}
-                      title={composerLocked ? postingBlocked || 'Posting is paused' : 'Send'}
+                      disabled={composerLocked || isCompressingImage || (!inputValue.trim() && !pendingImage && draftImages.length === 0)}
+                      title={
+                        composerLocked
+                          ? postingBlocked || 'Posting is paused'
+                          : isCompressingImage
+                            ? 'Optimizing photo...'
+                            : 'Send'
+                      }
                       className="p-3 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-all shadow-md hover:shadow-emerald-600/10 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:shadow-none shrink-0"
                     >
                       <Send className="w-4 h-4 fill-current" />
