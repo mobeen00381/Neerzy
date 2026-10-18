@@ -1984,9 +1984,11 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {/* Gate banner: the reason the server would deny this post, in the
-                    server's own words (trial expiry already has the banner on top). */}
-                {postingBlocked && postUsage?.reason !== 'trial_expired' && (
+                {/* Gate banner: a monthly/daily cap leaves the composer open, so
+                    the server's own sentence (plus the upgrade path) is shown
+                    here. A missing Google listing has its own setup card, and an
+                    ended trial already has the banner at the top of the page. */}
+                {(postUsage?.reason === 'monthly_limit' || postUsage?.reason === 'daily_limit') && postingBlocked && (
                   <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold leading-relaxed text-amber-900">
                     <span aria-hidden>⛔</span>
                     <span className="flex-1">{postingBlocked}</span>
