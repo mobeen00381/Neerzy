@@ -81,6 +81,34 @@ interface UsagePayload {
   message: string;
 }
 
+interface PostErrorPayload {
+  error?: string;
+  message?: string;
+  reason?: string;
+}
+
+// Short, trader-facing copy for the failures /api/generate-post can return.
+// The raw status used to collapse into "check your connection", which hid the
+// real cause (expired session, plan gate, oversized photo, rate limit, outage).
+const POST_ERROR_FALLBACKS: Record<number, string> = {
+  401: 'Your session expired. Please sign in again.',
+  403: 'You cannot post with your current plan right now.',
+  413: 'That photo is too large to upload. Please choose a smaller photo.',
+  429: 'Too many requests in a row. Please wait a minute and try again.',
+  500: 'Something went wrong on our side. Please try again in a moment.',
+  503: 'Posting is temporarily unavailable. Please try again in a moment.',
+};
+
+function friendlyPostError(status: number, payload: PostErrorPayload | null): string {
+  const serverMessage = (payload?.message || payload?.error || '').trim();
+  // The quota gate writes its denials for traders ("Daily limit reached…",
+  // "Choose your Google business first."), so keep that exact wording. For the
+  // other statuses prefer a fixed sentence: a 413/500 body can be a platform
+  // or library string that means nothing to the user.
+  if ((status === 403 || status === 429) && serverMessage) return serverMessage;
+  return POST_ERROR_FALLBACKS[status] || serverMessage || 'Could not generate your post. Please try again.';
+}
+
 // Helper function to render message content with clickable links
 function renderMessageContent(text: string) {
   // URL regex pattern
@@ -902,32 +930,23 @@ export default function Dashboard() {
         }),
       });
 
-      if (aiRes.status === 401 || aiRes.status === 403 || aiRes.status === 409 || aiRes.status === 503) {
-        // The server gate is the only authority on quota denials. Its message
-        // already includes the reset time for daily caps.
-        const errData = await aiRes.json().catch(() => ({}));
-        const denialText = aiRes.status === 401
-          ? 'Your session expired. Please sign in again.'
-          : (errData.message || errData.error || 'You cannot post right now.');
+      if (!aiRes.ok) {
+        // Surface the server's actual reason (mapped to trader-friendly copy)
+        // instead of blaming the connection for every failure. The quota
+        // gate's 403/429 sentence already includes the reset time.
+        const errData = (await aiRes.json().catch(() => null)) as PostErrorPayload | null;
+        const friendly = friendlyPostError(aiRes.status, errData);
         setMessages(prev => {
           const filtered = prev.filter(m => m.id !== thinkingMsg.id);
-          const limitMsg: Message = {
-            id: `limit-${Date.now()}`,
-            text: `⚠️ ${denialText}`,
+          const errMsg: Message = {
+            id: `err-${Date.now()}`,
+            text: `⚠️ ${friendly}`,
             sender: 'bot',
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           };
-          return [...filtered, limitMsg];
+          return [...filtered, errMsg];
         });
-        setIsGenerating(false);
-        // Usage may have changed elsewhere (WhatsApp, another tab) — resync.
-        await loadDashboardData();
         return;
-      }
-
-      if (!aiRes.ok) {
-        const errData = await aiRes.json().catch(() => ({}));
-        throw new Error(errData.message || 'AI generation failed');
       }
 
       const aiData = await aiRes.json();
@@ -1014,13 +1033,21 @@ export default function Dashboard() {
       await loadDashboardData();
     } catch (aiErr: any) {
       console.error('AI generation error:', aiErr);
+      const message = String(aiErr?.message || '');
+      // Only a genuine transport failure is a connection problem. Everything
+      // else gets an honest, generic sentence instead of hiding the cause.
+      const isNetworkFailure =
+        aiErr instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(message);
+      const friendly = isNetworkFailure
+        ? 'We could not reach Neerzy. Check your internet connection and try again.'
+        : /sign in again/i.test(message)
+          ? message.replace(/^⚠️\s*/, '')
+          : 'Something went wrong while generating your post. Please try again.';
       setMessages(prev => {
         const filtered = prev.filter(m => m.id !== thinkingMsg.id);
         const errMsg: Message = {
           id: `err-${Date.now()}`,
-          text: aiErr.message?.includes('description') 
-            ? `⚠️ ${aiErr.message}`
-            : '❌ Could not generate post. Please check your connection and try again.',
+          text: `⚠️ ${friendly}`,
           sender: 'bot',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
