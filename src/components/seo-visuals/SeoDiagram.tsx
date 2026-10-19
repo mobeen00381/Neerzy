@@ -94,45 +94,58 @@ export function AuditResultDiagram() {
 
 /**
  * CategoryScoreDiagram — For #13 (category score breakdown with gauges)
- * Shows audit categories with individual scores. Accepts props for custom data.
+ * Shows each category's raw score (out of 100), the weight it carries in the
+ * overall score, and the weighted points it contributes. Accepts props for custom data.
  * Defaults to the pillar page's 5-category breakdown if no props provided.
  */
 interface CategoryScoreItem {
   label: string;
+  /** Raw category score, always out of 100. */
   score: number;
-  maxScore: number;
+  /** Share of the overall score this category carries (e.g. 25 = 25%). */
+  weight: number;
   color: string;
 }
 
 export function CategoryScoreDiagram({ categories, businessName, overallScore }: { categories?: CategoryScoreItem[]; businessName?: string; overallScore?: number }) {
   const defaultCategories: CategoryScoreItem[] = [
-    { label: 'Completeness', score: 85, maxScore: 25, color: '#22C55E' },
-    { label: 'Reviews', score: 60, maxScore: 25, color: '#F59E0B' },
-    { label: 'Visual Content', score: 40, maxScore: 20, color: '#EF4444' },
-    { label: 'Engagement', score: 30, maxScore: 15, color: '#EF4444' },
-    { label: 'Local SEO', score: 70, maxScore: 15, color: '#22C55E' },
+    { label: 'Completeness', score: 84, weight: 25, color: '#22C55E' },
+    { label: 'Reviews', score: 64, weight: 25, color: '#F59E0B' },
+    { label: 'Visual Content', score: 45, weight: 20, color: '#EF4444' },
+    { label: 'Engagement', score: 40, weight: 15, color: '#EF4444' },
+    { label: 'Local SEO', score: 80, weight: 15, color: '#22C55E' },
   ];
 
   const cats = categories || defaultCategories;
   const bizName = businessName || 'Smith Plumbing & Heating';
-  const totalScore = overallScore !== undefined ? overallScore : Math.round(cats.reduce((sum, c) => sum + c.score, 0));
+  const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+  const contributions = cats.map((c) => (c.score / 100) * c.weight);
+  const totalWeighted = Math.round(contributions.reduce((sum, v) => sum + v, 0));
+  const totalScore = overallScore !== undefined ? overallScore : totalWeighted;
 
   return (
     <div className="p-4 max-w-sm mx-auto">
       <div className="bg-white rounded-xl border border-[#E1E8E4] shadow-sm p-4">
-        <div className="text-sm font-bold text-[#0A2E22] mb-4 text-center">{bizName} — Score Breakdown</div>
+        <div className="text-sm font-bold text-[#0A2E22] mb-1 text-center">{bizName} — Score Breakdown</div>
+        <div className="text-[11px] text-[#5B6B64] mb-4 text-center">Each category is scored out of 100, then weighted into the overall score.</div>
         <div className="space-y-4">
           {cats.map((cat, i) => {
-            const pct = Math.round((cat.score / cat.maxScore) * 100);
+            const pct = cat.score;
             return (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-24 text-right text-xs font-semibold text-[#0F5132] shrink-0">{cat.label}</div>
+                <div className="w-24 text-right shrink-0">
+                  <div className="text-xs font-semibold text-[#0F5132]">{cat.label}</div>
+                  <div className="text-[10px] text-[#5B6B64]">{cat.weight}% weight</div>
+                </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-3 bg-[#E6F2EA] rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: cat.color }} />
                     </div>
-                    <div className="text-xs font-bold text-[#0A2E22] w-8 text-right">{cat.score}/{cat.maxScore}</div>
+                    <div className="text-right w-16">
+                      <div className="text-xs font-bold text-[#0A2E22]">{cat.score}/100</div>
+                      <div className="text-[10px] font-bold text-[#0F5132]">{fmt(contributions[i])} pts</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -140,7 +153,8 @@ export function CategoryScoreDiagram({ categories, businessName, overallScore }:
           })}
         </div>
         <div className="mt-4 pt-3 border-t border-[#E1E8E4] text-center">
-          <div className="text-xs text-[#5B6B64]">Overall Score: <span className="font-bold text-[#0A2E22]">{totalScore}/100</span></div>
+          <div className="text-[11px] text-[#5B6B64]">Weighted: {contributions.map((v) => fmt(v)).join(' + ')} = {totalWeighted} pts</div>
+          <div className="text-xs mt-1 text-[#0A2E22]">Overall Score: <span className="font-bold text-[#0A2E22]">{totalScore}/100</span></div>
         </div>
       </div>
     </div>
