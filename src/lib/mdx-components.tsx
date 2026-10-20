@@ -155,9 +155,20 @@ export const mdxComponents = {
   strong: ({ children }: { children?: React.ReactNode }) => (
     <strong className="font-semibold text-gray-900">{children}</strong>
   ),
-  code: ({ children }: { children?: React.ReactNode }) => (
-    <code className="bg-gray-100 text-[#0F5132] px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
-  ),
+  code: ({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) => {
+    // Fenced blocks (```json, ```bash, …) arrive as <pre><code class="language-…">.
+    // They must skip the inline pill styling, which would otherwise paint a
+    // light strip inside the dark styled <pre>. Block code inherits the pre
+    // colour and keeps its own whitespace.
+    if (className?.includes('language-')) {
+      return (
+        <code className={`${className} block whitespace-pre font-mono`} {...props}>{children}</code>
+      );
+    }
+    return (
+      <code className="bg-gray-100 text-[#0F5132] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>
+    );
+  },
   pre: ({ children }: { children?: React.ReactNode }) => (
     <pre className="bg-gray-900 text-gray-100 p-5 rounded-lg overflow-x-auto my-6 text-sm leading-relaxed">{children}</pre>
   ),

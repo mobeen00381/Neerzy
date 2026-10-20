@@ -50,6 +50,11 @@ export function getAllGuides(): GuideData[] {
 }
 
 export function getGuideBySlug(slug: string): GuideData | null {
+  // The slug arrives straight from the URL. Only accept a plain guide file
+  // name so a crafted param ("../secrets", "a/b") can never resolve
+  // outside content/guides/. Every real slug is lowercase kebab-case.
+  if (!/^[a-z0-9][a-z0-9-]*$/i.test(slug)) return null;
+
   const filePath = path.join(GUIDES_DIR, `${slug}.mdx`);
   if (!fs.existsSync(filePath)) return null;
   
