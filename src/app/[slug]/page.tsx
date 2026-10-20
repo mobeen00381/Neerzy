@@ -183,6 +183,13 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
           source={content}
           components={mdxComponents}
           options={{
+            // next-mdx-remote v6 strips every MDX `{expression}` child by default
+            // (blockJS: true). The guides are first-party content in this repo and
+            // rely on expressions for their checklists (`{[...].map(...)}`), which
+            // were silently rendering as empty <ul> elements. Expressions are
+            // allowed here; blockDangerousJS stays on, so eval/fetch-style calls
+            // are still rejected.
+            blockJS: false,
             mdxOptions: {
               remarkPlugins: [remarkGfm],
             },
