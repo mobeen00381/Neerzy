@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { syncWebsitePhotosForUser } from '@/lib/website-builder';
 import { saveBusinessProfileForUser } from '@/lib/business-profile';
+import { sendWelcomeEmailForUser } from '@/lib/onboarding-emails';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,14 +11,32 @@ const supabase = createClient(
 
 export async function POST(req: Request) {
   try {
+    // ── Identity comes from the caller's Supabase ACCESS TOKEN, never from the
+    // request body. The onboarding page sends `Authorization: Bearer <token>`.
+    // A body-supplied `userId` is just an unverified uuid: trusting it would let
+    // anyone write another account's business profile - and, since the welcome
+    // email below, trigger that account's email too.
+    const accessToken = (req.headers.get('authorization') || '').replace('Bearer ', '').trim();
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Please sign in again and retry.' }, { status: 401 });
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
+    if (authError || !authData?.user) {
+      return NextResponse.json({ error: 'Please sign in again and retry.' }, { status: 401 });
+    }
+
+    // The ONLY user id this request may touch from here on.
+    const connectedUserId = authData.user.id;
+
     const data = await req.json();
-    
+
     let targetPhone = data.phone;
-    if (!targetPhone && data.userId) {
+    if (!targetPhone && connectedUserId) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('phone')
-        .eq('id', data.userId)
+        .eq('id', connectedUserId)
         .maybeSingle();
       if (profile?.phone) {
         targetPhone = profile.phone;
@@ -28,7 +47,7 @@ export async function POST(req: Request) {
     // NO LONGER an error: the profile is owned by user_id and the number is
     // attached later, if and when the user connects WhatsApp from the
     // dashboard. Only an account with neither key can't be saved.
-    if (!data.userId && !targetPhone) {
+    if (!connectedUserId && !targetPhone) {
       return NextResponse.json(
         { error: 'We could not tell which account this business belongs to. Please sign in again and retry.' },
         { status: 400 }
@@ -37,12 +56,12 @@ export async function POST(req: Request) {
 
     console.log(
       `🔗 Connecting business listing: "${data.businessName}" ` +
-        `(owner: ${data.userId ? `user ${data.userId}` : `phone ${targetPhone}`})`
+        `(owner: ${connectedUserId ? `user ${connectedUserId}` : `phone ${targetPhone}`})`
     );
 
     // Owner key: user_id when we have it (works with no phone at all), phone
     // only as the legacy fallback.
-    const saveResult = await saveBusinessProfileForUser(supabase, data.userId, targetPhone, {
+    const saveResult = await saveBusinessProfileForUser(supabase, connectedUserId, targetPhone, {
       business_name: data.businessName,
       address: data.address,
       category: data.category,
@@ -73,17 +92,17 @@ export async function POST(req: Request) {
     let existingProfile: any = null;
 
     // Sync the business details with the user's Auth metadata (bulletproof source of truth)
-    if (data.userId) {
+    if (connectedUserId) {
       // Fetch the existing profile first so we never reset the one-time trial.
       const { data: fetchedProfile } = await supabase
         .from('profiles')
         .select('id, trial_started_at, created_at')
-        .eq('id', data.userId)
+        .eq('id', connectedUserId)
         .maybeSingle();
       existingProfile = fetchedProfile;
 
       try {
-        await supabase.auth.admin.updateUserById(data.userId, {
+        await supabase.auth.admin.updateUserById(connectedUserId, {
           user_metadata: {
             ...(targetPhone ? { phone: targetPhone } : {}),
             business_name: data.businessName,
@@ -93,17 +112,17 @@ export async function POST(req: Request) {
             trial_started_at: existingProfile?.trial_started_at || new Date().toISOString()
           }
         });
-        console.log(`✅ Successfully updated auth user_metadata for user: ${data.userId}`);
+        console.log(`✅ Successfully updated auth user_metadata for user: ${connectedUserId}`);
       } catch (authMetaErr) {
         console.error('❌ Failed to update auth user_metadata:', authMetaErr);
       }
     }
 
     // Sync with profiles table — this is CRITICAL for trial_started_at and plan tracking
-    if (data.userId) {
+    if (connectedUserId) {
       // Reuse the profile already fetched above (trial_started_at preserved).
       const profilePayload: Record<string, any> = {
-        id: data.userId,
+        id: connectedUserId,
         business_name: data.businessName,
         // Only when a WhatsApp number exists — writing null here would erase a
         // number that was linked later.
@@ -127,10 +146,10 @@ export async function POST(req: Request) {
 
       if (profileUpdateError) {
         // This IS a real error — log it visibly so we know profiles table has issues
-        console.error('❌ CRITICAL: Failed to upsert profiles table for user', data.userId, ':', profileUpdateError.message);
+        console.error('❌ CRITICAL: Failed to upsert profiles table for user', connectedUserId, ':', profileUpdateError.message);
         // Don't block the response — the auth metadata fallback still works
       } else {
-        console.log(`✅ Successfully upserted profile ID: ${data.userId} in profiles table (trial_started_at: ${existingProfile ? 'preserved' : 'set to now'})`);
+        console.log(`✅ Successfully upserted profile ID: ${connectedUserId} in profiles table (trial_started_at: ${existingProfile ? 'preserved' : 'set to now'})`);
       }
     } else {
       // Fallback: Attempt to sync via logged-in user session if userId was not provided in the payload
@@ -190,11 +209,17 @@ export async function POST(req: Request) {
     // ── Photo re-sync: now that Google Business Profile is connected, swap the
     // template placeholders for the trader's REAL Google photos. Fire-and-forget
     // so the connect response is never delayed (and nothing to sync → no-op).
-    if (data.userId) {
-      void syncWebsitePhotosForUser(data.userId).catch((e: any) =>
+    if (connectedUserId) {
+      void syncWebsitePhotosForUser(connectedUserId).catch((e: any) =>
         console.warn('⚠️ [GBP Connect] photo sync failed:', e?.message || e)
       );
     }
+
+    // ── Welcome email: sent ONCE, on the first successful connect.
+    // after() runs it past the response so the visitor is never kept waiting.
+    // Exactly-once lives in lib/onboarding-emails.ts (a conditional-UPDATE
+    // claim), so a reconnect - or a double submit - sends nothing at all.
+    after(() => sendWelcomeEmailForUser(supabase, connectedUserId, { businessName: data.businessName }));
 
     return NextResponse.json({ success: true });
   } catch (error) {

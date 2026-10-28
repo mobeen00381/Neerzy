@@ -196,11 +196,17 @@ function OnboardingContent() {
     setLoading(true);
     setError('');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // The connect route derives the account from this access token and
+      // answers 401 without it, so the header is required - not cosmetic.
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+
       const res = await fetch('/api/gbp/connect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token || ''}`,
+        },
         body: JSON.stringify({
           userId: user?.id,
           phone: user?.phone || user?.user_metadata?.phone_number,
