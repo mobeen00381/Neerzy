@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { guardPublicRequest, DETAIL_LIMIT } from '@/lib/api-guard';
 import { detailCacheKey, getCached, setCached, DETAIL_CACHE_MS } from '@/lib/places-cache';
+import { captureAuditLead } from '@/lib/audit-lead';
 
 /**
  * Full GBP audit for one listing (the call behind /gmb-audit-tool/results).
@@ -111,6 +112,8 @@ export async function POST(req: Request) {
 
     // Memoise the finished audit for 10 minutes — review counts and photos move
     // slowly, and reloading a report used to re-bill Google every time.
+    // A cache hit means this exact report was generated minutes ago, so the lead
+    // was already captured then - reloading a report must never re-write it.
     const auditKey = detailCacheKey('audit:run', String(placeId));
     const cachedAudit = getCached<any>(auditKey);
     if (cachedAudit) return NextResponse.json(cachedAudit);
@@ -174,6 +177,27 @@ export async function POST(req: Request) {
       seo: auditSEO(place, businessName),
       recommendations: generateRecommendations(place)
     };
+
+    // LAYER 1 of the audit funnel: a completed audit IS a lead. The capture is
+    // idempotent (unique leads.place_id -> refresh, never duplicate) and
+    // captureAuditLead() never throws, so a database problem can neither delay
+    // nor break the visitor's report.
+    await captureAuditLead({
+      placeId: String(placeId),
+      businessName: businessName || place.name,
+      phone: place.formatted_phone_number || null,
+      website: place.website || null,
+      address: place.formatted_address || null,
+      rating: place.rating || null,
+      reviewCount: place.user_ratings_total || null,
+      types: place.types || null,
+      auditScore:
+        audit.completeness.actualScore +
+        audit.visualContent.actualScore +
+        audit.reviews.actualScore +
+        audit.engagement.actualScore +
+        audit.seo.actualScore,
+    });
 
     setCached(auditKey, audit, DETAIL_CACHE_MS);
     return NextResponse.json(audit);

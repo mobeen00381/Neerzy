@@ -10,7 +10,18 @@ import {
 import type { AdminLead, AdminLeadList } from "@/lib/admin-types";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
-const SOURCES = ["facebook", "instagram", "google_ads", "organic", "referral", "direct", "landing"];
+// `gmb_audit` = a visitor who ran a free Google Business Profile audit
+// (/api/audit/run captures it server-side; see lib/audit-lead.ts).
+const SOURCES = [
+  "facebook",
+  "instagram",
+  "google_ads",
+  "organic",
+  "referral",
+  "direct",
+  "landing",
+  "gmb_audit",
+];
 
 export async function GET(req: Request) {
   if (!IS_ADMIN_CONFIGURED) return adminNotConfigured();
@@ -68,6 +79,9 @@ export async function GET(req: Request) {
       notes: r.notes || null,
       converted_user_id: r.converted_user_id || null,
       created_at: r.created_at || null,
+      place_id: r.place_id || null,
+      audit_score: typeof r.audit_score === "number" ? r.audit_score : null,
+      report_link: r.report_link || null,
     }));
 
     const payload: AdminLeadList = {

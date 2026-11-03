@@ -3,7 +3,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Search, RefreshCw, Download, Plus, X } from "lucide-react";
+import { Search, RefreshCw, Download, Plus, X, Mail } from "lucide-react";
 import { adminFetch, exportCsv, qs } from "@/components/admin/api";
 import {
   Spinner, EmptyState, SourceBadge, PaginationBar, fmtDate,
@@ -11,7 +11,11 @@ import {
 import type { AdminLead, AdminLeadList } from "@/lib/admin-types";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
-const SOURCES = ["facebook", "instagram", "google_ads", "organic", "referral", "direct"];
+// `gmb_audit` = a visitor who ran the free GBP audit tool (captured server-side
+// by /api/audit/run - see lib/audit-lead.ts).
+const SOURCES = [
+  "facebook", "instagram", "google_ads", "organic", "referral", "direct", "gmb_audit",
+];
 
 export default function LeadsTab() {
   const [data, setData] = useState<AdminLeadList | null>(null);
@@ -23,6 +27,7 @@ export default function LeadsTab() {
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [followupLead, setFollowupLead] = useState<AdminLead | null>(null);
 
   const load = async (p = page, st = statusFilter, src = sourceFilter, q = appliedQuery) => {
     setLoading(true);
@@ -158,19 +163,33 @@ export default function LeadsTab() {
                       <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Campaign</th>
                       <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Received</th>
                       <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Status</th>
+                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Follow-up</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E1E8E4]">
                     {data.leads.map((l) => (
                       <tr key={l.id} className="hover:bg-[#E6F2EA] transition-colors">
                         <td className="px-5 py-3">
-                          <p className="font-bold text-[#0A2E22]">{l.name || "Unnamed"}</p>
+                          <p className="font-bold text-[#0A2E22]">{l.name || l.business_name || "Unnamed"}</p>
                           <p className="text-xs font-normal text-[#5B6B64]">
                             {[l.phone, l.email].filter(Boolean).join(" · ") || "No contact"}
                           </p>
                           {l.notes && <p className="text-[11px] text-[#5B6B64] mt-1 italic truncate max-w-[220px]">{l.notes}</p>}
                         </td>
-                        <td className="px-4 py-3 text-xs font-bold text-[#0F5132]">{l.business_name || "—"}</td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-bold text-[#0F5132]">{l.business_name || "—"}</p>
+                          {typeof l.audit_score === "number" && (
+                            <span className={`inline-flex items-center mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              l.audit_score >= 80
+                                ? "bg-[#E6F2EA] text-[#0F5132]"
+                                : l.audit_score >= 50
+                                ? "bg-[#FFF7E6] text-[#8A5A00]"
+                                : "bg-[#FDECEC] text-[#9B1C1C]"
+                            }`}>
+                              {l.audit_score}/100 audit
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-3"><SourceBadge source={l.source} /></td>
                         <td className="px-4 py-3">
                           <span className="text-xs font-normal text-[#5B6B64]">{l.utm_campaign || "—"}</span>
@@ -194,6 +213,15 @@ export default function LeadsTab() {
                             ))}
                           </select>
                         </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => setFollowupLead(l)}
+                            title="Send a follow-up email about this audit"
+                            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-[#E1E8E4] bg-white text-[#0F5132] hover:border-[#22C55E] hover:bg-[#F7F9F8]"
+                          >
+                            <Mail className="w-3 h-3" /> Email
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -208,6 +236,14 @@ export default function LeadsTab() {
       </Card>
 
       {showAdd && <AddLeadModal onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); setPage(1); load(1, statusFilter, sourceFilter, appliedQuery); }} />}
+
+      {followupLead && (
+        <FollowupModal
+          lead={followupLead}
+          onClose={() => setFollowupLead(null)}
+          onSent={() => { setFollowupLead(null); load(); }}
+        />
+      )}
     </div>
   );
 }
@@ -301,6 +337,137 @@ function AddLeadModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =
         </button>
       </form>
     </div>
+  );
+}
+
+/**
+ * Follow-up email composer for one lead.
+ * The address is editable because most gmb_audit leads arrive with only the
+ * business phone; the admin usually gets the email on the first call and can
+ * save it here in the same step (it is written back to the lead first).
+ */
+function FollowupModal({
+  lead, onClose, onSent,
+}: { lead: AdminLead; onClose: () => void; onSent: () => void }) {
+  const [email, setEmail] = useState(lead.email || "");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState(defaultFollowupMessage(lead));
+  const [sending, setSending] = useState(false);
+  const [sentTo, setSentTo] = useState("");
+  const [err, setErr] = useState("");
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+    setErr("");
+    try {
+      const target = email.trim();
+      if (!target) throw new Error("Add an email address first.");
+      if (target.toLowerCase() !== (lead.email || "").toLowerCase()) {
+        await adminFetch("/api/admin/leads", {
+          method: "POST",
+          body: JSON.stringify({ action: "update", id: lead.id, email: target }),
+        });
+      }
+      await adminFetch("/api/admin/leads/followup", {
+        method: "POST",
+        body: JSON.stringify({
+          leadId: lead.id,
+          subject: subject.trim() || undefined,
+          message: message.trim(),
+        }),
+      });
+      setSentTo(target);
+      setTimeout(onSent, 900);
+    } catch (error: any) {
+      setErr(error?.message || "Failed to send follow-up");
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#0B3D2E]/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-[#0A2E22]">Email follow-up</h3>
+            <p className="text-xs font-normal text-[#5B6B64] mt-0.5">
+              {lead.business_name || "This lead"}
+              {typeof lead.audit_score === "number" ? ` · GBP audit ${lead.audit_score}/100` : ""}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-[#E6F2EA]">
+            <X className="w-5 h-5 text-[#5B6B64]" />
+          </button>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-[#5B6B64]">To</label>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="owner@business.com"
+            className="w-full mt-1 px-3 py-2 rounded-lg border border-[#E1E8E4] text-sm font-normal outline-none focus:border-[#22C55E]"
+          />
+          {!lead.email && (
+            <p className="text-[11px] font-normal text-[#5B6B64] mt-1">
+              This lead has no email yet — adding one here saves it to the lead.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-[#5B6B64]">
+            Subject <span className="normal-case font-normal">(optional)</span>
+          </label>
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="Leave empty for the default subject"
+            className="w-full mt-1 px-3 py-2 rounded-lg border border-[#E1E8E4] text-sm font-normal outline-none focus:border-[#22C55E]"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-[#5B6B64]">Message</label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={7}
+            maxLength={2000}
+            className="w-full mt-1 px-3 py-2 rounded-lg border border-[#E1E8E4] text-sm font-normal outline-none focus:border-[#22C55E]"
+          />
+          <p className="text-[11px] font-normal text-[#5B6B64] mt-1">
+            {message.length}/2000 · the lead&apos;s live report link is added automatically.
+          </p>
+        </div>
+
+        {err && <p className="text-xs font-bold text-[#0F5132]">{err}</p>}
+        {sentTo && <p className="text-xs font-bold text-[#0F5132]">Follow-up sent to {sentTo}.</p>}
+
+        <button
+          type="submit"
+          disabled={sending || Boolean(sentTo)}
+          className="w-full py-2.5 rounded-lg bg-[#22C55E] text-white font-bold text-sm hover:bg-[#0F5132] disabled:opacity-50"
+        >
+          {sentTo ? "Sent" : sending ? "Sending…" : "Send follow-up"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function defaultFollowupMessage(lead: AdminLead): string {
+  const business = lead.business_name || "your business";
+  const score = typeof lead.audit_score === "number" ? ` (${lead.audit_score}/100)` : "";
+  return (
+    `Hi,\n\n` +
+    `I ran a free audit of ${business}${score} and spotted a few quick wins that would help you appear for more local searches.\n\n` +
+    `Want me to send over what to fix first?`
   );
 }
 

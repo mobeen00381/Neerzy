@@ -124,7 +124,13 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   }
 }
 
-export type EmailLogType = "welcome" | "howto" | "lead_ack" | "lead_owner_notify";
+export type EmailLogType =
+  | "welcome"
+  | "howto"
+  | "lead_ack"
+  | "lead_owner_notify"
+  | "audit_report"
+  | "audit_followup";
 
 /**
  * Best-effort audit write into public.email_log. Never throws.

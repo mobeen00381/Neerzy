@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Building2, 
@@ -140,6 +140,159 @@ function AuditContent() {
   return <AuditReportView data={auditData} businessName={businessName} placeId={placeId} />;
 }
 
+/**
+ * "Get this report" — the optional layer of the funnel.
+ * The lead itself was already captured server-side by /api/audit/run, so this
+ * card is pure enrichment: it adds a contact and delivers a link to the live
+ * report. Link-only on purpose — no image rendering, no storage bucket.
+ */
+function GetReportCard({ placeId, businessName, score }: { placeId: string | null; businessName: string | null; score: number }) {
+  const [channel, setChannel] = useState<'email' | 'whatsapp'>('email');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sentTo, setSentTo] = useState('');
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Sample scans have no shareable link — nothing real was looked up.
+  if (!placeId || placeId.startsWith('mock')) return null;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Copy failed — you can copy the address bar instead.');
+    }
+  };
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (sending) return;
+    setSending(true);
+    setError('');
+    try {
+      const res = await fetch('/api/audit/report/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeId, channel, email, phone, businessName }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || 'Could not send the report');
+      setSentTo(channel === 'email' ? email.trim() : phone.trim());
+    } catch (err: any) {
+      setError(err?.message || 'Could not send the report');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+      <div className="flex items-start gap-3 mb-5">
+        <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-[#0F5C4D]">
+          <FileText className="w-5 h-5" />
+        </div>
+        <div>
+          <h3 className="text-lg font-black text-slate-800">Get this report</h3>
+          <p className="text-slate-400 font-semibold text-sm">
+            {score > 0
+              ? `Your ${score}/100 breakdown, sent as a link you can reopen any time.`
+              : "We'll send you the link — you can reopen it any time."}
+          </p>
+        </div>
+      </div>
+
+      {sentTo ? (
+        <div className="text-center py-3">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+            <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+          </div>
+          <p className="font-black text-slate-800">Report sent to {sentTo}</p>
+          <p className="text-sm text-slate-500 font-semibold mt-1">
+            The link opens your live report — re-open it after making changes.
+          </p>
+          <button
+            type="button"
+            onClick={() => { setSentTo(''); setError(''); }}
+            className="mt-4 text-sm font-bold text-[#0F5C4D] underline"
+          >
+            Send to another address
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          <div className="inline-flex p-1 bg-slate-100 rounded-xl">
+            {(['email', 'whatsapp'] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => { setChannel(c); setError(''); setSentTo(''); }}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  channel === c ? 'bg-white text-[#0F5C4D] shadow-sm' : 'text-slate-500'
+                }`}
+              >
+                {c === 'email' ? 'Email' : 'WhatsApp'}
+              </button>
+            ))}
+          </div>
+
+          {channel === 'email' ? (
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@business.com"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            />
+          ) : (
+            <input
+              type="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+44 7700 900123"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            />
+          )}
+
+          <p className="text-xs text-slate-400 font-semibold">
+            {channel === 'email'
+              ? 'One email with the link. No spam, no newsletter.'
+              : 'Include the country code so the message reaches the right number.'}
+          </p>
+
+          {error && <p className="text-sm font-bold text-rose-600">{error}</p>}
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="submit"
+              disabled={sending}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-[#0F5C4D] hover:bg-[#073a30] text-white py-3.5 rounded-xl font-bold transition-all shadow-md disabled:opacity-60"
+            >
+              {sending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
+              ) : (
+                <><Zap className="w-4 h-4" /> Send my report</>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={copyLink}
+              className="px-5 py-3.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:border-emerald-200 hover:text-[#0F5C4D]"
+            >
+              {copied ? 'Link copied' : 'Copy link'}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 function AuditReportView({ data, businessName, placeId }: any) {
   const router = useRouter();
 
@@ -261,6 +414,9 @@ function AuditReportView({ data, businessName, placeId }: any) {
             {theme.text}
           </div>
         </div>
+
+        {/* ✉️ Optional: send this report to email / WhatsApp (link-only, no image) */}
+        <GetReportCard placeId={placeId} businessName={businessName} score={score} />
 
         {/* 📊 Detailed Category Grid */}
         <div className="grid md:grid-cols-2 gap-6">

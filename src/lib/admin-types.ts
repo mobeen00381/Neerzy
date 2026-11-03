@@ -90,6 +90,10 @@ export interface AdminLead {
   notes: string | null;
   converted_user_id: string | null;
   created_at: string | null;
+  /** gmb_audit leads only: Google Places id, last score and live report link. */
+  place_id?: string | null;
+  audit_score?: number | null;
+  report_link?: string | null;
 }
 
 export interface AdminLeadList {

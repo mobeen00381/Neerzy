@@ -1,0 +1,4 @@
+﻿# Secrets - never expose env files to the agent (except the example).
+.env
+.env.*
+!.env.example

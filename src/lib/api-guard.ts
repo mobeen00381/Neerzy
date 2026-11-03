@@ -48,6 +48,15 @@ export const SEARCH_LIMIT: LimitPreset = { max: 30, windowMs: MINUTE_MS, blockMs
 export const DETAIL_LIMIT: LimitPreset = { max: 5, windowMs: HOUR_MS, blockMs: HOUR_MS };
 
 /**
+ * Report delivery — the optional "email me / WhatsApp me this report" card on
+ * the audit results page. One visitor may legitimately send to email, then to
+ * WhatsApp, maybe once more after a typo; beyond that it is a script using us
+ * as a free mail relay. Each request costs one Resend or Meta call, so the cap
+ * is per IP and hourly like DETAIL_LIMIT, just slightly looser.
+ */
+export const REPORT_SEND_LIMIT: LimitPreset = { max: 4, windowMs: HOUR_MS, blockMs: HOUR_MS };
+
+/**
  * Owner-initiated website builds: once per 10 minutes per ACCOUNT (not per IP —
  * the build is an authenticated action, and one IP can be a whole office).
  * The build itself is idempotent for live sites, so this exists to stop repeat

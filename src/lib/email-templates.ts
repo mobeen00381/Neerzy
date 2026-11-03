@@ -223,3 +223,176 @@ export function adminLeadNotifyEmailContent(lead: {
     ].join("\n"),
   };
 }
+
+/**
+ * E) Audit report link - sent to a visitor who asked for their report by email.
+ * Link-only on purpose: the report is live, so the email stays short and the
+ * score/detail always match what the tool currently shows.
+ */
+export function auditReportEmailContent(report: {
+  businessName?: string | null;
+  score?: number | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+  categories?: Array<{ title: string; score: number; max: number }>;
+  actions?: string[];
+  reportUrl: string;
+}): EmailContent {
+  const business = safeDisplayName(report.businessName) || "your business";
+  const score =
+    typeof report.score === "number" && Number.isFinite(report.score)
+      ? Math.round(report.score)
+      : null;
+  const categories = (report.categories || []).slice(0, 5);
+  const actions = (report.actions || [])
+    .map((a) => String(a || "").replace(/[\r\n]+/g, " ").trim().slice(0, 120))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const heading =
+    score === null ? "Your Google Business Profile report" : `Your profile scores ${score}/100`;
+
+  const scoreHtml =
+    score === null
+      ? ""
+      : `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;"><tr>` +
+        `<td style="background:#F7F9F8;border:1px solid #E1E8E4;border-radius:10px;padding:14px 22px;text-align:center;">` +
+        `<span style="display:block;font-size:32px;font-weight:800;color:${ACCENT};line-height:1.1;">${score}<span style="font-size:15px;font-weight:700;color:${MUTED};">/100</span></span>` +
+        `<span style="display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${MUTED};margin-top:4px;">GBP audit score</span>` +
+        `</td></tr></table>`;
+
+  const categoriesHtml =
+    categories.length === 0
+      ? ""
+      : `<p style="margin:0 0 8px 0;color:${ACCENT};font-weight:700;">Where the points are going:</p>` +
+        `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px 0;width:100%;">` +
+        categories
+          .map(
+            (c) =>
+              `<tr><td style="padding:3px 12px 3px 0;color:${MUTED};font-size:13px;">${escapeHtml(
+                String(c.title).slice(0, 40)
+              )}</td><td style="padding:3px 0;color:${ACCENT};font-size:13px;font-weight:700;text-align:right;white-space:nowrap;">${Math.round(
+                Number(c.score) || 0
+              )}/${Math.round(Number(c.max) || 0)}</td></tr>`
+          )
+          .join("") +
+        `</table>`;
+
+  const actionsHtml =
+    actions.length === 0
+      ? ""
+      : `<p style="margin:0 0 8px 0;color:${ACCENT};font-weight:700;">Fix these first:</p>` +
+        `<ul style="margin:0 0 4px 0;padding-left:20px;color:${ACCENT};">` +
+        actions.map((a) => `<li style="margin-bottom:4px;font-size:14px;">${escapeHtml(a)}</li>`).join("") +
+        `</ul>`;
+
+  const bodyHtml =
+    `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
+    `<p style="margin:0 0 16px 0;color:${ACCENT};">Here is the audit you asked for - <strong>${escapeHtml(
+      business
+    )}</strong>.</p>` +
+    scoreHtml +
+    categoriesHtml +
+    actionsHtml +
+    `<p style="margin:0;color:${ACCENT};">The full report has every check, what is missing and what to do next.</p>`;
+
+  const footerExtra =
+    "This link always opens your live report, so you can re-check it after making changes. If you did not request it, just ignore this email.";
+
+  const metaBits: string[] = [];
+  if (typeof report.rating === "number" && report.rating > 0) {
+    metaBits.push(`${report.rating.toFixed(1)}* rating`);
+  }
+  if (typeof report.reviewCount === "number" && report.reviewCount > 0) {
+    metaBits.push(`${Math.round(report.reviewCount)} reviews`);
+  }
+
+  return {
+    subject: subjectLine(`Your Google Business Profile audit - ${business}`),
+    html: shell(heading, bodyHtml, {
+      cta: { href: report.reportUrl, label: "View the full report" },
+      footerExtra,
+    }),
+    text: [
+      "Hi there,",
+      ``,
+      `Here is the audit you asked for - ${textLine(business)}.`,
+      ...(score === null ? [] : [``, `GBP audit score: ${score}/100`]),
+      ...(metaBits.length === 0 ? [] : [`Google rating: ${metaBits.join(" / ")}`]),
+      ...(actions.length === 0
+        ? []
+        : [``, `Fix these first:`, ...actions.map((a, i) => `${i + 1}. ${textLine(a)}`)]),
+      ``,
+      `View the full report: ${report.reportUrl}`,
+      ``,
+      "This link always opens your live report, so you can re-check it after making changes.",
+    ].join("\n"),
+  };
+}
+
+/**
+ * F) Admin follow-up - a human reply from Admin -> Leads about an audit report.
+ * The message is admin free text: escaped for HTML, blank-line aware, CR/LF-safe
+ * in plain text, and capped at 2000 chars so a pasted document cannot turn into
+ * a mail bomb. The report link is only accepted when it is a real http(s) URL,
+ * so the template can never be used to smuggle a `javascript:` href.
+ */
+export function auditFollowupEmailContent(input: {
+  businessName?: string | null;
+  score?: number | null;
+  message: string;
+  reportUrl?: string | null;
+  subject?: string | null;
+}): EmailContent {
+  const business = safeDisplayName(input.businessName) || "your business";
+  const raw = String(input.message || "").replace(/\r\n?/g, "\n").trim().slice(0, 2000);
+  const paragraphs = raw.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const score =
+    typeof input.score === "number" && Number.isFinite(input.score)
+      ? Math.round(input.score)
+      : null;
+  const candidateUrl = String(input.reportUrl || "").trim();
+  const reportUrl = /^https?:\/\/\S+$/i.test(candidateUrl)
+    ? candidateUrl
+    : `${APP_URL}/gmb-audit-tool`;
+
+  const bodyHtml =
+    `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
+    paragraphs
+      .map(
+        (p) =>
+          `<p style="margin:0 0 12px 0;color:${ACCENT};">${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`
+      )
+      .join("") +
+    (score === null
+      ? ""
+      : `<p style="margin:0 0 12px 0;color:${MUTED};font-size:13px;">Current GBP audit score for ${escapeHtml(
+          business
+        )}: <strong style="color:${ACCENT};">${score}/100</strong></p>`) +
+    `<p style="margin:0;color:${ACCENT};">- The Neerzy Team</p>`;
+
+  const footerExtra = "You are getting this because you ran a free Google Business Profile audit on neerzy.com.";
+
+  const subject = subjectLine(
+    input.subject || `About your Google Business Profile audit - ${business}`
+  ).slice(0, 140);
+
+  return {
+    subject,
+    html: shell(`Your GBP audit - ${business}`, bodyHtml, {
+      cta: { href: reportUrl, label: "Open your report" },
+      footerExtra,
+    }),
+    text: [
+      "Hi there,",
+      ``,
+      ...paragraphs.map((p) => textLine(p)),
+      ...(score === null ? [] : [``, `Current GBP audit score: ${score}/100`]),
+      ``,
+      "- The Neerzy Team",
+      ``,
+      `Open your report: ${reportUrl}`,
+    ].join("\n"),
+  };
+}
+

@@ -62,6 +62,7 @@ export function SourceBadge({ source }: { source: string | null }) {
     referral: "bg-[#E6F2EA] text-[#5B6B64]",
     direct: "bg-[#F7F9F8] text-[#5B6B64]",
     landing: "bg-white text-[#0F5132] border border-[#D3E6DA]",
+    gmb_audit: "bg-[#0B3D2E] text-white",
   };
   const s = source || "direct";
   const cls = map[s] || map.direct;
