@@ -8,6 +8,7 @@ import {
   isMissingTableError,
 } from "@/lib/admin-server";
 import type { AdminLead, AdminLeadList } from "@/lib/admin-types";
+import { getLeadPriority } from "@/lib/lead-priority";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
 // `gmb_audit` = a visitor who ran a free Google Business Profile audit
@@ -22,6 +23,13 @@ const SOURCES = [
   "landing",
   "gmb_audit",
 ];
+
+/** PostgREST may hand back numeric/integer as a string - normalise it. */
+function numberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 export async function GET(req: Request) {
   if (!IS_ADMIN_CONFIGURED) return adminNotConfigured();
@@ -64,25 +72,35 @@ export async function GET(req: Request) {
       bySourceCounts[src] = (bySourceCounts[src] || 0) + 1;
     }
 
-    const leads: AdminLead[] = (rows || []).map((r: any) => ({
-      id: r.id,
-      name: r.name || null,
-      email: r.email || null,
-      phone: r.phone || null,
-      business_name: r.business_name || null,
-      service_type: r.service_type || null,
-      source: r.source || null,
-      utm_source: r.utm_source || null,
-      utm_medium: r.utm_medium || null,
-      utm_campaign: r.utm_campaign || null,
-      status: r.status || "new",
-      notes: r.notes || null,
-      converted_user_id: r.converted_user_id || null,
-      created_at: r.created_at || null,
-      place_id: r.place_id || null,
-      audit_score: typeof r.audit_score === "number" ? r.audit_score : null,
-      report_link: r.report_link || null,
-    }));
+    const leads: AdminLead[] = (rows || []).map((r: any) => {
+      const lead: AdminLead = {
+        id: r.id,
+        name: r.name || null,
+        email: r.email || null,
+        phone: r.phone || null,
+        business_name: r.business_name || null,
+        service_type: r.service_type || null,
+        source: r.source || null,
+        utm_source: r.utm_source || null,
+        utm_medium: r.utm_medium || null,
+        utm_campaign: r.utm_campaign || null,
+        status: r.status || "new",
+        notes: r.notes || null,
+        converted_user_id: r.converted_user_id || null,
+        created_at: r.created_at || null,
+        place_id: r.place_id || null,
+        audit_score: typeof r.audit_score === "number" ? r.audit_score : null,
+        report_link: r.report_link || null,
+        website: r.website || null,
+        // NULL from the DB stays NULL (unknown) - coercing it to false would
+        // claim "no website" for every lead that was never audited.
+        hasWebsite: typeof r.has_website === "boolean" ? r.has_website : null,
+        reviewCount: numberOrNull(r.review_count),
+        rating: numberOrNull(r.rating),
+      };
+      // Derived here (not stored) so the badge and the CSV export share one rule set.
+      return { ...lead, priority: getLeadPriority(lead) };
+    });
 
     const payload: AdminLeadList = {
       leads,

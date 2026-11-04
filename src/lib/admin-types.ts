@@ -94,6 +94,14 @@ export interface AdminLead {
   place_id?: string | null;
   audit_score?: number | null;
   report_link?: string | null;
+  /** Audit signals captured with the scan (see 20261104_leads_audit_signals). */
+  website?: string | null;
+  /** false = no website at the last audit, null = never checked. */
+  hasWebsite?: boolean | null;
+  reviewCount?: number | null;
+  rating?: number | null;
+  /** Derived by lib/lead-priority.ts; attached by /api/admin/leads. */
+  priority?: { level: "hot" | "warm" | "cold"; score: number; reasons: string[] };
 }
 
 export interface AdminLeadList {

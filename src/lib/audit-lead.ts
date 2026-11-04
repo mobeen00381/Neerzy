@@ -142,6 +142,21 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
         ? Math.round(input.auditScore)
         : null;
 
+    // Structured signals for the Admin -> Leads priority badge - the same facts
+    // buildAuditNotes() compacts into `notes`, but stored as real columns so the
+    // UI never has to parse prose. review_count uses the exact number the notes
+    // builder used (0 when Places reported none), and a missing website is a
+    // real "has no website" signal, not an unknown.
+    const website = String(input.website || "").trim() || null;
+    const reviewCount =
+      typeof input.reviewCount === "number" && Number.isFinite(input.reviewCount)
+        ? Math.round(input.reviewCount)
+        : 0;
+    const rating =
+      typeof input.rating === "number" && Number.isFinite(input.rating) && input.rating > 0
+        ? Number(input.rating.toFixed(1))
+        : null;
+
     const { data: existing, error: findError } = await supabase
       .from("leads")
       .select("id")
@@ -160,6 +175,12 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
         audit_score: auditScore,
         report_link: reportLink,
         notes,
+        // Re-auditing refreshes the signals too: a website added since the last
+        // scan (or reviews earned since) must move the lead's priority.
+        website,
+        has_website: Boolean(website),
+        review_count: reviewCount,
+        rating,
         updated_at: new Date().toISOString(),
       };
       if (businessName) patch.business_name = businessName;
@@ -190,6 +211,10 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
         place_id: placeId,
         audit_score: auditScore,
         report_link: reportLink,
+        website,
+        has_website: Boolean(website),
+        review_count: reviewCount,
+        rating,
       })
       .select("id")
       .single();

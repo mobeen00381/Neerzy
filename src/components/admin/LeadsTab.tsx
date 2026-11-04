@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Search, RefreshCw, Download, Plus, X, Mail } from "lucide-react";
 import { adminFetch, exportCsv, qs } from "@/components/admin/api";
 import {
-  Spinner, EmptyState, SourceBadge, PaginationBar, fmtDate,
+  Spinner, EmptyState, SourceBadge, PaginationBar, fmtDate, PriorityBadge, WebsiteCell,
 } from "@/components/admin/ui";
 import type { AdminLead, AdminLeadList } from "@/lib/admin-types";
 
@@ -159,6 +159,8 @@ export default function LeadsTab() {
                     <tr className="bg-[#F7F9F8] text-left">
                       <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Lead</th>
                       <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Business</th>
+                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Priority</th>
+                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Website</th>
                       <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Source</th>
                       <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Campaign</th>
                       <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Received</th>
@@ -189,6 +191,10 @@ export default function LeadsTab() {
                               {l.audit_score}/100 audit
                             </span>
                           )}
+                        </td>
+                        <td className="px-4 py-3"><PriorityBadge priority={l.priority} /></td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <WebsiteCell website={l.website} hasWebsite={l.hasWebsite} />
                         </td>
                         <td className="px-4 py-3"><SourceBadge source={l.source} /></td>
                         <td className="px-4 py-3">

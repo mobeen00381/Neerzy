@@ -7,6 +7,7 @@ import {
   IS_ADMIN_CONFIGURED,
   getAllAuthEmails,
 } from "@/lib/admin-server";
+import { getLeadPriority } from "@/lib/lead-priority";
 
 function toCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
   const esc = (v: string | number | null | undefined) => {
@@ -84,20 +85,39 @@ export async function GET(req: Request) {
     // type === 'leads' (default)
     const { data: leads } = await supabase
       .from("leads").select("*").order("created_at", { ascending: false });
-    const rows = (leads || []).map((l: any) => [
-      l.name || "",
-      l.phone || "",
-      l.email || "",
-      l.business_name || "",
-      l.source || "",
-      l.utm_source || "",
-      l.utm_campaign || "",
-      l.status || "",
-      l.notes || "",
-      l.created_at || "",
-    ]);
+    const rows = (leads || []).map((l: any) => {
+      // Same helper as the Leads table, so an exported lead ranks exactly like
+      // the badge the admin saw on screen.
+      const priority = getLeadPriority({
+        audit_score: typeof l.audit_score === "number" ? l.audit_score : null,
+        hasWebsite: typeof l.has_website === "boolean" ? l.has_website : null,
+        reviewCount: l.review_count === null || l.review_count === undefined ? null : Number(l.review_count),
+        rating: l.rating === null || l.rating === undefined ? null : Number(l.rating),
+      });
+      return [
+        l.name || "",
+        l.phone || "",
+        l.email || "",
+        l.business_name || "",
+        l.source || "",
+        l.utm_source || "",
+        l.utm_campaign || "",
+        l.status || "",
+        l.notes || "",
+        l.created_at || "",
+        // The URL when we have one, otherwise the yes/no verdict, otherwise
+        // empty = never checked.
+        l.website || (l.has_website === false ? "no" : ""),
+        l.review_count === null || l.review_count === undefined ? "" : l.review_count,
+        l.rating === null || l.rating === undefined ? "" : l.rating,
+        `${priority.level.toUpperCase()} (${priority.score})`,
+      ];
+    });
     const csv = toCsv(
-      ["name", "phone", "email", "business_name", "source", "utm_source", "utm_campaign", "status", "notes", "created_at"],
+      [
+        "name", "phone", "email", "business_name", "source", "utm_source", "utm_campaign",
+        "status", "notes", "created_at", "website", "reviews", "rating", "priority",
+      ],
       rows
     );
     return new NextResponse(csv, {
