@@ -623,6 +623,15 @@ export type AuditReport = {
   site: WebsiteScan | null;
   /** How many signals need the owner to check their Google dashboard. */
   manualCheckCount: number;
+  /**
+   * Set by the API, never by the engine: true when the gated parts (fix list,
+   * head-to-head table, evidence detail) were withheld from this response.
+   */
+  locked?: boolean;
+  /** How many fixes the full report holds. Teaser responses only. */
+  roadmapTotal?: number;
+  /** How many of those are urgent/red. Teaser responses only. */
+  roadmapRedCount?: number;
   facts: {
     reviewCount: number;
     rating: number;
@@ -1660,6 +1669,49 @@ export async function buildAuditReport(input: {
   report.roadmap = buildRoadmap(report);
   return report;
 }
+
+/**
+ * The free teaser of a report: score, section scores, tier, the gap counts and
+ * the competitor's name stay; the fix list, the head-to-head rows, the evidence
+ * detail and the raw site scan go.
+ *
+ * Done server-side, on the way out of the API. CSS-blurring the same data would
+ * leave the whole report sitting in the network response, which is not gating at
+ * all. The counts that remain (`roadmapTotal`, `roadmapRedCount`) tell the
+ * visitor exactly how much is behind the email step without revealing any of it.
+ */
+export function teaseAuditReport(report: AuditReport): AuditReport {
+  const stripDetail = (section: AuditSection): AuditSection => ({
+    ...section,
+    findings: section.findings.map((finding) => ({
+      id: finding.id,
+      label: finding.label,
+      status: finding.status,
+      weight: finding.weight,
+      detail: "",
+    })),
+  });
+
+  return {
+    ...report,
+    sections: {
+      local_seo: stripDetail(report.sections.local_seo),
+      aeo: stripDetail(report.sections.aeo),
+      geo: stripDetail(report.sections.geo),
+    },
+    roadmap: [],
+    // The name survives so the page can still say who leads the search; the
+    // numbers behind the comparison do not.
+    competitor: report.competitor ? { ...report.competitor } : null,
+    benchmark: [],
+    opportunity: { ...report.opportunity, basis: [] },
+    site: null,
+    locked: true,
+    roadmapTotal: report.roadmap.length,
+    roadmapRedCount: report.roadmap.filter((step) => step.priority === "red").length,
+  };
+}
+
 
 
 

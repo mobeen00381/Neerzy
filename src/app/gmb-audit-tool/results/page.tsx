@@ -10,6 +10,8 @@ import {
   FileText,
   HelpCircle,
   Loader2,
+  Lock,
+  Mail,
   MessageSquare,
   Star,
   Swords,
@@ -25,8 +27,8 @@ import {
   type AuditSectionKey,
 } from '@/lib/audit-engine';
 
-/** The API returns exactly this: a photo URL and the engine's report. */
-type AuditPayload = { photoUrl?: string; report?: AuditReport };
+/** The API returns exactly this: a photo URL, the engine's report, and whether the fix list came with it. */
+type AuditPayload = { photoUrl?: string; report?: AuditReport; locked?: boolean };
 
 const SECTION_META: Record<AuditSectionKey, { label: string; weight: string; blurb: string }> = {
   local_seo: {
@@ -66,11 +68,15 @@ function AuditContent() {
   const searchParams = useSearchParams();
   const placeId = searchParams.get('placeId');
   const businessName = searchParams.get('name');
+  const urlUnlock = searchParams.get('t') || '';
 
   const [payload, setPayload] = useState<AuditPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [loadingPhase, setLoadingPhase] = useState(0);
+  // Bumped once a report has been sent: the token is then in hand, so this same
+  // page re-asks the API instead of reloading (no spinner, no lost scroll).
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const phases = [
     'Reading your Google Business Profile...',
@@ -94,28 +100,69 @@ function AuditContent() {
       return;
     }
 
+    // Where the unlock token lives: the emailed/WhatsApp link (?t=) wins, then
+    // whatever this device already proved - so a reload stays unlocked even
+    // though no token is sitting in the address bar to copy and share.
+    const lockKey = `neerzy:report-unlock:${placeId}`;
+    const readUnlock = () => {
+      try {
+        if (urlUnlock) {
+          window.localStorage.setItem(lockKey, urlUnlock);
+          return urlUnlock;
+        }
+        return window.localStorage.getItem(lockKey) || '';
+      } catch {
+        return urlUnlock;
+      }
+    };
+
+    let cancelled = false;
+
     const runAudit = async () => {
       try {
         const res = await fetch('/api/audit/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ placeId, businessName: businessName || 'Business' }),
+          body: JSON.stringify({
+            placeId,
+            businessName: businessName || 'Business',
+            unlock: readUnlock(),
+          }),
         });
 
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.error || 'Audit failed');
         if (!data?.report) throw new Error('Audit returned no report');
 
-        setPayload(data);
+        if (!cancelled) setPayload(data);
       } catch (err: any) {
-        setError(err?.message || 'Failed to generate your audit. Please try again.');
+        if (!cancelled) setError(err?.message || 'Failed to generate your audit. Please try again.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     runAudit();
-  }, [placeId, businessName, router]);
+    return () => {
+      cancelled = true;
+    };
+  }, [placeId, businessName, router, urlUnlock, refreshKey]);
+
+  /**
+   * Called by the delivery card once a report has been sent. Nothing is unlocked
+   * here - the token is stored and the audit is re-requested, so the server is
+   * the one deciding that this visitor now gets the full report.
+   */
+  const handleUnlocked = (token: string) => {
+    if (placeId && token) {
+      try {
+        window.localStorage.setItem(`neerzy:report-unlock:${placeId}`, token);
+      } catch {
+        // Private mode: the token still works for this visit, it just won't outlive it.
+      }
+    }
+    setRefreshKey((key) => key + 1);
+  };
 
   if (loading) {
     return (
@@ -165,6 +212,8 @@ function AuditContent() {
       photoUrl={payload.photoUrl || ''}
       placeId={placeId}
       businessName={businessName}
+      locked={payload.locked === true}
+      onUnlocked={handleUnlocked}
     />
   );
 }
@@ -235,16 +284,33 @@ function AuditReportView({
   photoUrl,
   placeId,
   businessName,
+  locked,
+  onUnlocked,
 }: {
   report: AuditReport;
   photoUrl: string;
   placeId: string | null;
   businessName: string | null;
+  /** True when the API withheld the fix list, the head-to-head and the evidence. */
+  locked: boolean;
+  onUnlocked: (token: string) => void;
 }) {
   const router = useRouter();
   const [enquiries, setEnquiries] = useState('');
   const monthly = monthlyCallsFromEnquiries(report.opportunity, Number(enquiries));
   const tier = toneFor(report.scores.overall);
+  // Counted from the findings still in the payload, so the teaser can say how
+  // much it is holding back without showing any of it.
+  const sectionKeys = Object.keys(SECTION_META) as AuditSectionKey[];
+  const checkedCount = sectionKeys.reduce(
+    (total, key) => total + report.sections[key].findings.length,
+    0
+  );
+  const failedCount = sectionKeys.reduce(
+    (total, key) =>
+      total + report.sections[key].findings.filter((finding) => finding.status === 'fail').length,
+    0
+  );
   const generated = new Date(report.generatedAt).toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'short',
@@ -487,6 +553,29 @@ function AuditReportView({
           </section>
         )}
 
+        {/* The same comparison, with the rows still behind the unlock */}
+        {locked && report.competitor && (
+          <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+            <div className="flex items-start gap-3 mb-5">
+              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-[#0F5C4D] shrink-0">
+                <Swords className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-slate-800">Head to head</h2>
+                <p className="text-xs font-semibold text-slate-400">
+                  You vs {report.competitor.name} — the best-ranked other business Google returned
+                  for “{report.trade.keywords[0]}” near you
+                </p>
+              </div>
+            </div>
+
+            <LockedPanel
+              title={`${report.competitor.name}: ${report.competitor.rating.toFixed(1)}★ from ${report.competitor.reviewCount} reviews`}
+              body="The row-by-row comparison — reviews, photos, rating, distance from the top — is sent with your report."
+            />
+          </section>
+        )}
+
         {/* The fix list, in the order that moves the score */}
         <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
           <div className="flex items-start gap-3 mb-5">
@@ -496,12 +585,26 @@ function AuditReportView({
             <div>
               <h2 className="text-lg font-black text-slate-800">What to fix, in order</h2>
               <p className="text-xs font-semibold text-slate-400">
-                Every line is something we could actually see. The flag is priority, not a verdict on your business.
+                {locked
+                  ? 'The fix list is worth more than the score — it is the part that moves it.'
+                  : 'Every line is something we could actually see. The flag is priority, not a verdict on your business.'}
               </p>
             </div>
           </div>
 
-          <div className="space-y-6">
+          {locked ? (
+            <LockedPanel
+              title={
+                (report.roadmapTotal ?? 0) > 0
+                  ? `${report.roadmapTotal} fixes found${
+                      (report.roadmapRedCount ?? 0) > 0 ? ` · ${report.roadmapRedCount} urgent` : ''
+                    }`
+                  : 'Your fix list'
+              }
+              body="Each fix says what we saw, why it holds you back and the one change that flips it. Send the report to yourself and it opens here in full."
+            />
+          ) : (
+            <div className="space-y-6">
             {PRIORITY_GROUPS.map((group) => {
               const steps = report.roadmap.filter((step) => step.priority === group.key);
               if (steps.length === 0) return null;
@@ -541,44 +644,54 @@ function AuditReportView({
                 Nothing failed. Keep your review and photo cadence going — that is what holds the position.
               </p>
             )}
-          </div>
+            </div>
+          )}
         </section>
 
         {/* Every check, including the ones only the owner can see */}
         <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
           <h2 className="text-lg font-black text-slate-800 mb-1">The evidence</h2>
           <p className="text-xs font-semibold text-slate-400 mb-5">
-            {report.manualCheckCount > 0
-              ? `${report.manualCheckCount} signal${
-                  report.manualCheckCount === 1 ? '' : 's'
-                } only you can see. Those are listed, never scored.`
-              : 'Every check below came from Google or your own website.'}
+            {locked
+              ? 'What each check actually found — including the ones only you can verify.'
+              : report.manualCheckCount > 0
+                ? `${report.manualCheckCount} signal${
+                    report.manualCheckCount === 1 ? '' : 's'
+                  } only you can see. Those are listed, never scored.`
+                : 'Every check below came from Google or your own website.'}
           </p>
 
-          <div className="space-y-6">
-            {(Object.keys(SECTION_META) as AuditSectionKey[]).map((key) => {
-              const section: AuditSection = report.sections[key];
-              const findings = [...section.findings].sort(
-                (a, b) => findingOrder(a) - findingOrder(b)
-              );
+          {locked ? (
+            <LockedPanel
+              title={`${checkedCount} checks ran · ${failedCount} failed`}
+              body="The evidence lists every check, what we observed and the ones we could not verify — so you can see exactly why the score is what it is."
+            />
+          ) : (
+            <div className="space-y-6">
+              {(Object.keys(SECTION_META) as AuditSectionKey[]).map((key) => {
+                const section: AuditSection = report.sections[key];
+                const findings = [...section.findings].sort(
+                  (a, b) => findingOrder(a) - findingOrder(b)
+                );
 
-              return (
-                <div key={key}>
-                  <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
-                    <h3 className="font-black text-slate-700 text-sm">{section.label}</h3>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      {section.measurable ? `${section.score}/100` : 'Not measurable'}
-                    </span>
+                return (
+                  <div key={key}>
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
+                      <h3 className="font-black text-slate-700 text-sm">{section.label}</h3>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        {section.measurable ? `${section.score}/100` : 'Not measurable'}
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-slate-50">
+                      {findings.map((finding) => (
+                        <FindingRow key={finding.id} finding={finding} />
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="divide-y divide-slate-50">
-                    {findings.map((finding) => (
-                      <FindingRow key={finding.id} finding={finding} />
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           <p className="text-xs font-semibold text-slate-400 mt-6 leading-relaxed">
             How this is scored: each check carries a weight inside its section. A section score is
@@ -592,6 +705,9 @@ function AuditReportView({
           placeId={placeId}
           businessName={businessName}
           score={report.scores.overall}
+          locked={locked}
+          fixes={report.roadmapTotal ?? report.roadmap.length}
+          onUnlocked={onUnlocked}
         />
 
         <AuditReviewPrompt placeId={placeId} />
@@ -606,19 +722,28 @@ function AuditReportView({
 }
 
 /**
- * "Get this report" — the optional layer of the funnel.
- * The lead itself was already captured server-side by /api/audit/run, so this
- * card is pure enrichment: it adds a contact and delivers a link to the live
- * report. Link-only on purpose — no image rendering, no storage bucket.
+ * "Get this report" — the delivery step of the funnel, and the only place the
+ * report unlocks. The lead itself was already captured server-side by
+ * /api/audit/run; this card adds a contact and, in exchange, the token that
+ * makes the API hand over the fix list. Link-only on purpose — no image
+ * rendering, no storage bucket, and nothing to copy out of the page: the token
+ * is stored on the device and re-sent by the page, not pasted into the URL bar.
  */
 function GetReportCard({
   placeId,
   businessName,
   score,
+  locked,
+  fixes,
+  onUnlocked,
 }: {
   placeId: string | null;
   businessName: string | null;
   score: number;
+  locked: boolean;
+  /** How many fixes the full report holds (already counted server-side). */
+  fixes: number;
+  onUnlocked: (token: string) => void;
 }) {
   const [channel, setChannel] = useState<'email' | 'whatsapp'>('email');
   const [email, setEmail] = useState('');
@@ -626,20 +751,9 @@ function GetReportCard({
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
 
   // Sample scans have no shareable link — nothing real was looked up.
   if (!placeId || placeId.startsWith('mock')) return null;
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setError('Copy failed — you can copy the address bar instead.');
-    }
-  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -655,6 +769,9 @@ function GetReportCard({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Could not send the report');
       setSentTo(channel === 'email' ? email.trim() : phone.trim());
+      // Sending IS the unlock: the token comes back here, so the report above
+      // turns from teaser into the full fix list without a page reload.
+      if (typeof data?.unlock === 'string' && data.unlock) onUnlocked(data.unlock);
     } catch (err: any) {
       setError(err?.message || 'Could not send the report');
     } finally {
@@ -663,17 +780,28 @@ function GetReportCard({
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+    <div
+      id="get-report"
+      className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8"
+    >
       <div className="flex items-start gap-3 mb-5">
         <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-[#0F5C4D] shrink-0">
           <FileText className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-lg font-black text-slate-800">Get this report</h2>
+          <h2 className="text-lg font-black text-slate-800">
+            {locked ? 'Get the full report' : 'Get this report'}
+          </h2>
           <p className="text-slate-400 font-semibold text-sm">
-            {score > 0
-              ? `Your ${score}/100 report, plus the fix list, as a link you can reopen any time.`
-              : 'We will send you the link — you can reopen it any time.'}
+            {locked
+              ? score > 0
+                ? `${score}/100 is the headline. The ${fixes} prioritised fix${
+                    fixes === 1 ? '' : 'es'
+                  } behind it are sent to you — that is the part worth keeping.`
+                : `Your prioritised fix list is sent to you — that is the part worth keeping.`
+              : score > 0
+                ? `Your ${score}/100 report, plus the fix list, as a link you can reopen any time.`
+                : 'We will send you the link — you can reopen it any time.'}
           </p>
         </div>
       </div>
@@ -685,7 +813,9 @@ function GetReportCard({
           </div>
           <p className="font-black text-slate-800">Report sent to {sentTo}</p>
           <p className="text-sm text-slate-500 font-semibold mt-1">
-            The link opens your live report — reopen it after making changes.
+            {locked
+              ? 'Unlocked — the full report is now on this page, and the link in that message reopens it any time.'
+              : 'The link opens your live report — reopen it after making changes.'}
           </p>
           <button
             type="button"
@@ -742,6 +872,7 @@ function GetReportCard({
             {channel === 'email'
               ? 'One email with the link. No newsletter.'
               : 'Include the country code so the message reaches the right number.'}
+            {locked ? ' Sending it unlocks the full report on this page.' : ''}
           </p>
 
           {error && <p className="text-sm font-bold text-rose-600">{error}</p>}
@@ -757,18 +888,43 @@ function GetReportCard({
               ) : (
                 <MessageSquare className="w-4 h-4" />
               )}
-              Send my report
-            </button>
-            <button
-              type="button"
-              onClick={copyLink}
-              className="px-5 py-3 rounded-xl font-bold border border-slate-200 text-slate-600 hover:border-slate-300 transition-all"
-            >
-              {copied ? 'Link copied' : 'Copy link'}
+              {locked ? 'Send and unlock' : 'Send my report'}
             </button>
           </div>
         </form>
       )}
+    </div>
+  );
+}
+
+/**
+ * What a gated panel shows instead of its contents: how much is behind the
+ * unlock, and one button that scrolls to the card that opens it. The text is
+ * deliberately specific ("12 fixes found · 4 urgent") - a vague padlock reads
+ * like a paywall, a counted one reads like a report waiting to be sent.
+ */
+function LockedPanel({ title, body }: { title: string; body: string }) {
+  const focusCard = () => {
+    document.getElementById('get-report')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  return (
+    <div className="rounded-2xl border border-dashed border-emerald-200 bg-[linear-gradient(180deg,#F6FBF8_0%,#FFFFFF_100%)] p-6 text-center">
+      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+        <Lock className="w-5 h-5 text-[#0F5C4D]" />
+      </div>
+      <p className="font-black text-slate-800">{title}</p>
+      <p className="text-sm font-semibold text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+        {body}
+      </p>
+      <button
+        type="button"
+        onClick={focusCard}
+        className="mt-4 inline-flex items-center gap-2 bg-[#0F5C4D] hover:bg-[#073a30] text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-md"
+      >
+        <Mail className="w-4 h-4" />
+        Send me the report
+      </button>
     </div>
   );
 }

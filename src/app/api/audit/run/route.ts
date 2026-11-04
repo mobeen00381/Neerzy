@@ -13,8 +13,11 @@ import {
   buildAuditReport,
   tradeProfileFor,
   scanWebsite,
+  teaseAuditReport,
+  type AuditReport,
   type CompetitorSnapshot,
 } from '@/lib/audit-engine';
+import { verifyUnlockToken } from '@/lib/report-unlock';
 
 /**
  * Full GBP audit for one listing (the call behind /gmb-audit-tool/results).
@@ -131,9 +134,30 @@ async function fetchTopCompetitor(
   }
 }
 
+/**
+ * Shapes one answer: the full report when the unlock token checks out, the
+ * teaser for everyone else.
+ *
+ * The 10-minute cache always stores the FULL report - teasing happens here, on
+ * the way out, so an unlocked reload still costs zero extra Google calls.
+ */
+function withAccess(
+  audit: { photoUrl: string; report: AuditReport },
+  placeId: string,
+  token: string
+) {
+  if (verifyUnlockToken(token, placeId)) return { ...audit, locked: false };
+  return { photoUrl: audit.photoUrl, report: teaseAuditReport(audit.report), locked: true };
+}
+
 export async function POST(req: Request) {
   try {
-    const { placeId, businessName } = await req.json();
+    const body = await req.json().catch(() => ({} as any));
+    const placeId = body?.placeId;
+    const businessName = body?.businessName;
+    // The unlock token travels in the body (the page) or as ?t= (emailed link).
+    // A valid one is the ONLY way the fix list leaves this endpoint.
+    const unlockToken = String(body?.unlock || new URL(req.url).searchParams.get('t') || '').trim();
     const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
 
     // 🎭 MOCK MODE: Only return mock audit data if no API key OR if placeId is a mock ID.
@@ -162,7 +186,9 @@ export async function POST(req: Request) {
         competitor: null,
       });
 
-      return NextResponse.json({ photoUrl: '', report });
+      // The sample scan runs on invented data against an invented listing, so it
+      // stays ungated on purpose: hiding the demo would only hide the product.
+      return NextResponse.json({ photoUrl: '', report, locked: false });
     }
 
     // Rate limit BEFORE the paid Google call (the mock branch above costs nothing).
@@ -175,7 +201,7 @@ export async function POST(req: Request) {
     // was already captured then - reloading a report must never re-write it.
     const auditKey = detailCacheKey('audit:run', String(placeId));
     const cachedAudit = getCached<any>(auditKey);
-    if (cachedAudit) return NextResponse.json(cachedAudit);
+    if (cachedAudit) return NextResponse.json(withAccess(cachedAudit, String(placeId), unlockToken));
 
     // 🌍 REAL GOOGLE PLACES API (v1) CALL
     console.log('🔍 Fetching place details via new Places API (v1) for:', placeId);
@@ -277,7 +303,7 @@ export async function POST(req: Request) {
     });
 
     setCached(auditKey, audit, DETAIL_CACHE_MS);
-    return NextResponse.json(audit);
+    return NextResponse.json(withAccess(audit, String(placeId), unlockToken));
   } catch (error) {
     console.error('Audit Run Error:', error);
     return NextResponse.json({ error: 'Audit failed' }, { status: 500 });

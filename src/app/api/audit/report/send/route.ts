@@ -4,6 +4,7 @@ import { detailCacheKey, getCached } from "@/lib/places-cache";
 import { attachAuditLeadContact, auditReportUrl, isMockPlaceId } from "@/lib/audit-lead";
 import { logEmailSend, redact, sendEmail } from "@/lib/email";
 import { auditReportEmailContent } from "@/lib/email-templates";
+import { makeUnlockToken } from "@/lib/report-unlock";
 import { sendMetaTemplate } from "@/lib/whatsapp";
 
 /**
@@ -13,6 +14,10 @@ import { sendMetaTemplate } from "@/lib/whatsapp";
  * the contact the visitor volunteered and delivers a link-only card. Nothing is
  * rendered to an image: the results page re-runs the live audit, so the email
  * always matches the report and no storage bucket is involved.
+ *
+ * This is also the only place that hands out the unlock token: the link carries
+ * `&t=...`, which is what makes /api/audit/run return the full fix list. Handing
+ * over a contact is the price of the report, and the token is the receipt.
  *
  * Guarded with REPORT_SEND_LIMIT (4/hour per IP): every accepted request costs
  * one Resend or Meta call, and no visitor needs more than a couple of attempts.
@@ -104,7 +109,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unknown delivery channel" }, { status: 400 });
     }
 
-    const reportUrl = auditReportUrl(placeId, businessName);
+    const unlockToken = makeUnlockToken(placeId);
+    const reportUrl = auditReportUrl(placeId, businessName, unlockToken);
 
     if (channel === "email") {
       const email = String(body.email || "").trim().toLowerCase();
@@ -151,7 +157,7 @@ export async function POST(req: Request) {
           { status: 502 }
         );
       }
-      return NextResponse.json({ success: true, channel: "email", reportUrl });
+      return NextResponse.json({ success: true, channel: "email", reportUrl, unlock: unlockToken });
     }
 
     // ── WhatsApp ────────────────────────────────────────────────────────────
@@ -211,7 +217,12 @@ export async function POST(req: Request) {
       status: "sent",
     });
 
-    return NextResponse.json({ success: true, channel: "whatsapp", reportUrl });
+    return NextResponse.json({
+      success: true,
+      channel: "whatsapp",
+      reportUrl,
+      unlock: unlockToken,
+    });
   } catch (error: any) {
     console.error(`[AuditReport] send failed: ${redact(String(error?.message || error))}`);
     return NextResponse.json({ error: "Could not send the report" }, { status: 500 });

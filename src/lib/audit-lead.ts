@@ -21,6 +21,7 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { redact } from "@/lib/email";
+import { makeUnlockToken } from "@/lib/report-unlock";
 
 /** Value stored in leads.source for every audit-tool lead. */
 export const AUDIT_LEAD_SOURCE = "gmb_audit";
@@ -69,12 +70,22 @@ export function isMockPlaceId(placeId?: string | null): boolean {
   return !id || id.startsWith("mock");
 }
 
-/** The public, shareable report URL (live - it re-runs the audit on open). */
-export function auditReportUrl(placeId: string, businessName?: string | null): string {
+/**
+ * The public report URL. It re-runs the audit on open, so it is only useful
+ * while Google's numbers hold - but the `t` token is what makes the fix list
+ * render, so a link without it opens the teaser and nothing more.
+ */
+export function auditReportUrl(
+  placeId: string,
+  businessName?: string | null,
+  unlock?: string | null
+): string {
   const base = (process.env.NEXT_PUBLIC_APP_URL || "https://www.neerzy.com").replace(/\/+$/, "");
   const params = new URLSearchParams({ placeId: String(placeId) });
   const name = String(businessName || "").trim();
   if (name) params.set("name", name);
+  const token = String(unlock || "").trim();
+  if (token) params.set("t", token);
   return `${base}/gmb-audit-tool/results?${params.toString()}`;
 }
 
@@ -136,7 +147,9 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
     const businessName = String(input.businessName || "").trim() || null;
     const phone = String(input.phone || "").trim() || null;
     const notes = buildAuditNotes(input);
-    const reportLink = auditReportUrl(placeId, businessName);
+    // A fresh token per capture: the admin opens the FULL report from the leads
+    // table, and it expires with the link like any other unlock.
+    const reportLink = auditReportUrl(placeId, businessName, makeUnlockToken(placeId));
     const auditScore =
       typeof input.auditScore === "number" && Number.isFinite(input.auditScore)
         ? Math.round(input.auditScore)
