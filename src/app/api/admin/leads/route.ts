@@ -85,6 +85,7 @@ export async function GET(req: Request) {
         utm_medium: r.utm_medium || null,
         utm_campaign: r.utm_campaign || null,
         status: r.status || "new",
+        last_contacted_at: r.last_contacted_at || null,
         notes: r.notes || null,
         converted_user_id: r.converted_user_id || null,
         created_at: r.created_at || null,

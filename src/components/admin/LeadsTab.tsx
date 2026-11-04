@@ -1,7 +1,7 @@
 // src/components/admin/LeadsTab.tsx
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Search, RefreshCw, Download, Plus, X, Mail } from "lucide-react";
 import { adminFetch, exportCsv, qs } from "@/components/admin/api";
@@ -9,6 +9,7 @@ import {
   Spinner, EmptyState, SourceBadge, PaginationBar, fmtDate, PriorityBadge, WebsiteCell,
 } from "@/components/admin/ui";
 import type { AdminLead, AdminLeadList } from "@/lib/admin-types";
+import LeadDrawer from "@/components/admin/LeadDrawer";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
 // `gmb_audit` = a visitor who ran the free GBP audit tool (captured server-side
@@ -16,6 +17,15 @@ const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
 const SOURCES = [
   "facebook", "instagram", "google_ads", "organic", "referral", "direct", "gmb_audit",
 ];
+
+/**
+ * Row clicks open the lead detail drawer, so the cells with their own controls
+ * (status select, website link, follow-up button) spread this to stay inert.
+ */
+const stopRow = {
+  onClick: (e: ReactMouseEvent) => e.stopPropagation(),
+  onKeyDown: (e: ReactKeyboardEvent) => e.stopPropagation(),
+};
 
 export default function LeadsTab() {
   const [data, setData] = useState<AdminLeadList | null>(null);
@@ -28,6 +38,10 @@ export default function LeadsTab() {
   const [appliedQuery, setAppliedQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [followupLead, setFollowupLead] = useState<AdminLead | null>(null);
+  // Lead detail drawer: which lead is open, plus a key the drawer reloads on
+  // when something outside it changed the lead (e.g. a sent follow-up email).
+  const [openLeadId, setOpenLeadId] = useState<string | null>(null);
+  const [drawerRefreshKey, setDrawerRefreshKey] = useState(0);
 
   const load = async (p = page, st = statusFilter, src = sourceFilter, q = appliedQuery) => {
     setLoading(true);
@@ -63,6 +77,17 @@ export default function LeadsTab() {
     } catch (e: any) {
       setError(e?.message || "Failed to update lead");
     }
+  };
+
+/**
+   * Patch one row in place after a drawer action (status, last contacted) so
+   * the table stays in sync without reloading the list - filters, search and
+   * pagination survive.
+   */
+  const patchLead = (id: string, patch: Partial<AdminLead>) => {
+    setData((prev) =>
+      prev ? { ...prev, leads: prev.leads.map((l) => (l.id === id ? { ...l, ...patch } : l)) } : prev
+    );
   };
 
   return (
@@ -170,7 +195,24 @@ export default function LeadsTab() {
                   </thead>
                   <tbody className="divide-y divide-[#E1E8E4]">
                     {data.leads.map((l) => (
-                      <tr key={l.id} className="hover:bg-[#E6F2EA] transition-colors">
+                      <tr
+                        key={l.id}
+                        onClick={(e) => {
+                          // Keep focus on the row so the drawer can hand it back on close.
+                          e.currentTarget.focus();
+                          setOpenLeadId(l.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setOpenLeadId(l.id);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={"Open details for " + (l.name || l.business_name || "lead")}
+                        className="hover:bg-[#E6F2EA] transition-colors cursor-pointer focus:outline-none focus-visible:bg-[#E6F2EA]"
+                      >
                         <td className="px-5 py-3">
                           <p className="font-bold text-[#0A2E22]">{l.name || l.business_name || "Unnamed"}</p>
                           <p className="text-xs font-normal text-[#5B6B64]">
@@ -193,7 +235,7 @@ export default function LeadsTab() {
                           )}
                         </td>
                         <td className="px-4 py-3"><PriorityBadge priority={l.priority} /></td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap" {...stopRow}>
                           <WebsiteCell website={l.website} hasWebsite={l.hasWebsite} />
                         </td>
                         <td className="px-4 py-3"><SourceBadge source={l.source} /></td>
@@ -202,7 +244,7 @@ export default function LeadsTab() {
                           {l.utm_medium && <span className="block text-[10px] font-normal text-[#5B6B64]">via {l.utm_medium}</span>}
                         </td>
                         <td className="px-4 py-3 text-xs font-bold text-[#5B6B64] whitespace-nowrap">{fmtDate(l.created_at)}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" {...stopRow}>
                           <select
                             value={l.status}
                             onChange={(e) => updateStatus(l.id, e.target.value)}
@@ -219,7 +261,7 @@ export default function LeadsTab() {
                             ))}
                           </select>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" {...stopRow}>
                           <button
                             onClick={() => setFollowupLead(l)}
                             title="Send a follow-up email about this audit"
@@ -247,7 +289,27 @@ export default function LeadsTab() {
         <FollowupModal
           lead={followupLead}
           onClose={() => setFollowupLead(null)}
-          onSent={() => { setFollowupLead(null); load(); }}
+          onSent={() => {
+            // The email really went out: log it on the lead timeline, close the
+            // composer and let an open drawer pick the new entry up.
+            adminFetch("/api/admin/leads/" + followupLead.id, {
+              method: "POST",
+              body: JSON.stringify({ action: "log_contact", channel: "email" }),
+            }).catch(() => {});
+            setFollowupLead(null);
+            setDrawerRefreshKey((k) => k + 1);
+            load();
+          }}
+        />
+      )}
+
+      {openLeadId && (
+        <LeadDrawer
+          leadId={openLeadId}
+          refreshKey={drawerRefreshKey}
+          onClose={() => setOpenLeadId(null)}
+          onUpdated={(patch) => patchLead(openLeadId, patch)}
+          onOpenFollowup={(lead) => setFollowupLead(lead)}
         />
       )}
     </div>

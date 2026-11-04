@@ -87,6 +87,8 @@ export interface AdminLead {
   utm_medium: string | null;
   utm_campaign: string | null;
   status: LeadStatus;
+  /** Stamped by POST /api/admin/leads/[id] (action: log_contact). NULL = never contacted. */
+  last_contacted_at?: string | null;
   notes: string | null;
   converted_user_id: string | null;
   created_at: string | null;
@@ -111,6 +113,33 @@ export interface AdminLeadList {
   pageSize: number;
   byStatus: { status: string; count: number }[];
   bySource: { source: string; count: number }[];
+}
+
+// ---- GET/POST /api/admin/leads/[id]: lead detail drawer ----
+
+/** One row of public.lead_activity (see 20261105_lead_activity.sql). */
+export type LeadActivityType =
+  | "note"
+  | "contacted_whatsapp"
+  | "contacted_email"
+  | "called"
+  | "status_change"
+  | "reviewed";
+
+export interface LeadActivity {
+  id: string;
+  lead_id: string;
+  type: LeadActivityType;
+  /** note text, the ticked checklist label, or "from -> to" for a status change. */
+  body: string | null;
+  created_by: string | null;
+  created_at: string | null;
+}
+
+/** GET /api/admin/leads/[id] - one full lead plus its append-only timeline, newest first. */
+export interface LeadDetail {
+  lead: AdminLead;
+  activity: LeadActivity[];
 }
 
 export interface PlanBucket {
