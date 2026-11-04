@@ -234,7 +234,9 @@ export function auditReportEmailContent(report: {
   score?: number | null;
   rating?: number | null;
   reviewCount?: number | null;
-  categories?: Array<{ title: string; score: number; max: number }>;
+  /** The three scored surfaces (Local SEO / AEO / GEO), in report order. */
+  sections?: Array<{ label: string; score: number; measurable: boolean }>;
+  /** The roadmap's top actions, red flags first. */
   actions?: string[];
   reportUrl: string;
 }): EmailContent {
@@ -243,9 +245,9 @@ export function auditReportEmailContent(report: {
     typeof report.score === "number" && Number.isFinite(report.score)
       ? Math.round(report.score)
       : null;
-  const categories = (report.categories || []).slice(0, 5);
+  const sections = (report.sections || []).slice(0, 3);
   const actions = (report.actions || [])
-    .map((a) => String(a || "").replace(/[\r\n]+/g, " ").trim().slice(0, 120))
+    .map((a) => String(a || "").replace(/[\r\n]+/g, " ").trim().slice(0, 140))
     .filter(Boolean)
     .slice(0, 3);
 
@@ -261,19 +263,22 @@ export function auditReportEmailContent(report: {
         `<span style="display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${MUTED};margin-top:4px;">GBP audit score</span>` +
         `</td></tr></table>`;
 
-  const categoriesHtml =
-    categories.length === 0
+  // Three surfaces, not five categories: Local SEO (50%), AEO (25%), GEO (25%).
+  // A surface we could not verify is printed as "not measured" rather than 0, so
+  // the email can never accuse a business of failing something we never saw.
+  const sectionsHtml =
+    sections.length === 0
       ? ""
-      : `<p style="margin:0 0 8px 0;color:${ACCENT};font-weight:700;">Where the points are going:</p>` +
+      : `<p style="margin:0 0 8px 0;color:${ACCENT};font-weight:700;">Where you stand:</p>` +
         `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px 0;width:100%;">` +
-        categories
+        sections
           .map(
-            (c) =>
+            (s) =>
               `<tr><td style="padding:3px 12px 3px 0;color:${MUTED};font-size:13px;">${escapeHtml(
-                String(c.title).slice(0, 40)
-              )}</td><td style="padding:3px 0;color:${ACCENT};font-size:13px;font-weight:700;text-align:right;white-space:nowrap;">${Math.round(
-                Number(c.score) || 0
-              )}/${Math.round(Number(c.max) || 0)}</td></tr>`
+                String(s.label).slice(0, 24)
+              )}</td><td style="padding:3px 0;color:${ACCENT};font-size:13px;font-weight:700;text-align:right;white-space:nowrap;">${
+                s.measurable ? `${Math.round(Number(s.score) || 0)}/100` : "not measured"
+              }</td></tr>`
           )
           .join("") +
         `</table>`;
@@ -292,9 +297,9 @@ export function auditReportEmailContent(report: {
       business
     )}</strong>.</p>` +
     scoreHtml +
-    categoriesHtml +
+    sectionsHtml +
     actionsHtml +
-    `<p style="margin:0;color:${ACCENT};">The full report has every check, what is missing and what to do next.</p>`;
+    `<p style="margin:0;color:${ACCENT};">The full report has every check, which ones are red, and the order to fix them in.</p>`;
 
   const footerExtra =
     "This link always opens your live report, so you can re-check it after making changes. If you did not request it, just ignore this email.";
@@ -318,6 +323,17 @@ export function auditReportEmailContent(report: {
       ``,
       `Here is the audit you asked for - ${textLine(business)}.`,
       ...(score === null ? [] : [``, `GBP audit score: ${score}/100`]),
+      ...(sections.length === 0
+        ? []
+        : [
+            `Scores:`,
+            ...sections.map(
+              (s) =>
+                `- ${textLine(s.label)}: ${
+                  s.measurable ? `${Math.round(Number(s.score) || 0)}/100` : "not measured"
+                }`
+            ),
+          ]),
       ...(metaBits.length === 0 ? [] : [`Google rating: ${metaBits.join(" / ")}`]),
       ...(actions.length === 0
         ? []

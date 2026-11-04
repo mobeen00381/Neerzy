@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
 import { guardPublicRequest, DETAIL_LIMIT } from '@/lib/api-guard';
-import { detailCacheKey, getCached, setCached, DETAIL_CACHE_MS } from '@/lib/places-cache';
+import {
+  detailCacheKey,
+  getCached,
+  setCached,
+  DETAIL_CACHE_MS,
+  searchCacheKey,
+  SEARCH_CACHE_MS,
+} from '@/lib/places-cache';
 import { captureAuditLead } from '@/lib/audit-lead';
+import {
+  buildAuditReport,
+  tradeProfileFor,
+  scanWebsite,
+  type CompetitorSnapshot,
+} from '@/lib/audit-engine';
 
 /**
  * Full GBP audit for one listing (the call behind /gmb-audit-tool/results).
@@ -14,96 +27,142 @@ import { captureAuditLead } from '@/lib/audit-lead';
 const TOO_MANY_AUDITS =
   'Too many audits from this device — please try again later.';
 
+/** Town/city from a formatted address: "..., Leeds LS17 5AQ, UK" -> "Leeds". */
+function localityFromAddress(address?: string): string {
+  const parts = String(address || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return '';
+  const withoutCountry = parts.length > 1 ? parts.slice(0, -1) : parts;
+  const candidate = withoutCountry[withoutCountry.length - 1] || '';
+  return candidate
+    .replace(/\b[A-Z]{1,2}\d[\dA-Z]?\s?\d[A-Z]{2}\b/gi, '')
+    .replace(/\b\d{5}(-\d{4})?\b/g, '')
+    .trim();
+}
+
+/**
+ * Top-1 competitor + this listing's position, from Google's Text Search — the
+ * same billable call /api/gmb/search already makes, cached 24h per identical
+ * query. Deliberately non-fatal: if Google is slow or the query finds nothing,
+ * the report simply renders without the battle table rather than failing.
+ */
+type CompetitorLookup = {
+  competitor: CompetitorSnapshot | null;
+  /** 1-based position of the audited listing in the returned results. */
+  rank: number | null;
+  /** How many results the search returned. */
+  total: number | null;
+};
+
+async function fetchTopCompetitor(
+  apiKey: string,
+  placeId: string,
+  query: string,
+  location?: { latitude?: number; longitude?: number } | null
+): Promise<CompetitorLookup> {
+  const empty: CompetitorLookup = { competitor: null, rank: null, total: null };
+  const textQuery = query.replace(/\s+/g, ' ').trim();
+  if (textQuery.length < 3) return empty;
+
+  const cacheKey = searchCacheKey(
+    'audit:competitor',
+    `${textQuery}:${location?.latitude ?? ''},${location?.longitude ?? ''}`
+  );
+  const cached = getCached<CompetitorLookup>(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const body: Record<string, unknown> = { textQuery, maxResultCount: 5 };
+  // Service-area businesses have no address, so bias by coordinates instead: a
+  // ~10km circle keeps "nearest competitor" honest without a town name.
+  if (typeof location?.latitude === 'number' && typeof location?.longitude === 'number') {
+    body.locationBias = {
+      circle: {
+        center: { latitude: location.latitude, longitude: location.longitude },
+        radius: 10000,
+      },
+    };
+  }
+
+  try {
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'X-Goog-Api-Key': apiKey,
+        'Content-Type': 'application/json',
+        'X-Goog-FieldMask':
+          'places.id,places.displayName,places.rating,places.userRatingCount,places.photos,places.types',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(6000),
+    });
+
+    if (!res.ok) return empty;
+    const data = await res.json();
+    const places: any[] = Array.isArray(data?.places) ? data.places : [];
+    if (places.length === 0) return empty;
+
+    // Rank is where Google placed YOUR listing. The benchmark is measured
+    // against the best-ranked OTHER business, so we never compare you to you.
+    const selfIndex = places.findIndex((candidate) => candidate?.id === placeId);
+    const match = places.find((candidate) => candidate?.id && candidate.id !== placeId);
+
+    const lookup: CompetitorLookup = {
+      competitor: match
+        ? {
+            placeId: String(match.id),
+            name: String(match.displayName?.text || 'Unnamed competitor'),
+            rating: Number(match.rating) || 0,
+            reviewCount: Number(match.userRatingCount) || 0,
+            photoCount: Array.isArray(match.photos) ? match.photos.length : 0,
+            types: Array.isArray(match.types) ? match.types : [],
+          }
+        : null,
+      rank: selfIndex >= 0 ? selfIndex + 1 : null,
+      total: places.length,
+    };
+
+    setCached(cacheKey, lookup, SEARCH_CACHE_MS);
+    return lookup;
+  } catch (error) {
+    console.warn('Competitor benchmark skipped:', error);
+    return empty;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const { placeId, businessName } = await req.json();
     const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
 
-    // 🎭 MOCK MODE: Only return mock audit data if no API key OR if placeId is a mock ID
+    // 🎭 MOCK MODE: Only return mock audit data if no API key OR if placeId is a mock ID.
+    // The sample scan runs the REAL engine against a plausible listing, so the demo
+    // report can never drift from the live report's shape or scoring.
     if (!apiKey || placeId?.startsWith('mock')) {
-      const mockAudit = {
-        completeness: {
-          score: 85,
-          actualScore: 21,
-          maxScore: 25,
-          checks: [
-            { label: 'Business name present', passed: true },
-            { label: 'Address present', passed: true },
-            { label: 'Phone number present', passed: true },
-            { label: 'Website linked', passed: true },
-            { label: 'Business hours set', passed: true },
-            { label: 'Has description', passed: false },
-            { label: 'Primary category set', passed: true }
-          ]
-        },
-        visualContent: {
-          score: 50,
-          actualScore: 10,
-          maxScore: 20,
-          checks: [
-            { label: 'Has photos', passed: true },
-            { label: '10+ photos', passed: true },
-            { label: '50+ photos', passed: false },
-            { label: '100+ photos (excellent)', passed: false }
-          ]
-        },
-        reviews: {
-          score: 75,
-          actualScore: 19,
-          maxScore: 25,
-          checks: [
-            { label: 'Has reviews', passed: true },
-            { label: '10+ reviews', passed: true },
-            { label: '50+ reviews', passed: false },
-            { label: '4.0+ rating', passed: true },
-            { label: '4.5+ rating (excellent)', passed: true }
-          ]
-        },
-        engagement: {
-          score: 25,
-          actualScore: 4,
-          maxScore: 15,
-          checks: [
-            { label: 'Profile claimed', passed: true },
-            { label: 'Regular posts (weekly)', passed: false },
-            { label: 'Q&A section active', passed: false },
-            { label: 'Responds to reviews', passed: false }
-          ]
-        },
-        seo: {
-          score: 60,
-          actualScore: 9,
-          maxScore: 15,
-          checks: [
-            { label: 'Keywords in name', passed: true },
-            { label: 'Multiple categories', passed: true },
-            { label: 'Service area defined', passed: false },
-            { label: 'Attributes set', passed: false },
-            { label: 'Products/services listed', passed: false }
-          ]
-        },
-        recommendations: [
-          {
-            icon: '📸',
-            title: 'Add More Photos',
-            description: 'You have 12 photos. Aim for 100+ to stand out.',
-            impact: 'Medium'
-          },
-          {
-            icon: '⭐',
-            title: 'Get More Reviews',
-            description: 'Businesses with 50+ reviews get 54% more clicks.',
-            impact: 'High'
-          },
-          {
-            icon: '📝',
-            title: 'Add Business Description',
-            description: 'Write a compelling summary to tell clients about your services.',
-            impact: 'Medium'
-          }
-        ]
+      const samplePlace = {
+        name: 'Smith Plumbing & Heating',
+        formatted_address: '12 High Street, Leeds LS1 4AB',
+        formatted_phone_number: '+44 7700 900123',
+        website: 'https://example.com',
+        opening_hours: { openNow: true },
+        reviews: [{ publishTime: new Date().toISOString(), rating: 5 }],
+        photos: Array.from({ length: 10 }, (_, i) => ({ name: `mock_photo_${i}` })),
+        user_ratings_total: 34,
+        rating: 4.6,
+        editorial_summary: { text: 'Family-run plumbing and heating specialists.' },
+        types: ['plumber', 'point_of_interest', 'establishment'],
       };
-      return NextResponse.json(mockAudit);
+
+      const report = await buildAuditReport({
+        placeId: String(placeId || 'mock_sample'),
+        businessName: samplePlace.name,
+        place: samplePlace,
+        scan: null, // sample reports never touch the network
+        competitor: null,
+      });
+
+      return NextResponse.json({ photoUrl: '', report });
     }
 
     // Rate limit BEFORE the paid Google call (the mock branch above costs nothing).
@@ -126,7 +185,7 @@ export async function POST(req: Request) {
         method: 'GET',
         headers: {
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'id,displayName,formattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,currentOpeningHours,reviews,photos,userRatingCount,rating,editorialSummary,types'
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,nationalPhoneNumber,internationalPhoneNumber,websiteUri,currentOpeningHours,reviews,photos,userRatingCount,rating,editorialSummary,types,location'
         }
       }
     );
@@ -150,7 +209,9 @@ export async function POST(req: Request) {
       user_ratings_total: placeData.userRatingCount || 0,
       rating: placeData.rating || 0,
       editorial_summary: placeData.editorialSummary || null,
-      types: placeData.types || []
+      types: placeData.types || [],
+      // Used only to bias the competitor search to the same area.
+      location: placeData.location || null,
     };
 
     console.log(`✅ Place details loaded: ${place.name}, ${place.user_ratings_total} reviews, ${place.photos.length} photos`);
@@ -164,19 +225,40 @@ export async function POST(req: Request) {
       photoUrl = `/api/places/photo?name=${encodeURIComponent(photoName)}&w=400`;
     }
 
-    // Run audit checks
-    const audit = {
-      photoUrl,
-      businessAddress: place.formatted_address,
-      businessRating: place.rating,
-      businessReviewCount: place.user_ratings_total,
-      completeness: auditCompleteness(place),
-      visualContent: auditVisualContent(place),
-      reviews: auditReviews(place),
-      engagement: auditEngagement(place),
-      seo: auditSEO(place, businessName),
-      recommendations: generateRecommendations(place)
-    };
+    // Battle table: kick the competitor search off first so it runs while the
+    // website is being scanned (both cap at ~6s, so latency stays flat).
+    const trade = tradeProfileFor(place.types);
+    const competitorPromise = fetchTopCompetitor(
+      apiKey,
+      String(placeId),
+      `${trade.keywords[0] || 'local service'} ${localityFromAddress(place.formatted_address)}`,
+      place.location
+    );
+
+    // Run the competitor search and the site scan concurrently: both are
+    // network-bound and capped at ~6s, so the report waits once, not twice.
+    const [lookup, scan] = await Promise.all([
+      competitorPromise,
+      scanWebsite(place.website, {
+        businessName,
+        phone: place.formatted_phone_number,
+        types: place.types,
+      }),
+    ]);
+
+    // ONE engine, one report: the payload is the engine's report and nothing
+    // else, so no second score can drift away from it.
+    const report = await buildAuditReport({
+      placeId: String(placeId),
+      businessName,
+      place,
+      scan,
+      competitor: lookup.competitor,
+      searchRank: lookup.rank,
+      rankedOf: lookup.total,
+    });
+
+    const audit = { photoUrl, report };
 
     // LAYER 1 of the audit funnel: a completed audit IS a lead. The capture is
     // idempotent (unique leads.place_id -> refresh, never duplicate) and
@@ -191,12 +273,7 @@ export async function POST(req: Request) {
       rating: place.rating || null,
       reviewCount: place.user_ratings_total || null,
       types: place.types || null,
-      auditScore:
-        audit.completeness.actualScore +
-        audit.visualContent.actualScore +
-        audit.reviews.actualScore +
-        audit.engagement.actualScore +
-        audit.seo.actualScore,
+      auditScore: report.scores.overall,
     });
 
     setCached(auditKey, audit, DETAIL_CACHE_MS);
@@ -205,147 +282,4 @@ export async function POST(req: Request) {
     console.error('Audit Run Error:', error);
     return NextResponse.json({ error: 'Audit failed' }, { status: 500 });
   }
-}
-
-// Audit Functions
-function auditCompleteness(place: any) {
-  const checks = [
-    { label: 'Business name present', passed: !!place.name },
-    { label: 'Address present', passed: !!place.formatted_address },
-    { label: 'Phone number present', passed: !!place.formatted_phone_number },
-    { label: 'Website linked', passed: !!place.website },
-    { label: 'Business hours set', passed: !!place.opening_hours },
-    { label: 'Has description', passed: !!place.editorial_summary },
-    { label: 'Primary category set', passed: place.types?.length > 0 }
-  ];
-
-  const passedCount = checks.filter(c => c.passed).length;
-  const score = Math.round((passedCount / checks.length) * 100);
-  const actualScore = Math.round((passedCount / checks.length) * 25);
-
-  return { score, actualScore, maxScore: 25, checks };
-}
-
-function auditVisualContent(place: any) {
-  const photoCount = place.photos?.length || 0;
-  const checks = [
-    { label: 'Has photos', passed: photoCount > 0 },
-    { label: '10+ photos', passed: photoCount >= 10 },
-    { label: '50+ photos', passed: photoCount >= 50 },
-    { label: '100+ photos (excellent)', passed: photoCount >= 100 }
-  ];
-
-  let score = 0;
-  if (photoCount >= 100) score = 100;
-  else if (photoCount >= 50) score = 75;
-  else if (photoCount >= 10) score = 50;
-  else if (photoCount > 0) score = 25;
-
-  const actualScore = Math.round((score / 100) * 20);
-
-  return { score, actualScore, maxScore: 20, checks };
-}
-
-function auditReviews(place: any) {
-  const reviewCount = place.user_ratings_total || 0;
-  const rating = place.rating || 0;
-  
-  const checks = [
-    { label: 'Has reviews', passed: reviewCount > 0 },
-    { label: '10+ reviews', passed: reviewCount >= 10 },
-    { label: '50+ reviews', passed: reviewCount >= 50 },
-    { label: '4.0+ rating', passed: rating >= 4.0 },
-    { label: '4.5+ rating (excellent)', passed: rating >= 4.5 }
-  ];
-
-  let score = 0;
-  const reviewScore = Math.min((reviewCount / 50) * 50, 50); // 50% from count
-  const ratingScore = (rating / 5) * 50; // 50% from rating
-  score = Math.round(reviewScore + ratingScore);
-
-  const actualScore = Math.round((score / 100) * 25);
-
-  return { score, actualScore, maxScore: 25, checks };
-}
-
-function auditEngagement(place: any) {
-  const checks = [
-    { label: 'Profile claimed', passed: true },
-    { label: 'Regular posts (weekly)', passed: false },
-    { label: 'Q&A section active', passed: false },
-    { label: 'Responds to reviews', passed: false }
-  ];
-
-  const score = 25;
-  const actualScore = Math.round((score / 100) * 15);
-
-  return { score, actualScore, maxScore: 15, checks };
-}
-
-function auditSEO(place: any, businessName: string) {
-  const checks = [
-    { label: 'Keywords in name', passed: businessName.toLowerCase().includes(' ') },
-    { label: 'Multiple categories', passed: (place.types?.length || 0) > 1 },
-    { label: 'Service area defined', passed: false },
-    { label: 'Attributes set', passed: false },
-    { label: 'Products/services listed', passed: false }
-  ];
-
-  const passedCount = checks.filter(c => c.passed).length;
-  const score = Math.round((passedCount / checks.length) * 100);
-  const actualScore = Math.round((passedCount / checks.length) * 15);
-
-  return { score, actualScore, maxScore: 15, checks };
-}
-
-function generateRecommendations(place: any) {
-  const recommendations = [];
-
-  if (!place.formatted_phone_number) {
-    recommendations.push({
-      icon: '📞',
-      title: 'Add Phone Number',
-      description: 'Customers need a way to contact you directly',
-      impact: 'High'
-    });
-  }
-
-  if (!place.website) {
-    recommendations.push({
-      icon: '🌐',
-      title: 'Add Website Link',
-      description: 'Drive traffic to your website from Google',
-      impact: 'High'
-    });
-  }
-
-  const photoCount = place.photos?.length || 0;
-  if (photoCount < 10) {
-    recommendations.push({
-      icon: '📸',
-      title: 'Add More Photos',
-      description: `You have ${photoCount} photos. Aim for 100+ to stand out`,
-      impact: 'Medium'
-    });
-  }
-
-  if ((place.user_ratings_total || 0) < 50) {
-    recommendations.push({
-      icon: '⭐',
-      title: 'Get More Reviews',
-      description: 'Businesses with 50+ reviews get 54% more clicks',
-      impact: 'High'
-    });
-  }
-
-  if ((place.rating || 5) < 4.5) {
-    recommendations.push({
-      icon: '💬',
-      title: 'Improve Customer Service',
-      description: 'Your rating is below 4.5. Focus on customer experience',
-      impact: 'Critical'
-    });
-  }
-
-  return recommendations;
 }

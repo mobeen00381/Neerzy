@@ -1,6 +1,6 @@
 ---
 title: 'Understanding Your Google Business Profile Audit Score'
-meta_description: "Understand every part of your Google Business Profile audit score — completeness, reviews, engagement, and visual content — and how to improve each."
+meta_description: "Understand every part of your Google Business Profile audit score — Local SEO, AEO and GEO — what is measured, what is not, and how to improve each."
 category: 'GBP Audit'
 date: '2026-07-13'
 readTime: '8 min read'
@@ -9,209 +9,121 @@ guideType: 'category'
 breadcrumbName: 'Understanding Your Audit Score'
 ---
 
-<p>If you&apos;ve just run <Link href="/gmb-audit-tool" className="text-[#0F5132] hover:underline">Neerzy&apos;s free Google Business Profile audit</Link> and landed on a number out of 100, this page exists to answer the question that number raises: <strong>what does this actually mean, and what do I do about it?</strong></p>
-        <p>Your score is built from five weighted categories. This page walks through each one — what it measures, why it&apos;s weighted the way it is, and the specific, concrete fixes that move it.</p>
+<p>If you&apos;ve just run <Link href="/gmb-audit-tool" className="text-[#0F5132] hover:underline">Neerzy&apos;s free Google Business Profile audit</Link> and landed on a number out of 100, this page answers the question that number raises: <strong>what does this actually mean, and what do I do about it?</strong></p>
+        <p>Your report has three scores, not five. This page explains what each one measures, what is deliberately left out, and the concrete fixes that move each one.</p>
 
         <h2>How the Score Is Built</h2>
 
-        <SeoDiagram caption="The five categories that make up your overall Neerzy GBP audit score.">
+        <SeoDiagram caption="Three scores make up your overall result: Local SEO (50%), AEO (25%) and GEO (25%).">
           <WeightChart />
         </SeoDiagram>
 
         <div className="overflow-x-auto">
           <table>
             <thead>
-              <tr><th>Category</th><th>Weight</th><th>What It Measures</th></tr>
+              <tr><th>Score</th><th>Weight</th><th>What It Measures</th></tr>
             </thead>
             <tbody>
-              <tr><td><Link href="/completeness-score-guide" className="text-[#0F5132] hover:underline">Completeness</Link></td><td><strong>25%</strong></td><td>NAP, hours, categories, description, attributes</td></tr>
-              <tr><td><Link href="/reviews-score-guide" className="text-[#0F5132] hover:underline">Reviews &amp; Reputation</Link></td><td><strong>25%</strong></td><td>Review count, rating, velocity, response rate</td></tr>
-              <tr><td><Link href="/visual-content-score-guide" className="text-[#0F5132] hover:underline">Visual Content</Link></td><td><strong>20%</strong></td><td>Photo count, recency, diversity, video presence</td></tr>
-              <tr><td><Link href="/engagement-score-guide" className="text-[#0F5132] hover:underline">Engagement &amp; Activity</Link></td><td><strong>15%</strong></td><td>Posting frequency, Q&amp;A activity, review responses</td></tr>
-              <tr><td><Link href="/local-seo-optimization-score-guide" className="text-[#0F5132] hover:underline">Local SEO Optimization</Link></td><td><strong>15%</strong></td><td>Keywords, category accuracy, service areas, NAP consistency</td></tr>
+              <tr><td><strong>Local SEO</strong></td><td><strong>50%</strong></td><td>Profile fields, photos, reviews and rating, name/address/phone consistency</td></tr>
+              <tr><td><strong>AEO</strong> — answer engines</td><td><strong>25%</strong></td><td>Whether your homepage answers a customer&apos;s question: title, description, phone, trade, hours</td></tr>
+              <tr><td><strong>GEO</strong> — generative engines</td><td><strong>25%</strong></td><td>AI crawler access (robots.txt, llms.txt) and structured data describing your business</td></tr>
             </tbody>
           </table>
         </div>
 
-        <p>Completeness and Reviews &amp; Reputation carry the most weight — together, half your score — which is why they&apos;re the first two places to look if your number is lower than you&apos;d like. Each category is scored on its own out of 100; your overall score is the weighted sum of those five scores, so it always lands between 0 and 100 as well.</p>
+        <p>Each score is out of 100, measured over <em>verified</em> checks only. Your overall score is the weighted average of the scores we could actually measure: if you have no website, AEO and GEO come back <em>not measurable</em> and the overall is renormalised over Local SEO alone. A surface we cannot read never silently drags your total down.</p>
+
+        <p>The same rule applies to individual checks. Anything that lives only inside your Google dashboard — posts, Q&amp;A, owner replies, attributes, photo albums past the 10 Google publishes — appears in your report as <em>check manually</em> with zero weight. You will never be asked to fix something we could not see.</p>
+
+        <p>Example: Local SEO 72 (50%), AEO 45 (25%), GEO 30 (25%) gives 36 + 11.25 + 7.5 = <strong>55/100</strong> overall.</p>
 
         <hr />
 
-        <h2>Completeness (25%)</h2>
+        <h2>Local SEO — 50%</h2>
 
-        <SeoDiagram caption="The Completeness category checks every core field in your Google Business Profile.">
+        <SeoDiagram caption="Local SEO is the biggest half of your score, and almost all of it is inside your control.">
           <CategoryScoreDiagram
             categories={[
-              { label: 'Completeness', score: 84, weight: 25, color: '#22C55E' },
-              { label: 'Reviews', score: 64, weight: 25, color: '#F59E0B' },
-              { label: 'Visual Content', score: 45, weight: 20, color: '#EF4444' },
-              { label: 'Engagement', score: 40, weight: 15, color: '#EF4444' },
-              { label: 'Local SEO', score: 80, weight: 15, color: '#22C55E' },
+              { label: 'Local SEO', score: 72, weight: 50, color: '#22C55E' },
+              { label: 'AEO', score: 45, weight: 25, color: '#F59E0B' },
+              { label: 'GEO', score: 30, weight: 25, color: '#EF4444' },
             ]}
           />
         </SeoDiagram>
 
-        <p>This category checks whether the basic structure of your profile is actually filled in: business name, address, phone number, website link, business hours, primary category, a written business description, and your listed attributes and services.</p>
-
-        <CalloutBox type="important" title="Why It's Weighted This Heavily">
-          An incomplete profile gives Google — and AI systems reading your profile — nothing solid to match against a search. A missing category or an empty description isn&apos;t a cosmetic gap; it&apos;s a direct relevance signal Google can&apos;t use.
-        </CalloutBox>
-
-        <p><strong>How to fix a low Completeness score:</strong></p>
+        <p>Four things sit inside this score, each checked against Google&apos;s public data:</p>
         <ul>
-          <li>Open Google Business Profile Manager and go field by field — most owners are surprised how many fields were left blank when the profile was first created years ago.</li>
-          <li>Write out the full ~750-character business description, naturally including your core services and city.</li>
-          <li>Add every applicable attribute (free estimates, licensed, veteran-owned, etc.) and every individual service you offer, not just a general category.</li>
+          <li><strong>Profile fields</strong> — name, address, phone, website, hours, description and primary category, each checked as present or missing. <Link href="/completeness-score-guide" className="text-[#0F5132] hover:underline">Completeness guide →</Link></li>
+          <li><strong>Reviews and rating</strong> — your total count against your trade&apos;s benchmark, your star rating, and whether Google shows a review from the last 12 months. <Link href="/reviews-score-guide" className="text-[#0F5132] hover:underline">Reviews guide →</Link></li>
+          <li><strong>Photos</strong> — how many Google exposes publicly (capped at 10) against your trade&apos;s target. <Link href="/visual-content-score-guide" className="text-[#0F5132] hover:underline">Visual content guide →</Link></li>
+          <li><strong>Consistency</strong> — whether your trade word appears in your business name, and whether the phone number on your own website matches the one on your profile end to end. <Link href="/local-seo-optimization-score-guide" className="text-[#0F5132] hover:underline">Local SEO guide →</Link></li>
         </ul>
-        <p>→ Full deep-dive: <Link href="/completeness-score-guide" className="text-[#0F5132] hover:underline">Completeness Score Guide</Link></p>
+
+        <CalloutBox type="important" title="Why It Carries Half the Weight">
+          This is the surface where customers actually find you: the map pack and the profile page they land on before they call. Every check here is read from the same public data Google itself uses.
+        </CalloutBox>
 
         <hr />
 
-        <h2>Reviews &amp; Reputation (25%)</h2>
+        <h2>AEO — 25%</h2>
 
-        <SeoDiagram caption="The Reviews & Reputation category measures count, rating, recency, and how well you respond.">
-          <CategoryScoreDiagram
-            categories={[
-              { label: 'Completeness', score: 84, weight: 25, color: '#22C55E' },
-              { label: 'Reviews', score: 64, weight: 25, color: '#F59E0B' },
-              { label: 'Visual Content', score: 45, weight: 20, color: '#EF4444' },
-              { label: 'Engagement', score: 40, weight: 15, color: '#EF4444' },
-              { label: 'Local SEO', score: 80, weight: 15, color: '#22C55E' },
-            ]}
-          />
-        </SeoDiagram>
+        <p>AEO (answer-engine optimisation) is about whether a machine can answer <em>&quot;who is a good plumber near me?&quot;</em> using your own website. The audit fetches your homepage and checks five things: a title that names you or your trade, a meta description that says what you do and where, your phone number appearing on the page, your trade word appearing in the copy, and your opening hours being stated.</p>
 
-        <p>This checks your total review count, average star rating, how recently you&apos;ve received new reviews (velocity), and how consistently you respond.</p>
-
-        <CalloutBox type="important" title="Why It's Weighted This Heavily">
-          Reviews are both a ranking factor and the single biggest trust signal a customer sees before calling — Google and your customers are, in this case, looking at the same evidence.
-        </CalloutBox>
-
-        <p><strong>How to fix a low Reviews &amp; Reputation score:</strong></p>
         <ul>
-          <li>Prioritize velocity over volume if you&apos;re starting from a low base — a steady trickle of new reviews each month outperforms a single burst followed by silence.</li>
-          <li>Respond to every review, especially negative ones — response rate is scored directly, and it&apos;s often the easiest sub-metric to fix immediately.</li>
-          <li>See <Link href="/seo-for-plumbers#section-13" className="text-[#0F5132] hover:underline">Section 13 of the full plumbing SEO guide</Link> for review request timing and templates.</li>
+          <li><strong>Title and description</strong> are the two lines assistants and search results quote most often.</li>
+          <li><strong>Phone on the page</strong> matters because a caller needs the number without clicking through to a contact form.</li>
+          <li><strong>Hours on the page</strong> answer the second question every emergency customer asks.</li>
         </ul>
-        <p>→ Full deep-dive: <Link href="/reviews-score-guide" className="text-[#0F5132] hover:underline">Reviews Score Guide</Link></p>
+
+        <p>If your site cannot be fetched at all (a firewall, a 403, a dead domain), the AEO checks come back <em>not measurable</em> with the reason, rather than failing you for something a bot block caused. See <Link href="/ai-search-visibility-local-business" className="text-[#0F5132] hover:underline">AI Search Visibility for Local Businesses</Link> for the wider picture.</p>
 
         <hr />
 
-        <h2>Visual Content (20%)</h2>
+        <h2>GEO — 25%</h2>
 
-        <SeoDiagram caption="The Visual Content category benchmarks your photo count, recency, and variety.">
-          <CategoryScoreDiagram
-            categories={[
-              { label: 'Completeness', score: 84, weight: 25, color: '#22C55E' },
-              { label: 'Reviews', score: 64, weight: 25, color: '#F59E0B' },
-              { label: 'Visual Content', score: 45, weight: 20, color: '#EF4444' },
-              { label: 'Engagement', score: 40, weight: 15, color: '#EF4444' },
-              { label: 'Local SEO', score: 80, weight: 15, color: '#22C55E' },
-            ]}
-          />
-        </SeoDiagram>
+        <p>GEO (generative-engine optimisation) asks a narrower question: if an AI assistant wanted to read your site and quote your business, <em>could it?</em> Two things decide that.</p>
 
-        <p>This checks total photo count against benchmarks (10+, 50+, and 100+ thresholds), how recently photos were uploaded, and whether you have video content.</p>
-
-        <CalloutBox type="important" title="Why It's Weighted This Heavily">
-          Photo volume and recency are among the clearest, hardest-to-fake signals that a business is actually operating and actively maintained — a profile with fresh weekly photos reads as alive in a way text alone can&apos;t replicate.
-        </CalloutBox>
-
-        <p><strong>How to fix a low Visual Content score:</strong></p>
         <ul>
-          <li>Upload photos from every completed job, not just a curated batch once a year.</li>
-          <li>Mix photo types: completed work, before-and-afters, your team, your trucks — diversity is scored, not just quantity.</li>
-          <li>Add at least one video if you have none — it&apos;s a distinct sub-check most competitors skip entirely.</li>
+          <li><strong>Crawler access.</strong> The audit reads your robots.txt and checks whether GPTBot, ClaudeBot, PerplexityBot or similar are blocked, and whether an llms.txt file exists. Blocking them is a hard stop: no amount of good copy gets past it.</li>
+          <li><strong>Structured data.</strong> The audit reads your JSON-LD and checks for a LocalBusiness type (Plumber, Electrician, Dentist...), a telephone, a postal address, opening hours, plus FAQ and Service markup where relevant. This is the markup that lets a machine state your details instead of guessing.</li>
         </ul>
-        <p>→ Full deep-dive: <Link href="/visual-content-score-guide" className="text-[#0F5132] hover:underline">Visual Content Score Guide</Link></p>
+
+        <p>Both are one-time jobs that stay done, which makes GEO the cheapest score on this list to move.</p>
 
         <hr />
 
-        <h2>Engagement &amp; Activity (15%)</h2>
+        <h2>What Is Not Scored</h2>
 
-        <SeoDiagram caption="The Engagement & Activity category measures whether your profile looks alive and actively managed.">
-          <CategoryScoreDiagram
-            categories={[
-              { label: 'Completeness', score: 84, weight: 25, color: '#22C55E' },
-              { label: 'Reviews', score: 64, weight: 25, color: '#F59E0B' },
-              { label: 'Visual Content', score: 45, weight: 20, color: '#EF4444' },
-              { label: 'Engagement', score: 40, weight: 15, color: '#EF4444' },
-              { label: 'Local SEO', score: 80, weight: 15, color: '#22C55E' },
-            ]}
-          />
-        </SeoDiagram>
-
-        <p>This checks whether your profile is claimed, how often you&apos;re posting, whether your Q&amp;A section has activity, and whether you&apos;re responding to reviews.</p>
-
-        <CalloutBox type="important" title="Why It's Weighted This Way">
-          Activity is Google&apos;s clearest proxy for &quot;is this business currently operating,&quot; separate from how good the business&apos;s reputation already is.
-        </CalloutBox>
-
-        <p><strong>How to fix a low Engagement &amp; Activity score:</strong></p>
-        <ul>
-          <li>Publish at least one Google Post per week — see <Link href="/seo-for-plumbers#section-14" className="text-[#0F5132] hover:underline">Section 14 of the full guide</Link> for simple post templates that require no marketing background.</li>
-          <li>Seed your own Q&amp;A section with the 3–5 questions customers ask most, rather than leaving it empty for a stranger to fill first.</li>
-        </ul>
-        <p>→ Full deep-dive: <Link href="/engagement-score-guide" className="text-[#0F5132] hover:underline">Engagement &amp; Activity Score Guide</Link></p>
-
-        <hr />
-
-        <h2>Local SEO Optimization (15%)</h2>
-
-        <SeoDiagram caption="The Local SEO Optimization category checks consistency across your entire web presence.">
-          <CategoryScoreDiagram
-            categories={[
-              { label: 'Completeness', score: 84, weight: 25, color: '#22C55E' },
-              { label: 'Reviews', score: 64, weight: 25, color: '#F59E0B' },
-              { label: 'Visual Content', score: 45, weight: 20, color: '#EF4444' },
-              { label: 'Engagement', score: 40, weight: 15, color: '#EF4444' },
-              { label: 'Local SEO', score: 80, weight: 15, color: '#22C55E' },
-            ]}
-          />
-        </SeoDiagram>
-
-        <p>This checks keyword usage in your business name and description, category optimization, defined service areas, NAP consistency across the web, and backlinks from your website to your GBP.</p>
-
-        <CalloutBox type="important" title="Why It's Weighted This Way">
-          This category is less about any single field and more about <em>consistency</em> — the same business information stated identically everywhere is what allows Google to build confidence in your listing.
-        </CalloutBox>
-
-        <p><strong>How to fix a low Local SEO Optimization score:</strong></p>
-        <ul>
-          <li>Run a manual NAP check across your website, Yelp, Angi, and the BBB — inconsistencies here are common and easy to miss.</li>
-          <li>Make sure your service areas are explicitly defined, not just implied by your business address.</li>
-          <li>Link from your website&apos;s contact page directly to your Google Business Profile.</li>
-        </ul>
-        <p>→ Full deep-dive: <Link href="/local-seo-optimization-score-guide" className="text-[#0F5132] hover:underline">Local SEO Optimization Score Guide</Link></p>
+        <p>Google Posts, Q&amp;A, owner replies, attributes and photo albums past the public 10-photo cap are not scored anywhere in your report. Google does not expose them through the public API, so the honest thing is to list them as <em>check manually</em> and let you confirm them in your dashboard. The habits still matter — <Link href="/engagement-score-guide" className="text-[#0F5132] hover:underline">Engagement &amp; Activity guide</Link> explains why — they just do not move a number we cannot verify.</p>
 
         <hr />
 
         <h2>What to Do With Your Score</h2>
 
-        <SeoDiagram caption="Your audit results come with a prioritized action plan — not generic advice.">
+        <SeoDiagram caption="Your report comes with a prioritised fix list — red, amber, then dashboard checks.">
           <RecommendationsDiagram />
         </SeoDiagram>
 
         <ol>
-          <li><strong>Note your lowest-scoring category</strong> — that&apos;s where the fastest gains are available, not necessarily the category that sounds most important.</li>
-          <li><strong>Fix the highest-weighted issues first</strong> within that category, since Completeness and Reviews &amp; Reputation move your overall score the most per fix.</li>
-          <li><strong>Re-run the audit in 30 days.</strong> Most of these fixes (photos, posts, review responses) show measurable score movement within a month.</li>
-          <li><strong>Read the full guide</strong> for the complete strategy behind each category: <Link href="/seo-for-plumbers" className="text-[#0F5132] hover:underline">SEO for Plumbers: The Complete 2026 Guide</Link>.</li>
+          <li><strong>Start with the red items.</strong> They are the verified gaps worth the most points, already sorted by weight.</li>
+          <li><strong>Then the amber items.</strong> Smaller verified gaps — usually the quickest wins once the reds are gone.</li>
+          <li><strong>Then the green list.</strong> Things only you can see in your Google dashboard. Check them; never chase them for points.</li>
+          <li><strong>Re-run the audit in 30 days.</strong> Profile, photo, robots.txt and structured-data fixes show up on the very next run; review and ranking movement takes longer.</li>
         </ol>
 
-        <p>Reading for another trade? The same five categories and weights apply in <Link href="/seo-for-hvac" className="text-[#0F5132] hover:underline">SEO for HVAC</Link>, <Link href="/seo-for-electricians" className="text-[#0F5132] hover:underline">SEO for Electricians</Link>, and <Link href="/locksmith-seo" className="text-[#0F5132] hover:underline">Locksmith SEO</Link>.</p>
+        <p>Reading for another trade? The same three scores and weights apply in <Link href="/seo-for-hvac" className="text-[#0F5132] hover:underline">SEO for HVAC</Link>, <Link href="/seo-for-electricians" className="text-[#0F5132] hover:underline">SEO for Electricians</Link>, and <Link href="/locksmith-seo" className="text-[#0F5132] hover:underline">Locksmith SEO</Link>.</p>
 
         <p>Ready to act on your results? → <Link href="/improve-your-audit-score" className="text-[#0F5132] hover:underline">How to Improve Your Overall Audit Score</Link></p>
 
         <h2>Related Guides</h2>
 
         <ul>
-          <li><Link href="/completeness-score-guide" className="text-[#0F5132] hover:underline">Completeness Score Guide</Link> &mdash; the field-by-field category worth 25%</li>
-          <li><Link href="/reviews-score-guide" className="text-[#0F5132] hover:underline">Reviews Score Guide</Link> &mdash; the other 25%-weighted category</li>
-          <li><Link href="/visual-content-score-guide" className="text-[#0F5132] hover:underline">Visual Content Score Guide</Link> &mdash; photos, video, and the 20% they carry</li>
-          <li><Link href="/engagement-score-guide" className="text-[#0F5132] hover:underline">Engagement &amp; Activity Score Guide</Link> &mdash; posts, Q&amp;A, and response habits</li>
-          <li><Link href="/local-seo-optimization-score-guide" className="text-[#0F5132] hover:underline">Local SEO Optimization Score Guide</Link> &mdash; categories, service areas, and NAP</li>
-          <li><Link href="/improve-your-audit-score" className="text-[#0F5132] hover:underline">How to Improve Your Overall Audit Score</Link> &mdash; the order to fix things in</li>
+          <li><Link href="/completeness-score-guide" className="text-[#0F5132] hover:underline">Completeness Score Guide</Link> &mdash; the field-by-field checklist inside Local SEO</li>
+          <li><Link href="/reviews-score-guide" className="text-[#0F5132] hover:underline">Reviews Score Guide</Link> &mdash; count, rating and recency</li>
+          <li><Link href="/visual-content-score-guide" className="text-[#0F5132] hover:underline">Visual Content Score Guide</Link> &mdash; photos and what Google actually publishes</li>
+          <li><Link href="/engagement-score-guide" className="text-[#0F5132] hover:underline">Engagement &amp; Activity Guide</Link> &mdash; the checks that are not scored</li>
+          <li><Link href="/local-seo-optimization-score-guide" className="text-[#0F5132] hover:underline">Local SEO Optimization Guide</Link> &mdash; categories, service areas and NAP</li>
+          <li><Link href="/ai-search-visibility-local-business" className="text-[#0F5132] hover:underline">AI Search Visibility for Local Businesses</Link> &mdash; the AEO/GEO background</li>
         </ul>
 
         <CalloutBox type="tip" title="Run or Re-Run Your Free Audit">

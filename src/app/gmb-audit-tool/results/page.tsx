@@ -1,34 +1,61 @@
 'use client';
 
-import { useState, useEffect, Suspense, type FormEvent } from 'react';
+import { useState, useEffect, Suspense, type FormEvent, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Building2, 
-  CheckCircle2, 
-  XCircle, 
-  ArrowLeft, 
-  Sparkles, 
-  TrendingUp, 
-  MessageSquare, 
-  Camera, 
-  FileText, 
-  Search,
-  Zap,
+import {
+  ArrowLeft,
+  Building2,
+  Camera,
+  CheckCircle2,
+  FileText,
+  HelpCircle,
   Loader2,
-  ChevronRight,
-  MapPin,
-  Star
+  MessageSquare,
+  Star,
+  Swords,
+  TrendingUp,
+  XCircle,
 } from 'lucide-react';
 import AuditReviewPrompt from '@/components/reviews/AuditReviewPrompt';
+import {
+  monthlyCallsFromEnquiries,
+  type AuditFinding,
+  type AuditReport,
+  type AuditSection,
+  type AuditSectionKey,
+} from '@/lib/audit-engine';
+
+/** The API returns exactly this: a photo URL and the engine's report. */
+type AuditPayload = { photoUrl?: string; report?: AuditReport };
+
+const SECTION_META: Record<AuditSectionKey, { label: string; weight: string; blurb: string }> = {
+  local_seo: {
+    label: 'Local SEO',
+    weight: '50% of total',
+    blurb: 'Can Google show you, trust you and rank you in the map pack?',
+  },
+  aeo: {
+    label: 'AEO',
+    weight: '25% of total',
+    blurb: 'Answer engines: can Siri, Alexa or ChatGPT answer "who should I call?" from your site?',
+  },
+  geo: {
+    label: 'GEO',
+    weight: '25% of total',
+    blurb: 'Generative engines: can AI crawlers read your site, and is your business in structured data?',
+  },
+};
 
 export default function AuditResultsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)]">
-        <Loader2 className="w-16 h-16 text-[#25D366] animate-spin mb-4" />
-        <div className="text-xl font-bold text-[#0F5C4D] animate-pulse">Loading your audit...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)]">
+          <Loader2 className="w-16 h-16 text-[#25D366] animate-spin mb-4" />
+          <div className="text-xl font-bold text-[#0F5C4D] animate-pulse">Loading your audit...</div>
+        </div>
+      }
+    >
       <AuditContent />
     </Suspense>
   );
@@ -40,25 +67,24 @@ function AuditContent() {
   const placeId = searchParams.get('placeId');
   const businessName = searchParams.get('name');
 
-  const [auditData, setAuditData] = useState<any>(null);
+  const [payload, setPayload] = useState<AuditPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [loadingPhase, setLoadingPhase] = useState(0);
 
   const phases = [
-    'Connecting to Google Business Profile API...',
-    'Scanning profile completeness & meta info...',
-    'Analyzing visual content and photo counts...',
-    'Parsing customer reviews & sentiment ratios...',
-    'Evaluating organic SEO and local search rankings...'
+    'Reading your Google Business Profile...',
+    'Checking your site for AI crawler access...',
+    'Looking for structured data machines can quote...',
+    'Comparing you against the listings Google returns for your trade...',
+    'Ordering the fixes by what costs you the most calls...',
   ];
 
-  // Dynamic phase animator for premium UX
   useEffect(() => {
     if (!loading) return;
     const interval = setInterval(() => {
       setLoadingPhase((prev) => (prev + 1) % phases.length);
-    }, 1200);
+    }, 1600);
     return () => clearInterval(interval);
   }, [loading]);
 
@@ -73,18 +99,16 @@ function AuditContent() {
         const res = await fetch('/api/audit/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            placeId, 
-            businessName: businessName || 'Business' 
-          })
+          body: JSON.stringify({ placeId, businessName: businessName || 'Business' }),
         });
-        
-        if (!res.ok) throw new Error('Audit failed');
-        
-        const data = await res.json();
-        setAuditData(data);
-      } catch (err) {
-        setError('Failed to generate your audit. Please try again.');
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data?.error || 'Audit failed');
+        if (!data?.report) throw new Error('Audit returned no report');
+
+        setPayload(data);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to generate your audit. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -103,31 +127,29 @@ function AuditContent() {
           </div>
         </div>
         <h2 className="text-2xl md:text-3xl font-black text-[#0F5C4D] mb-3">
-          Analyzing {businessName || 'your business'}...
+          Checking {businessName || 'your business'}...
         </h2>
         <div className="bg-white px-6 py-3 rounded-full border border-emerald-100 shadow-sm max-w-md">
-          <p className="text-[#4F635F] font-semibold text-sm animate-pulse">
-            ⚡ {phases[loadingPhase]}
-          </p>
+          <p className="text-[#4F635F] font-semibold text-sm animate-pulse">{phases[loadingPhase]}</p>
         </div>
         <p className="text-slate-400 font-bold text-xs mt-6 uppercase tracking-wider">
-          Retrieving real-time Google Maps insights
+          Live Google data plus your own website — no guesswork
         </p>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !payload?.report) {
     return (
       <div className="min-h-screen bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)] flex items-center justify-center p-4">
         <div className="text-center p-8 bg-white rounded-3xl shadow-2xl max-w-md border border-red-50">
-          <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100 text-3xl">
-            ⚠️
+          <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
+            <XCircle className="w-8 h-8" />
           </div>
           <h2 className="text-2xl font-black text-slate-800 mb-2">Audit Failed</h2>
-          <p className="text-slate-500 font-semibold mb-6">{error}</p>
-          <button 
-            onClick={() => router.push('/gmb-audit-tool')} 
+          <p className="text-slate-500 font-semibold mb-6">{error || 'No report returned.'}</p>
+          <button
+            onClick={() => router.push('/gmb-audit-tool')}
             className="w-full bg-[#0F5C4D] hover:bg-[#073a30] text-white py-4 rounded-xl font-bold transition-all shadow-md"
           >
             Try Again
@@ -137,7 +159,450 @@ function AuditContent() {
     );
   }
 
-  return <AuditReportView data={auditData} businessName={businessName} placeId={placeId} />;
+  return (
+    <AuditReportView
+      report={payload.report}
+      photoUrl={payload.photoUrl || ''}
+      placeId={placeId}
+      businessName={businessName}
+    />
+  );
+}
+
+// ─── Presentation helpers ────────────────────────────────────────────────────
+
+function toneFor(value: number) {
+  if (value >= 80)
+    return { ring: '#22C55E', text: 'text-emerald-600', chip: 'bg-emerald-50 text-emerald-700 border-emerald-100' };
+  if (value >= 50)
+    return { ring: '#F59E0B', text: 'text-amber-600', chip: 'bg-amber-50 text-amber-700 border-amber-100' };
+  return { ring: '#F43F5E', text: 'text-rose-600', chip: 'bg-rose-50 text-rose-700 border-rose-100' };
+}
+
+/** A 0-100 dial. Renders "—" instead of a zero when nothing was measurable. */
+function ScoreRing({
+  value,
+  measurable = true,
+  size = 132,
+  stroke = 12,
+  label,
+}: {
+  value: number;
+  measurable?: boolean;
+  size?: number;
+  stroke?: number;
+  label?: string;
+}) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = measurable ? Math.max(0, Math.min(100, value)) : 0;
+  const tone = toneFor(measurable ? value : 0);
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={label}>
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E2E8F0" strokeWidth={stroke} />
+      {measurable && (
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={tone.ring}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${(pct / 100) * circumference} ${circumference}`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          className="transition-all duration-1000"
+        />
+      )}
+      <text
+        x="50%"
+        y="50%"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={size * 0.3}
+        fontWeight="800"
+        fill={measurable ? '#0F172A' : '#94A3B8'}
+      >
+        {measurable ? Math.round(value) : '—'}
+      </text>
+    </svg>
+  );
+}
+
+function AuditReportView({
+  report,
+  photoUrl,
+  placeId,
+  businessName,
+}: {
+  report: AuditReport;
+  photoUrl: string;
+  placeId: string | null;
+  businessName: string | null;
+}) {
+  const router = useRouter();
+  const [enquiries, setEnquiries] = useState('');
+  const monthly = monthlyCallsFromEnquiries(report.opportunity, Number(enquiries));
+  const tier = toneFor(report.scores.overall);
+  const generated = new Date(report.generatedAt).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  return (
+    <div className="min-h-screen bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)] py-10 md:py-16 px-4 md:px-8 font-sans">
+      <div className="max-w-5xl mx-auto space-y-6 relative z-10">
+        <button
+          onClick={() => router.push('/gmb-audit-tool')}
+          className="inline-flex items-center gap-2 text-slate-500 hover:text-[#0F5C4D] transition-all font-bold text-sm bg-white/80 border border-slate-100 px-4 py-2 rounded-full shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Search</span>
+        </button>
+
+        {/* Header: who we looked at, and the one number that summarises it */}
+        <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-10">
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            <div className="shrink-0">
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt={businessName || report.businessName || 'Business'}
+                  className="w-24 h-24 rounded-2xl object-cover border-4 border-emerald-100 shadow"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-2xl bg-emerald-50 border-4 border-emerald-100 shadow flex items-center justify-center">
+                  <Building2 className="w-10 h-10 text-[#0F5C4D]" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                {report.trade.label} · audited {generated}
+              </p>
+              <h1 className="text-2xl md:text-3xl font-black text-[#0F5C4D] leading-tight truncate">
+                {businessName || report.businessName || 'Your business'}
+              </h1>
+              <span
+                className={`inline-block mt-2 text-xs font-black px-3 py-1 rounded-full border ${tier.chip}`}
+              >
+                {report.tier.label} · {report.scores.overall}/100
+              </span>
+              <p className="text-slate-600 font-semibold text-sm mt-3 max-w-2xl">{report.tier.summary}</p>
+            </div>
+
+            <div className="shrink-0 flex flex-col items-center">
+              <ScoreRing value={report.scores.overall} label="Overall score" />
+              <span className="text-xs font-black uppercase tracking-wider text-slate-400 mt-1">
+                Overall
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-7 pt-6 border-t border-slate-100">
+            <Fact icon={<Star className="w-4 h-4 text-amber-500" />} value={
+              report.facts.rating > 0 ? report.facts.rating.toFixed(1) : '—'
+            } label="Rating" />
+            <Fact icon={<MessageSquare className="w-4 h-4 text-[#25D366]" />} value={String(report.facts.reviewCount)} label="Reviews" />
+            <Fact icon={<Camera className="w-4 h-4 text-sky-500" />} value={String(report.facts.photoCount)} label="Photos (API cap 10)" />
+            <Fact
+              icon={<TrendingUp className="w-4 h-4 text-[#0F5C4D]" />}
+              value={report.facts.hasRecentReview ? 'Yes' : 'No'}
+              label={report.facts.newestReview ? `Review since ${report.facts.newestReview}` : 'Review in 12 months'}
+            />
+          </div>
+        </section>
+
+        {/* The three surfaces a trade business actually competes on */}
+        <section className="grid gap-4 md:grid-cols-3">
+          {(Object.keys(SECTION_META) as AuditSectionKey[]).map((key) => {
+            const section = report.sections[key];
+            const meta = SECTION_META[key];
+            const tone = toneFor(section.score);
+            const gaps = section.findings.filter((finding) => finding.status === 'fail').length;
+
+            return (
+              <div
+                key={key}
+                className="bg-white rounded-3xl p-6 shadow-md border border-slate-100 flex flex-col"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="font-extrabold text-slate-800 text-lg leading-tight">{meta.label}</h2>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0">
+                    {meta.weight}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 mt-4">
+                  <div className="shrink-0">
+                    <ScoreRing
+                      value={section.score}
+                      measurable={section.measurable}
+                      size={88}
+                      stroke={9}
+                      label={`${meta.label} score`}
+                    />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-500 leading-snug">{meta.blurb}</p>
+                </div>
+                <p
+                  className={`mt-auto pt-4 text-xs font-black uppercase tracking-wider ${
+                    section.measurable ? tone.text : 'text-slate-400'
+                  }`}
+                >
+                  {section.measurable ? `${gaps} gap${gaps === 1 ? '' : 's'} found` : 'Not measurable'}
+                </p>
+              </div>
+            );
+          })}
+        </section>
+
+        {/* Measured gaps first, then a band — never a made-up call count */}
+        <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100 text-amber-600 shrink-0">
+              <Swords className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-800">What this is likely costing you</h2>
+              <p className="text-xs font-semibold text-slate-400">
+                Measured gaps first, then a band — never an invented call count
+              </p>
+            </div>
+          </div>
+
+          <p className="text-slate-700 font-semibold leading-relaxed">{report.opportunity.headline}</p>
+
+          {report.opportunity.uplift && (
+            <div className="mt-5 rounded-2xl bg-emerald-50 border border-emerald-100 p-5">
+              <p className="text-sm font-bold text-[#0F5C4D]">
+                Closing the gaps below is worth roughly{' '}
+                <span className="text-2xl font-black">
+                  +{report.opportunity.uplift.low}–{report.opportunity.uplift.high}%
+                </span>{' '}
+                more enquiries.
+              </p>
+              <label
+                htmlFor="enquiries"
+                className="block mt-4 text-[10px] font-black uppercase tracking-wider text-[#0F5C4D]"
+              >
+                Optional: your calls or enquiries a month
+              </label>
+              <input
+                id="enquiries"
+                inputMode="numeric"
+                value={enquiries}
+                onChange={(event) => setEnquiries(event.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+                placeholder="e.g. 60"
+                className="mt-1 w-32 px-3 py-2 rounded-xl border border-emerald-200 bg-white text-slate-800 font-bold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              />
+              <p className="text-sm font-bold text-slate-700 mt-3">
+                {monthly
+                  ? `That is about ${monthly.low}–${monthly.high} extra enquiries a month.`
+                  : 'Add your own monthly number to see the band in calls.'}
+              </p>
+            </div>
+          )}
+
+          <dl className="mt-5 space-y-2.5">
+            {report.opportunity.basis.map((row) => (
+              <div key={row.label} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <dt className="text-slate-500 font-semibold">{row.label}</dt>
+                <dd className="flex items-center gap-2">
+                  <span className="font-bold text-slate-700">{row.value}</span>
+                  <span
+                    className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                      row.kind === 'measured'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                        : 'bg-slate-50 text-slate-500 border-slate-200'
+                    }`}
+                  >
+                    {row.kind}
+                  </span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* You vs the business Google ranks for the same search */}
+        {report.competitor && report.benchmark.length > 0 && (
+          <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+            <div className="flex items-start gap-3 mb-5">
+              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-[#0F5C4D] shrink-0">
+                <Swords className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-slate-800">Head to head</h2>
+                <p className="text-xs font-semibold text-slate-400">
+                  You vs {report.competitor.name} — the best-ranked other business Google returned
+                  for “{report.trade.keywords[0]}” near you
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto -mx-2 px-2">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[10px] uppercase tracking-wider text-slate-400">
+                    <th className="pb-3 font-black">Signal</th>
+                    <th className="pb-3 font-black text-center">You</th>
+                    <th className="pb-3 font-black text-center">{report.competitor.name}</th>
+                    <th className="pb-3 font-black text-right">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.benchmark.map((row) => {
+                    const verdict =
+                      row.status === 'ahead'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                        : row.status === 'behind'
+                          ? 'bg-rose-50 text-rose-700 border-rose-100'
+                          : 'bg-slate-50 text-slate-500 border-slate-200';
+                    return (
+                      <tr key={row.id} className="border-t border-slate-100">
+                        <td className="py-2.5 font-semibold text-slate-600">{row.label}</td>
+                        <td className="py-2.5 text-center font-black text-slate-800">{row.you}</td>
+                        <td className="py-2.5 text-center font-semibold text-slate-500">{row.them}</td>
+                        <td className="py-2.5 text-right">
+                          <span
+                            className={`inline-block text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${verdict}`}
+                          >
+                            {row.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-xs font-semibold text-slate-400 mt-4">
+              Every row above came from the same public Google call as your audit. Photo counts are
+              capped at the 10 Google exposes publicly.
+            </p>
+          </section>
+        )}
+
+        {/* The fix list, in the order that moves the score */}
+        <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+          <div className="flex items-start gap-3 mb-5">
+            <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-[#0F5C4D] shrink-0">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-800">What to fix, in order</h2>
+              <p className="text-xs font-semibold text-slate-400">
+                Every line is something we could actually see. The flag is priority, not a verdict on your business.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {PRIORITY_GROUPS.map((group) => {
+              const steps = report.roadmap.filter((step) => step.priority === group.key);
+              if (steps.length === 0) return null;
+
+              return (
+                <div key={group.key}>
+                  <h3 className="flex items-center gap-2 text-sm font-black text-slate-700">
+                    <span aria-hidden>{group.dot}</span>
+                    <span>{group.title}</span>
+                    <span className="text-[10px] font-black uppercase text-slate-400">
+                      {steps.length}
+                    </span>
+                  </h3>
+                  <p className="text-xs font-semibold text-slate-400 mt-0.5 mb-2">{group.blurb}</p>
+                  <ol className="space-y-2">
+                    {steps.map((step) => (
+                      <li key={step.id} className={`rounded-2xl border p-4 ${group.card}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-extrabold text-slate-800 text-sm">{step.label}</p>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                            {step.sectionLabel}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 font-semibold mt-1">{step.detail}</p>
+                        {step.action && (
+                          <p className="text-sm text-[#0F5C4D] font-bold mt-2">&rarr; {step.action}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              );
+            })}
+
+            {report.roadmap.length === 0 && (
+              <p className="text-sm font-semibold text-slate-500">
+                Nothing failed. Keep your review and photo cadence going — that is what holds the position.
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* Every check, including the ones only the owner can see */}
+        <section className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
+          <h2 className="text-lg font-black text-slate-800 mb-1">The evidence</h2>
+          <p className="text-xs font-semibold text-slate-400 mb-5">
+            {report.manualCheckCount > 0
+              ? `${report.manualCheckCount} signal${
+                  report.manualCheckCount === 1 ? '' : 's'
+                } only you can see. Those are listed, never scored.`
+              : 'Every check below came from Google or your own website.'}
+          </p>
+
+          <div className="space-y-6">
+            {(Object.keys(SECTION_META) as AuditSectionKey[]).map((key) => {
+              const section: AuditSection = report.sections[key];
+              const findings = [...section.findings].sort(
+                (a, b) => findingOrder(a) - findingOrder(b)
+              );
+
+              return (
+                <div key={key}>
+                  <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-2">
+                    <h3 className="font-black text-slate-700 text-sm">{section.label}</h3>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      {section.measurable ? `${section.score}/100` : 'Not measurable'}
+                    </span>
+                  </div>
+                  <ul className="divide-y divide-slate-50">
+                    {findings.map((finding) => (
+                      <FindingRow key={finding.id} finding={finding} />
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-xs font-semibold text-slate-400 mt-6 leading-relaxed">
+            How this is scored: each check carries a weight inside its section. A section score is
+            the share of the <em>verified</em> weight you earned, and the overall score is the
+            weighted mean of the sections we could measure. Signals marked “check manually” carry no
+            weight, so something we cannot see can never move your score in either direction.
+          </p>
+        </section>
+
+        <GetReportCard
+          placeId={placeId}
+          businessName={businessName}
+          score={report.scores.overall}
+        />
+
+        <AuditReviewPrompt placeId={placeId} />
+
+        <p className="text-center text-xs font-semibold text-slate-400 pb-6">
+          Built from Google Places public data and a fetch of your own website. We never buy, scrape
+          or guess at a signal we cannot show you.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -146,7 +611,15 @@ function AuditContent() {
  * card is pure enrichment: it adds a contact and delivers a link to the live
  * report. Link-only on purpose — no image rendering, no storage bucket.
  */
-function GetReportCard({ placeId, businessName, score }: { placeId: string | null; businessName: string | null; score: number }) {
+function GetReportCard({
+  placeId,
+  businessName,
+  score,
+}: {
+  placeId: string | null;
+  businessName: string | null;
+  score: number;
+}) {
   const [channel, setChannel] = useState<'email' | 'whatsapp'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -168,8 +641,8 @@ function GetReportCard({ placeId, businessName, score }: { placeId: string | nul
     }
   };
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
     if (sending) return;
     setSending(true);
     setError('');
@@ -192,15 +665,15 @@ function GetReportCard({ placeId, businessName, score }: { placeId: string | nul
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8">
       <div className="flex items-start gap-3 mb-5">
-        <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-[#0F5C4D]">
+        <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-[#0F5C4D] shrink-0">
           <FileText className="w-5 h-5" />
         </div>
         <div>
-          <h3 className="text-lg font-black text-slate-800">Get this report</h3>
+          <h2 className="text-lg font-black text-slate-800">Get this report</h2>
           <p className="text-slate-400 font-semibold text-sm">
             {score > 0
-              ? `Your ${score}/100 breakdown, sent as a link you can reopen any time.`
-              : "We'll send you the link — you can reopen it any time."}
+              ? `Your ${score}/100 report, plus the fix list, as a link you can reopen any time.`
+              : 'We will send you the link — you can reopen it any time.'}
           </p>
         </div>
       </div>
@@ -212,11 +685,14 @@ function GetReportCard({ placeId, businessName, score }: { placeId: string | nul
           </div>
           <p className="font-black text-slate-800">Report sent to {sentTo}</p>
           <p className="text-sm text-slate-500 font-semibold mt-1">
-            The link opens your live report — re-open it after making changes.
+            The link opens your live report — reopen it after making changes.
           </p>
           <button
             type="button"
-            onClick={() => { setSentTo(''); setError(''); }}
+            onClick={() => {
+              setSentTo('');
+              setError('');
+            }}
             className="mt-4 text-sm font-bold text-[#0F5C4D] underline"
           >
             Send to another address
@@ -225,16 +701,19 @@ function GetReportCard({ placeId, businessName, score }: { placeId: string | nul
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <div className="inline-flex p-1 bg-slate-100 rounded-xl">
-            {(['email', 'whatsapp'] as const).map((c) => (
+            {(['email', 'whatsapp'] as const).map((option) => (
               <button
-                key={c}
+                key={option}
                 type="button"
-                onClick={() => { setChannel(c); setError(''); setSentTo(''); }}
+                onClick={() => {
+                  setChannel(option);
+                  setError('');
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                  channel === c ? 'bg-white text-[#0F5C4D] shadow-sm' : 'text-slate-500'
+                  channel === option ? 'bg-white text-[#0F5C4D] shadow-sm' : 'text-slate-500'
                 }`}
               >
-                {c === 'email' ? 'Email' : 'WhatsApp'}
+                {option === 'email' ? 'Email' : 'WhatsApp'}
               </button>
             ))}
           </div>
@@ -244,7 +723,7 @@ function GetReportCard({ placeId, businessName, score }: { placeId: string | nul
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               placeholder="you@business.com"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             />
@@ -253,7 +732,7 @@ function GetReportCard({ placeId, businessName, score }: { placeId: string | nul
               type="tel"
               required
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(event) => setPhone(event.target.value)}
               placeholder="+44 7700 900123"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             />
@@ -261,28 +740,29 @@ function GetReportCard({ placeId, businessName, score }: { placeId: string | nul
 
           <p className="text-xs text-slate-400 font-semibold">
             {channel === 'email'
-              ? 'One email with the link. No spam, no newsletter.'
+              ? 'One email with the link. No newsletter.'
               : 'Include the country code so the message reaches the right number.'}
           </p>
 
           {error && <p className="text-sm font-bold text-rose-600">{error}</p>}
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               type="submit"
               disabled={sending}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-[#0F5C4D] hover:bg-[#073a30] text-white py-3.5 rounded-xl font-bold transition-all shadow-md disabled:opacity-60"
+              className="inline-flex items-center gap-2 bg-[#0F5C4D] hover:bg-[#073a30] disabled:opacity-60 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md"
             >
               {sending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <><Zap className="w-4 h-4" /> Send my report</>
+                <MessageSquare className="w-4 h-4" />
               )}
+              Send my report
             </button>
             <button
               type="button"
               onClick={copyLink}
-              className="px-5 py-3.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:border-emerald-200 hover:text-[#0F5C4D]"
+              className="px-5 py-3 rounded-xl font-bold border border-slate-200 text-slate-600 hover:border-slate-300 transition-all"
             >
               {copied ? 'Link copied' : 'Copy link'}
             </button>
@@ -293,304 +773,88 @@ function GetReportCard({ placeId, businessName, score }: { placeId: string | nul
   );
 }
 
-function AuditReportView({ data, businessName, placeId }: any) {
-  const router = useRouter();
+// ─── Small presentational pieces ─────────────────────────────────────────────
 
-  // Robust score aggregator: Summing the category actual scores to match 100 points maximum
-  const completenessScore = data?.completeness?.actualScore || 0;
-  const visualContentScore = data?.visualContent?.actualScore || 0;
-  const reviewsScore = data?.reviews?.actualScore || 0;
-  const engagementScore = data?.engagement?.actualScore || 0;
-  const seoScore = data?.seo?.actualScore || 0;
+/** Failures first, then the items only the owner can check, then the passes. */
+function findingOrder(finding: AuditFinding): number {
+  if (finding.status === 'fail') return 0;
+  if (finding.status === 'manual') return 1;
+  return 2;
+}
 
-  const score = data?.overallScore || (completenessScore + visualContentScore + reviewsScore + engagementScore + seoScore) || 0;
-  
-  const getScoreTheme = (val: number) => {
-    if (val >= 80) return {
-      text: '🎉 Excellent! Your profile is strong.',
-      textColor: 'text-emerald-700',
-      bgColor: 'bg-emerald-50 border-emerald-100',
-      ringColor: 'border-emerald-500 bg-emerald-50 text-emerald-600',
-      gradient: 'from-emerald-500 to-teal-500'
-    };
-    if (val >= 50) return {
-      text: '⚠️ Good start, but needs optimization.',
-      textColor: 'text-amber-700',
-      bgColor: 'bg-amber-50 border-amber-100',
-      ringColor: 'border-amber-500 bg-amber-50 text-amber-600',
-      gradient: 'from-amber-500 to-orange-500'
-    };
-    return {
-      text: "🚨 Critical issues found. Let's fix them.",
-      textColor: 'text-rose-700',
-      bgColor: 'bg-rose-50 border-rose-100',
-      ringColor: 'border-rose-500 bg-rose-50 text-rose-600',
-      gradient: 'from-rose-500 to-red-500'
-    };
-  };
+/**
+ * Roadmap groups. The emoji is the priority flag from the brief: red = a
+ * verified fail worth the most points, amber = a smaller verified fail, green =
+ * a signal Google does not publish (look, then decide).
+ */
+const PRIORITY_GROUPS = [
+  {
+    key: 'red' as const,
+    dot: '🔴',
+    title: 'Do this first',
+    blurb: 'A verified gap that is worth the most points.',
+    card: 'border-rose-100 bg-rose-50/50',
+  },
+  {
+    key: 'amber' as const,
+    dot: '🟡',
+    title: 'Next',
+    blurb: 'Smaller verified gaps — quick wins once the reds are done.',
+    card: 'border-amber-100 bg-amber-50/50',
+  },
+  {
+    key: 'green' as const,
+    dot: '🟢',
+    title: 'Check in your Google dashboard',
+    blurb: 'Google does not publish these, so we will not score them. Look, then decide.',
+    card: 'border-emerald-100 bg-emerald-50/50',
+  },
+];
 
-  const theme = getScoreTheme(score);
-
+function Fact({
+  icon,
+  value,
+  label,
+}: {
+  icon: ReactNode;
+  value: string;
+  label: string;
+}) {
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#F0F7F5_0%,#ffffff_100%)] py-16 px-4 md:px-8 relative overflow-hidden font-sans">
-      {/* Background visual helpers */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full" />
-        <div className="absolute top-[50%] -right-[10%] w-[35%] h-[35%] bg-teal-500/5 blur-[100px] rounded-full" />
-      </div>
-
-      <div className="max-w-4xl mx-auto space-y-8 relative z-10">
-        
-        {/* Navigation / Back Button */}
-        <button 
-          onClick={() => router.push('/gmb-audit-tool')}
-          className="inline-flex items-center gap-2 text-slate-500 hover:text-[#0F5C4D] transition-all font-bold text-sm bg-white/80 border border-slate-100 px-4 py-2 rounded-full shadow-sm"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Search</span>
-        </button>
-
-        {/* 🏆 Header Score Card */}
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 md:p-12 text-center relative overflow-hidden">
-          <div className="absolute top-4 right-4">
-            <span className="bg-slate-50 border border-slate-100 text-slate-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              GBP Audit Live
-            </span>
-          </div>
-
-          {/* Business Profile Photo */}
-          {data?.photoUrl ? (
-            <div className="mx-auto mb-6 w-28 h-28 md:w-36 md:h-36 rounded-2xl overflow-hidden border-4 border-emerald-100 shadow-lg">
-              <img 
-                src={data.photoUrl} 
-                alt={businessName || 'Business'}
-                className="w-full h-full object-cover"
-                onError={(e: any) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = '<div class="w-full h-full bg-emerald-50 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0F5C4D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></div>';
-                }}
-              />
-            </div>
-          ) : (
-            <div className="mx-auto mb-6 w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-emerald-50 border-4 border-emerald-100 shadow-lg flex items-center justify-center">
-              <Building2 className="w-12 h-12 md:w-16 md:h-16 text-[#0F5C4D]" />
-            </div>
-          )}
-
-          <h1 className="text-3xl md:text-4xl font-black text-[#0F5C4D] mb-2 leading-tight">
-            {businessName}
-          </h1>
-
-          {/* Address & Rating Meta */}
-          <div className="flex flex-wrap items-center justify-center gap-4 mb-2">
-            {data?.businessAddress && (
-              <span className="inline-flex items-center gap-1.5 text-slate-400 font-semibold text-sm">
-                <MapPin className="w-3.5 h-3.5" />
-                {data.businessAddress}
-              </span>
-            )}
-            {data?.businessRating > 0 && (
-              <span className="inline-flex items-center gap-1 text-amber-600 font-bold text-sm bg-amber-50 border border-amber-100/50 px-2.5 py-0.5 rounded-lg">
-                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                {data.businessRating} ({data.businessReviewCount || 0} reviews)
-              </span>
-            )}
-          </div>
-
-          <p className="text-slate-400 font-semibold text-sm mb-8 uppercase tracking-widest">
-            Google Business Profile Audit Report
-          </p>
-          
-          <div className="flex justify-center mb-6">
-            <div className={`relative w-44 h-44 rounded-full flex items-center justify-center border-8 p-3 shadow-inner ${theme.ringColor}`}>
-              <div className="text-center">
-                <span className="text-6xl font-black block tracking-tighter">{score}</span>
-                <span className="text-xs font-black uppercase tracking-wider opacity-60">/ 100 Score</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className={`inline-block px-6 py-2.5 rounded-full border text-lg font-black ${theme.bgColor} ${theme.textColor}`}>
-            {theme.text}
-          </div>
-        </div>
-
-        {/* ✉️ Optional: send this report to email / WhatsApp (link-only, no image) */}
-        <GetReportCard placeId={placeId} businessName={businessName} score={score} />
-
-        {/* 📊 Detailed Category Grid */}
-        <div className="grid md:grid-cols-2 gap-6">
-          <ScoreCard 
-            title="Completeness" 
-            score={completenessScore} 
-            max={25} 
-            icon={<Building2 className="w-5 h-5 text-indigo-500" />} 
-            checks={data?.completeness?.checks} 
-          />
-          <ScoreCard 
-            title="Visual Content" 
-            score={visualContentScore} 
-            max={20} 
-            icon={<Camera className="w-5 h-5 text-emerald-500" />} 
-            checks={data?.visualContent?.checks} 
-          />
-          <ScoreCard 
-            title="Reviews & Trust" 
-            score={reviewsScore} 
-            max={25} 
-            icon={<MessageSquare className="w-5 h-5 text-amber-500" />} 
-            checks={data?.reviews?.checks} 
-          />
-          <ScoreCard 
-            title="Engagement Rate" 
-            score={engagementScore} 
-            max={15} 
-            icon={<Sparkles className="w-5 h-5 text-purple-500" />} 
-            checks={data?.engagement?.checks} 
-          />
-          <ScoreCard 
-            title="Local SEO Strategy" 
-            score={seoScore} 
-            max={15} 
-            icon={<TrendingUp className="w-5 h-5 text-teal-500" />} 
-            checks={data?.seo?.checks}
-            className="md:col-span-2" 
-          />
-        </div>
-
-        {/* 🔧 Action Items / Recommendations */}
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 md:p-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100 text-amber-600">
-              <Zap className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-black text-slate-800">Recommended Improvements</h3>
-              <p className="text-slate-400 font-semibold text-sm">Follow these actionable steps to boost organic search presence</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {data?.recommendations && data.recommendations.length > 0 ? (
-              data.recommendations.map((rec: any, i: number) => (
-                <div key={i} className="flex items-start gap-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 hover:border-emerald-100 hover:bg-emerald-50/10 transition-all">
-                  <span className="text-3xl p-2 bg-white rounded-xl shadow-sm shrink-0 border border-slate-50">{rec.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-extrabold text-slate-800 text-base">{rec.title}</h4>
-                    <p className="text-slate-500 text-sm mt-1 font-medium leading-relaxed">{rec.description}</p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold border uppercase tracking-wider ${
-                        rec.impact?.toLowerCase() === 'critical' ? 'bg-rose-50 text-rose-700 border-rose-100' :
-                        rec.impact?.toLowerCase() === 'high' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                        'bg-emerald-50 text-emerald-700 border-emerald-100'
-                      }`}>
-                        {rec.impact} Impact
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-slate-400 font-bold">
-                🎉 No critical improvements recommended. Your profile is in fantastic shape!
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ⭐ Review capture — identical prompt for every visitor who finishes a scan */}
-        <AuditReviewPrompt placeId={placeId} />
-
-        {/* 🚀 Premium CTA to Pricing */}
-        <div className="bg-gradient-to-r from-[#0F5C4D] to-[#12705e] rounded-3xl p-8 md:p-12 text-center text-white shadow-2xl relative overflow-hidden">
-          {/* Decorative shapes inside CTA */}
-          <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-white/5 blur-[50px] rounded-full pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-[250px] h-[250px] bg-[#25D366]/10 blur-[60px] rounded-full pointer-events-none" />
-
-          <span className="bg-white/10 text-[#25D366] text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block">
-            WhatsApp-First Autopilot
-          </span>
-          <h3 className="text-3xl md:text-4xl font-black mb-4 leading-tight">
-            Want Neerzy to Automatically Fix These Issues?
-          </h3>
-          <p className="mb-8 text-white/80 max-w-xl mx-auto font-medium text-base md:text-lg">
-            We automatically manage your posts, reviews, and visual content directly through simple WhatsApp messages. Let us handle your local SEO while you run your business.
-          </p>
-          <button 
-            onClick={() => router.push('/pricing')}
-            className="bg-white hover:bg-slate-100 text-[#0F5C4D] font-black py-4 px-10 rounded-2xl transition-all shadow-xl hover:scale-[1.03] active:scale-[0.97] inline-flex items-center gap-2"
-          >
-            <span>View Plans & Pricing</span>
-            <ChevronRight className="w-5 h-5 text-[#0F5C4D]" />
-          </button>
-
-          {/* For visitors who just want the website, not the plan — the audit
-              they already ran is exactly the profile the builder syncs from. */}
-          <p className="mt-6 text-sm md:text-base text-white/80 font-medium">
-            Already have a profile?{" "}
-            <button
-              type="button"
-              onClick={() => router.push('/website-builder')}
-              className="underline font-black text-white hover:text-[#25D366] transition-colors"
-            >
-              Turn it into a website →
-            </button>
-          </p>
-        </div>
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <p className="font-black text-slate-800 leading-tight">{value}</p>
+        <p className="text-[11px] font-semibold text-slate-400 truncate">{label}</p>
       </div>
     </div>
   );
 }
 
-function ScoreCard({ title, score, max, icon, checks, className }: any) {
-  const percentage = Math.round((score / max) * 100);
-  
-  return (
-    <div className={`bg-white rounded-3xl p-6 shadow-md border border-slate-100 hover:shadow-lg transition-all ${className}`}>
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl">
-            {icon}
-          </div>
-          <h4 className="font-extrabold text-slate-800 text-lg leading-tight">{title}</h4>
-        </div>
-        <span className="text-sm font-black text-slate-500 bg-slate-50 border border-slate-100 px-3 py-1 rounded-xl">
-          {score}/{max}
-        </span>
-      </div>
-      
-      <div className="w-full bg-slate-100 rounded-full h-3 mb-6 overflow-hidden">
-        <div 
-          className={`h-full rounded-full transition-all duration-1000 ${
-            percentage >= 80 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 
-            percentage >= 50 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 
-            'bg-gradient-to-r from-rose-400 to-rose-500'
-          }`} 
-          style={{ width: `${percentage}%` }}
-        ></div>
-      </div>
+function FindingRow({ finding }: { finding: AuditFinding }) {
+  const badge =
+    finding.status === 'pass' ? (
+      <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-100">
+        <CheckCircle2 className="w-3 h-3" /> Passed
+      </span>
+    ) : finding.status === 'fail' ? (
+      <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-100">
+        <XCircle className="w-3 h-3" /> Missing
+      </span>
+    ) : (
+      <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border bg-slate-50 text-slate-500 border-slate-200">
+        <HelpCircle className="w-3 h-3" /> Check manually
+      </span>
+    );
 
-      {/* Checklist details from API checks */}
-      {checks && checks.length > 0 && (
-        <div className="space-y-3.5 border-t border-slate-50 pt-5">
-          {checks.map((check: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between text-sm">
-              <span className="text-slate-500 font-semibold">{check.label}</span>
-              {check.passed ? (
-                <span className="text-emerald-600 font-extrabold flex items-center gap-1.5 bg-emerald-50/50 border border-emerald-100/50 px-2 py-0.5 rounded-lg text-xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  Passed
-                </span>
-              ) : (
-                <span className="text-rose-500 font-bold flex items-center gap-1.5 bg-rose-50/50 border border-rose-100/50 px-2 py-0.5 rounded-lg text-xs">
-                  <XCircle className="w-3.5 h-3.5 text-rose-400" />
-                  Missing
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+  return (
+    <li className="py-3">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-bold text-slate-700">{finding.label}</p>
+        {badge}
+      </div>
+      <p className="text-xs font-semibold text-slate-500 mt-1">{finding.detail}</p>
+      {finding.fix && <p className="text-xs font-bold text-[#0F5C4D] mt-1">&rarr; {finding.fix}</p>}
+    </li>
   );
 }

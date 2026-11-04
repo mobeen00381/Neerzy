@@ -28,7 +28,9 @@ interface ReportSummary {
   score: number | null;
   rating: number | null;
   reviewCount: number | null;
-  categories: Array<{ title: string; score: number; max: number }>;
+  /** Local SEO / AEO / GEO, straight from the cached report. */
+  sections: Array<{ label: string; score: number; measurable: boolean }>;
+  /** Roadmap actions, red flags first. */
   actions: string[];
 }
 
@@ -36,47 +38,43 @@ const EMPTY_SUMMARY: ReportSummary = {
   score: null,
   rating: null,
   reviewCount: null,
-  categories: [],
+  sections: [],
   actions: [],
 };
 
+const SECTION_ORDER = ["local_seo", "aeo", "geo"] as const;
+
 /**
- * Rebuilds the score breakdown from the 10-minute audit cache, so the email can
- * show the same numbers the visitor is looking at. A cache miss is harmless -
- * the email then simply links to the live report.
+ * Rebuilds the three scores and the top fixes from the 10-minute audit cache, so
+ * the email shows the same numbers the visitor is looking at. A cache miss is
+ * harmless - the email then simply links to the live report.
  */
 function reportSummaryFromCache(placeId: string): ReportSummary {
   const cached = getCached<any>(detailCacheKey("audit:run", placeId));
-  if (!cached) return EMPTY_SUMMARY;
+  const report = cached?.report;
+  if (!report?.sections || !report?.scores) return EMPTY_SUMMARY;
 
-  const rows: Array<{ title: string; key: string; max: number }> = [
-    { title: "Completeness", key: "completeness", max: 25 },
-    { title: "Visual content", key: "visualContent", max: 20 },
-    { title: "Reviews & trust", key: "reviews", max: 25 },
-    { title: "Engagement", key: "engagement", max: 15 },
-    { title: "Local SEO", key: "seo", max: 15 },
-  ];
+  const sections = SECTION_ORDER.map((key) => {
+    const section = report.sections[key];
+    return {
+      label: String(section?.label || key),
+      score: Math.round(Number(section?.score) || 0),
+      measurable: Boolean(section?.measurable),
+    };
+  });
 
-  const categories = rows.map((row) => ({
-    title: row.title,
-    score: Math.round(Number(cached?.[row.key]?.actualScore) || 0),
-    max: row.max,
-  }));
-
-  const total = categories.reduce((sum, c) => sum + c.score, 0);
-  const actions = Array.isArray(cached?.recommendations)
-    ? cached.recommendations
-        .map((r: any) => String(r?.title || "").trim())
-        .filter(Boolean)
-        .slice(0, 3)
-    : [];
+  // Red first, then amber: the email only ever lists work worth doing now.
+  const roadmap: any[] = Array.isArray(report.roadmap) ? report.roadmap : [];
+  const actions = [...roadmap.filter((step) => step?.priority === "red"), ...roadmap.filter((step) => step?.priority === "amber")]
+    .map((step) => String(step?.action || step?.label || "").trim())
+    .filter(Boolean)
+    .slice(0, 3);
 
   return {
-    score: Number.isFinite(total) && total > 0 ? total : null,
-    rating: typeof cached?.businessRating === "number" ? cached.businessRating : null,
-    reviewCount:
-      typeof cached?.businessReviewCount === "number" ? cached.businessReviewCount : null,
-    categories,
+    score: Number.isFinite(Number(report.scores.overall)) ? Math.round(Number(report.scores.overall)) : null,
+    rating: Number(report?.facts?.rating) || null,
+    reviewCount: Number(report?.facts?.reviewCount) || null,
+    sections,
     actions,
   };
 }
@@ -120,7 +118,7 @@ export async function POST(req: Request) {
         score: summary.score,
         rating: summary.rating,
         reviewCount: summary.reviewCount,
-        categories: summary.categories,
+        sections: summary.sections,
         actions: summary.actions,
         reportUrl,
       });

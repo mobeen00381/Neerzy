@@ -73,10 +73,10 @@ export function AuditResultDiagram() {
         <div className="p-4 space-y-3">
           <div className="text-sm font-semibold text-[#0A2E22]">Missed Opportunities</div>
           {[
-            { label: 'Photos', detail: 'Only 12 photos — add 40+ more' },
-            { label: 'Reviews', detail: '22 reviews — need 4-8 new per month' },
-            { label: 'Google Posts', detail: 'No posts in 6 months' },
-            { label: 'Website', detail: 'No dedicated service pages' },
+            { label: 'Photos', detail: 'Google exposes 10 — add more real job photos' },
+            { label: 'Reviews', detail: '22 reviews — below the 50-review trade benchmark' },
+            { label: 'Structured data', detail: 'No LocalBusiness markup on the site' },
+            { label: 'AI crawlers', detail: 'GPTBot blocked in robots.txt' },
           ].map((item, i) => (
             <div key={i} className="flex items-start gap-2 p-2 bg-[#F7F9F8] rounded-lg border border-[#E1E8E4]">
               <div className="w-5 h-5 rounded-full bg-[#EF4444] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">!</div>
@@ -109,11 +109,9 @@ interface CategoryScoreItem {
 
 export function CategoryScoreDiagram({ categories, businessName, overallScore }: { categories?: CategoryScoreItem[]; businessName?: string; overallScore?: number }) {
   const defaultCategories: CategoryScoreItem[] = [
-    { label: 'Completeness', score: 84, weight: 25, color: '#22C55E' },
-    { label: 'Reviews', score: 64, weight: 25, color: '#F59E0B' },
-    { label: 'Visual Content', score: 45, weight: 20, color: '#EF4444' },
-    { label: 'Engagement', score: 40, weight: 15, color: '#EF4444' },
-    { label: 'Local SEO', score: 80, weight: 15, color: '#22C55E' },
+    { label: 'Local SEO', score: 72, weight: 50, color: '#22C55E' },
+    { label: 'AEO', score: 45, weight: 25, color: '#F59E0B' },
+    { label: 'GEO', score: 30, weight: 25, color: '#EF4444' },
   ];
 
   const cats = categories || defaultCategories;
@@ -177,11 +175,9 @@ export function AuditOverviewDiagram() {
         {/* All-green indicators */}
         <div className="p-4 space-y-2">
           {[
-            { label: 'Completeness', status: 'Complete' },
-            { label: 'Reviews', status: 'Strong (210 reviews)' },
-            { label: 'Visual Content', status: '130+ photos' },
-            { label: 'Engagement', status: 'Weekly posts' },
-            { label: 'Local SEO', status: 'Optimized' },
+            { label: 'Local SEO', status: 'Strong (profile + reviews)' },
+            { label: 'AEO', status: 'Answerable site' },
+            { label: 'GEO', status: 'Structured data present' },
           ].map((item, i) => (
             <div key={i} className="flex items-center justify-between p-2 bg-[#F7F9F8] rounded-lg border border-[#E1E8E4]">
               <div className="text-sm text-[#0A2E22]">{item.label}</div>
@@ -484,11 +480,9 @@ export function ThreePillarDiagram() {
  */
 export function WeightChart() {
   const categories = [
-    { label: 'Completeness', weight: 25, color: '#0F5132' },
-    { label: 'Reviews', weight: 25, color: '#22C55E' },
-    { label: 'Visual Content', weight: 20, color: '#5B6B64' },
-    { label: 'Engagement', weight: 15, color: '#E1E8E4' },
-    { label: 'Local SEO', weight: 15, color: '#D3E6DA' },
+    { label: 'Local SEO', weight: 50, color: '#0F5132' },
+    { label: 'AEO', weight: 25, color: '#22C55E' },
+    { label: 'GEO', weight: 25, color: '#5B6B64' },
   ];
 
   return (
@@ -607,7 +601,7 @@ export function SchemaDiagram() {
       <div className="p-4 bg-white rounded-lg border border-[#E1E8E4] shadow-sm">
         <div className="text-xs font-bold text-[#0F5132] mb-2">Unstructured Text</div>
         <div className="text-xs text-[#5B6B64] leading-relaxed">
-          "We offer 24/7 emergency plumbing services in Austin, TX. Call us for fast, reliable service."
+          &quot;We offer 24/7 emergency plumbing services in Austin, TX. Call us for fast, reliable service.&quot;
         </div>
       </div>
       <div className="flex items-center justify-center">
@@ -762,14 +756,14 @@ export function LocalPackDiagram() {
 
 /**
  * PriorityFlowDiagram — For page 2 (Improve Your Audit Score)
- * Shows recommended fix order: Completeness → Visual Content → Engagement → Local SEO → Reviews
+ * Shows recommended fix order: profile fields → photos → structured data → AI crawler access → reviews
  */
 export function PriorityFlowDiagram() {
   const steps = [
-    { label: 'Completeness', desc: 'Fill in every field', time: 'Same day' },
-    { label: 'Visual Content', desc: 'Upload photos & video', time: 'Within a week' },
-    { label: 'Engagement', desc: 'Post & respond', time: '2-3 weeks' },
-    { label: 'Local SEO', desc: 'Fix NAP & categories', time: '2-4 weeks' },
+    { label: 'Profile fields', desc: 'Fill in every field', time: 'Same day' },
+    { label: 'Photos', desc: 'Upload a real backlog', time: 'Within a week' },
+    { label: 'Structured data', desc: 'LocalBusiness markup', time: 'Same day' },
+    { label: 'AI crawler access', desc: 'Unblock GPTBot in robots.txt', time: 'Same day' },
     { label: 'Reviews', desc: 'Build review velocity', time: '4-8 weeks' },
   ];
 
@@ -849,10 +843,10 @@ export function UrgencyTimelineDiagram() {
  */
 export function ImprovementTimelineDiagram() {
   const stages = [
-    { label: 'Same Day', items: ['Fill in missing fields', 'Seed Q&A section', 'Add GBP website link'], color: '#22C55E' },
-    { label: 'Within a Week', items: ['Upload photo backlog', 'Publish first Google Post', 'Respond to all reviews'], color: '#F59E0B' },
-    { label: '2-4 Weeks', items: ['Fix NAP across directories', 'Establish posting pattern', 'Define service areas'], color: '#F59E0B' },
-    { label: '4-8 Weeks', items: ['Build review velocity', 'Re-run audit to track progress'], color: '#EF4444' },
+    { label: 'Same Day', items: ['Fill in missing profile fields', 'Add LocalBusiness markup', 'Unblock AI crawlers in robots.txt'], color: '#22C55E' },
+    { label: 'Within a Week', items: ['Upload photo backlog', 'Match the phone number on your site', 'Publish a Google Post (unscored)'], color: '#F59E0B' },
+    { label: '2-4 Weeks', items: ['Fix NAP across directories', 'Start a review request habit', 'Define service areas'], color: '#F59E0B' },
+    { label: '4-8 Weeks', items: ['Build review velocity', 'Climb the map pack vs your competitor', 'Re-run the audit to track progress'], color: '#EF4444' },
   ];
 
   return (
