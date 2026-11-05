@@ -22,6 +22,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { redact } from "@/lib/email";
 import { makeUnlockToken } from "@/lib/report-unlock";
+import { normalizePhone, phoneColumns } from "@/lib/phone";
+import {
+  CONSENT_PURPOSE_MARKETING,
+  type ConsentChannel,
+} from "@/lib/consent";
 
 /** Value stored in leads.source for every audit-tool lead. */
 export const AUDIT_LEAD_SOURCE = "gmb_audit";
@@ -146,6 +151,10 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
 
     const businessName = String(input.businessName || "").trim() || null;
     const phone = String(input.phone || "").trim() || null;
+    // Machine form of the same number (WhatsApp / future automation). Google's
+    // "national" number only normalizes when it carries a country code, and the
+    // audit does not fetch a Places country, so this can legitimately be null.
+    const normalized = normalizePhone(phone);
     const notes = buildAuditNotes(input);
     // A fresh token per capture: the admin opens the FULL report from the leads
     // table, and it expires with the link like any other unlock.
@@ -198,6 +207,9 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
       };
       if (businessName) patch.business_name = businessName;
       if (phone) patch.phone = phone;
+      // Fill the normalized columns whenever the raw number parses. An
+      // unparseable number leaves them untouched rather than NULLing a value.
+      Object.assign(patch, phoneColumns(phone));
 
       const { error: updateError } = await supabase
         .from("leads")
@@ -228,6 +240,8 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
         has_website: Boolean(website),
         review_count: reviewCount,
         rating,
+        phone_e164: normalized.e164,
+        country: normalized.country,
       })
       .select("id")
       .single();
@@ -277,7 +291,7 @@ export async function attachAuditLeadContact(input: {
 
     const { data: lead, error } = await supabase
       .from("leads")
-      .select("id, email, phone")
+      .select("id, email, phone, phone_e164")
       .eq("place_id", placeId)
       .maybeSingle();
 
@@ -291,6 +305,14 @@ export async function attachAuditLeadContact(input: {
     const patch: Record<string, unknown> = {};
     if (email && !lead.email) patch.email = email;
     if (phone && !lead.phone) patch.phone = phone;
+
+    // Normalize whichever raw number we now hold - fill-only, so a value that is
+    // already stored is never overwritten with NULL.
+    if (!lead.phone_e164) {
+      const rawPhone = (patch.phone as string | undefined) || lead.phone || null;
+      Object.assign(patch, phoneColumns(rawPhone));
+    }
+
     if (Object.keys(patch).length === 0) return { ok: true, leadId: lead.id };
 
     patch.updated_at = new Date().toISOString();
@@ -306,5 +328,112 @@ export async function attachAuditLeadContact(input: {
   } catch (error: any) {
     console.error(`[AuditLead] contact attach failed: ${redact(String(error?.message || error))}`);
     return { ok: false };
+  }
+}
+
+/**
+ * Records (or refreshes) marketing consent for one lead + channel.
+ *
+ * Called only when the visitor TICKED the optional box on the "get this report"
+ * card - never on a bare report request, and never for the admin. The stored
+ * `consent_text` is the exact label the checkbox rendered
+ * (MARKETING_CONSENT_TEXT in lib/consent.ts), so the row is evidence of what was
+ * agreed to, not a paraphrase of it.
+ *
+ * Upsert on (lead_id, channel, purpose): ticking the box again re-dates the
+ * opt-in and clears any earlier opt-out instead of stacking rows.
+ * Never throws - a consent write failure must not fail the report delivery.
+ */
+export async function recordLeadConsent(input: {
+  leadId?: string | null;
+  channel: ConsentChannel;
+  /** Where the consent was captured, e.g. CONSENT_SOURCE_AUDIT_REPORT_CARD. */
+  source?: string | null;
+  /** Exact wording the visitor saw; defaults to the stored label server-side. */
+  consentText?: string | null;
+}): Promise<{ ok: boolean }> {
+  try {
+    const leadId = String(input.leadId || "").trim();
+    if (!leadId) return { ok: false };
+    if (input.channel !== "email" && input.channel !== "whatsapp") return { ok: false };
+
+    const supabase = serviceClient();
+    if (!supabase) return { ok: false };
+
+    const { error } = await supabase.from("lead_consent").upsert(
+      {
+        lead_id: leadId,
+        channel: input.channel,
+        purpose: CONSENT_PURPOSE_MARKETING,
+        opted_in_at: new Date().toISOString(),
+        opted_out_at: null,
+        source: String(input.source || "").trim() || null,
+        consent_text: String(input.consentText || "").trim() || null,
+      },
+      { onConflict: "lead_id,channel,purpose" }
+    );
+
+    if (error) {
+      // 42P01/42703 = migration not applied yet: log and carry on, the report
+      // itself has already been delivered by this point.
+      console.error(`[AuditLead] consent upsert failed: ${redact(String(error.message || error.code))}`);
+      return { ok: false };
+    }
+    return { ok: true };
+  } catch (error: any) {
+    console.error(`[AuditLead] consent upsert failed: ${redact(String(error?.message || error))}`);
+    return { ok: false };
+  }
+}
+
+/**
+ * Marks every marketing consent row belonging to one email address as opted out.
+ *
+ * Used by /api/unsubscribe (lib/unsubscribe.ts verifies the token first): the
+ * global suppression entry stops future sends, and this keeps the per-lead
+ * consent history truthful - "this lead opted out on <date>" instead of a row
+ * that still claims an active opt-in.
+ *
+ * Matching is on the exact lowercase address, which is how audit leads store it
+ * (attachAuditLeadContact lowercases). Rows already opted out are left alone, so
+ * the FIRST unsubscribe date is the one that survives. Never throws.
+ */
+export async function optOutLeadConsent(
+  email: string | null | undefined
+): Promise<{ ok: boolean; leads: number; rows: number }> {
+  const address = String(email || "").trim().toLowerCase();
+  if (!address) return { ok: false, leads: 0, rows: 0 };
+
+  const supabase = serviceClient();
+  if (!supabase) return { ok: false, leads: 0, rows: 0 };
+
+  try {
+    const { data: leads, error: findError } = await supabase
+      .from("leads")
+      .select("id")
+      .eq("email", address);
+    if (findError) {
+      console.error(`[AuditLead] consent opt-out lookup failed: ${redact(String(findError.message || findError.code))}`);
+      return { ok: false, leads: 0, rows: 0 };
+    }
+
+    const leadIds = (leads || []).map((row: any) => row?.id).filter(Boolean);
+    if (leadIds.length === 0) return { ok: true, leads: 0, rows: 0 };
+
+    const { data: updated, error } = await supabase
+      .from("lead_consent")
+      .update({ opted_out_at: new Date().toISOString() })
+      .in("lead_id", leadIds)
+      .is("opted_out_at", null)
+      .select("id");
+    if (error) {
+      console.error(`[AuditLead] consent opt-out failed: ${redact(String(error.message || error.code))}`);
+      return { ok: false, leads: leadIds.length, rows: 0 };
+    }
+
+    return { ok: true, leads: leadIds.length, rows: (updated || []).length };
+  } catch (error: any) {
+    console.error(`[AuditLead] consent opt-out failed: ${redact(String(error?.message || error))}`);
+    return { ok: false, leads: 0, rows: 0 };
   }
 }

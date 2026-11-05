@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { guardPublicRequest, REPORT_SEND_LIMIT } from "@/lib/api-guard";
 import { detailCacheKey, getCached } from "@/lib/places-cache";
-import { attachAuditLeadContact, auditReportUrl, isMockPlaceId } from "@/lib/audit-lead";
+import { attachAuditLeadContact, auditReportUrl, isMockPlaceId, recordLeadConsent } from "@/lib/audit-lead";
+import {
+  CONSENT_SOURCE_AUDIT_REPORT_CARD,
+  MARKETING_CONSENT_TEXT,
+} from "@/lib/consent";
 import { logEmailSend, redact, sendEmail } from "@/lib/email";
 import { auditReportEmailContent } from "@/lib/email-templates";
 import { makeUnlockToken } from "@/lib/report-unlock";
@@ -18,6 +22,11 @@ import { sendMetaTemplate } from "@/lib/whatsapp";
  * This is also the only place that hands out the unlock token: the link carries
  * `&t=...`, which is what makes /api/audit/run return the full fix list. Handing
  * over a contact is the price of the report, and the token is the receipt.
+ *
+ * Marketing consent is OPTIONAL and separate: the report is always delivered,
+ * and `marketingConsent: true` (the visitor ticked the box on the card) is what
+ * writes the lead_consent row that future sequences will read. Both channels
+ * record the consent under the channel the visitor actually used.
  *
  * Guarded with REPORT_SEND_LIMIT (4/hour per IP): every accepted request costs
  * one Resend or Meta call, and no visitor needs more than a couple of attempts.
@@ -84,6 +93,27 @@ function reportSummaryFromCache(placeId: string): ReportSummary {
   };
 }
 
+/**
+ * Writes the optional marketing opt-in for one lead + channel.
+ *
+ * Runs only when the visitor ticked the box AND the lead row is known: a bare
+ * report request is delivery, not consent. Never throws (recordLeadConsent
+ * swallows its own failures), so consent bookkeeping can never fail the send.
+ */
+async function saveMarketingConsent(
+  leadId: string | null | undefined,
+  channel: "email" | "whatsapp",
+  marketingConsent: boolean
+): Promise<void> {
+  if (!marketingConsent || !leadId) return;
+  await recordLeadConsent({
+    leadId,
+    channel,
+    source: CONSENT_SOURCE_AUDIT_REPORT_CARD,
+    consentText: MARKETING_CONSENT_TEXT,
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const guard = await guardPublicRequest(
@@ -98,6 +128,13 @@ export async function POST(req: Request) {
     const placeId = String(body.placeId || "").trim();
     const channel = String(body.channel || "email").trim().toLowerCase();
     const businessName = String(body.businessName || "").trim().slice(0, 120) || null;
+
+    // Strict boolean: the checkbox is the only source, and "yes"/"on"/1 must not
+    // be able to record a marketing opt-in the visitor never gave.
+    if (body.marketingConsent !== undefined && typeof body.marketingConsent !== "boolean") {
+      return NextResponse.json({ error: "marketingConsent must be true or false" }, { status: 400 });
+    }
+    const marketingConsent = body.marketingConsent === true;
 
     if (isMockPlaceId(placeId)) {
       return NextResponse.json(
@@ -140,6 +177,7 @@ export async function POST(req: Request) {
       // The visitor volunteered this address: keep it on the lead even when the
       // provider hiccups, so the admin can still reach them manually.
       const attach = await attachAuditLeadContact({ placeId, email });
+      await saveMarketingConsent(attach.leadId, "email", marketingConsent);
 
       await logEmailSend({
         emailType: "audit_report",
@@ -210,6 +248,7 @@ export async function POST(req: Request) {
     }
 
     const attach = await attachAuditLeadContact({ placeId, phone });
+    await saveMarketingConsent(attach.leadId, "whatsapp", marketingConsent);
     await logEmailSend({
       emailType: "audit_report",
       channel: "whatsapp",

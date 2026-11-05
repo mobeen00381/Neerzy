@@ -80,6 +80,13 @@ export interface AdminLead {
   name: string | null;
   email: string | null;
   phone: string | null;
+  /**
+   * Normalized E.164 form of `phone` (lib/phone.ts), filled at capture time.
+   * NULL = the raw number could not be parsed, so callers fall back to `phone`.
+   */
+  phone_e164?: string | null;
+  /** ISO 3166-1 alpha-2 derived from the phone number; NULL = unknown. */
+  country?: string | null;
   business_name: string | null;
   service_type: string | null;
   source: string | null;

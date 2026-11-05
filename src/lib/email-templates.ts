@@ -12,10 +12,23 @@
  *    safeDisplayName() first (drops links / emails, caps length at 40).
  */
 
+import { COMPANY } from "./company";
+import { buildUnsubscribeUrl } from "./unsubscribe";
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.neerzy.com";
 
 const ACCENT = "#0A2E22";
 const MUTED = "#5B6B64";
+
+/**
+ * Postal address shown in every email footer. COMPANY.fullAddress is the source
+ * of truth; there is no env override today (BUSINESS_POSTAL_ADDRESS is not
+ * referenced anywhere in the project), so nobody can silently ship a stale
+ * address through a forgotten env var.
+ */
+const FOOTER_ADDRESS_HTML = COMPANY.addressLines
+  .map((line) => escapeHtml(line))
+  .join("<br/>");
 
 /** Max length of any user-supplied display name rendered in an email. */
 const MAX_DISPLAY_NAME = 40;
@@ -98,12 +111,38 @@ function shell(
           Neerzy - turn every job into more calls via Google<br/>
           <a href="${APP_URL}" style="color:${MUTED};">${APP_URL}</a>
         </p>
+        <p style="margin:8px 0 0 0;font-size:11px;line-height:1.5;color:${MUTED};">
+          ${FOOTER_ADDRESS_HTML}
+        </p>
         ${footerExtra}
       </td></tr>
     </table>
   </td></tr></table>
 </body></html>`;
 }
+/**
+ * Footer block for MARKETING mail only (tips, previews, sequences).
+ *
+ * It renders the unsubscribe link and nothing else: the postal address and the
+ * "Neerzy" identity line are already printed by shell() from COMPANY
+ * (lib/company.ts), so repeating them here would duplicate the address in every
+ * marketing email.
+ *
+ * Pair it with `sendEmail({ ..., marketing: true })`, which also adds the
+ * machine-readable List-Unsubscribe / List-Unsubscribe-Post headers for the same
+ * address. Plain-text emails can use `buildUnsubscribeUrl(email)` directly.
+ */
+export function marketingFooter(email: string): string {
+  const url = buildUnsubscribeUrl(email);
+  return (
+    `<p style="margin:8px 0 0 0;font-size:11px;color:${MUTED};">` +
+    `You are getting this because you asked for tips about your Google Business Profile. ` +
+    `<a href="${escapeHtml(url)}" style="color:${MUTED};">Unsubscribe</a>.` +
+    `</p>`
+  );
+}
+
+
 
 /** A) Welcome - sent once when the GMB connect succeeds (never at signup). */
 export function welcomeEmailContent(businessName?: string | null): EmailContent {

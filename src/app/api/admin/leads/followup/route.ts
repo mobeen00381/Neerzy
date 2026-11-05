@@ -7,7 +7,7 @@ import {
   getAdminSupabase,
   verifyAdminRequest,
 } from "@/lib/admin-server";
-import { logEmailSend, redact, sendEmail } from "@/lib/email";
+import { isEmailSuppressed, logEmailSend, redact, sendEmail } from "@/lib/email";
 import { auditFollowupEmailContent } from "@/lib/email-templates";
 import { auditReportUrl } from "@/lib/audit-lead";
 
@@ -55,6 +55,19 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "This lead has no email address - add one before sending a follow-up." },
         { status: 400 }
+      );
+    }
+
+    // The do-not-email list outranks the admin: an unsubscribe, a hard bounce or a
+    // spam complaint is the recipient's decision, so this stops here with a clear
+    // 409 instead of quietly burning the sending domain's reputation.
+    if (await isEmailSuppressed(email)) {
+      return NextResponse.json(
+        {
+          error:
+            "This address is on the do-not-email list (unsubscribed, bounced or marked as spam), so no follow-up was sent. Use a different address if they asked you to.",
+        },
+        { status: 409 }
       );
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, type FormEvent, type ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
@@ -19,6 +20,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import AuditReviewPrompt from '@/components/reviews/AuditReviewPrompt';
+import { MARKETING_CONSENT_TEXT, PRIVACY_POLICY_PATH } from '@/lib/consent';
 import {
   monthlyCallsFromEnquiries,
   type AuditFinding,
@@ -748,6 +750,9 @@ function GetReportCard({
   const [channel, setChannel] = useState<'email' | 'whatsapp'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  // Unticked by default: the report is sent either way, this only opts in to the
+  // extra preview + tips emails (recorded server-side as a lead_consent row).
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
   const [error, setError] = useState('');
@@ -764,7 +769,7 @@ function GetReportCard({
       const res = await fetch('/api/audit/report/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeId, channel, email, phone, businessName }),
+        body: JSON.stringify({ placeId, channel, email, phone, businessName, marketingConsent }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Could not send the report');
@@ -868,9 +873,27 @@ function GetReportCard({
             />
           )}
 
+          <label className="flex items-start gap-2.5 cursor-pointer text-left">
+            <input
+              type="checkbox"
+              checked={marketingConsent}
+              onChange={(event) => setMarketingConsent(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-emerald-600 focus:ring-2 focus:ring-emerald-100"
+            />
+            <span className="text-xs text-slate-500 font-semibold leading-relaxed">
+              {MARKETING_CONSENT_TEXT}{' '}
+              <Link
+                href={PRIVACY_POLICY_PATH}
+                className="text-[#0F5C4D] underline decoration-dotted underline-offset-2"
+              >
+                Privacy policy
+              </Link>
+            </span>
+          </label>
+
           <p className="text-xs text-slate-400 font-semibold">
             {channel === 'email'
-              ? 'One email with the link. No newsletter.'
+              ? 'The report is sent either way — the box above only adds the free preview and Google profile tips.'
               : 'Include the country code so the message reaches the right number.'}
             {locked ? ' Sending it unlocks the full report on this page.' : ''}
           </p>

@@ -80,6 +80,14 @@ export const TRANSCRIBE_LIMIT: LimitPreset = { max: 10, windowMs: HOUR_MS, block
  */
 export const GMB_ACTION_LIMIT: LimitPreset = { max: 5, windowMs: HOUR_MS, blockMs: HOUR_MS };
 
+/**
+ * Public unsubscribe: one signed link per address, opened from a marketing email
+ * footer or fired directly by the mailbox provider (RFC 8058 one-click). The
+ * request costs nothing but writes a suppression row, so it is capped per IP -
+ * a person needs one or two clicks, a script grinding through a list does not.
+ */
+export const UNSUBSCRIBE_LIMIT: LimitPreset = { max: 20, windowMs: HOUR_MS, blockMs: HOUR_MS };
+
 export type GuardResult =
   | { allowed: true; remaining: number }
   | { allowed: false; response: NextResponse };

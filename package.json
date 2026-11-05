@@ -25,6 +25,7 @@
     "codec-parser": "^2.5.0",
     "gray-matter": "^4.0.3",
     "jsonwebtoken": "^9.0.3",
+    "libphonenumber-js": "^1.13.15",
     "lucide-react": "^1.7.0",
     "next": "16.4.0",
     "next-mdx-remote": "^6.0.0",

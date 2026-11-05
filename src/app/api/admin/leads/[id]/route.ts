@@ -47,6 +47,8 @@ function toLead(r: any): AdminLead {
     name: r.name || null,
     email: r.email || null,
     phone: r.phone || null,
+    phone_e164: r.phone_e164 || null,
+    country: r.country || null,
     business_name: r.business_name || null,
     service_type: r.service_type || null,
     source: r.source || null,

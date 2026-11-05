@@ -53,8 +53,12 @@ type WhatsAppInfo = { href: string; warning?: undefined } | { href?: undefined; 
 
 /**
  * wa.me only accepts FULL international numbers, but leads store phones in
- * every local format and the leads table has no country column. So this is a
- * number-shape heuristic (documented assumption):
+ * every local format. Since 20261106_consent_suppression.sql the capture code
+ * also stores `phone_e164` (lib/phone.ts), which is exactly what wa.me wants -
+ * LeadDrawer passes that first and falls back to this heuristic when the raw
+ * number could not be parsed.
+ *
+ * Heuristic (documented assumption):
  *   +... / 00...                  -> country code already present, use as-is
  *   0 + 7XXXXXXXXX (11 digits)    -> UK mobile  -> 44...
  *   0 + 3XXXXXXXXX (11 digits)    -> Pakistani mobile -> 92... (UK 0300
@@ -238,7 +242,9 @@ export default function LeadDrawer({
   const doneChecks = new Set(
     activity.filter((a) => a.type === "reviewed" && a.body).map((a) => a.body as string)
   );
-  const wa = lead ? whatsappInfo(lead.phone) : null;
+  // Prefer the normalized E.164 number (whatsappInfo() then takes the
+  // "international" branch); fall back to the raw phone + the landline warning.
+  const wa = lead ? whatsappInfo(lead.phone_e164 || lead.phone) : null;
   const websiteLink = lead ? websiteHref(lead.website) : null;
 
   return (
