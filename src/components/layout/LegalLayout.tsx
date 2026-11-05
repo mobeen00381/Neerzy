@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { COMPANY } from '@/lib/company';
 
 interface Section {
   id: string;
@@ -90,8 +91,11 @@ export default function LegalLayout({ title, subtitle, lastUpdated, sections, ch
               <h3 className="text-2xl font-bold mb-4">Questions?</h3>
               <p className="text-[#5B6B64]">
                 If you have any questions about these terms, please contact us at{' '}
-                <a href="mailto:support@neerzy.com" className="text-[#0F5132] underline">support@neerzy.com</a>
+                <a href={`mailto:${COMPANY.supportEmail}`} className="text-[#0F5132] underline">{COMPANY.supportEmail}</a>
               </p>
+              {/* Operator postal address for legal notices - kept as a plain
+                  contact block so no clause wording changes. */}
+              <p className="text-[#5B6B64]">{COMPANY.fullAddress}</p>
             </div>
           </main>
         </div>

@@ -428,7 +428,7 @@ You send a photo or voice note → Neerzy's AI writes the SEO-optimised post →
 
   {
     patterns: ['where are you based', 'where is neerzy based', 'where are you located', 'where is neerzy located', 'what country are you in', 'which country are you in', 'are you in the uk', 'uk based', 'are you a uk company'],
-    answer: `We're a real software company - **Neerzy AI Ltd** - and you can find our business address on the Contact page of our website. 🌍
+    answer: `We're a real software company - **Neerzy** - and you can find our business address on the Contact page of our website. 🌍
 
 We build and support Neerzy for local businesses (plumbers, HVAC, electricians, roofers, dentists, and more), and the chat assistant is available right here whenever you need us. For anything else, support@neerzy.com is fastest.`
   },

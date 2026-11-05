@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CONTACT_PHONE_DISPLAY, CONTACT_TEL_HREF, contactWhatsAppHref } from "@/lib/contact";
+import { COMPANY, companyPostalAddress } from "@/lib/company";
 import { DEFAULT_OG_IMAGE } from "@/lib/og";
 
 export const metadata: Metadata = {
@@ -31,7 +32,14 @@ const jsonLd = {
   "@type": "ContactPage",
   "name": "Contact Us | Neerzy",
   "description": "Get in touch with the Neerzy team.",
-  "url": "https://www.neerzy.com/contact"
+  "url": "https://www.neerzy.com/contact",
+  "mainEntity": {
+    "@type": "Organization",
+    "name": COMPANY.name,
+    "url": "https://www.neerzy.com",
+    "email": COMPANY.supportEmail,
+    "address": companyPostalAddress()
+  }
 };
 
 export default function ContactPage() {
@@ -56,7 +64,7 @@ export default function ContactPage() {
               the phone/WhatsApp links below so the hover state is identical.
             */}
             <p className="text-[#5B6B64]">
-              <a href="mailto:support@neerzy.com" className="hover:text-[#0F5132] transition-colors">support@neerzy.com</a>
+              <a href={`mailto:${COMPANY.supportEmail}`} className="hover:text-[#0F5132] transition-colors">{COMPANY.supportEmail}</a>
             </p>
           </div>
           
@@ -73,10 +81,12 @@ export default function ContactPage() {
           <div className="mb-6">
             <h3 className="font-bold text-[#0A2E22]">Business Address</h3>
             <p className="text-[#5B6B64]">
-              Neerzy AI Ltd<br />
-              123 Trader Lane, Suite 400<br />
-              London, EC1V 2NX<br />
-              United Kingdom
+              {COMPANY.addressLines.map((line, index) => (
+                <span key={line}>
+                  {line}
+                  {index < COMPANY.addressLines.length - 1 ? <br /> : null}
+                </span>
+              ))}
             </p>
           </div>
         </div>

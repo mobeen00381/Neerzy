@@ -12,6 +12,7 @@ import { initMonitoring } from "@/lib/monitoring";
 import Script from "next/script";
 
 import { CONTACT_PHONE_E164 } from "@/lib/contact";
+import { COMPANY, companyPostalAddress } from "@/lib/company";
 // Google Analytics 4 measurement ID
 const GA_MEASUREMENT_ID = "G-7SB1J0V0P3";
 
@@ -61,10 +62,12 @@ export const metadata: Metadata = {
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Neerzy",
+  "name": COMPANY.name,
   "url": "https://www.neerzy.com",
   "logo": "https://www.neerzy.com/images/logo.png",
   "description": "Done-for-you SEO websites and Google Business management for local service businesses via WhatsApp.",
+  "email": COMPANY.supportEmail,
+  "address": companyPostalAddress(),
   "sameAs": [
     "https://www.facebook.com/profile.php?id=61573222476095",
     "https://www.instagram.com/neerzy_/",

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LegalLayout from '@/components/layout/LegalLayout';
+import { COMPANY } from '@/lib/company';
 import { DEFAULT_OG_IMAGE } from '@/lib/og';
 
 export const metadata: Metadata = {
@@ -106,7 +107,7 @@ export default function PrivacyPage() {
           <li><strong>Correction:</strong> Updates to any inaccurate information.</li>
           <li><strong>Deletion:</strong> Removal of your account and associated data.</li>
         </ul>
-        <p>To exercise these rights, please contact us at <a href="mailto:support@neerzy.com">support@neerzy.com</a>.</p>
+        <p>To exercise these rights, please contact us at <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a>.</p>
       </section>
 
       <section id="cookies" className="mb-16">

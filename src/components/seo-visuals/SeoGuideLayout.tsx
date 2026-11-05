@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { ROUTES, SITE_URL } from '@/lib/routes';
+import { COMPANY, companyPostalAddress } from '@/lib/company';
 import { SchemaMarkup } from '@/components/seo-visuals/SchemaMarkup';
 
 interface SeoGuideLayoutProps {
@@ -41,9 +42,11 @@ export function SeoGuideLayout({ title, description, path, children }: SeoGuideL
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'Neerzy',
+    name: COMPANY.name,
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
+    email: COMPANY.supportEmail,
+    address: companyPostalAddress(),
     sameAs: [
       'https://www.facebook.com/profile.php?id=61573222476095',
       'https://www.instagram.com/neerzy_/',

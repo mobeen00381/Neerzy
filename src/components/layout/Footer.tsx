@@ -11,6 +11,7 @@ import Logo from "../ui/Logo";
 import { usePathname } from "next/navigation";
 import { isTraderSitePath, isTemplateDemoPath } from "@/lib/routes";
 import { CONTACT_PHONE_DISPLAY, CONTACT_TEL_HREF, contactWhatsAppHref } from "@/lib/contact";
+import { COMPANY } from "@/lib/company";
 
 // Neerzy's own social profiles, shown in the footer of every marketing page.
 const SOCIAL_LINKS = [
@@ -75,6 +76,15 @@ export default function Footer() {
                 Call / SMS: {CONTACT_PHONE_DISPLAY}
               </a>
             </p>
+            {/* Same NAP as the Organization JSON-LD in app/layout.tsx. */}
+            <address style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)', fontStyle: 'normal', lineHeight: 1.5 }}>
+              {COMPANY.addressLines.map((line, index) => (
+                <span key={line}>
+                  {line}
+                  {index < COMPANY.addressLines.length - 1 ? <br /> : null}
+                </span>
+              ))}
+            </address>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: 'var(--space-4)' }}>
               {SOCIAL_LINKS.map(({ label, href, Icon }) => (
                 <a
@@ -147,7 +157,7 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
               <p style={{ fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
-                © {new Date().getFullYear()} Neerzy. All rights reserved.
+                © {new Date().getFullYear()} {COMPANY.name}. All rights reserved.
               </p>
               {/* Smol Startup's badge is served as a hosted SVG; their directory
                   verifies this exact embed, so it stays a plain <img>. */}
