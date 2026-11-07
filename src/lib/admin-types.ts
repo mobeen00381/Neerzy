@@ -97,6 +97,13 @@ export interface AdminLead {
   /** Stamped by POST /api/admin/leads/[id] (action: log_contact). NULL = never contacted. */
   last_contacted_at?: string | null;
   notes: string | null;
+  /**
+   * TRUE = internal test lead (20261108_leads_is_test.sql). Admin -> Leads hides
+   * these behind the "Hide test leads" checkbox and keeps them out of the NEW
+   * count, but the automation sequences still enrol them - that is what they
+   * are for.
+   */
+  is_test?: boolean;
   converted_user_id: string | null;
   created_at: string | null;
   /** gmb_audit leads only: Google Places id, last score and live report link. */

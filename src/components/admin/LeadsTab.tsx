@@ -9,6 +9,7 @@ import {
   Spinner, EmptyState, SourceBadge, PaginationBar, fmtDate, PriorityBadge, WebsiteCell,
 } from "@/components/admin/ui";
 import type { AdminLead, AdminLeadList } from "@/lib/admin-types";
+import type { LeadPriorityLevel } from "@/lib/lead-priority";
 import LeadDrawer from "@/components/admin/LeadDrawer";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
@@ -17,6 +18,25 @@ const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
 const SOURCES = [
   "facebook", "instagram", "google_ads", "organic", "referral", "direct", "gmb_audit",
 ];
+
+/** Priority filter dropdown; the levels themselves come from lib/lead-priority.ts. */
+const PRIORITIES: { value: LeadPriorityLevel; label: string }[] = [
+  { value: "hot", label: "HOT" },
+  { value: "warm", label: "WARM" },
+  { value: "cold", label: "COLD" },
+];
+
+/** Sort rank for the table: HOT first, then WARM, COLD and finally no priority. */
+const PRIORITY_RANK: Record<string, number> = { hot: 0, warm: 1, cold: 2 };
+
+/**
+ * The BUSINESS column was dropped from the table (no room for it at 1366px), so
+ * the business name is only printed under the lead name when it actually says
+ * something different from it.
+ */
+function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
+  return (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
+}
 
 /**
  * Row clicks open the lead detail drawer, so the cells with their own controls
@@ -34,6 +54,12 @@ export default function LeadsTab() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
+  // Priority is derived server-side (lib/lead-priority.ts), so it is filtered
+  // and re-sorted on the loaded page instead of in SQL.
+  const [priorityFilter, setPriorityFilter] = useState<"" | LeadPriorityLevel>("");
+  // Internal test leads (20261108_leads_is_test.sql) are hidden by default;
+  // they keep flowing through the automation either way.
+  const [hideTest, setHideTest] = useState(true);
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -89,6 +115,21 @@ export default function LeadsTab() {
       prev ? { ...prev, leads: prev.leads.map((l) => (l.id === id ? { ...l, ...patch } : l)) } : prev
     );
   };
+
+  /**
+   * What the table renders: test leads hidden (default), then the priority
+   * filter, then HOT -> WARM -> COLD -> newest. Both are client-side, so the
+   * pagination and the pipeline pills keep their server-side totals - and the
+   * NEW pill already excludes test leads in /api/admin/leads.
+   */
+  const rows = (data?.leads || [])
+    .filter((l) => !hideTest || l.is_test !== true)
+    .filter((l) => !priorityFilter || l.priority?.level === priorityFilter)
+    .sort(
+      (a, b) =>
+        (PRIORITY_RANK[a.priority?.level || ""] ?? 3) - (PRIORITY_RANK[b.priority?.level || ""] ?? 3) ||
+        String(b.created_at || "").localeCompare(String(a.created_at || ""))
+    );
 
   return (
     <div className="space-y-5">
@@ -167,6 +208,26 @@ export default function LeadsTab() {
             <option key={s} value={s}>{s.replace("_", " ")}</option>
           ))}
         </select>
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value as "" | LeadPriorityLevel)}
+          className="px-3 py-2 rounded-lg border border-[#E1E8E4] text-sm font-normal outline-none focus:border-[#22C55E]"
+          aria-label="Filter by priority"
+        >
+          <option value="">All priorities</option>
+          {PRIORITIES.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
+        </select>
+        <label className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={hideTest}
+            onChange={(e) => setHideTest(e.target.checked)}
+            className="w-4 h-4 accent-[#22C55E]"
+          />
+          Hide test leads
+        </label>
         {error && <p className="text-xs font-bold text-[#0F5132]">{error}</p>}
       </div>
 
@@ -176,54 +237,69 @@ export default function LeadsTab() {
             <Spinner label="Loading leads…" />
           ) : !data || data.leads.length === 0 ? (
             <EmptyState message="No leads yet. Point your ad landing-page forms at POST /api/leads/submit." />
+          ) : rows.length === 0 ? (
+            <EmptyState message="No leads match the current filters." />
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#F7F9F8] text-left">
-                      <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Lead</th>
-                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Business</th>
-                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Priority</th>
-                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Website</th>
-                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Source</th>
-                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Campaign</th>
-                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Received</th>
-                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Status</th>
-                      <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Follow-up</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E1E8E4]">
-                    {data.leads.map((l) => (
-                      <tr
-                        key={l.id}
-                        onClick={(e) => {
-                          // Keep focus on the row so the drawer can hand it back on close.
-                          e.currentTarget.focus();
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[#F7F9F8] text-left">
+                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Lead</th>
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Priority</th>
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Website</th>
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Source</th>
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Campaign</th>
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Received</th>
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Status</th>
+                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Follow-up</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E1E8E4]">
+                  {rows.map((l) => (
+                    <tr
+                      key={l.id}
+                      onClick={(e) => {
+                        // Keep focus on the row so the drawer can hand it back on close.
+                        e.currentTarget.focus();
+                        setOpenLeadId(l.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
                           setOpenLeadId(l.id);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setOpenLeadId(l.id);
-                          }
-                        }}
-                        tabIndex={0}
-                        role="button"
-                        aria-label={"Open details for " + (l.name || l.business_name || "lead")}
-                        className="hover:bg-[#E6F2EA] transition-colors cursor-pointer focus:outline-none focus-visible:bg-[#E6F2EA]"
-                      >
-                        <td className="px-5 py-3">
-                          <p className="font-bold text-[#0A2E22]">{l.name || l.business_name || "Unnamed"}</p>
-                          <p className="text-xs font-normal text-[#5B6B64]">
-                            {[l.phone, l.email].filter(Boolean).join(" · ") || "No contact"}
-                          </p>
-                          {l.notes && <p className="text-[11px] text-[#5B6B64] mt-1 italic truncate max-w-[220px]">{l.notes}</p>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-xs font-bold text-[#0F5132]">{l.business_name || "—"}</p>
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={"Open details for " + (l.name || l.business_name || "lead")}
+                      className="hover:bg-[#E6F2EA] transition-colors cursor-pointer focus:outline-none focus-visible:bg-[#E6F2EA]"
+                    >
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="font-bold text-[#0A2E22] truncate">{l.name || l.business_name || "Unnamed"}</p>
+                          {l.is_test === true && (
+                            <span
+                              title="Internal test lead - hidden by default, but still gets the automation emails"
+                              className="inline-flex items-center shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#F1F3F2] text-[#6B7C75] border border-[#E1E8E4]"
+                            >
+                              TEST
+                            </span>
+                          )}
+                        </div>
+                        {/* Business name only when it is not just the lead name again. */}
+                        {l.business_name && !sameText(l.name || l.business_name, l.business_name) && (
+                          <p className="text-xs font-bold text-[#0F5132] truncate max-w-[260px]">{l.business_name}</p>
+                        )}
+                        <p className="text-xs font-normal text-[#5B6B64] truncate max-w-[260px]">
+                          {[l.phone, l.email].filter(Boolean).join(" · ") || "No contact"}
+                        </p>
+                        {l.notes && <p className="text-[11px] text-[#5B6B64] mt-1 italic truncate max-w-[220px]">{l.notes}</p>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <PriorityBadge priority={l.priority} />
                           {typeof l.audit_score === "number" && (
-                            <span className={`inline-flex items-center mt-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                               l.audit_score >= 80
                                 ? "bg-[#E6F2EA] text-[#0F5132]"
                                 : l.audit_score >= 50
@@ -233,48 +309,47 @@ export default function LeadsTab() {
                               {l.audit_score}/100 audit
                             </span>
                           )}
-                        </td>
-                        <td className="px-4 py-3"><PriorityBadge priority={l.priority} /></td>
-                        <td className="px-4 py-3 whitespace-nowrap" {...stopRow}>
-                          <WebsiteCell website={l.website} hasWebsite={l.hasWebsite} />
-                        </td>
-                        <td className="px-4 py-3"><SourceBadge source={l.source} /></td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-normal text-[#5B6B64]">{l.utm_campaign || "—"}</span>
-                          {l.utm_medium && <span className="block text-[10px] font-normal text-[#5B6B64]">via {l.utm_medium}</span>}
-                        </td>
-                        <td className="px-4 py-3 text-xs font-bold text-[#5B6B64] whitespace-nowrap">{fmtDate(l.created_at)}</td>
-                        <td className="px-4 py-3" {...stopRow}>
-                          <select
-                            value={l.status}
-                            onChange={(e) => updateStatus(l.id, e.target.value)}
-                            className={`text-xs font-bold uppercase px-2 py-1 rounded-lg border outline-none cursor-pointer ${
-                              l.status === "new" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
-                              l.status === "contacted" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
-                              l.status === "trial_started" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
-                              l.status === "converted" ? "bg-[#E6F2EA] text-[#0F5132] border-[#D3E6DA]" :
-                              "bg-[#E6F2EA] text-[#5B6B64] border-[#E1E8E4]"
-                            }`}
-                          >
-                            {STATUSES.map((s) => (
-                              <option key={s} value={s}>{s.replace("_", " ")}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="px-4 py-3" {...stopRow}>
-                          <button
-                            onClick={() => setFollowupLead(l)}
-                            title="Send a follow-up email about this audit"
-                            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-[#E1E8E4] bg-white text-[#0F5132] hover:border-[#22C55E] hover:bg-[#F7F9F8]"
-                          >
-                            <Mail className="w-3 h-3" /> Email
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap" {...stopRow}>
+                        <WebsiteCell website={l.website} hasWebsite={l.hasWebsite} />
+                      </td>
+                      <td className="px-4 py-3"><SourceBadge source={l.source} /></td>
+                      <td className="px-4 py-3 max-w-[150px]">
+                        <p className="text-xs font-normal text-[#5B6B64] truncate">{l.utm_campaign || "—"}</p>
+                        {l.utm_medium && <p className="text-[10px] font-normal text-[#5B6B64] truncate">via {l.utm_medium}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-xs font-bold text-[#5B6B64] whitespace-nowrap">{fmtDate(l.created_at)}</td>
+                      <td className="px-4 py-3" {...stopRow}>
+                        <select
+                          value={l.status}
+                          onChange={(e) => updateStatus(l.id, e.target.value)}
+                          className={`text-xs font-bold uppercase px-2 py-1 rounded-lg border outline-none cursor-pointer ${
+                            l.status === "new" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
+                            l.status === "contacted" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
+                            l.status === "trial_started" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
+                            l.status === "converted" ? "bg-[#E6F2EA] text-[#0F5132] border-[#D3E6DA]" :
+                            "bg-[#E6F2EA] text-[#5B6B64] border-[#E1E8E4]"
+                          }`}
+                        >
+                          {STATUSES.map((s) => (
+                            <option key={s} value={s}>{s.replace("_", " ")}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3" {...stopRow}>
+                        <button
+                          onClick={() => setFollowupLead(l)}
+                          title="Send a follow-up email about this audit"
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-[#E1E8E4] bg-white text-[#0F5132] hover:border-[#22C55E] hover:bg-[#F7F9F8]"
+                        >
+                          <Mail className="w-3 h-3" /> Email
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               <div className="px-5 py-3 border-t border-[#E1E8E4]">
                 <PaginationBar page={data.page} pageSize={data.pageSize} total={data.total} onChange={setPage} />
               </div>

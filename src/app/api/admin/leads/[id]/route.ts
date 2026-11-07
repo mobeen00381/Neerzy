@@ -63,6 +63,7 @@ function toLead(r: any): AdminLead {
     status: r.status || "new",
     last_contacted_at: r.last_contacted_at || null,
     notes: r.notes || null,
+    is_test: r.is_test === true,
     converted_user_id: r.converted_user_id || null,
     created_at: r.created_at || null,
     place_id: r.place_id || null,

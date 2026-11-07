@@ -130,6 +130,7 @@ export default function LeadDrawer({
   const [note, setNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [savingTest, setSavingTest] = useState(false);
 
   // Esc closes the drawer; on close, focus returns to the table row that opened it.
   const closeRef = useRef(onClose);
@@ -245,6 +246,31 @@ export default function LeadDrawer({
   const tickCheck = async (label: string) => {
     if (!busy) await act({ action: "mark_reviewed", body: label });
   };
+
+  /**
+   * Flags the lead as an internal test lead (20261108_leads_is_test.sql).
+   * Display-only: LeadsTab hides these by default, but the automation keeps
+   * enrolling and mailing them exactly like any other lead.
+   */
+  const toggleTestLead = async (next: boolean) => {
+    const current = detail?.lead;
+    if (!current || savingTest) return;
+    setSavingTest(true);
+    setActionError("");
+    try {
+      await adminFetch("/api/admin/leads", {
+        method: "POST",
+        body: JSON.stringify({ action: "update", id: current.id, is_test: next }),
+      });
+      onUpdated({ is_test: next });
+      await load();
+    } catch (e: any) {
+      setActionError(e?.message || "Failed to update the test flag");
+    } finally {
+      setSavingTest(false);
+    }
+  };
+
   const lead = detail?.lead ?? null;
   const activity = detail?.activity ?? [];
   const automation = detail?.automation ?? null;
@@ -295,6 +321,16 @@ export default function LeadDrawer({
                   </span>
                 )}
               </div>
+              <label className="flex items-center gap-2 mt-2 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={lead.is_test === true}
+                  disabled={busy || savingTest}
+                  onChange={(e) => void toggleTestLead(e.target.checked)}
+                  className="w-4 h-4 accent-[#22C55E]"
+                />
+                Test lead
+              </label>
             </div>
           )}
           <button

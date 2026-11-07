@@ -7,6 +7,11 @@
  * Priority column in the spreadsheet can never disagree - and changing a rule
  * needs no migration and no backfill.
  *
+ * Levels: score >= 60 -> HOT, score >= 30 -> WARM, everything lower -> COLD.
+ * The points awarded per signal (below) did not change when the thresholds
+ * moved, so re-tuning the size of the call list is a two number edit here -
+ * every surface (table badge, CSV, automation segment) follows in lockstep.
+ *
  * The signals are the columns added in
  * supabase/migrations/20261104_leads_audit_signals.sql.
  */
@@ -77,7 +82,8 @@ export function getLeadPriority(lead: LeadPrioritySignals): LeadPriority {
   hits.sort((a, b) => b.points - a.points || a.order - b.order);
 
   const score = hits.reduce((sum, hit) => sum + hit.points, 0);
-  const level: LeadPriorityLevel = score >= 70 ? "hot" : score >= 30 ? "warm" : "cold";
+  // 60 = HOT, 30 = WARM (see the header comment).
+  const level: LeadPriorityLevel = score >= 60 ? "hot" : score >= 30 ? "warm" : "cold";
 
   return { level, score, reasons: hits.map((hit) => hit.reason) };
 }

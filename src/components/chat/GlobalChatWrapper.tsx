@@ -75,6 +75,10 @@ export function GlobalChatWrapper() {
   // A trader's own website never shows Neerzy's support chat.
   if (isTraderSitePath(pathname)) return null;
 
+  // Neither does the admin dashboard: the WhatsApp / SMS / chat launchers are
+  // fixed to the bottom right corner and sit on top of the leads table.
+  if (pathname?.startsWith("/admin")) return null;
+
   // Nothing to render (or fetch) until the page has loaded.
   if (!isChatReady) return null;
 

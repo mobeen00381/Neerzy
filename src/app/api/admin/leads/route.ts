@@ -31,6 +31,12 @@ function numberOrNull(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * The columns the pipeline pill aggregation reads. `is_test` only exists once
+ * 20261108_leads_is_test.sql is applied, hence the optional shape.
+ */
+type AggLeadRow = { status?: string | null; source?: string | null; is_test?: boolean | null };
+
 export async function GET(req: Request) {
   if (!IS_ADMIN_CONFIGURED) return adminNotConfigured();
   if (!verifyAdminRequest(req)) return adminUnauthorized();
@@ -58,16 +64,29 @@ export async function GET(req: Request) {
       .range(from, from + pageSize - 1);
     if (error && !isMissingTableError(error)) throw error;
 
-    let agg = supabase.from("leads").select("status, source");
+    let agg = supabase.from("leads").select("status, source, is_test");
     if (status && STATUSES.includes(status)) agg = agg.eq("status", status);
     if (source && SOURCES.includes(source)) agg = agg.eq("source", source);
-    const { data: aggRows } = await agg;
+    let aggRows: AggLeadRow[] | null = (await agg).data;
+    if (!aggRows) {
+      // Pre-20261108 environment: no is_test column, so nothing can be a test
+      // lead. Retry without it instead of losing the pipeline pills.
+      let plain = supabase.from("leads").select("status, source");
+      if (status && STATUSES.includes(status)) plain = plain.eq("status", status);
+      if (source && SOURCES.includes(source)) plain = plain.eq("source", source);
+      ({ data: aggRows } = await plain);
+    }
 
     const byStatusCounts: Record<string, number> = {};
     const bySourceCounts: Record<string, number> = {};
     for (const r of aggRows || []) {
       const s = r.status || "new";
-      byStatusCounts[s] = (byStatusCounts[s] || 0) + 1;
+      // Test leads are hidden by default in the table, so they must not inflate
+      // the NEW pill either. Every other bucket and the automation keep them.
+      const isTestLead = r.is_test === true;
+      if (!(isTestLead && s === "new")) {
+        byStatusCounts[s] = (byStatusCounts[s] || 0) + 1;
+      }
       const src = r.source || "organic";
       bySourceCounts[src] = (bySourceCounts[src] || 0) + 1;
     }
@@ -87,6 +106,9 @@ export async function GET(req: Request) {
         status: r.status || "new",
         last_contacted_at: r.last_contacted_at || null,
         notes: r.notes || null,
+        // Missing on an environment that has not applied
+        // 20261108_leads_is_test.sql yet: absent column reads as "not a test".
+        is_test: r.is_test === true,
         converted_user_id: r.converted_user_id || null,
         created_at: r.created_at || null,
         place_id: r.place_id || null,
@@ -157,6 +179,8 @@ export async function POST(req: Request) {
     if (body.phone !== undefined) updates.phone = body.phone || null;
     if (body.email !== undefined) updates.email = body.email || null;
     if (body.source && SOURCES.includes(String(body.source))) updates.source = String(body.source);
+    // "Test lead" toggle in the drawer (20261108_leads_is_test.sql).
+    if (body.is_test !== undefined) updates.is_test = body.is_test === true;
 
     const { data, error } = await supabase
       .from("leads").update(updates).eq("id", id).select("*").single();
