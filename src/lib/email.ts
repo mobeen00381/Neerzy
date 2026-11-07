@@ -278,7 +278,18 @@ export type EmailLogType =
    * this type only appears when a marketing send is BLOCKED by the suppression
    * list (recorded so the block is visible in the pipeline).
    */
-  | "marketing";
+  | "marketing"
+  /**
+   * One queued automation step, e.g. "automation_hot_d1". The step key IS the
+   * type (see lib/automation/sequences.ts), so the pipeline can tell a day-1
+   * nudge from the day-5 review ask without another table.
+   *
+   * These types are deliberately absent from the at-most-once index
+   * (uq_email_log_lead_sent, migration 20261103): a sequence step is sent at
+   * most once because message_queue claims it once, and a failed retry must be
+   * allowed to log again.
+   */
+  | `automation_${string}`;
 
 
 /**

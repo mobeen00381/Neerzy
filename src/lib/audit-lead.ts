@@ -34,7 +34,13 @@ export const AUDIT_LEAD_SOURCE = "gmb_audit";
 export interface AuditLeadInput {
   placeId: string;
   businessName?: string | null;
+  /** Raw phone exactly as Google publishes it (national form) - this is what leads.phone stores. */
   phone?: string | null;
+  /**
+   * Google Places `internationalPhoneNumber` (already carries the +country code).
+   * Used ONLY to derive phone_e164 / country - the raw value is never stored.
+   */
+  internationalPhone?: string | null;
   website?: string | null;
   address?: string | null;
   rating?: number | null;
@@ -152,9 +158,12 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
     const businessName = String(input.businessName || "").trim() || null;
     const phone = String(input.phone || "").trim() || null;
     // Machine form of the same number (WhatsApp / future automation). Google's
-    // "national" number only normalizes when it carries a country code, and the
-    // audit does not fetch a Places country, so this can legitimately be null.
-    const normalized = normalizePhone(phone);
+    // international number already carries the +country code, so it is the
+    // primary source; the raw (national) value is only the fallback for listings
+    // that publish no international form. The audit still fetches no Places
+    // country, so this can legitimately stay null.
+    const normalizeSource = String(input.internationalPhone || "").trim() || phone;
+    const normalized = normalizePhone(normalizeSource);
     const notes = buildAuditNotes(input);
     // A fresh token per capture: the admin opens the FULL report from the leads
     // table, and it expires with the link like any other unlock.
@@ -207,9 +216,11 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
       };
       if (businessName) patch.business_name = businessName;
       if (phone) patch.phone = phone;
-      // Fill the normalized columns whenever the raw number parses. An
-      // unparseable number leaves them untouched rather than NULLing a value.
-      Object.assign(patch, phoneColumns(phone));
+      // Fill the normalized columns whenever the number parses - now from the
+      // international form, so a re-run backfills phone_e164/country on leads
+      // captured before it was passed through. An unparseable number leaves them
+      // untouched rather than NULLing a value.
+      Object.assign(patch, phoneColumns(normalizeSource));
 
       const { error: updateError } = await supabase
         .from("leads")

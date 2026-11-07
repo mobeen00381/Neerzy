@@ -294,6 +294,11 @@ export async function POST(req: Request) {
       placeId: String(placeId),
       businessName: businessName || place.name,
       phone: place.formatted_phone_number || null,
+      // Same number in machine form: Google's international form already carries
+      // the +country code, so captureAuditLead() can derive phone_e164/country
+      // without a Places addressComponents lookup. leads.phone stays the raw
+      // national value above.
+      internationalPhone: placeData.internationalPhoneNumber || null,
       website: place.website || null,
       address: place.formatted_address || null,
       rating: place.rating || null,

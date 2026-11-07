@@ -147,6 +147,8 @@ export interface LeadActivity {
 export interface LeadDetail {
   lead: AdminLead;
   activity: LeadActivity[];
+  /** Automation state + queued emails (Phase 1, optional for older payloads). */
+  automation?: LeadAutomationState;
 }
 
 export interface PlanBucket {
@@ -239,3 +241,90 @@ export interface AdminAuditReviewList {
   pageSize: number;
   byStatus: { pending: number; published: number; rejected: number };
 }
+
+// ── /api/admin/automation (Admin -> Automation tab) ──
+
+/** The singleton public.agent_settings row (see 20261107_message_queue.sql). */
+export interface AutomationSettings {
+  automation_paused: boolean;
+  daily_send_cap: number;
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
+/** One public.message_queue row, as the admin tab lists it. */
+export interface AutomationQueueRow {
+  id: string;
+  lead_id: string;
+  /** Recipient snapshot taken at enrollment. */
+  email: string;
+  step_key: string;
+  step_label: string;
+  /** hot | warm | cold - the plan the row was created from. */
+  segment: string;
+  /** sales | review */
+  kind: string;
+  /** pending | sending | sent | skipped | cancelled | failed */
+  status: string;
+  run_at: string | null;
+  attempts: number;
+  sent_at: string | null;
+  last_error: string | null;
+  /** Joined from leads (business name + pipeline status) when available. */
+  business_name: string | null;
+  lead_status: string | null;
+}
+
+export interface AutomationStats {
+  pending: number;
+  /** Claimed by a run that may still be alive. */
+  sending: number;
+  /** Sent since 00:00 UTC - the number the daily cap is compared against. */
+  sentToday: number;
+  sent: number;
+  skipped: number;
+  cancelled: number;
+  failed: number;
+  /** pending rows whose run_at has already passed. */
+  dueNow: number;
+}
+
+export interface AutomationStepInfo {
+  key: string;
+  label: string;
+  kind: string;
+  day: number;
+}
+
+/** GET /api/admin/automation */
+export interface AutomationOverview {
+  settings: AutomationSettings;
+  stats: AutomationStats;
+  queue: AutomationQueueRow[];
+  /** The plans, straight from lib/automation/sequences.ts (read-only). */
+  plans: Array<{ segment: string; steps: AutomationStepInfo[] }>;
+  /** False = review_d5 rows are skipped because no review URL is configured. */
+  reviewLinkConfigured: boolean;
+  /** False = the 20261107 migration has not been applied on this environment. */
+  tablesReady: boolean;
+}
+
+/** Per-lead automation state, attached to the lead drawer payload. */
+export interface LeadAutomationState {
+  sequence_segment: string | null;
+  sequence_enrolled_at: string | null;
+  marketing_paused: boolean;
+  /** Newest lead_consent row for (channel email, purpose marketing). */
+  marketing_consent: {
+    active: boolean;
+    granted_at: string | null;
+    opted_out_at: string | null;
+  } | null;
+  /** True = the address is on public.email_suppression. */
+  suppressed: boolean;
+  /** False for converted / trial_started / lost leads. */
+  enrollable: boolean;
+  queue: AutomationQueueRow[];
+  tablesReady: boolean;
+}
+

@@ -16,7 +16,9 @@ import {
   Mail,
   MapPin,
   MessageCircle,
+  PauseCircle,
   Phone,
+  Send,
   StickyNote,
   X,
 } from "lucide-react";
@@ -43,6 +45,12 @@ const ACTIVITY_META: Record<string, { Icon: IconComponent; label: string }> = {
   called: { Icon: Phone, label: "Called" },
   status_change: { Icon: ArrowRightLeft, label: "Status changed" },
   reviewed: { Icon: CheckCircle2, label: "Review check" },
+  // Written by lib/automation/* (created_by: "automation" | "admin").
+  automation_enrolled: { Icon: Send, label: "Sequence enrolled" },
+  automation_sent: { Icon: Send, label: "Sequence email sent" },
+  automation_failed: { Icon: AlertTriangle, label: "Sequence email failed" },
+  automation_cancelled: { Icon: X, label: "Sequence cancelled" },
+  automation_pause_changed: { Icon: PauseCircle, label: "Marketing paused/resumed" },
 };
 
 const HEADING_CLS = "text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]";
@@ -239,6 +247,9 @@ export default function LeadDrawer({
   };
   const lead = detail?.lead ?? null;
   const activity = detail?.activity ?? [];
+  const automation = detail?.automation ?? null;
+  const queuedRows = (automation?.queue || []).filter((row) => row.status === "pending");
+  const sentRows = (automation?.queue || []).filter((row) => row.status === "sent");
   const doneChecks = new Set(
     activity.filter((a) => a.type === "reviewed" && a.body).map((a) => a.body as string)
   );
@@ -474,6 +485,112 @@ export default function LeadDrawer({
                   ))}
                 </select>
               </section>
+              {/* Email automation (Phase 1 sequences) */}
+              {automation && (
+                <section className="space-y-2">
+                  <h3 className={HEADING_CLS}>Automation</h3>
+                  <div className="rounded-xl border border-[#E1E8E4] p-3 space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#E6F2EA] text-[#0F5132]">
+                        {automation.sequence_segment
+                          ? automation.sequence_segment + " plan"
+                          : "not enrolled"}
+                      </span>
+                      <span
+                        className={
+                          "inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full " +
+                          (automation.marketing_consent?.active
+                            ? "bg-[#E6F2EA] text-[#0F5132]"
+                            : "bg-[#F7F9F8] text-[#5B6B64]")
+                        }
+                      >
+                        {automation.marketing_consent?.active ? "marketing opt-in" : "no opt-in"}
+                      </span>
+                      {automation.marketing_paused && (
+                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FDECEC] text-[#9B1C1C]">
+                          paused
+                        </span>
+                      )}
+                    </div>
+
+                    {automation.sequence_enrolled_at && (
+                      <p className="text-[11px] font-normal text-[#5B6B64]">
+                        Enrolled {fmtDateTime(automation.sequence_enrolled_at)} · {queuedRows.length}{" "}
+                        queued · {sentRows.length} sent
+                      </p>
+                    )}
+
+                    {!automation.tablesReady && (
+                      <p className="text-[11px] font-bold text-[#8A5A00]">
+                        The automation tables are missing - apply 20261107_message_queue.sql.
+                      </p>
+                    )}
+                    {automation.suppressed && (
+                      <p className="text-[11px] font-bold text-[#9B1C1C]">
+                        This address is on the do-not-email list. Nothing will be sent, whatever the
+                        queue says.
+                      </p>
+                    )}
+                    {!automation.marketing_consent?.active && !automation.suppressed && (
+                      <p className="text-[11px] font-normal text-[#5B6B64]">
+                        No marketing opt-in on file, so nothing can be queued - every step, the day-5
+                        review ask included, counts as marketing mail.
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => void act({ action: "enroll_automation" })}
+                        disabled={
+                          busy ||
+                          !automation.enrollable ||
+                          !automation.tablesReady ||
+                          Boolean(automation.sequence_enrolled_at)
+                        }
+                        className={QUICK_CLS + " disabled:opacity-50"}
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        {automation.sequence_enrolled_at ? "Already enrolled" : "Enroll in sequence"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void act({ action: "cancel_automation" })}
+                        disabled={busy || queuedRows.length === 0}
+                        className={QUICK_CLS + " disabled:opacity-50"}
+                      >
+                        <X className="w-3.5 h-3.5" /> Cancel {queuedRows.length || ""} queued
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void act({ action: "set_marketing_paused", paused: !automation.marketing_paused })
+                        }
+                        disabled={busy}
+                        className={QUICK_CLS + " disabled:opacity-50"}
+                      >
+                        <PauseCircle className="w-3.5 h-3.5" />
+                        {automation.marketing_paused ? "Resume marketing" : "Pause marketing"}
+                      </button>
+                    </div>
+
+                    {queuedRows.length > 0 && (
+                      <ul className="space-y-1 pt-1">
+                        {queuedRows.slice(0, 8).map((row) => (
+                          <li key={row.id} className="text-[11px] font-normal text-[#5B6B64]">
+                            · {row.step_label} · due {fmtDateTime(row.run_at)}
+                          </li>
+                        ))}
+                        {queuedRows.length > 8 && (
+                          <li className="text-[11px] font-normal text-[#9DB4A9]">
+                            + {queuedRows.length - 8} more in Admin → Automation
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                </section>
+              )}
               {/* Internal notes + append-only activity timeline */}
               <section className="space-y-2">
                 <h3 className={HEADING_CLS}>Notes and activity</h3>

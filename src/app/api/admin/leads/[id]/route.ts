@@ -19,8 +19,13 @@ import {
   IS_ADMIN_CONFIGURED,
   isMissingTableError,
 } from "@/lib/admin-server";
-import type { AdminLead, LeadActivity } from "@/lib/admin-types";
+import type { AdminLead, LeadActivity, LeadAutomationState } from "@/lib/admin-types";
 import { getLeadPriority } from "@/lib/lead-priority";
+import { loadQueueRows } from "@/lib/automation/admin-view";
+import { cancelQueueForLead, enrollLead } from "@/lib/automation/enroll";
+import { isStopStatus } from "@/lib/automation/guards";
+import { CONSENT_PURPOSE_MARKETING } from "@/lib/consent";
+import { normalizeEmail } from "@/lib/unsubscribe";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
 /** leads.id is a UUID (20260905_admin_dashboard.sql) - reject anything else before Postgres. */
@@ -89,6 +94,72 @@ function bad(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
 }
 
+/**
+ * Automation state for the drawer: flags on the lead, the consent record, the
+ * do-not-email check and the queued emails.
+ *
+ * Read-only and failure-tolerant: a missing 20261107 migration (or a lead with
+ * no consent rows) must still open the drawer, so every lookup degrades to a
+ * neutral value instead of throwing.
+ */
+async function loadAutomationState(supabase: SupabaseClient, lead: any): Promise<LeadAutomationState> {
+  const leadId = String(lead?.id || "");
+  const email = normalizeEmail(lead?.email);
+
+  const { error: tableError } = await supabase.from("message_queue").select("id").limit(1);
+  const tablesReady = !tableError || !isMissingTableError(tableError);
+
+  let marketing_consent: LeadAutomationState["marketing_consent"] = null;
+  if (leadId) {
+    const { data: consent } = await supabase
+      .from("lead_consent")
+      .select("opted_in_at, opted_out_at")
+      .eq("lead_id", leadId)
+      .eq("channel", "email")
+      .eq("purpose", CONSENT_PURPOSE_MARKETING)
+      .order("opted_in_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (consent) {
+      marketing_consent = {
+        active: !consent.opted_out_at,
+        granted_at: consent.opted_in_at || null,
+        opted_out_at: consent.opted_out_at || null,
+      };
+    }
+  }
+
+  let suppressed = false;
+  if (email) {
+    const { data: sup } = await supabase
+      .from("email_suppression")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+    suppressed = Boolean(sup?.email);
+  }
+
+  return {
+    sequence_segment: lead?.sequence_segment || null,
+    sequence_enrolled_at: lead?.sequence_enrolled_at || null,
+    marketing_paused: lead?.marketing_paused === true,
+    marketing_consent,
+    suppressed,
+    enrollable:
+      Boolean(email) &&
+      lead?.marketing_paused !== true &&
+      !isStopStatus(lead?.status || null) &&
+      // Every queued step is marketing mail, so a lead without an active opt-in
+      // (or one whose address is suppressed) cannot be enrolled at all. Leaving
+      // the button enabled would promise a plan the drainer has to cancel later.
+      marketing_consent?.active === true &&
+      !suppressed,
+    queue: tablesReady ? await loadQueueRows(supabase, { leadId, limit: 50 }) : [],
+    tablesReady,
+  };
+}
+
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -126,7 +197,16 @@ export async function GET(
 
     const mapped = toLead(row);
     const lead: AdminLead = { ...mapped, priority: getLeadPriority(mapped) };
-    return NextResponse.json({ lead, activity });
+
+    // Never let automation lookups break the drawer.
+    let automation: LeadAutomationState | undefined;
+    try {
+      automation = await loadAutomationState(supabase, row);
+    } catch (automationError: any) {
+      console.error("admin/lead detail automation error:", automationError?.message || automationError);
+    }
+
+    return NextResponse.json({ lead, activity, automation });
   } catch (error: any) {
     console.error("admin/lead detail error:", error?.message || error);
     return NextResponse.json({ error: error?.message || "Failed to load lead" }, { status: 500 });
@@ -203,6 +283,62 @@ export async function POST(
         created_by: "admin",
       });
       return NextResponse.json({ success: true });
+    }
+
+    // ── Automation (Phase 1) ────────────────────────────────────────────────
+    // Day-to-day controls live here so the drawer can start/stop a sequence for
+    // one lead without leaving the page. The queue work itself is done by
+    // lib/automation/enroll.ts, the same code the audit-report route calls.
+    if (action === "enroll_automation") {
+      const result = await enrollLead({ leadId: id, reason: "admin" });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error || "Could not enroll lead" }, { status: 400 });
+      }
+      return NextResponse.json({
+        success: true,
+        segment: result.segment,
+        queued: result.queued,
+        // A legitimate skip is not an error - relay the reason so a caller can
+        // explain the empty queue. enrollLead() also writes it to lead_activity.
+        skipped: result.skipped || null,
+      });
+    }
+
+    if (action === "cancel_automation") {
+      const cancelled = await cancelQueueForLead(id, "cancelled by admin");
+      await insertActivity(supabase, {
+        lead_id: id,
+        type: "automation_cancelled",
+        body: `${cancelled} queued email(s) cancelled by admin`,
+        created_by: "admin",
+      }).catch(() => undefined);
+      return NextResponse.json({ success: true, cancelled });
+    }
+
+    if (action === "set_marketing_paused") {
+      const paused = body.paused === true;
+      const { error: pauseError } = await supabase
+        .from("leads")
+        .update({ marketing_paused: paused })
+        .eq("id", id);
+      if (pauseError) throw pauseError;
+
+      // Pausing is a stop signal for what is already queued, not just for what
+      // would be queued next - otherwise tomorrow's cron still fires.
+      const cancelled = paused
+        ? await cancelQueueForLead(id, "marketing paused by admin")
+        : 0;
+
+      await insertActivity(supabase, {
+        lead_id: id,
+        type: "automation_pause_changed",
+        body: paused
+          ? `Marketing paused by admin (${cancelled} queued email(s) cancelled)`
+          : "Marketing resumed by admin",
+        created_by: "admin",
+      }).catch(() => undefined);
+
+      return NextResponse.json({ success: true, cancelled });
     }
 
     return bad("Unknown action");

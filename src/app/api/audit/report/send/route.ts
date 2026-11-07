@@ -8,6 +8,7 @@ import {
 } from "@/lib/consent";
 import { logEmailSend, redact, sendEmail } from "@/lib/email";
 import { auditReportEmailContent } from "@/lib/email-templates";
+import { enrollLead } from "@/lib/automation/enroll";
 import { makeUnlockToken } from "@/lib/report-unlock";
 import { sendMetaTemplate } from "@/lib/whatsapp";
 
@@ -195,6 +196,16 @@ export async function POST(req: Request) {
           { status: 502 }
         );
       }
+
+      // Only after a delivered report: the sequence builds on it ("recently you
+      // ran a free audit"), so queuing before delivery would schedule follow-ups
+      // about an email that never arrived. Enrollment is idempotent, cheap and
+      // never throws - the visitor's report is already sent by now, and a queue
+      // failure must not turn into an error page. Every step is marketing mail,
+      // so a lead without an active opt-in gets no rows at all
+      // (lib/automation/enroll.ts).
+      await enrollLead({ leadId: attach.leadId, email, reason: "audit_report" });
+
       return NextResponse.json({ success: true, channel: "email", reportUrl, unlock: unlockToken });
     }
 

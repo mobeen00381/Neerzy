@@ -26,6 +26,7 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { cancelQueueForEmail } from "@/lib/automation/enroll";
 import { redact, suppressEmail, type SuppressionReason } from "@/lib/email";
 import { normalizeEmail } from "@/lib/unsubscribe";
 
@@ -133,6 +134,9 @@ async function suppressFromEvent(
 
   for (const address of recipients) {
     await suppressEmail({ email: address, reason, source: "resend_webhook" });
+    // A hard bounce or a spam complaint stops the queued sequence too - otherwise
+    // admin would see pending rows for a mailbox we must never write to again.
+    await cancelQueueForEmail(address, `resend event: ${reason}`);
   }
 
   const emailId = String(event?.data?.email_id || event?.data?.emailId || "").trim();

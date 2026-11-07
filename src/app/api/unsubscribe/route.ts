@@ -27,6 +27,7 @@
 import { NextResponse } from "next/server";
 import { guardPublicRequest, UNSUBSCRIBE_LIMIT } from "@/lib/api-guard";
 import { optOutLeadConsent } from "@/lib/audit-lead";
+import { cancelQueueForEmail } from "@/lib/automation/enroll";
 import { redact, suppressEmail } from "@/lib/email";
 import { verifyUnsubscribeToken } from "@/lib/unsubscribe";
 
@@ -87,6 +88,12 @@ export async function POST(req: Request) {
     // 2. Keep the per-lead consent history truthful. A failure here is logged but
     //    not surfaced: the suppression row above already stops every send.
     await optOutLeadConsent(email);
+
+    // 3. Drop every queued email for this address. Not strictly required - the
+    //    drainer re-checks suppression before each send - but it makes Admin ->
+    //    Automation show "cancelled" instead of a list of rows that will quietly
+    //    refuse to send, and it cannot fail the request (returns a count).
+    await cancelQueueForEmail(email, "recipient unsubscribed");
 
     return NextResponse.json({ success: true, message: GENERIC_OK });
   } catch (error: any) {

@@ -13,6 +13,7 @@
  */
 
 import { COMPANY } from "./company";
+import { OFFER_LINES, OFFER_NUMBERS, OFFER_PUBLISH_NOTE } from "./automation/offer-facts";
 import { buildUnsubscribeUrl } from "./unsubscribe";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.neerzy.com";
@@ -121,24 +122,23 @@ function shell(
 </body></html>`;
 }
 /**
- * Footer block for MARKETING mail only (tips, previews, sequences).
+ * Footer INNER block for MARKETING mail only (tips, previews, sequences).
  *
- * It renders the unsubscribe link and nothing else: the postal address and the
- * "Neerzy" identity line are already printed by shell() from COMPANY
- * (lib/company.ts), so repeating them here would duplicate the address in every
- * marketing email.
+ * It renders the unsubscribe sentence + link and nothing else: the postal
+ * address and the "Neerzy" identity line are already printed by shell() from
+ * COMPANY (lib/company.ts), so repeating them here would duplicate the address
+ * in every marketing email. Pass it as shell()'s `footerExtra` (which supplies
+ * the surrounding paragraph), never as a full <p> of its own.
  *
  * Pair it with `sendEmail({ ..., marketing: true })`, which also adds the
  * machine-readable List-Unsubscribe / List-Unsubscribe-Post headers for the same
- * address. Plain-text emails can use `buildUnsubscribeUrl(email)` directly.
+ * address. Plain-text emails use `buildUnsubscribeUrl(email)` directly.
  */
 export function marketingFooter(email: string): string {
   const url = buildUnsubscribeUrl(email);
   return (
-    `<p style="margin:8px 0 0 0;font-size:11px;color:${MUTED};">` +
     `You are getting this because you asked for tips about your Google Business Profile. ` +
-    `<a href="${escapeHtml(url)}" style="color:${MUTED};">Unsubscribe</a>.` +
-    `</p>`
+    `<a href="${escapeHtml(url)}" style="color:${MUTED};">Unsubscribe</a>.`
   );
 }
 
@@ -278,6 +278,8 @@ export function auditReportEmailContent(report: {
   /** The roadmap's top actions, red flags first. */
   actions?: string[];
   reportUrl: string;
+  /** Free website preview builder. Defaults to /website-builder. */
+  previewUrl?: string | null;
 }): EmailContent {
   const business = safeDisplayName(report.businessName) || "your business";
   const score =
@@ -330,6 +332,16 @@ export function auditReportEmailContent(report: {
         actions.map((a) => `<li style="margin-bottom:4px;font-size:14px;">${escapeHtml(a)}</li>`).join("") +
         `</ul>`;
 
+  const websiteUrl = httpUrl(report.previewUrl, `${APP_URL}/website-builder`);
+  const websiteHtml =
+    `<p style="margin:18px 0 0 0;padding:14px 16px;background:#F7F9F8;border:1px solid #E1E8E4;border-radius:10px;color:${ACCENT};font-size:14px;">` +
+    `<strong>Want the website too?</strong> We build the page from your Google listing: the build and the preview cost nothing. ` +
+    `Publishing is the ${escapeHtml(OFFER_NUMBERS.publish)} domain, once, in your name - hosting is free for the first ${escapeHtml(
+      OFFER_NUMBERS.hostingFree
+    )}. ` +
+    `<a href="${escapeHtml(websiteUrl)}" style="color:${ACCENT};font-weight:700;">Build the free preview</a>` +
+    `</p>`;
+
   const bodyHtml =
     `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
     `<p style="margin:0 0 16px 0;color:${ACCENT};">Here is the audit you asked for - <strong>${escapeHtml(
@@ -338,7 +350,8 @@ export function auditReportEmailContent(report: {
     scoreHtml +
     sectionsHtml +
     actionsHtml +
-    `<p style="margin:0;color:${ACCENT};">The full report has every check, which ones are red, and the order to fix them in.</p>`;
+    `<p style="margin:0;color:${ACCENT};">The full report has every check, which ones are red, and the order to fix them in.</p>` +
+    websiteHtml;
 
   const footerExtra =
     "This link always opens your live report, so you can re-check it after making changes. If you did not request it, just ignore this email.";
@@ -381,6 +394,9 @@ export function auditReportEmailContent(report: {
       `View the full report: ${report.reportUrl}`,
       ``,
       "This link always opens your live report, so you can re-check it after making changes.",
+      ``,
+      `Want the website too? The build and preview are free; publishing is the ${OFFER_NUMBERS.publish} domain, once, in your name, and hosting is free for the first ${OFFER_NUMBERS.hostingFree}.`,
+      `Build the free preview: ${websiteUrl}`,
     ].join("\n"),
   };
 }
@@ -450,4 +466,306 @@ export function auditFollowupEmailContent(input: {
     ].join("\n"),
   };
 }
+
+/**
+ * G) AUTOMATION SEQUENCES - the one place the drip copy lives.
+ *
+ * One entry point (`sequenceEmailContent`) covers every step in
+ * lib/automation/sequences.ts, so the drainer never builds HTML and the copy for
+ * "day 3" cannot drift between the hot and warm plans. The step key decides the
+ * message; an unknown key, or a review step with no review link configured,
+ * returns null and the drainer skips the row instead of sending something vague.
+ *
+ * Rules the copy follows:
+ *  - money always comes from OFFER_FACTS (offer-facts.ts), never from a literal,
+ *  - nothing is claimed about the business that the audit did not measure: the
+ *    score, the rating and the review count are the only personal numbers used,
+ *  - nothing is claimed about how Google works that we cannot stand behind: no
+ *    "this is a ranking signal" promises, no "you will show up in search" -
+ *    advice only. Timing words stay vague ("recently"), because the drainer may
+ *    send a step days after the audit (a paused queue, a failed retry),
+ *  - every step is marketing mail, so every step carries the unsubscribe block
+ *    and the RFC 8058 headers (the drainer sends them with marketing: true).
+ */
+export interface SequenceEmailInput {
+  /** hot_d1 | hot_d3 | hot_d7 | warm_d2 | warm_d6 | review_d5 */
+  stepKey: string;
+  businessName?: string | null;
+  /** GBP audit score, 0-100. */
+  score?: number | null;
+  reviewCount?: number | null;
+  rating?: number | null;
+  /** FALSE = the listing has no website. null/undefined = never checked. */
+  hasWebsite?: boolean | null;
+  /** Live report link (carries the unlock token when the caller has one). */
+  reportUrl?: string | null;
+  /** Free website preview builder. */
+  previewUrl?: string | null;
+  /** Google review link. REQUIRED for review_d5 - no link, no email. */
+  reviewUrl?: string | null;
+  /** Recipient address, for the unsubscribe link. Marketing steps need it. */
+  email?: string | null;
+}
+
+/** Accepts only real http(s) URLs so a template can never emit `javascript:`. */
+function httpUrl(candidate: string | null | undefined, fallback: string): string {
+  const value = String(candidate || "").trim();
+  return /^https?:\/\/\S+$/i.test(value) ? value : fallback;
+}
+
+/** "4.8★ from 213 reviews" / "213 reviews" / "" - only what we actually know. */
+function reviewLine(rating: number | null, reviews: number | null): string {
+  if (rating !== null && reviews !== null && reviews > 0) {
+    return `${rating.toFixed(1)}\u2605 from ${reviews} reviews`;
+  }
+  if (reviews !== null && reviews > 0) return `${reviews} reviews`;
+  return "";
+}
+
+function priceListHtml(): string {
+  return (
+    `<ul style="margin:0 0 14px 0;padding-left:20px;color:${ACCENT};">` +
+    OFFER_LINES.map(
+      (line) => `<li style="margin-bottom:4px;font-size:14px;">${escapeHtml(line)}</li>`
+    ).join("") +
+    `</ul>`
+  );
+}
+
+export function sequenceEmailContent(input: SequenceEmailInput): EmailContent | null {
+  const step = String(input.stepKey || "").trim();
+  const business = safeDisplayName(input.businessName) || "your business";
+  const score =
+    typeof input.score === "number" && Number.isFinite(input.score)
+      ? Math.round(input.score)
+      : null;
+  const reviews =
+    typeof input.reviewCount === "number" && Number.isFinite(input.reviewCount)
+      ? Math.round(input.reviewCount)
+      : null;
+  const rating =
+    typeof input.rating === "number" && Number.isFinite(input.rating) ? input.rating : null;
+  const reportUrl = httpUrl(input.reportUrl, `${APP_URL}/gmb-audit-tool`);
+  const previewUrl = httpUrl(input.previewUrl, `${APP_URL}/website-builder`);
+  const email = String(input.email || "").trim();
+  const unsubHtml = email ? marketingFooter(email) : "";
+  const unsubText = email ? `Unsubscribe: ${buildUnsubscribeUrl(email)}` : "";
+  const scoreText = score === null ? "" : `${score}/100`;
+  const known = reviewLine(rating, reviews);
+
+  switch (step) {
+    // ── Day 1 (HOT): the first fixes ────────────────────────────────────────
+    case "hot_d1": {
+      const scoreLine =
+        score === null
+          ? `Recently you ran a free audit of <strong>${escapeHtml(business)}</strong> on Google.`
+          : `Recently your profile for <strong>${escapeHtml(business)}</strong> scored <strong>${scoreText}</strong>.`;
+
+      const bodyHtml =
+        `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">${scoreLine} A profile does not have to be perfect to bring in calls - it has to be complete and active.</p>` +
+        `<p style="margin:0 0 8px 0;color:${ACCENT};font-weight:700;">The three that move the needle first:</p>` +
+        `<ul style="margin:0 0 16px 0;padding-left:20px;color:${ACCENT};">` +
+        `<li style="margin-bottom:4px;font-size:14px;">Finish every field - hours, services, areas, attributes. A complete profile gives customers more to work with.</li>` +
+        `<li style="margin-bottom:4px;font-size:14px;">Add one real photo a week. Recent photos keep a listing looking open for business.</li>` +
+        `<li style="margin-bottom:4px;font-size:14px;">Answer every review, good or bad. Customers read the reply as much as the review.</li>` +
+        `</ul>` +
+        `<p style="margin:0;color:${ACCENT};">Your full list is in the report - it is live, so re-run it once you have made changes.</p>`;
+
+      return {
+        subject: subjectLine(
+          score === null
+            ? `${business}: where to start on Google`
+            : `${business}: your ${scoreText} profile - where to start`
+        ),
+        html: shell(`${business}: where to start`, bodyHtml, {
+          cta: { href: reportUrl, label: "Open your report" },
+          footerExtra: unsubHtml,
+        }),
+        text: [
+          "Hi there,",
+          ``,
+          score === null
+            ? `Recently you ran a free audit of ${textLine(business)} on Google.`
+            : `Recently your profile for ${textLine(business)} scored ${scoreText}.`,
+          ``,
+          `A profile does not have to be perfect to bring in calls - it has to be complete and active.`,
+          ``,
+          `The three that move the needle first:`,
+          `1. Finish every field - hours, services, areas, attributes.`,
+          `2. Add one real photo a week.`,
+          `3. Answer every review, good or bad.`,
+          ``,
+          `Your full report: ${reportUrl}`,
+          ...(unsubText ? [``, unsubText] : []),
+        ].join("\n"),
+      };
+    }
+
+    // ── Day 2 (WARM): what is already working ───────────────────────────────
+    case "warm_d2": {
+      const praise =
+        known
+          ? `A ${known} is a real asset - most local businesses never get there.`
+          : `You already have the hardest part: people who found you and left a review.`;
+      const bodyHtml =
+        `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">This is a short one. When we audited <strong>${escapeHtml(
+          business
+        )}</strong>, the profile had more going for it than most. ${praise}</p>` +
+        `<p style="margin:0 0 8px 0;color:${ACCENT};font-weight:700;">Two small things that usually help from here:</p>` +
+        `<ul style="margin:0 0 16px 0;padding-left:20px;color:${ACCENT};">` +
+        `<li style="margin-bottom:4px;font-size:14px;">Post something this week - a job, a photo, an offer. Regular activity keeps your profile looking current.</li>` +
+        `<li style="margin-bottom:4px;font-size:14px;">Reply to the reviews you have not answered yet. It takes ten minutes, and the reply is the part new customers read first.</li>` +
+        `</ul>` +
+        `<p style="margin:0;color:${ACCENT};">The report has the rest, including anything that changed since you ran it.</p>`;
+
+      return {
+        subject: subjectLine(`${business}: what is already working on Google`),
+        html: shell(`${business}: what is already working`, bodyHtml, {
+          cta: { href: reportUrl, label: "Open your report" },
+          footerExtra: unsubHtml,
+        }),
+        text: [
+          "Hi there,",
+          ``,
+          `A short one. When we audited ${textLine(business)}, the profile had more going for it than most. ${praise}`,
+          ``,
+          `Two small things that usually help from here:`,
+          `1. Post something this week - a job, a photo, an offer.`,
+          `2. Reply to the reviews you have not answered yet.`,
+          ``,
+          `The report has the rest: ${reportUrl}`,
+          ...(unsubText ? [``, unsubText] : []),
+        ].join("\n"),
+      };
+    }
+
+    // ── Day 3 (HOT): the missing website ────────────────────────────────────
+    case "hot_d3": {
+      const noSite = input.hasWebsite === false;
+      // Two versions, because "you have no website" is only true when the audit
+      // actually said so. has_website null means unknown, so the other wording
+      // has to work whether or not a site exists.
+      const opening = noSite
+        ? `Your Google listing does not link to a website yet. When somebody finds you on the map and there is nowhere to click, the next listing is one tap away.`
+        : `Your listing is doing the selling already. A one-page site that matches it gives people somewhere to land, and one place to read about the services you sell.`;
+      const heading = noSite
+        ? `${business}: nowhere to send your Google traffic`
+        : `${business}: a page that matches your listing`;
+
+      const bodyHtml =
+        `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">${escapeHtml(opening)}</p>` +
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">The page itself is the easy part: we build it for free from your Google listing, and you can look at it before deciding anything. ${escapeHtml(
+          OFFER_PUBLISH_NOTE
+        )}</p>` +
+        `<p style="margin:0;color:${ACCENT};">No card, no call. If it is useful, publish it. If not, close the tab.</p>`;
+
+      return {
+        subject: subjectLine(heading),
+        html: shell(heading, bodyHtml, {
+          cta: { href: previewUrl, label: "Build the free preview" },
+          footerExtra: unsubHtml,
+        }),
+        text: [
+          "Hi there,",
+          ``,
+          textLine(opening),
+          ``,
+          `The page itself is the easy part: we build it for free from your Google listing, and you can look at it before deciding anything. ${OFFER_PUBLISH_NOTE}`,
+          ``,
+          `No card, no call. If it is useful, publish it. If not, close the tab.`,
+          ``,
+          `Build the free preview: ${previewUrl}`,
+          ...(unsubText ? [``, unsubText] : []),
+        ].join("\n"),
+      };
+    }
+
+    // ── Day 6/7: what publishing actually costs ─────────────────────────────
+    // Same message for both plans: the price question does not change with the
+    // segment, and having one implementation means one number to correct.
+    case "hot_d7":
+    case "warm_d6": {
+      const bodyHtml =
+        `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">One last note on the website, then we will leave it. In plain numbers, this is what a site for <strong>${escapeHtml(
+          business
+        )}</strong> costs:</p>` +
+        priceListHtml() +
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">The build and the preview are the free part. The one-off payment is the <strong>${escapeHtml(
+          OFFER_NUMBERS.publish
+        )} domain</strong>, registered in your name - and hosting is free for the first ${escapeHtml(
+          OFFER_NUMBERS.hostingFree
+        )}, then ${escapeHtml(OFFER_NUMBERS.hostingMonthly)}, which you can stop whenever you like.</p>` +
+        `<p style="margin:0;color:${ACCENT};">If the answer is "not now", that is fine - the preview stays where you left it.</p>`;
+
+      return {
+        subject: subjectLine(`What a website for ${business} actually costs`),
+        html: shell(`What a website for ${business} actually costs`, bodyHtml, {
+          cta: { href: previewUrl, label: "Build the free preview" },
+          footerExtra: unsubHtml,
+        }),
+        text: [
+          "Hi there,",
+          ``,
+          `One last note on the website, then we will leave it. In plain numbers, this is what a site for ${textLine(
+            business
+          )} costs:`,
+          ...OFFER_LINES.map((line) => `- ${line}`),
+          ``,
+          `The build and the preview are the free part. The one-off payment is the ${OFFER_NUMBERS.publish} domain, registered in your name - and hosting is free for the first ${OFFER_NUMBERS.hostingFree}, then ${OFFER_NUMBERS.hostingMonthly}, which you can stop whenever you like.`,
+          ``,
+          `If the answer is "not now", that is fine - the preview stays where you left it.`,
+          ``,
+          `Build the free preview: ${previewUrl}`,
+          ...(unsubText ? [``, unsubText] : []),
+        ].join("\n"),
+      };
+    }
+
+    // ── Day 5 (everyone): the review ask ────────────────────────────────────
+    case "review_d5": {
+      // No configured review link = no email. Sending "leave us a review" with
+      // no button is worse than sending nothing, so the drainer skips the row.
+      const reviewUrl = httpUrl(input.reviewUrl, "");
+      if (!reviewUrl) return null;
+
+      const bodyHtml =
+        `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">You asked us for an audit of <strong>${escapeHtml(
+          business
+        )}</strong> a few days ago. Quick favour: did it tell you anything you did not already know?</p>` +
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">If it did, a short review of Neerzy helps other owners find it. Two lines is plenty - and if it did not, reply and tell us why.</p>`;
+
+      return {
+        subject: subjectLine("Quick favour - did the audit help?"),
+        html: shell("Quick favour - did the audit help?", bodyHtml, {
+          cta: { href: reviewUrl, label: "Leave a short review" },
+          // The review ask is marketing mail too, so it carries the same footer
+          // as every other step: this address can always opt out in one click.
+          footerExtra: unsubHtml,
+        }),
+        text: [
+          "Hi there,",
+          ``,
+          `You asked us for an audit of ${textLine(business)} a few days ago. Quick favour: did it tell you anything you did not already know?`,
+          ``,
+          `If it did, a short review of Neerzy helps other owners find it. Two lines is plenty - and if it did not, reply and tell us why.`,
+          ``,
+          `Leave a review: ${reviewUrl}`,
+          ...(unsubText ? [``, unsubText] : []),
+        ].join("\n"),
+      };
+    }
+  }
+
+  return null;
+}
+
+
+
+
+
 
