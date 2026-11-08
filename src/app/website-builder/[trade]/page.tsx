@@ -275,7 +275,7 @@ export default async function TradeLandingPage({
               </li>
             </ul>
             <Link href={ROUTES.WEBSITE_BUILDER} className="btn btn-primary">
-              Build My Website — Free Preview →
+              See My Free Preview →
             </Link>
           </div>
         </div>

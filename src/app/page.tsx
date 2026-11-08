@@ -873,7 +873,7 @@ export default function Page() {
             <ul className="build-list">
               <li>Pick your business — Neerzy reads it straight from Google.</li>
               <li>Connect WhatsApp once. One link, no app to download.</li>
-              <li>See what&apos;s free and take the name Neerzy picks for you.</li>
+              <li>Preview it free, then take the name Neerzy picks for you.</li>
               <li>Words, photos and reviews are already in — ten looks to choose from.</li>
               <li>Live in under a minute — on a paid plan, every new job keeps it updated by itself.</li>
             </ul>
@@ -882,17 +882,17 @@ export default function Page() {
           <div className="price-card">
             <div className="price-card-main">
               <span className="price-card-amount">FREE</span>
-              <span className="price-card-once">your website, built from your Google profile</span>
+              <span className="price-card-once">to preview your website, built from your Google profile</span>
             </div>
             <ul className="price-card-list">
-              <li>No setup fee — yours to keep.</li>
+              <li>No card needed — preview as often as you like.</li>
               <li>Your own domain, $19 once.</li>
               <li>First {HOSTING_FREE_DAYS} days of hosting free, then ${HOSTING_PRICE_USD}/month.</li>
             </ul>
             {/* Starts the real journey: account → find your business → connect
                 WhatsApp → name → build. /onboarding needs a session, so the
                 marketing CTA begins at signup. */}
-            <Link href="/signup" className="btn btn-primary">Build My Website — Free</Link>
+            <Link href="/signup" className="btn btn-primary">See My Free Preview</Link>
             {/* Secondary path for visitors who want the detail page first — the
                 conversion CTA above stays pointed at /signup. */}
             <p style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>

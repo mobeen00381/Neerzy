@@ -16,8 +16,8 @@
 //      time, so a landing page can never promise something the builder does
 //      not produce.
 //   2. Money claims are quoted from src/lib/website.ts by the page component
-//      (free build · $19 domain · 90 days free hosting · live sync on paid
-//      plans), never retyped per trade.
+//      (free preview · $19 own domain to publish · 90 days free hosting · live
+//      sync on paid plans), never retyped per trade.
 //
 // The `local-services` slug deliberately maps to the `generic` template: a
 // visitor searching "local business website builder" gets a real page, while
@@ -69,7 +69,7 @@ export const TRADE_LANDINGS: TradeLanding[] = [
       },
       {
         q: "What does the website cost?",
-        a: "Building and previewing is free. Publishing is $19 once for your own domain, and hosting is free for the first 90 days, then $10/month. New job photos and reviews keep the site updated automatically on a paid plan.",
+        a: "Previewing is free, with no account needed. Building and publishing the real site needs a free account and your own domain — $19 once, registered in your name — and hosting is free for the first 90 days, then $10/month. New job photos and reviews keep the site updated automatically on a paid plan.",
       },
     ],
     keywords: [
@@ -85,7 +85,7 @@ export const TRADE_LANDINGS: TradeLanding[] = [
     slug: "hvac",
     templateId: "hvac",
     h1: "Website Builder for HVAC Contractors",
-    metaTitle: "Website Builder for HVAC Contractors — Free | Neerzy",
+    metaTitle: "Website Builder for HVAC Contractors — Free Preview | Neerzy",
     metaDescription:
       "Build an HVAC website from your Google Business Profile in minutes. Preview free, publish for $19 on your own domain, 90 days of hosting free.",
     problem:
@@ -151,7 +151,7 @@ export const TRADE_LANDINGS: TradeLanding[] = [
     slug: "roofing",
     templateId: "roofing",
     h1: "Website Builder for Roofing Contractors",
-    metaTitle: "Website Builder for Roofing Contractors — Free | Neerzy",
+    metaTitle: "Website Builder for Roofing Contractors — Free Preview | Neerzy",
     metaDescription:
       "Build a roofing website from your Google Business Profile in minutes. Preview free, publish for $19, first 90 days of hosting free.",
     problem:
@@ -316,7 +316,7 @@ export const TRADE_LANDINGS: TradeLanding[] = [
     slug: "mechanic",
     templateId: "mechanic",
     h1: "Website Builder for Auto Repair Shops",
-    metaTitle: "Website Builder for Auto Repair Shops — Free | Neerzy",
+    metaTitle: "Website Builder for Auto Repair Shops — Free Preview | Neerzy",
     metaDescription:
       "Build a garage website from your Google Business Profile in minutes. Preview free, publish for $19, first 90 days of hosting free.",
     problem:

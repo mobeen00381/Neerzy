@@ -15,10 +15,12 @@ import PreviewWidget from "./PreviewWidget";
  * FAQPage) — separate scripts, matching /gmb-audit-tool.
  *
  * PRICING: the model is quoted from src/lib/website.ts so the copy can never
- * drift from billing — the build is FREE, the domain is $19 once, hosting is
- * free for the first HOSTING_FREE_DAYS days and then $HOSTING_PRICE_USD/month.
- * The old $99 early-adopter setup fee was retired. Live Google sync runs on
- * paid plans only (see WEBSITE_SYNC_ELIGIBLE_PLANS).
+ * drift from billing — the PREVIEW is free and needs no account; building and
+ * publishing the real site needs a free account plus the customer's own domain
+ * ($19 once for standard names, registered in their name; premium names cost
+ * more, with the price shown before purchase), and hosting is free for the
+ * first HOSTING_FREE_DAYS days then HOSTING_PRICE_USD/month. Live Google sync
+ * runs on paid plans only (see WEBSITE_SYNC_ELIGIBLE_PLANS).
  *
  * AEO STRUCTURE: the page is deliberately shaped as a question-shaped H2
  * ("Why Local Businesses & Trades Switch to Neerzy") with named, self-contained
@@ -56,15 +58,16 @@ export default function WebsiteBuilderPage() {
     "url": PAGE_URL,
     "name": "The Instant Google Business Profile Website Builder",
     "description":
-      "Build a free website from your Google Business Profile in 60s. Pulls in reviews, photos & hours. First 90 days hosting free. No coding needed.",
+      "Free preview of a website built from your Google Business Profile in 60s. Publish on your own domain for $19 once; 90 days hosting free.",
     "isPartOf": { "@type": "WebSite", "name": "Neerzy", "url": SITE_URL },
     "datePublished": "2026-09-22",
     "dateModified": "2026-10-16"
   };
 
   // Schema.org structured data - SoftwareApplication (the builder itself).
-  // Pricing is flat and honest: free build, $19 domain, 90 days free hosting.
-  // No aggregateRating — see the file header for why.
+  // Pricing is flat and honest: free preview, $19 own domain to publish,
+  // HOSTING_FREE_DAYS free hosting. No aggregateRating — see the file header
+  // for why.
   const softwareSchema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -73,13 +76,13 @@ export default function WebsiteBuilderPage() {
     "operatingSystem": "Web",
     "url": PAGE_URL,
     "description":
-      "A website builder for local service businesses that builds a site in one tap from a connected Google Business Profile and keeps it synced as the profile updates.",
+      "A website builder for local service businesses: preview a site built in one tap from a connected Google Business Profile, then publish it on your own domain. On a paid Neerzy plan it stays synced as the profile updates.",
     "offers": {
       "@type": "Offer",
       "price": "0.00",
       "priceCurrency": "USD",
-      "description": `Free website build with ${HOSTING_FREE_DAYS} days of free hosting. Optional custom domain for $19 once; hosting is then $${HOSTING_PRICE_USD}/month. Live Google sync requires a paid Neerzy plan.`,
-      "category": "Free build · paid hosting",
+      "description": `Free preview from your Google Business Profile. Building and publishing the real site needs a free account and your own domain: $19 once for standard names, registered in your name (premium names cost more, price shown before purchase). Hosting is free for the first ${HOSTING_FREE_DAYS} days, then $${HOSTING_PRICE_USD}/month. Live Google sync requires a paid Neerzy plan.`,
+      "category": "Free preview, paid publishing",
     },
     "publisher": { "@type": "Organization", "name": "Neerzy", "url": SITE_URL }
   };
@@ -96,8 +99,8 @@ export default function WebsiteBuilderPage() {
     }))
   };
 
-  const ctaLabel = "Build My Free Website";
-  const closingCtaLabel = "Build My Free Website";
+  const ctaLabel = "See My Free Preview";
+  const closingCtaLabel = "See My Free Preview";
 
   return (
     <>
@@ -144,9 +147,9 @@ export default function WebsiteBuilderPage() {
             </h1>
 
             <p style={{ fontSize: "var(--text-h3-size)", fontWeight: 600, color: "var(--color-text-primary)", marginBottom: "var(--space-2)" }}>
-              Turn your Google Business Profile into a fast, mobile-friendly website in 60 seconds —
-              pulling in your reviews, services, hours and job photos. Free setup with 90 days of free
-              hosting.
+              Turn your Google Business Profile into a fast, mobile-friendly website preview in 60
+              seconds — pulling in your reviews, services, hours and job photos. Previewing is free and
+              needs no account; publishing needs a free account and your own domain.
             </p>
 
             <p style={{ fontSize: "var(--text-body-size)", color: "var(--color-text-secondary)", marginBottom: "var(--space-5)" }}>
@@ -164,7 +167,7 @@ export default function WebsiteBuilderPage() {
               {ctaLabel} →
             </Link>
             <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
-              No credit card required • First {HOSTING_FREE_DAYS} days hosting free • Live in 60s
+              No credit card required • Free preview in 60s • First {HOSTING_FREE_DAYS} days hosting free
             </p>
             <p style={{ marginTop: "var(--space-2)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
               Previewing is free — publishing on your own domain is $19, once, registered in your name.
@@ -296,7 +299,7 @@ export default function WebsiteBuilderPage() {
         <div className="container">
           <div className="steps-header">
             <h2>How it works</h2>
-            <p>Four steps. The first two are free — the site only goes live once you add a domain.</p>
+            <p>Four steps. Previewing is free — the site only goes live once you add your own domain.</p>
           </div>
 
           <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "var(--space-4)", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
@@ -347,13 +350,12 @@ export default function WebsiteBuilderPage() {
         <div className="container">
           <div className="steps-header">
             <h2>Transparent, Zero-Friction Pricing</h2>
-            {/* "free Google Business website" is placed verbatim: it is the
-                fastest-growing query in the cluster (+900% YoY worldwide), and
-                the pricing intro is the chunk AI answers quote numbers from. */}
+            {/* The pricing intro is the chunk AI answers quote numbers from, so
+                the three figures lead it and match /pricing exactly. */}
             <p>
-              Three numbers: a free Google Business website build, a $19 domain, and $
-              {HOSTING_PRICE_USD}/month hosting after the first {HOSTING_FREE_DAYS} days — no setup
-              fee, nothing to design or code. They match our{" "}
+              Three numbers: a free preview, a $19 domain to publish, and $
+              {HOSTING_PRICE_USD}/month hosting after the first {HOSTING_FREE_DAYS} days — nothing to
+              design or code. They match our{" "}
               <Link href="/pricing" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
                 pricing page
               </Link>{" "}
@@ -364,18 +366,19 @@ export default function WebsiteBuilderPage() {
           <div className="price-card">
             <div className="price-card-main">
               <span className="price-card-amount">FREE</span>
-              <span className="price-card-once">to build &amp; preview your website</span>
+              <span className="price-card-once">to preview your website, built from your Google listing</span>
             </div>
-            {/* The three headline points lead the list — build, hosting, domain —
+            {/* The three headline points lead the list — preview, domain, hosting —
                 so the numbers a snippet or an AI answer would quote are the first
                 three things it reads. Everything after them is the fine print
                 that keeps the page honest. All figures come from
                 src/lib/website.ts so they can never drift from billing. */}
             <ul className="price-card-list">
               <li>
-                <strong>Website build: 100% free.</strong> No setup fees. Your site is generated from
-                your Google Business Profile — with the free Google Score audit, 5 Google posts and 5
-                review requests for 30 days — and you can preview it as often as you like, no card.
+                <strong>Preview: free, no account.</strong> Your site is generated from your Google
+                Business Profile — the free account also includes the Google Score audit, 5 Google
+                posts and 5 review requests for 30 days — and you can preview it as often as you
+                like, no card.
               </li>
               <li>
                 <strong>Hosting: first {HOSTING_FREE_DAYS} days free</strong>, then $
@@ -383,8 +386,9 @@ export default function WebsiteBuilderPage() {
                 and runs for the full {HOSTING_FREE_DAYS} days.
               </li>
               <li>
-                <strong>Custom domain: $19 one-time.</strong> Registered in your name, yours to keep.
-                This is the one payment that unlocks publishing — connecting a domain you already own
+                <strong>Your own domain: $19 once.</strong> Standard names cost $19, registered in
+                your name and yours to keep; premium names cost more, with the price shown before you
+                buy. Registering it is what unlocks publishing — connecting a domain you already own
                 isn&apos;t available yet.
               </li>
               <li>
@@ -404,8 +408,8 @@ export default function WebsiteBuilderPage() {
               {ctaLabel} →
             </Link>
             <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
-              No credit card required to build and preview. Domain and hosting costs apply to publish
-              and keep it live.
+              No credit card required to see the preview. Building and publishing need a free account
+              and your own domain; hosting is free for the first {HOSTING_FREE_DAYS} days.
             </p>
           </div>
         </div>

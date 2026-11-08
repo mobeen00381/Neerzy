@@ -26,7 +26,7 @@ const PLANS = [
       { text: 'Google posts + review asks', included: true },
       { text: 'Send jobs by WhatsApp or the app link', included: true },
       { text: 'Your own domain ($19 once)', included: true },
-      { text: 'Website builder — free build, no setup fee', included: true },
+      { text: 'Website builder — free preview, $19 to publish', included: true },
       { text: 'Website hosting — $10/month, first 90 days free', included: true },
       { text: 'Live website sync (new photos & reviews)', included: false },
       { text: 'Social posting', included: false },
@@ -44,7 +44,7 @@ const PLANS = [
       { text: '25 posts + 25 review requests per month', included: true },
       { text: 'Send jobs by WhatsApp or the app link', included: true },
       { text: 'Your own domain — $19 once', included: true },
-      { text: 'Website builder — free build, no setup fee', included: true },
+      { text: 'Website builder — free preview, $19 to publish', included: true },
       { text: 'Website hosting — $10/month, first 90 days free', included: true },
       { text: 'Live website sync — new photos & reviews', included: true },
       { text: 'AI post content, captions & voice notes', included: true },
@@ -61,7 +61,7 @@ const PLANS = [
     features: [
       { text: '60 posts + 60 review requests per month', included: true },
       { text: 'Your own domain — $19 once', included: true },
-      { text: 'Website builder — free build, no setup fee', included: true },
+      { text: 'Website builder — free preview, $19 to publish', included: true },
       { text: 'Website hosting — $10/month, first 90 days free', included: true },
       { text: 'Live website sync — new photos & reviews', included: true },
       { text: 'Facebook + Instagram content', included: true },
@@ -80,7 +80,7 @@ const PLANS = [
       { text: 'Up to 10 traders — each connects their own WhatsApp', included: true },
       { text: '300 posts + 300 review requests per month (30 per trader)', included: true },
       { text: 'One domain per client — $19 each', included: true },
-      { text: 'Website builder per client — free build, no setup fee', included: true },
+      { text: 'Website builder per client — free preview, $19 to publish', included: true },
       { text: 'Hosting $10/month per site, first 90 days free', included: true },
       { text: 'Live website sync — new photos & reviews per site', included: true },
       { text: 'Google + Facebook + Instagram posts for every trader', included: true },
@@ -94,7 +94,7 @@ const COMPARISON = [
   { feature: 'Google posts', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Review asks (WhatsApp, SMS or link)', free: '✓', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Your own domain ($19 once)', free: '✓', pro: '✓', growth: '✓', agency: '✓ up to 10' },
-  { feature: 'Website builder (free build)', free: '✓', pro: '✓', growth: '✓', agency: '✓ up to 10' },
+  { feature: 'Website builder (free preview)', free: '✓', pro: '✓', growth: '✓', agency: '✓ up to 10' },
   { feature: 'Live website sync (new photos & reviews)', free: '—', pro: '✓', growth: '✓', agency: '✓' },
   { feature: 'Website hosting ($10/month)', free: '90 days free', pro: '90 days free', growth: '90 days free', agency: '90 days free' },
   { feature: 'Voice notes', free: '—', pro: '✓', growth: '✓', agency: '✓' },
@@ -123,14 +123,14 @@ const ADD_ONS = [
     icon: '🖥️',
     name: 'Your website',
     price: 'FREE',
-    note: 'build — no setup fee',
+    note: 'preview — no card needed',
     bullets: [
       'Built from your Google listing',
-      'Live in about one minute',
+      'Preview in about one minute',
       'Live sync updates it on paid plans',
       'Google-ready and AI-ready',
     ],
-    cta: 'Build My Website — Free',
+    cta: 'See My Free Preview',
     href: '/onboarding',
     highlight: true,
   },
@@ -143,7 +143,7 @@ const ADD_ONS = [
       'Fast and always on',
       'Padlock (SSL) handled',
       'Cancel anytime',
-      'No setup fees, no surprises',
+      'Billed monthly, no surprises',
     ],
     cta: 'Start Free — 5 Posts',
     href: '/signup?plan=free',
@@ -173,7 +173,7 @@ const FAQS = [
   },
   {
     q: 'Is the website extra?',
-    a: 'The website build is free on every plan. Your own domain is $19 once, and hosting is $10/month with the first 90 days free. Live sync of new photos and reviews is included with Pro, Growth and Agency.'
+    a: 'The preview is free on every plan. Building and publishing need your own domain — $19 once for a standard name, registered in your name — and hosting is $10/month with the first 90 days free. Live sync of new photos and reviews is included with Pro, Growth and Agency.'
   },
   {
     q: 'Can I keep my existing website?',
@@ -382,7 +382,7 @@ export default function PricingPage() {
             ))}
           </div>
           <p style={{ textAlign: 'center', marginTop: 'var(--space-4)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
-            $19 is paid once per domain. The website build is free, and hosting is $10/month after 90 free days. Every plan starts free — your first 30 days include 5 Google posts and 5 review requests, no card required. After day 30, posting and live Google sync pause until you choose a plan — nothing is deleted. Live Google sync (new photos and reviews updating your site automatically) is included on paid plans.
+            $19 is paid once per domain, for a standard name — premium names cost more, with the price shown before you buy. The preview is free; building and publishing need a free account and your own domain, and hosting is $10/month after 90 free days. Every plan starts free — your first 30 days include 5 Google posts and 5 review requests, no card required. After day 30, posting and live Google sync pause until you choose a plan — nothing is deleted. Live Google sync (new photos and reviews updating your site automatically) is included on paid plans.
           </p>
         </div>
       </section>

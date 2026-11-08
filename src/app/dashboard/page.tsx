@@ -2173,7 +2173,7 @@ export default function Dashboard() {
                   <DomainPanel />
                 </div>
 
-                {/* Website — BUILD WEBSITE ($99 setup · $10/mo hosting) */}
+                {/* Website — free preview; $19 own domain to publish · $10/mo hosting after 90 free days */}
                 <WebsitePanel />
 
                 {/* Listing Details Card */}

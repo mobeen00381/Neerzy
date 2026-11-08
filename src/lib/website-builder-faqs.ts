@@ -11,11 +11,14 @@
 // here and both update together.
 //
 // PRICING NOTE: every money figure below must stay in step with
-// src/lib/website.ts (free build; $10/month hosting after the first 90 free
-// days) and /pricing ($19 one-time domain). Building and previewing is free on
-// every plan — the custom domain is what unlocks publishing. Live Google sync
-// (reviews + photos) runs on paid plans only: a free-plan site is built from
-// real data but never auto-updates.
+// src/lib/website.ts (free preview; $10/month hosting after the first 90 free
+// days) and /pricing ($19 one-time domain). The free, no-account step is the
+// on-page preview — a mock built from the visitor's Google listing. Building
+// and publishing the real site needs a free account AND the customer's own
+// domain: $19 once for standard names, registered in their name (premium names
+// cost more, price shown before purchase). Live Google sync (reviews + photos)
+// runs on paid plans only: a free-plan site is built from real data but never
+// auto-updates.
 
 export interface WebsiteBuilderFaq {
   question: string;
@@ -32,13 +35,15 @@ export const WEBSITE_BUILDER_FAQS: WebsiteBuilderFaq[] = [
       "Neerzy connects directly to your Google Business Profile, pulling your business name, address, hours, photos and customer reviews into a pre-designed trade template in under 60 seconds.",
   },
   {
-    // Phrased to answer the two highest-volume free-intent queries verbatim
+    // Phrased to answer the highest-volume free-intent queries
     // ("free google business website", 5,000/mo, +900% YoY) and the
-    // transition-intent cluster ("gmb to website free") that planners can't
-    // size but that converts hardest.
-    question: "Is building a website from my Google Business Profile free?",
+    // transition-intent cluster ("gmb to website free") — but as the PREVIEW
+    // question, because the preview (no account) is the only free step. The
+    // real build needs a free account and the customer's own domain first; see
+    // src/lib/automation/offer-facts.ts for the verified wording.
+    question: "Can I preview a website from my Google Business Profile for free?",
     answer:
-      "Yes. Turning your Google Business Profile (GMB) into a website is free to build and preview — no setup fee — and your free Google Business website includes the first 90 days of hosting free. After that, hosting is $10 per month. To publish it on your own domain you register that domain through Neerzy for $19, once, in your name.",
+      "Yes. The preview is free and needs no account: search your business name and Neerzy shows the website it would build from your Google Business Profile — your reviews, photos, hours and services already in — as often as you like. Building and publishing the real site needs a free Neerzy account and your own domain: $19 once for a standard name, registered in your name (premium names cost more, with the price shown before purchase). Hosting is free for the first 90 days, then $10 per month.",
   },
   {
     question: "Does the website update when I get new Google reviews or photos?",

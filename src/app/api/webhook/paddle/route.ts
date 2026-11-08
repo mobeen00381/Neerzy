@@ -346,8 +346,9 @@ export async function POST(req: Request) {
       if (serviceSource === 'website' && serviceWebsiteId) {
         const siteUpdate: any = {};
         if (isDomainPayment) {
-          // Domain payment ($19 once). The build itself is free — the old $99
-          // early-adopter setup fee was retired (see src/lib/website.ts).
+          // Domain payment ($19 once, registered in the customer's name).
+          // Registering the domain is what unlocks publishing; the preview is
+          // free (see src/lib/website.ts and src/lib/automation/offer-facts.ts).
           siteUpdate.setup_paid = true;
           siteUpdate.setup_paid_at = new Date().toISOString();
           siteUpdate.status = 'building';

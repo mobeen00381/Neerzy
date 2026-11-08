@@ -10,13 +10,15 @@ export const metadata: Metadata = {
   title: {
     absolute: "Google Business Profile Website Builder | Neerzy",
   },
-  // 141 chars: outcome first ("free website"), then the zero-friction facts
-  // (data pulled in for you, 90 days free hosting, no coding) that win the
-  // snippet. Deliberately says "pulls in" rather than "auto-syncs": the
-  // recurring sync is a paid-plan feature (WEBSITE_SYNC_ELIGIBLE_PLANS), and a
-  // snippet that overpromises it would set up a paywall disappointment.
+  // 139 chars: the free step (the preview) leads, then the two paid gates (your
+  // own domain to publish, hosting after the free window) so the snippet can
+  // never be read as "the build is free". Deliberately says "free preview"
+  // rather than "free website": the build needs an account plus a domain.
+  // Deliberately says "pulls in" rather than "auto-syncs" too: the recurring
+  // sync is a paid-plan feature (WEBSITE_SYNC_ELIGIBLE_PLANS), and a snippet
+  // that overpromises it would set up a paywall disappointment.
   description:
-    "Build a free website from your Google Business Profile in 60s. Pulls in reviews, photos & hours. First 90 days hosting free. No coding needed.",
+    "Free preview of a website built from your Google Business Profile in 60s. Publish on your own domain for $19 once; 90 days hosting free.",
   // Ordered by measured worldwide opportunity (Keyword Planner, Oct 2025–Sep
   // 2026): the two 5,000/mo head terms lead, then the exact-match phrase, then
   // the transition-intent "gmb to website" cluster that planners can't size but
@@ -62,7 +64,7 @@ export const metadata: Metadata = {
     url: PAGE_URL,
     title: "The Instant Google Business Profile Website Builder",
     description:
-      "Turn your Google Business Profile into a fast, mobile-friendly website in 60 seconds. Free setup with 90 days of free hosting.",
+      "See a free preview of a fast, mobile-friendly website built from your Google Business Profile in 60 seconds. Publish for $19 once; 90 days hosting free.",
     images: [
       {
         url: `${SITE_URL}/og-images/website-builder.jpg`,
@@ -77,7 +79,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Google Business Profile Website Builder",
     description:
-      "Build a free website from your Google Business Profile in 60 seconds. 90 days of hosting free, no coding needed.",
+      "Preview your Google Business Profile website free in 60 seconds. Publish on your own domain for $19 once, no coding needed.",
     images: [`${SITE_URL}/og-images/website-builder.jpg`],
   },
 };

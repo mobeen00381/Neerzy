@@ -3,14 +3,18 @@
  *
  * Pricing model (current — the old $99 early-adopter model was retired):
  *   Everyone gets the same deal:
- *     • Website build: FREE (no setup fee)
- *     • Custom domain: $19 once, registered in the customer's own name
+ *     • Preview: FREE, no account needed — a mock site built from the
+ *       visitor's Google listing on /website-builder
+ *     • Building + publishing the real site: needs a free account AND the
+ *       customer's own domain — $19 once for standard names, registered in
+ *       their name (premium names cost more, price shown before purchase)
  *     • Hosting: free for the first 90 days, then $10/month
  *
  *   Live Google sync (new reviews + profile photos) runs on PAID Neerzy plans
- *   only — see WEBSITE_SYNC_ELIGIBLE_PLANS. A free site is still built from the
- *   trader's real Google Business Profile data; it just does not auto-update.
- *   That keeps Google Places API calls to paying customers.
+ *   only — see WEBSITE_SYNC_ELIGIBLE_PLANS. A site on a non-paying plan is
+ *   still built from the trader's real Google Business Profile data; it just
+ *   does not auto-update. That keeps Google Places API calls to paying
+ *   customers.
  */
 
 export const HOSTING_PRICE_USD = 10;
