@@ -67,8 +67,11 @@ const TEST_SAMPLE = {
   businessName: "Sample Plumbing Co",
   score: 62,
   reviewCount: 213,
-  /** Left null so the copy shows "213 reviews" rather than an invented rating. */
-  rating: null as number | null,
+  /**
+   * A real rating, so the test email shows the typical form ("4.6★ from 213
+   * reviews") instead of the fallback wording used when a listing has none.
+   */
+  rating: 4.6 as number | null,
   hasWebsite: false,
 } as const;
 

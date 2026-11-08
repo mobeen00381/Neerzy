@@ -81,6 +81,18 @@ const SEGMENT_CLS: Record<string, string> = {
 
 const HEADING_CLS = "text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]";
 
+/**
+ * "Day 2 · what is already working" -> "what is already working".
+ *
+ * Step labels in lib/automation/sequences.ts carry their own day, which reads
+ * well in a queue row on its own. Where the day is already printed next to the
+ * label (the Plans card, the test-email picker) it would say "Day 2 · Day 2", so
+ * the day is stripped from the label and rendered once.
+ */
+function labelWithoutDay(label: string): string {
+  return label.replace(/^Day\s+\d+\s*·\s*/i, "");
+}
+
 /** Badge for one queue row status. */
 function StatusPill({ status }: { status: string }) {
   return (
@@ -254,7 +266,7 @@ export default function AutomationTab() {
         seen.add(step.key);
         list.push({
           key: step.key,
-          label: `${plan.segment} · day ${step.day} · ${step.label}`,
+          label: `${plan.segment} · day ${step.day} · ${labelWithoutDay(step.label)}`,
         });
       }
     }
@@ -436,9 +448,9 @@ export default function AutomationTab() {
             <CardContent className="p-5 space-y-3">
               <h2 className={HEADING_CLS}>Send a test email</h2>
               <p className="text-xs font-normal text-[#5B6B64]">
-                Renders one template with sample data (Sample Plumbing Co - score 62, 213 reviews, no
-                website) and mails it to you. No lead is touched, nothing is queued, one-click
-                unsubscribe included. Capped at 10 per hour.
+                Renders one template with sample data (Sample Plumbing Co - score 62, 4.6★, 213
+                reviews, no website) and mails it to you. No lead is touched, nothing is queued,
+                one-click unsubscribe included. Capped at 10 per hour.
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <select
@@ -563,7 +575,7 @@ export default function AutomationTab() {
                     <ul className="mt-2 space-y-1">
                       {plan.steps.map((step) => (
                         <li key={step.key} className="text-xs font-normal text-[#0A2E22]">
-                          <span className="font-bold">Day {step.day}</span> · {step.label}
+                          <span className="font-bold">Day {step.day}</span> · {labelWithoutDay(step.label)}
                         </li>
                       ))}
                     </ul>
@@ -632,11 +644,6 @@ export default function AutomationTab() {
                           >
                             {row.segment}
                           </span>
-                          {row.kind === "review" && (
-                            <span className="text-[10px] font-bold uppercase text-[#0F5132]">
-                              service
-                            </span>
-                          )}
                         </div>
                         <p className="text-[11px] font-normal text-[#5B6B64] mt-0.5">
                           {row.step_label} · {row.email}
