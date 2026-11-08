@@ -4,6 +4,7 @@ import { WEBSITE_BUILDER_FAQS } from "@/lib/website-builder-faqs";
 import { HOSTING_FREE_DAYS, HOSTING_PRICE_USD } from "@/lib/website";
 import { TRADE_LANDINGS } from "@/lib/website-builder-trades";
 import PreviewWidget from "./PreviewWidget";
+import PreviewJumpLink from "./PreviewJumpLink";
 
 /**
  * /website-builder — server component.
@@ -163,9 +164,9 @@ export default function WebsiteBuilderPage() {
           <PreviewWidget />
 
           <div style={{ marginTop: "var(--space-5)" }}>
-            <Link href="/signup?plan=free" className="btn btn-primary">
-              {ctaLabel} →
-            </Link>
+            {/* The free, no-account preview IS this page's widget — jump to the
+                search input instead of sending the visitor to signup. */}
+            <PreviewJumpLink className="btn btn-primary">{ctaLabel} →</PreviewJumpLink>
             <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
               No credit card required • Free preview in 60s • First {HOSTING_FREE_DAYS} days hosting free
             </p>
@@ -308,7 +309,7 @@ export default function WebsiteBuilderPage() {
                 1. Connect your profile
               </h3>
               <p style={{ color: "var(--color-text-secondary)" }}>
-                Sign in with the Google account connected to your{" "}
+                To build the real site, sign in with the Google account connected to your{" "}
                 <Link href={ROUTES.AUDIT_TOOL} style={{ color: "var(--color-primary)", fontWeight: 600 }}>
                   Google Business Profile
                 </Link>
@@ -381,9 +382,10 @@ export default function WebsiteBuilderPage() {
                 like, no card.
               </li>
               <li>
-                <strong>Hosting: first {HOSTING_FREE_DAYS} days free</strong>, then $
-                {HOSTING_PRICE_USD}/month, cancel anytime. The free window starts the day you publish
-                and runs for the full {HOSTING_FREE_DAYS} days.
+                <strong>Hosting: free for the first {HOSTING_FREE_DAYS} days after your site is built</strong>,
+                then ${HOSTING_PRICE_USD}/month, cancel anytime. The free window is counted from the day
+                your site is built — not from the day it goes live — and runs for the full{" "}
+                {HOSTING_FREE_DAYS} days.
               </li>
               <li>
                 <strong>Your own domain: $19 once.</strong> Standard names cost $19, registered in
@@ -400,13 +402,11 @@ export default function WebsiteBuilderPage() {
                 live, showing your last update.
               </li>
               <li>
-                <strong>After day 90 from publish:</strong> without payment your site goes offline
+                <strong>After day 90 of hosting:</strong> without payment your site goes offline
                 (not deleted) — you have 30 days to bring it back exactly as it was.
               </li>
             </ul>
-            <Link href="/signup?plan=free" className="btn btn-primary">
-              {ctaLabel} →
-            </Link>
+            <PreviewJumpLink className="btn btn-primary">{ctaLabel} →</PreviewJumpLink>
             <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
               No credit card required to see the preview. Building and publishing need a free account
               and your own domain; hosting is free for the first {HOSTING_FREE_DAYS} days.
@@ -465,9 +465,7 @@ export default function WebsiteBuilderPage() {
               Keep your photos flowing, your Google profile fresh, and your website current too.
             </p>
           </div>
-          <Link href="/signup?plan=free" className="btn btn-primary">
-            {closingCtaLabel} →
-          </Link>
+          <PreviewJumpLink className="btn btn-primary">{closingCtaLabel} →</PreviewJumpLink>
         </div>
       </section>
     </>

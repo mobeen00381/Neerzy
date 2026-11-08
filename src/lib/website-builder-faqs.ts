@@ -43,7 +43,7 @@ export const WEBSITE_BUILDER_FAQS: WebsiteBuilderFaq[] = [
     // src/lib/automation/offer-facts.ts for the verified wording.
     question: "Can I preview a website from my Google Business Profile for free?",
     answer:
-      "Yes. The preview is free and needs no account: search your business name and Neerzy shows the website it would build from your Google Business Profile — your reviews, photos, hours and services already in — as often as you like. Building and publishing the real site needs a free Neerzy account and your own domain: $19 once for a standard name, registered in your name (premium names cost more, with the price shown before purchase). Hosting is free for the first 90 days, then $10 per month.",
+      "Yes. The preview is free and needs no account: search your business name and Neerzy shows the website it would build from your Google Business Profile — your reviews, photos, hours and services already in — as often as you like. Building and publishing the real site needs a free Neerzy account and your own domain: $19 once for a standard name, registered in your name (premium names cost more, with the price shown before purchase). Hosting is free for the first 90 days after your site is built, then $10 per month.",
   },
   {
     question: "Does the website update when I get new Google reviews or photos?",
@@ -58,7 +58,7 @@ export const WEBSITE_BUILDER_FAQS: WebsiteBuilderFaq[] = [
   {
     question: "What happens after 90 days of hosting?",
     answer:
-      "Hosting is $10 per month after the first 90 free days. If you don't continue, your site goes offline — but nothing is deleted. You can bring it back exactly as it was within 30 days by reactivating hosting.",
+      "Hosting is $10 per month after the first 90 free days, counted from the day your site is built. If you don't continue, your site goes offline — but nothing is deleted. You can bring it back exactly as it was within 30 days by reactivating hosting.",
   },
   {
     question: "Is Neerzy a replacement for Google's discontinued business.site websites?",

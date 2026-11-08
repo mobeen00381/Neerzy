@@ -131,7 +131,9 @@ const ADD_ONS = [
       'Google-ready and AI-ready',
     ],
     cta: 'See My Free Preview',
-    href: '/onboarding',
+    // The preview needs no account — it is the search widget on
+    // /website-builder, so this links there directly instead of /onboarding.
+    href: '/website-builder#preview-search',
     highlight: true,
   },
   {

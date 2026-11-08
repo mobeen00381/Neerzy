@@ -179,7 +179,7 @@ export default async function TradeLandingPage({
             </p>
 
             <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
-              <Link href={ROUTES.WEBSITE_BUILDER} className="btn btn-primary">
+              <Link href={`${ROUTES.WEBSITE_BUILDER}#preview-search`} className="btn btn-primary">
                 See My Free Website Preview →
               </Link>
               {def && (
@@ -270,11 +270,11 @@ export default async function TradeLandingPage({
                 live, showing your last update.
               </li>
               <li>
-                <strong>After day 90 from publish:</strong> without payment your site goes offline
+                <strong>After day 90 of hosting:</strong> without payment your site goes offline
                 (not deleted) — you have 30 days to bring it back exactly as it was.
               </li>
             </ul>
-            <Link href={ROUTES.WEBSITE_BUILDER} className="btn btn-primary">
+            <Link href={`${ROUTES.WEBSITE_BUILDER}#preview-search`} className="btn btn-primary">
               See My Free Preview →
             </Link>
           </div>

@@ -17,8 +17,10 @@
  *   - the domain: $19 ONCE for standard names, registered in the customer's
  *     name (DOMAIN_PRICE_USD - the same value Porkbun registration is billed
  *     at). Premium names cost more, and the price is shown before purchase
- *   - hosting: free for the first 90 days after the site starts, then $10/month
- *     (HOSTING_FREE_DAYS / HOSTING_PRICE_USD)
+ *   - hosting: free for the first 90 days after the site is built, then $10/month
+ *     (HOSTING_FREE_DAYS / HOSTING_PRICE_USD). The clock starts when the build
+ *     starts (free_until is set in /api/websites), NOT at publish — so no copy
+ *     here may date the free window from the publish step
  *   - live Google sync needs a paid Neerzy plan, so it is NEVER promised in
  *     these emails (WEBSITE_SYNC_ELIGIBLE_PLANS gates it in the product)
  *
@@ -36,7 +38,8 @@ export const OFFER_FACTS = {
   buildFeeUsd: 0,
   /** One-off domain registration - the payment that unlocks the real build. */
   publishPriceUsd: DOMAIN_PRICE_USD,
-  /** Free hosting window that starts when the site goes live. */
+  /** Free hosting window — starts when the site is BUILT (free_until is set in
+   *  /api/websites at build start), not when it is published. */
   hostingFreeDays: HOSTING_FREE_DAYS,
   /** Hosting price AFTER the free window. */
   hostingMonthlyUsd: HOSTING_PRICE_USD,

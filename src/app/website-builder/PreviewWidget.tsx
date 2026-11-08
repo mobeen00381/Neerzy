@@ -174,6 +174,7 @@ export default function PreviewWidget() {
         >
           <Search size={18} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
           <input
+            id="preview-search"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);

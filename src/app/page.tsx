@@ -889,12 +889,12 @@ export default function Page() {
               <li>Your own domain, $19 once.</li>
               <li>First {HOSTING_FREE_DAYS} days of hosting free, then ${HOSTING_PRICE_USD}/month.</li>
             </ul>
-            {/* Starts the real journey: account → find your business → connect
-                WhatsApp → name → build. /onboarding needs a session, so the
-                marketing CTA begins at signup. */}
-            <Link href="/signup" className="btn btn-primary">See My Free Preview</Link>
-            {/* Secondary path for visitors who want the detail page first — the
-                conversion CTA above stays pointed at /signup. */}
+            {/* The free, no-account step is the preview widget on
+                /website-builder, so this CTA goes straight there and lands on
+                the search input (#preview-search) instead of /signup. */}
+            <Link href="/website-builder#preview-search" className="btn btn-primary">See My Free Preview</Link>
+            {/* Secondary path for visitors who want the detail page first —
+                same target, so no visitor is sent to a login-gated page. */}
             <p style={{ marginTop: 'var(--space-3)', fontSize: 'var(--text-small-size)', color: 'var(--color-text-secondary)' }}>
               <Link href="/website-builder" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
                 See how the website builder works →
