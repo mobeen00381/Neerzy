@@ -513,13 +513,19 @@ function httpUrl(candidate: string | null | undefined, fallback: string): string
   return /^https?:\/\/\S+$/i.test(value) ? value : fallback;
 }
 
-/** "4.8★ from 213 reviews" / "213 reviews" / "" - only what we actually know. */
+/**
+ * The review phrase: "4.8★ from 213 reviews" / "213 reviews" / "1 review" /
+ * "" - only what we actually know about the listing.
+ *
+ * It is written to be dropped into a sentence at any count ("Having {phrase} is
+ * a real asset"), so the singular is handled here instead of at every call site
+ * and a missing rating never leaves a dangling "from".
+ */
 function reviewLine(rating: number | null, reviews: number | null): string {
-  if (rating !== null && reviews !== null && reviews > 0) {
-    return `${rating.toFixed(1)}\u2605 from ${reviews} reviews`;
-  }
-  if (reviews !== null && reviews > 0) return `${reviews} reviews`;
-  return "";
+  if (reviews === null || reviews <= 0) return "";
+  const count = `${reviews} ${reviews === 1 ? "review" : "reviews"}`;
+  if (rating === null) return count;
+  return `${rating.toFixed(1)}\u2605 from ${count}`;
 }
 
 function priceListHtml(): string {
@@ -551,7 +557,7 @@ export function sequenceEmailContent(input: SequenceEmailInput): EmailContent | 
   const unsubHtml = email ? marketingFooter(email) : "";
   const unsubText = email ? `Unsubscribe: ${buildUnsubscribeUrl(email)}` : "";
   const scoreText = score === null ? "" : `${score}/100`;
-  const known = reviewLine(rating, reviews);
+  const reviewPhrase = reviewLine(rating, reviews);
 
   switch (step) {
     // ── Day 1 (HOT): the first fixes ────────────────────────────────────────
@@ -604,19 +610,38 @@ export function sequenceEmailContent(input: SequenceEmailInput): EmailContent | 
 
     // ── Day 2 (WARM): what is already working ───────────────────────────────
     case "warm_d2": {
-      const praise =
-        known
-          ? `A ${known} is a real asset - most local businesses never get there.`
-          : `You already have the hardest part: people who found you and left a review.`;
+      // Praise is earned by the numbers, not assumed: 50+ reviews and either no
+      // rating on file or a rating of 4.3+. Anything below that gets the facts
+      // only - and no line here compares the business to anyone else, because we
+      // have not measured anyone else.
+      const praiseWorthy =
+        reviews !== null && reviews >= 50 && (rating === null || rating >= 4.3);
+
+      // Only audit facts, and every part is optional: "has {phrase} and scored
+      // {score}/100", minus whatever is missing.
+      const facts =
+        reviewPhrase && score !== null
+          ? `Your profile has ${reviewPhrase} and scored ${scoreText}.`
+          : reviewPhrase
+            ? `Your profile has ${reviewPhrase}.`
+            : score !== null
+              ? `Your profile scored ${scoreText}.`
+              : `The audit did not record a score or a review count for your listing this time.`;
+
+      const praiseLine = `Having <strong>${escapeHtml(
+        reviewPhrase
+      )}</strong> is a real asset - people found you and took the time to say so.`;
+      const factsHtml = escapeHtml(facts);
+
       const bodyHtml =
         `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
         `<p style="margin:0 0 16px 0;color:${ACCENT};">This is a short one. When we audited <strong>${escapeHtml(
           business
-        )}</strong>, the profile had more going for it than most. ${praise}</p>` +
+        )}</strong>, this is what it found: ${praiseWorthy ? praiseLine : factsHtml}</p>` +
         `<p style="margin:0 0 8px 0;color:${ACCENT};font-weight:700;">Two small things that usually help from here:</p>` +
         `<ul style="margin:0 0 16px 0;padding-left:20px;color:${ACCENT};">` +
         `<li style="margin-bottom:4px;font-size:14px;">Post something this week - a job, a photo, an offer. Regular activity keeps your profile looking current.</li>` +
-        `<li style="margin-bottom:4px;font-size:14px;">Reply to the reviews you have not answered yet. It takes ten minutes, and the reply is the part new customers read first.</li>` +
+        `<li style="margin-bottom:4px;font-size:14px;">Reply to the reviews you have not answered yet. It only takes a few minutes, and the reply is the part new customers read first.</li>` +
         `</ul>` +
         `<p style="margin:0;color:${ACCENT};">The report has the rest, including anything that changed since you ran it.</p>`;
 
@@ -629,7 +654,10 @@ export function sequenceEmailContent(input: SequenceEmailInput): EmailContent | 
         text: [
           "Hi there,",
           ``,
-          `A short one. When we audited ${textLine(business)}, the profile had more going for it than most. ${praise}`,
+          `A short one. When we audited ${textLine(business)}, this is what it found:`,
+          praiseWorthy
+            ? `Having ${reviewPhrase} is a real asset - people found you and took the time to say so.`
+            : facts,
           ``,
           `Two small things that usually help from here:`,
           `1. Post something this week - a job, a photo, an offer.`,
