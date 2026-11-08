@@ -8,11 +8,16 @@
  * That is the whole point: an outbound email that quotes the wrong price is a
  * refund, a complaint and (in the UK) a pricing-transparency problem.
  *
- * Verified against src/app/website-builder/page.tsx and the billing constants:
- *   - website build + preview: FREE, no setup fee, no card to preview
- *   - publishing on a custom domain: $19 ONCE, registered in the customer's
- *     name (DOMAIN_PRICE_USD - the same value Porkbun registration is billed at)
- *   - hosting: free for the first 90 days, then $10/month
+ * Verified against the product as it actually works today:
+ *   - preview: the on-page preview on /website-builder is FREE and needs NO
+ *     account. It is a mock built from the visitor's Google listing - that is
+ *     the only free, no-account step in the funnel
+ *   - the real build: needs a FREE ACCOUNT and a PAID custom domain first, so
+ *     nothing here may say the build itself is free
+ *   - the domain: $19 ONCE for standard names, registered in the customer's
+ *     name (DOMAIN_PRICE_USD - the same value Porkbun registration is billed
+ *     at). Premium names cost more, and the price is shown before purchase
+ *   - hosting: free for the first 90 days after the site starts, then $10/month
  *     (HOSTING_FREE_DAYS / HOSTING_PRICE_USD)
  *   - live Google sync needs a paid Neerzy plan, so it is NEVER promised in
  *     these emails (WEBSITE_SYNC_ELIGIBLE_PLANS gates it in the product)
@@ -27,9 +32,9 @@ import { HOSTING_FREE_DAYS, HOSTING_PRICE_USD } from "@/lib/website";
 
 /** Numbers only - formatting lives in OFFER_NUMBERS below. */
 export const OFFER_FACTS = {
-  /** FREE build/preview: the $99 early-adopter setup fee was retired. */
+  /** No setup fee of any kind - the $99 early-adopter fee stays retired. */
   buildFeeUsd: 0,
-  /** One-off domain registration - the only payment that unlocks publishing. */
+  /** One-off domain registration - the payment that unlocks the real build. */
   publishPriceUsd: DOMAIN_PRICE_USD,
   /** Free hosting window that starts when the site goes live. */
   hostingFreeDays: HOSTING_FREE_DAYS,
@@ -42,7 +47,6 @@ export const OFFER_NUMBERS = {
   publish: `$${OFFER_FACTS.publishPriceUsd}`,
   hostingMonthly: `$${OFFER_FACTS.hostingMonthlyUsd}/month`,
   hostingFree: `${OFFER_FACTS.hostingFreeDays} days`,
-  build: "free",
 } as const;
 
 /** Public pages the automated emails link to. */
@@ -54,7 +58,7 @@ export function appBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL || "https://www.neerzy.com").replace(/\/+$/, "");
 }
 
-/** Where a lead can build a free preview of their own site. */
+/** Where a lead can preview a mock of their own site - free, no account. */
 export function websitePreviewUrl(): string {
   return `${appBaseUrl()}${WEBSITE_PREVIEW_PATH}`;
 }
@@ -62,20 +66,26 @@ export function websitePreviewUrl(): string {
 /**
  * The three-line offer, plain text. Used by every "here is what it costs"
  * paragraph so HTML and text versions cannot disagree.
+ *
+ * Only the preview is free and account-free. The real build needs a free
+ * account plus a paid domain, so no line here may call the build free.
  */
 export const OFFER_LINES: readonly string[] = [
-  `Website build: free - no setup fee, no card to preview it.`,
-  `Publish on your own domain: ${OFFER_NUMBERS.publish} once, registered in your name.`,
-  `Hosting: free for the first ${OFFER_NUMBERS.hostingFree}, then ${OFFER_NUMBERS.hostingMonthly}.`,
+  `Preview a site made from your Google listing: free, no account needed.`,
+  `To build and publish the real site you register your own domain: ${OFFER_NUMBERS.publish} once for standard names, in your name.`,
+  `Hosting is free for the first ${OFFER_NUMBERS.hostingFree}, then ${OFFER_NUMBERS.hostingMonthly}.`,
 ] as const;
 
 /**
- * The one sentence that must never be dropped: publishing is the paid step, and
- * the price is a one-off domain registration rather than a subscription trap.
+ * The one paragraph that must never be dropped: the free, no-account step is the
+ * preview; the real build starts with the paid domain, registered in the
+ * customer's name (premium names cost more, price shown before purchase).
  */
 export const OFFER_PUBLISH_NOTE =
-  `The build and the preview cost nothing. The single payment is the ${OFFER_NUMBERS.publish} ` +
-  `domain, once, in your name - hosting is free for the first ${OFFER_NUMBERS.hostingFree}.`;
+  `The preview is free and needs no account. To build and publish the real site you need a free ` +
+  `account and your own domain: ${OFFER_NUMBERS.publish} once for standard names, in your name ` +
+  `(premium names cost more, and the price is shown before you buy). Hosting is free for the first ` +
+  `${OFFER_NUMBERS.hostingFree}, then ${OFFER_NUMBERS.hostingMonthly}.`;
 
 /** Where a happy lead is asked to leave a review. Empty string = not configured. */
 export function reviewInviteUrl(): string {

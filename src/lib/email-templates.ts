@@ -13,7 +13,7 @@
  */
 
 import { COMPANY } from "./company";
-import { OFFER_LINES, OFFER_NUMBERS, OFFER_PUBLISH_NOTE } from "./automation/offer-facts";
+import { OFFER_LINES, OFFER_PUBLISH_NOTE } from "./automation/offer-facts";
 import { buildUnsubscribeUrl } from "./unsubscribe";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.neerzy.com";
@@ -335,11 +335,10 @@ export function auditReportEmailContent(report: {
   const websiteUrl = httpUrl(report.previewUrl, `${APP_URL}/website-builder`);
   const websiteHtml =
     `<p style="margin:18px 0 0 0;padding:14px 16px;background:#F7F9F8;border:1px solid #E1E8E4;border-radius:10px;color:${ACCENT};font-size:14px;">` +
-    `<strong>Want the website too?</strong> We build the page from your Google listing: the build and the preview cost nothing. ` +
-    `Publishing is the ${escapeHtml(OFFER_NUMBERS.publish)} domain, once, in your name - hosting is free for the first ${escapeHtml(
-      OFFER_NUMBERS.hostingFree
-    )}. ` +
-    `<a href="${escapeHtml(websiteUrl)}" style="color:${ACCENT};font-weight:700;">Build the free preview</a>` +
+    `<strong>Want the website too?</strong> We can build you a site from your Google listing. ${escapeHtml(
+      OFFER_PUBLISH_NOTE
+    )} ` +
+    `<a href="${escapeHtml(websiteUrl)}" style="color:${ACCENT};font-weight:700;">See your site preview</a>` +
     `</p>`;
 
   const bodyHtml =
@@ -395,8 +394,8 @@ export function auditReportEmailContent(report: {
       ``,
       "This link always opens your live report, so you can re-check it after making changes.",
       ``,
-      `Want the website too? The build and preview are free; publishing is the ${OFFER_NUMBERS.publish} domain, once, in your name, and hosting is free for the first ${OFFER_NUMBERS.hostingFree}.`,
-      `Build the free preview: ${websiteUrl}`,
+      `Want the website too? We can build you a site from your Google listing. ${OFFER_PUBLISH_NOTE}`,
+      `See your site preview: ${websiteUrl}`,
     ].join("\n"),
   };
 }
@@ -685,15 +684,15 @@ export function sequenceEmailContent(input: SequenceEmailInput): EmailContent | 
       const bodyHtml =
         `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
         `<p style="margin:0 0 16px 0;color:${ACCENT};">${escapeHtml(opening)}</p>` +
-        `<p style="margin:0 0 16px 0;color:${ACCENT};">The page itself is the easy part: we build it for free from your Google listing, and you can look at it before deciding anything. ${escapeHtml(
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">The page itself is the easy part: nothing is built or charged until you decide you want it. ${escapeHtml(
           OFFER_PUBLISH_NOTE
         )}</p>` +
-        `<p style="margin:0;color:${ACCENT};">No card, no call. If it is useful, publish it. If not, close the tab.</p>`;
+        `<p style="margin:0;color:${ACCENT};">The preview needs no card and no call. If it is useful, publish it. If not, close the tab.</p>`;
 
       return {
         subject: subjectLine(heading),
         html: shell(heading, bodyHtml, {
-          cta: { href: previewUrl, label: "Build the free preview" },
+          cta: { href: previewUrl, label: "See your site preview" },
           footerExtra: unsubHtml,
         }),
         text: [
@@ -701,11 +700,11 @@ export function sequenceEmailContent(input: SequenceEmailInput): EmailContent | 
           ``,
           textLine(opening),
           ``,
-          `The page itself is the easy part: we build it for free from your Google listing, and you can look at it before deciding anything. ${OFFER_PUBLISH_NOTE}`,
+          `The page itself is the easy part: nothing is built or charged until you decide you want it. ${OFFER_PUBLISH_NOTE}`,
           ``,
-          `No card, no call. If it is useful, publish it. If not, close the tab.`,
+          `The preview needs no card and no call. If it is useful, publish it. If not, close the tab.`,
           ``,
-          `Build the free preview: ${previewUrl}`,
+          `See your site preview: ${previewUrl}`,
           ...(unsubText ? [``, unsubText] : []),
         ].join("\n"),
       };
@@ -716,23 +715,20 @@ export function sequenceEmailContent(input: SequenceEmailInput): EmailContent | 
     // segment, and having one implementation means one number to correct.
     case "hot_d7":
     case "warm_d6": {
+      const closing = `If the answer is "not now", that is fine - you can look at the preview again whenever you want.`;
       const bodyHtml =
         `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
         `<p style="margin:0 0 16px 0;color:${ACCENT};">One last note on the website, then we will leave it. In plain numbers, this is what a site for <strong>${escapeHtml(
           business
         )}</strong> costs:</p>` +
         priceListHtml() +
-        `<p style="margin:0 0 16px 0;color:${ACCENT};">The build and the preview are the free part. The one-off payment is the <strong>${escapeHtml(
-          OFFER_NUMBERS.publish
-        )} domain</strong>, registered in your name - and hosting is free for the first ${escapeHtml(
-          OFFER_NUMBERS.hostingFree
-        )}, then ${escapeHtml(OFFER_NUMBERS.hostingMonthly)}, which you can stop whenever you like.</p>` +
-        `<p style="margin:0;color:${ACCENT};">If the answer is "not now", that is fine - the preview stays where you left it.</p>`;
+        `<p style="margin:0 0 16px 0;color:${ACCENT};">That is the whole list. The preview is the free, no-account step - publishing starts with your own domain, and the domain stays yours. Hosting you can stop whenever you like.</p>` +
+        `<p style="margin:0;color:${ACCENT};">${escapeHtml(closing)}</p>`;
 
       return {
         subject: subjectLine(`What a website for ${business} actually costs`),
         html: shell(`What a website for ${business} actually costs`, bodyHtml, {
-          cta: { href: previewUrl, label: "Build the free preview" },
+          cta: { href: previewUrl, label: "See your site preview" },
           footerExtra: unsubHtml,
         }),
         text: [
@@ -743,11 +739,11 @@ export function sequenceEmailContent(input: SequenceEmailInput): EmailContent | 
           )} costs:`,
           ...OFFER_LINES.map((line) => `- ${line}`),
           ``,
-          `The build and the preview are the free part. The one-off payment is the ${OFFER_NUMBERS.publish} domain, registered in your name - and hosting is free for the first ${OFFER_NUMBERS.hostingFree}, then ${OFFER_NUMBERS.hostingMonthly}, which you can stop whenever you like.`,
+          `That is the whole list. The preview is the free, no-account step - publishing starts with your own domain, and the domain stays yours. Hosting you can stop whenever you like.`,
           ``,
-          `If the answer is "not now", that is fine - the preview stays where you left it.`,
+          closing,
           ``,
-          `Build the free preview: ${previewUrl}`,
+          `See your site preview: ${previewUrl}`,
           ...(unsubText ? [``, unsubText] : []),
         ].join("\n"),
       };

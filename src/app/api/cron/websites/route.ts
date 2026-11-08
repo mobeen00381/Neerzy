@@ -96,8 +96,7 @@ export async function POST(req: Request) {
           `from your Neerzy dashboard → Account → Website. Your site and content are saved — nothing is lost. 🌐`
         : `🌐 *Hosting starts soon — ${siteName}*\n\n` +
           `Hi ${profile?.business_name || "there"}! Your free website hosting ends on ${expiryDate}. ` +
-          `After that, hosting is just *$${HOSTING_PRICE_USD}/month* — you can set it up from your dashboard → Account → Website. ` +
-          `Your $99 setup fee stays waived as an early adopter. 🎉`;
+          `After that, hosting is just *$${HOSTING_PRICE_USD}/month* — you can set it up from your dashboard → Account → Website.`;
 
       try {
         await sendMetaText({ to, body: message });
