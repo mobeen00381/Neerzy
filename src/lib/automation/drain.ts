@@ -49,6 +49,7 @@ import {
 } from "@/lib/automation/guards";
 import { stepByKey, type SequenceStep } from "@/lib/automation/sequences";
 import { makeUnlockToken } from "@/lib/report-unlock";
+import { effectiveHasWebsite } from "@/lib/website-signal";
 
 /** Send attempts before a row is parked as "failed" (admin can re-enrol). */
 export const MAX_ATTEMPTS = 3;
@@ -345,7 +346,10 @@ async function processRow(row: WorkRow, ctx: RowContext): Promise<DrainOutcome> 
   // A website-offer email to a business that already has a website asks a
   // question we know the answer to. Only a measured `true` skips the step -
   // null means "never checked", not "none", and an unchecked lead still gets it.
-  if (lead.has_website === true && WEBSITE_OFFER_STEPS.has(step.key)) {
+  // A social page / link-in-bio stored as `website` counts as "no website"
+  // (lib/website-signal.ts), so those leads still receive the offer.
+  const hasWebsite = effectiveHasWebsite(lead.has_website, lead.website);
+  if (hasWebsite === true && WEBSITE_OFFER_STEPS.has(step.key)) {
     return close("skipped", "lead already has a website");
   }
 
@@ -355,7 +359,7 @@ async function processRow(row: WorkRow, ctx: RowContext): Promise<DrainOutcome> 
     score: typeof lead.audit_score === "number" ? lead.audit_score : null,
     reviewCount: typeof lead.review_count === "number" ? lead.review_count : null,
     rating: typeof lead.rating === "number" ? Number(lead.rating) : null,
-    hasWebsite: typeof lead.has_website === "boolean" ? lead.has_website : null,
+    hasWebsite,
     reportUrl: reportUrlFor(lead),
     previewUrl: websitePreviewUrl(),
     reviewUrl: reviewInviteUrl(),
@@ -604,7 +608,7 @@ export async function drainQueue(options: DrainOptions = {}): Promise<DrainResul
   const { data: leadRows, error: leadError } = await supabase
     .from("leads")
     .select(
-      "id, business_name, status, audit_score, has_website, review_count, rating, marketing_paused, place_id"
+      "id, business_name, status, audit_score, has_website, website, review_count, rating, marketing_paused, place_id"
     )
     .in("id", leadIds);
 

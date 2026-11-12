@@ -23,6 +23,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { redact } from "@/lib/email";
 import { makeUnlockToken } from "@/lib/report-unlock";
 import { normalizePhone, phoneColumns } from "@/lib/phone";
+import { isSocialOrPlaceholderUrl } from "@/lib/website-signal";
 import {
   CONSENT_PURPOSE_MARKETING,
   type ConsentChannel,
@@ -179,6 +180,10 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
     // builder used (0 when Places reported none), and a missing website is a
     // real "has no website" signal, not an unknown.
     const website = String(input.website || "").trim() || null;
+    // A social page or link-in-bio is not a website the owner controls, so it
+    // counts as "no website" for priority + automation while `website` keeps
+    // the URL Google published (the admin can still open it).
+    const hasWebsite = Boolean(website) && !isSocialOrPlaceholderUrl(website);
     const reviewCount =
       typeof input.reviewCount === "number" && Number.isFinite(input.reviewCount)
         ? Math.round(input.reviewCount)
@@ -209,7 +214,7 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
         // Re-auditing refreshes the signals too: a website added since the last
         // scan (or reviews earned since) must move the lead's priority.
         website,
-        has_website: Boolean(website),
+        has_website: hasWebsite,
         review_count: reviewCount,
         rating,
         updated_at: new Date().toISOString(),
@@ -248,7 +253,7 @@ export async function captureAuditLead(input: AuditLeadInput): Promise<CaptureAu
         audit_score: auditScore,
         report_link: reportLink,
         website,
-        has_website: Boolean(website),
+        has_website: hasWebsite,
         review_count: reviewCount,
         rating,
         phone_e164: normalized.e164,

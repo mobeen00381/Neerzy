@@ -25,6 +25,7 @@ import {
 import { adminFetch } from "@/components/admin/api";
 import { EmptyState, PriorityBadge, SourceBadge, Spinner, fmtDateTime } from "@/components/admin/ui";
 import type { AdminLead, LeadDetail } from "@/lib/admin-types";
+import { isSocialOrPlaceholderUrl } from "@/lib/website-signal";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
 
@@ -283,6 +284,9 @@ export default function LeadDrawer({
   // "international" branch); fall back to the raw phone + the landline warning.
   const wa = lead ? whatsappInfo(lead.phone_e164 || lead.phone) : null;
   const websiteLink = lead ? websiteHref(lead.website) : null;
+  // A social profile / link-in-bio is not a website (lib/website-signal.ts).
+  // Say so, but keep the URL openable - the admin may want to check it.
+  const socialWebsite = isSocialOrPlaceholderUrl(lead?.website);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -426,7 +430,23 @@ export default function LeadDrawer({
                   </div>
                   <p className="break-all">
                     <span className="font-bold">Website:</span>{" "}
-                    {websiteLink ? (
+                    {socialWebsite ? (
+                      <>
+                        <span className="text-[#9B1C1C]">No (social page)</span>{" "}
+                        {websiteLink ? (
+                          <a
+                            href={websiteLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#0F5132] hover:underline"
+                          >
+                            {lead.website}
+                          </a>
+                        ) : (
+                          lead.website
+                        )}
+                      </>
+                    ) : websiteLink ? (
                       <a
                         href={websiteLink}
                         target="_blank"

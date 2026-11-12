@@ -30,6 +30,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { redact } from "@/lib/email";
 import { getLeadPriority, type LeadPrioritySignals } from "@/lib/lead-priority";
+import { effectiveHasWebsite } from "@/lib/website-signal";
 import { normalizeEmail } from "@/lib/unsubscribe";
 import { checkMarketingConsent, checkSuppressionStrict, isStopStatus } from "@/lib/automation/guards";
 import { planForSegment, type SequenceSegment } from "@/lib/automation/sequences";
@@ -140,7 +141,7 @@ export async function enrollLead(input: EnrollLeadInput): Promise<EnrollResult> 
     const { data: leadRow, error: leadError } = await supabase
       .from("leads")
       .select(
-        "id,email,status,marketing_paused,sequence_enrolled_at,audit_score,has_website,review_count,rating"
+        "id,email,status,marketing_paused,sequence_enrolled_at,audit_score,has_website,website,review_count,rating"
       )
       .eq("id", leadId)
       .maybeSingle();
@@ -184,10 +185,11 @@ export async function enrollLead(input: EnrollLeadInput): Promise<EnrollResult> 
     }
 
     // Segment from the stored audit signals - the same function the leads table
-    // uses for its badge, so the plan and the badge can never disagree.
+    // uses for its badge, so the plan and the badge can never disagree. A
+    // social page / link-in-bio stored as `website` counts as "no website".
     const signals: LeadPrioritySignals = {
       audit_score: lead.audit_score ?? null,
-      hasWebsite: typeof lead.has_website === "boolean" ? lead.has_website : null,
+      hasWebsite: effectiveHasWebsite(lead.has_website, lead.website),
       reviewCount: lead.review_count ?? null,
       rating: lead.rating ?? null,
     };

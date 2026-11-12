@@ -21,6 +21,7 @@ import {
 } from "@/lib/admin-server";
 import type { AdminLead, LeadActivity, LeadAutomationState } from "@/lib/admin-types";
 import { getLeadPriority } from "@/lib/lead-priority";
+import { effectiveHasWebsite } from "@/lib/website-signal";
 import { loadQueueRows } from "@/lib/automation/admin-view";
 import { cancelQueueForLead, enrollLead } from "@/lib/automation/enroll";
 import { isStopStatus } from "@/lib/automation/guards";
@@ -71,8 +72,9 @@ function toLead(r: any): AdminLead {
     report_link: r.report_link || null,
     website: r.website || null,
     // NULL from the DB stays NULL (unknown) - coercing it to false would
-    // claim "no website" for every lead that was never audited.
-    hasWebsite: typeof r.has_website === "boolean" ? r.has_website : null,
+    // claim "no website" for every lead that was never audited. A social page
+    // or link-in-bio is not a real website (lib/website-signal.ts).
+    hasWebsite: effectiveHasWebsite(r.has_website, r.website),
     reviewCount: numberOrNull(r.review_count),
     rating: numberOrNull(r.rating),
   };

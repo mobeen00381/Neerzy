@@ -8,6 +8,7 @@ import {
   getAllAuthEmails,
 } from "@/lib/admin-server";
 import { getLeadPriority } from "@/lib/lead-priority";
+import { effectiveHasWebsite } from "@/lib/website-signal";
 
 function toCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
   const esc = (v: string | number | null | undefined) => {
@@ -86,11 +87,14 @@ export async function GET(req: Request) {
     const { data: leads } = await supabase
       .from("leads").select("*").order("created_at", { ascending: false });
     const rows = (leads || []).map((l: any) => {
+      // A social page / link-in-bio stored as `website` is "no real website"
+      // (lib/website-signal.ts), exactly as the Leads table renders it.
+      const hasWebsite = effectiveHasWebsite(l.has_website, l.website);
       // Same helper as the Leads table, so an exported lead ranks exactly like
       // the badge the admin saw on screen.
       const priority = getLeadPriority({
         audit_score: typeof l.audit_score === "number" ? l.audit_score : null,
-        hasWebsite: typeof l.has_website === "boolean" ? l.has_website : null,
+        hasWebsite,
         reviewCount: l.review_count === null || l.review_count === undefined ? null : Number(l.review_count),
         rating: l.rating === null || l.rating === undefined ? null : Number(l.rating),
       });
@@ -107,7 +111,7 @@ export async function GET(req: Request) {
         l.created_at || "",
         // The URL when we have one, otherwise the yes/no verdict, otherwise
         // empty = never checked.
-        l.website || (l.has_website === false ? "no" : ""),
+        l.website || (hasWebsite === false ? "no" : ""),
         l.review_count === null || l.review_count === undefined ? "" : l.review_count,
         l.rating === null || l.rating === undefined ? "" : l.rating,
         `${priority.level.toUpperCase()} (${priority.score})`,

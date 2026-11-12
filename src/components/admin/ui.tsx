@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import type { ReactNode } from "react";
 import { Loader2, Inbox } from "lucide-react";
 import type { LeadPriority } from "@/lib/lead-priority";
+import { isSocialOrPlaceholderUrl } from "@/lib/website-signal";
 
 export function Spinner({ label }: { label?: string }) {
   return (
@@ -122,8 +123,10 @@ export function PriorityBadge({ priority }: { priority?: LeadPriority | null }) 
 
 /**
  * Audit website verdict. "Yes" links out when we kept the URL, "No" is the
- * audit's finding, "-" means the listing was never checked (unknown, never
- * assumed to be "No").
+ * audit's finding, "No (social page)" means the URL Google published is only a
+ * social profile / link-in-bio (lib/website-signal.ts) - it is still linked so
+ * the admin can open it - and "-" means the listing was never checked (unknown,
+ * never assumed to be "No").
  */
 export function WebsiteCell({
   website,
@@ -132,12 +135,29 @@ export function WebsiteCell({
   website?: string | null;
   hasWebsite?: boolean | null;
 }) {
+  const href = website
+    ? /^https?:\/\//i.test(website)
+      ? website
+      : `https://${website}`
+    : null;
+
+  if (isSocialOrPlaceholderUrl(website)) {
+    const label = "No (social page)";
+    if (!href) return <span className="text-xs font-bold text-[#9B1C1C]">{label}</span>;
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={website || href}
+        className="text-xs font-bold text-[#9B1C1C] hover:underline"
+      >
+        {label}
+      </a>
+    );
+  }
+
   if (hasWebsite === true) {
-    const href = website
-      ? /^https?:\/\//i.test(website)
-        ? website
-        : `https://${website}`
-      : null;
     if (!href) return <span className="text-xs font-bold text-[#0F5132]">Yes</span>;
     return (
       <a

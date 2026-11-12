@@ -13,6 +13,7 @@ import { checkSuppressionStrict } from "@/lib/automation/guards";
 import { enrollLead } from "@/lib/automation/enroll";
 import { makeUnlockToken } from "@/lib/report-unlock";
 import { sendMetaTemplate } from "@/lib/whatsapp";
+import { isSocialOrPlaceholderUrl } from "@/lib/website-signal";
 
 /**
  * Optional layer of the audit funnel: "send me this report" (email / WhatsApp).
@@ -93,12 +94,20 @@ function reportSummaryFromCache(placeId: string): ReportSummary {
   // The cache holds the FULL report (teasing happens on the way out), and the
   // Local SEO "website" finding is built straight from place.website:
   // pass = a site is linked, fail = none. Anything else stays unknown (null).
+  // A pass whose linked URL is a social page / link-in-bio is NOT a website -
+  // the same rule leads.has_website uses (lib/website-signal.ts), so the
+  // "Want the website too?" block is not withheld from those listings.
   const findings: any[] = Array.isArray(report?.sections?.local_seo?.findings)
     ? report.sections.local_seo.findings
     : [];
   const websiteFinding = findings.find((finding) => String(finding?.id || "") === "website");
+  const linkedWebsite = typeof report?.site?.url === "string" ? report.site.url : null;
   const hasWebsite =
-    websiteFinding?.status === "pass" ? true : websiteFinding?.status === "fail" ? false : null;
+    websiteFinding?.status === "pass"
+      ? !isSocialOrPlaceholderUrl(linkedWebsite)
+      : websiteFinding?.status === "fail"
+        ? false
+        : null;
 
   return {
     score: Number.isFinite(Number(report.scores.overall)) ? Math.round(Number(report.scores.overall)) : null,

@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin-server";
 import type { AdminLead, AdminLeadList } from "@/lib/admin-types";
 import { getLeadPriority } from "@/lib/lead-priority";
+import { effectiveHasWebsite } from "@/lib/website-signal";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
 // `gmb_audit` = a visitor who ran a free Google Business Profile audit
@@ -116,8 +117,10 @@ export async function GET(req: Request) {
         report_link: r.report_link || null,
         website: r.website || null,
         // NULL from the DB stays NULL (unknown) - coercing it to false would
-        // claim "no website" for every lead that was never audited.
-        hasWebsite: typeof r.has_website === "boolean" ? r.has_website : null,
+        // claim "no website" for every lead that was never audited. A social
+        // page / link-in-bio stored in `website` IS a measured "no website"
+        // (lib/website-signal.ts), so the badge and the automation agree.
+        hasWebsite: effectiveHasWebsite(r.has_website, r.website),
         reviewCount: numberOrNull(r.review_count),
         rating: numberOrNull(r.rating),
       };
