@@ -280,6 +280,17 @@ export function auditReportEmailContent(report: {
   reportUrl: string;
   /** Free website preview builder. Defaults to /website-builder. */
   previewUrl?: string | null;
+  /**
+   * Render the "Want the website too?" block and its unsubscribe footer.
+   *
+   * Defaults to FALSE: a report the visitor asked for is transactional mail, so
+   * it carries no promotional content unless the caller proved all three
+   * conditions (marketing opt-in, no website on the listing, address not
+   * suppressed - see /api/audit/report/send).
+   */
+  includeWebsiteOffer?: boolean;
+  /** Recipient address, for the unsubscribe link on the offer footer. */
+  recipientEmail?: string | null;
 }): EmailContent {
   const business = safeDisplayName(report.businessName) || "your business";
   const score =
@@ -332,14 +343,22 @@ export function auditReportEmailContent(report: {
         actions.map((a) => `<li style="margin-bottom:4px;font-size:14px;">${escapeHtml(a)}</li>`).join("") +
         `</ul>`;
 
+  // Promotional block, gated on the caller's consent + no-website + suppression
+  // decision. Unsubscribe link text is built only when the block is rendered.
+  const includeOffer = report.includeWebsiteOffer === true;
+  const recipientEmail = String(report.recipientEmail || "").trim();
+  const unsubHtml = includeOffer && recipientEmail ? marketingFooter(recipientEmail) : "";
+  const unsubText = unsubHtml ? `Unsubscribe: ${buildUnsubscribeUrl(recipientEmail)}` : "";
+
   const websiteUrl = httpUrl(report.previewUrl, `${APP_URL}/website-builder`);
-  const websiteHtml =
-    `<p style="margin:18px 0 0 0;padding:14px 16px;background:#F7F9F8;border:1px solid #E1E8E4;border-radius:10px;color:${ACCENT};font-size:14px;">` +
-    `<strong>Want the website too?</strong> We can build you a site from your Google listing. ${escapeHtml(
-      OFFER_PUBLISH_NOTE
-    )} ` +
-    `<a href="${escapeHtml(websiteUrl)}" style="color:${ACCENT};font-weight:700;">See your site preview</a>` +
-    `</p>`;
+  const websiteHtml = includeOffer
+    ? `<p style="margin:18px 0 0 0;padding:14px 16px;background:#F7F9F8;border:1px solid #E1E8E4;border-radius:10px;color:${ACCENT};font-size:14px;">` +
+      `<strong>Want the website too?</strong> We can build you a site from your Google listing. ${escapeHtml(
+        OFFER_PUBLISH_NOTE
+      )} ` +
+      `<a href="${escapeHtml(websiteUrl)}" style="color:${ACCENT};font-weight:700;">See your site preview</a>` +
+      `</p>`
+    : "";
 
   const bodyHtml =
     `<p style="margin:0 0 12px 0;color:${ACCENT};">Hi there,</p>` +
@@ -354,6 +373,9 @@ export function auditReportEmailContent(report: {
 
   const footerExtra =
     "This link always opens your live report, so you can re-check it after making changes. If you did not request it, just ignore this email.";
+  // The offer and its unsubscribe footer travel together, and exactly the same
+  // condition adds the List-Unsubscribe headers in sendEmail({ marketing: true }).
+  const shellFooterExtra = unsubHtml ? `${footerExtra}<br/>${unsubHtml}` : footerExtra;
 
   const metaBits: string[] = [];
   if (typeof report.rating === "number" && report.rating > 0) {
@@ -367,7 +389,7 @@ export function auditReportEmailContent(report: {
     subject: subjectLine(`Your Google Business Profile audit - ${business}`),
     html: shell(heading, bodyHtml, {
       cta: { href: report.reportUrl, label: "View the full report" },
-      footerExtra,
+      footerExtra: shellFooterExtra,
     }),
     text: [
       "Hi there,",
@@ -393,9 +415,14 @@ export function auditReportEmailContent(report: {
       `View the full report: ${report.reportUrl}`,
       ``,
       "This link always opens your live report, so you can re-check it after making changes.",
-      ``,
-      `Want the website too? We can build you a site from your Google listing. ${OFFER_PUBLISH_NOTE}`,
-      `See your site preview: ${websiteUrl}`,
+      ...(includeOffer
+        ? [
+            ``,
+            `Want the website too? We can build you a site from your Google listing. ${OFFER_PUBLISH_NOTE}`,
+            `See your site preview: ${websiteUrl}`,
+            ...(unsubText ? [``, unsubText] : []),
+          ]
+        : []),
     ].join("\n"),
   };
 }

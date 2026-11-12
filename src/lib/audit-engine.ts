@@ -1213,7 +1213,9 @@ function buildLocalSeo(
       fix:
         reviewCount >= trade.reviewBenchmark
           ? undefined
-          : `You need ${trade.reviewBenchmark - reviewCount} more to reach the benchmark your competitors hold.`,
+          : `You need ${trade.reviewBenchmark - reviewCount} more review${
+              trade.reviewBenchmark - reviewCount === 1 ? "" : "s"
+            } to reach the benchmark your competitors hold.`,
     },
     {
       id: "rating_40",

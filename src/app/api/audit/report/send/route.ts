@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { guardPublicRequest, REPORT_SEND_LIMIT } from "@/lib/api-guard";
 import { detailCacheKey, getCached } from "@/lib/places-cache";
 import { attachAuditLeadContact, auditReportUrl, isMockPlaceId, recordLeadConsent } from "@/lib/audit-lead";
@@ -8,6 +9,7 @@ import {
 } from "@/lib/consent";
 import { logEmailSend, redact, sendEmail } from "@/lib/email";
 import { auditReportEmailContent } from "@/lib/email-templates";
+import { checkSuppressionStrict } from "@/lib/automation/guards";
 import { enrollLead } from "@/lib/automation/enroll";
 import { makeUnlockToken } from "@/lib/report-unlock";
 import { sendMetaTemplate } from "@/lib/whatsapp";
@@ -43,6 +45,8 @@ interface ReportSummary {
   score: number | null;
   rating: number | null;
   reviewCount: number | null;
+  /** TRUE = the listing links a site, FALSE = no site, NULL = not known. */
+  hasWebsite: boolean | null;
   /** Local SEO / AEO / GEO, straight from the cached report. */
   sections: Array<{ label: string; score: number; measurable: boolean }>;
   /** Roadmap actions, red flags first. */
@@ -53,6 +57,7 @@ const EMPTY_SUMMARY: ReportSummary = {
   score: null,
   rating: null,
   reviewCount: null,
+  hasWebsite: null,
   sections: [],
   actions: [],
 };
@@ -85,13 +90,61 @@ function reportSummaryFromCache(placeId: string): ReportSummary {
     .filter(Boolean)
     .slice(0, 3);
 
+  // The cache holds the FULL report (teasing happens on the way out), and the
+  // Local SEO "website" finding is built straight from place.website:
+  // pass = a site is linked, fail = none. Anything else stays unknown (null).
+  const findings: any[] = Array.isArray(report?.sections?.local_seo?.findings)
+    ? report.sections.local_seo.findings
+    : [];
+  const websiteFinding = findings.find((finding) => String(finding?.id || "") === "website");
+  const hasWebsite =
+    websiteFinding?.status === "pass" ? true : websiteFinding?.status === "fail" ? false : null;
+
   return {
     score: Number.isFinite(Number(report.scores.overall)) ? Math.round(Number(report.scores.overall)) : null,
     rating: Number(report?.facts?.rating) || null,
     reviewCount: Number(report?.facts?.reviewCount) || null,
+    hasWebsite,
     sections,
     actions,
   };
+}
+
+/** Service-role client (same pattern as lib/automation/enroll.ts); null = unset. */
+function serviceClient(): SupabaseClient | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
+
+/**
+ * TRUE only when the "Want the website too?" block may ride along with the
+ * report: the visitor ticked the marketing box, the audited listing has no
+ * website, and the address is not on the do-not-email list.
+ *
+ * Fail-CLOSED: a definite opt-out, an unreadable suppression list or no
+ * service client all mean "no offer". The report is still sent - it is
+ * transactional mail and must never depend on any of this.
+ */
+async function shouldIncludeWebsiteOffer(input: {
+  marketingConsent: boolean;
+  hasWebsite: boolean | null;
+  email: string;
+}): Promise<boolean> {
+  if (!input.marketingConsent) return false;
+  // Only an explicit website blocks the offer; unknown (null) counts as "none".
+  if (input.hasWebsite === true) return false;
+
+  const supabase = serviceClient();
+  if (!supabase) return false;
+
+  try {
+    return (await checkSuppressionStrict(supabase, input.email)).state === "clear";
+  } catch {
+    // Cannot tell -> treat the address as suppressed for the offer only.
+    return false;
+  }
 }
 
 /**
@@ -157,6 +210,14 @@ export async function POST(req: Request) {
       }
 
       const summary = reportSummaryFromCache(placeId);
+      // Decided BEFORE the template is built: promotional content needs the
+      // visitor's opt-in AND a listing with no website AND an address that is
+      // not suppressed. Anything unclear resolves to false.
+      const includeWebsiteOffer = await shouldIncludeWebsiteOffer({
+        marketingConsent,
+        hasWebsite: summary.hasWebsite,
+        email,
+      });
       const content = auditReportEmailContent({
         businessName,
         score: summary.score,
@@ -165,6 +226,8 @@ export async function POST(req: Request) {
         sections: summary.sections,
         actions: summary.actions,
         reportUrl,
+        includeWebsiteOffer,
+        recipientEmail: email,
       });
 
       const result = await sendEmail({
@@ -173,6 +236,8 @@ export async function POST(req: Request) {
         html: content.html,
         text: content.text,
         template: "audit_report",
+        // Marketing headers exist exactly when the promo block is in the body.
+        marketing: includeWebsiteOffer,
       });
 
       // The visitor volunteered this address: keep it on the lead even when the
