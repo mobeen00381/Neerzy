@@ -6,10 +6,11 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Search, RefreshCw, Download, Plus, X, Mail } from "lucide-react";
 import { adminFetch, exportCsv, qs } from "@/components/admin/api";
 import {
-  Spinner, EmptyState, SourceBadge, PaginationBar, fmtDate, PriorityBadge, WebsiteCell,
+  Spinner, EmptyState, PaginationBar, PriorityBadge,
 } from "@/components/admin/ui";
 import type { AdminLead, AdminLeadList } from "@/lib/admin-types";
 import type { LeadPriorityLevel } from "@/lib/lead-priority";
+import { isSocialOrPlaceholderUrl } from "@/lib/website-signal";
 import LeadDrawer from "@/components/admin/LeadDrawer";
 
 const STATUSES = ["new", "contacted", "trial_started", "converted", "lost"];
@@ -26,21 +27,117 @@ const PRIORITIES: { value: LeadPriorityLevel; label: string }[] = [
   { value: "cold", label: "COLD" },
 ];
 
-/** Sort rank for the table: HOT first, then WARM, COLD and finally no priority. */
+/** Date filter dropdown; the bounds themselves are computed per request below. */
+type DateFilter = "" | "today" | "7d" | "30d";
+const DATE_FILTERS: { value: DateFilter; label: string }[] = [
+  { value: "", label: "All" },
+  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+];
+
+/** 50 rows per page, so a day group rarely splits across two pages. */
+const PAGE_SIZE = 50;
+
+/** Sort rank inside a day: HOT first, then WARM, COLD and finally no priority. */
 const PRIORITY_RANK: Record<string, number> = { hot: 0, warm: 1, cold: 2 };
 
+/** Thin left-edge bar, matching the priority badge colours. */
+const PRIORITY_BAR: Record<string, string> = {
+  hot: "bg-[#9B1C1C]",
+  warm: "bg-[#F59E0B]",
+  cold: "bg-[#9DB4A9]",
+};
+
 /**
- * The BUSINESS column was dropped from the table (no room for it at 1366px), so
- * the business name is only printed under the lead name when it actually says
- * something different from it.
+ * Local-calendar bounds for the date filter. The viewer's midnight is sent as
+ * an ISO (UTC) instant, so created_at never needs time zone handling in SQL.
+ * "Last 7 days" means today plus the six days before it.
  */
-function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
-  return (a || "").trim().toLowerCase() === (b || "").trim().toLowerCase();
+function dateRange(filter: DateFilter): { from?: string; to?: string } {
+  if (!filter) return {};
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = filter === "today" ? 1 : filter === "7d" ? 7 : 30;
+  start.setDate(start.getDate() - (days - 1));
+  return { from: start.toISOString(), to: now.toISOString() };
+}
+
+/** Local calendar-day key (YYYY-MM-DD) for a stored UTC timestamp. */
+function localDayKey(iso: string | null | undefined): string {
+  const d = new Date(iso || "");
+  if (Number.isNaN(d.getTime())) return "undated";
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function isSameLocalDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+/** "Today" / "Yesterday" in the viewer's time zone, otherwise null. */
+function relativeDayLabel(day: Date, now: Date): string | null {
+  if (isSameLocalDay(day, now)) return "Today";
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  if (isSameLocalDay(day, yesterday)) return "Yesterday";
+  return null;
+}
+
+/** "Fri 13 Nov", with the year only when it is not the current year. */
+function dayDateLabel(day: Date | null, now: Date): string {
+  if (!day) return "Undated";
+  const opts: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" };
+  if (day.getFullYear() !== now.getFullYear()) opts.year = "numeric";
+  return day.toLocaleDateString("en-GB", opts);
+}
+
+/** Local time of day, e.g. "12:40 PM". */
+function timeOfDay(iso: string | null | undefined): string {
+  const d = new Date(iso || "");
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+/** Local date for the "Last contacted" line, e.g. "4 Nov 2026". */
+function contactedDate(iso: string | null | undefined): string {
+  const d = new Date(iso || "");
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/**
+ * Website verdict for the summary line. Uses the same signal as the drawer and
+ * the priority score (lib/website-signal.ts): a social profile / link-in-bio
+ * counts as no website, NULL stays "unknown" instead of claiming "No".
+ */
+function websiteSummary(lead: AdminLead): { label: string; tone: string } {
+  if (lead.hasWebsite === false) {
+    return isSocialOrPlaceholderUrl(lead.website)
+      ? { label: "No website (social page)", tone: "text-[#9B1C1C] font-bold" }
+      : { label: "No website", tone: "text-[#9B1C1C] font-bold" };
+  }
+  if (lead.hasWebsite === true) return { label: "Has website", tone: "text-[#0F5132] font-bold" };
+  return { label: "Website unknown", tone: "text-[#9DB4A9]" };
+}
+
+/** A day of leads, newest day first. `date` is null only for undated rows. */
+interface LeadDayGroup {
+  key: string;
+  date: Date | null;
+  leads: AdminLead[];
+}
+
+/** One summary separator, matching the existing " · " convention. */
+function Sep() {
+  return <span className="text-[#9DB4A9]"> · </span>;
 }
 
 /**
  * Row clicks open the lead detail drawer, so the cells with their own controls
- * (status select, website link, follow-up button) spread this to stay inert.
+ * (status select, follow-up button) spread this to stay inert.
  */
 const stopRow = {
   onClick: (e: ReactMouseEvent) => e.stopPropagation(),
@@ -57,6 +154,9 @@ export default function LeadsTab() {
   // Priority is derived server-side (lib/lead-priority.ts), so it is filtered
   // and re-sorted on the loaded page instead of in SQL.
   const [priorityFilter, setPriorityFilter] = useState<"" | LeadPriorityLevel>("");
+  // Date filter; the API applies the browser-computed from/to bounds to
+  // created_at so pagination stays correct for the filtered list.
+  const [dateFilter, setDateFilter] = useState<DateFilter>("");
   // Internal test leads (20261108_leads_is_test.sql) are hidden by default;
   // they keep flowing through the automation either way.
   const [hideTest, setHideTest] = useState(true);
@@ -69,12 +169,16 @@ export default function LeadsTab() {
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
   const [drawerRefreshKey, setDrawerRefreshKey] = useState(0);
 
-  const load = async (p = page, st = statusFilter, src = sourceFilter, q = appliedQuery) => {
+  const load = async (
+    p = page, st = statusFilter, src = sourceFilter, q = appliedQuery, df = dateFilter
+  ) => {
     setLoading(true);
     setError("");
     try {
+      const range = dateRange(df);
       const url = "/api/admin/leads" + qs({
-        page: p, pageSize: 25, status: st || undefined, source: src || undefined, q: q || undefined,
+        page: p, pageSize: PAGE_SIZE, status: st || undefined, source: src || undefined,
+        q: q || undefined, from: range.from, to: range.to,
       });
       setData(await adminFetch<AdminLeadList>(url));
     } catch (e: any) {
@@ -85,9 +189,9 @@ export default function LeadsTab() {
   };
 
   useEffect(() => {
-    load(page, statusFilter, sourceFilter, appliedQuery);
+    load(page, statusFilter, sourceFilter, appliedQuery, dateFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter, sourceFilter, appliedQuery]);
+  }, [page, statusFilter, sourceFilter, appliedQuery, dateFilter]);
 
   const updateStatus = async (id: string, status: string) => {
     try {
@@ -105,7 +209,7 @@ export default function LeadsTab() {
     }
   };
 
-/**
+  /**
    * Patch one row in place after a drawer action (status, last contacted) so
    * the table stays in sync without reloading the list - filters, search and
    * pagination survive.
@@ -117,19 +221,42 @@ export default function LeadsTab() {
   };
 
   /**
-   * What the table renders: test leads hidden (default), then the priority
-   * filter, then HOT -> WARM -> COLD -> newest. Both are client-side, so the
-   * pagination and the pipeline pills keep their server-side totals - and the
-   * NEW pill already excludes test leads in /api/admin/leads.
+   * What the list renders: test leads hidden (default), then the priority
+   * filter (both client-side, so the pagination and the pipeline pills keep
+   * their server-side totals - and the NEW pill already excludes test leads in
+   * /api/admin/leads), grouped into local calendar days, newest day first.
    */
   const rows = (data?.leads || [])
     .filter((l) => !hideTest || l.is_test !== true)
-    .filter((l) => !priorityFilter || l.priority?.level === priorityFilter)
-    .sort(
+    .filter((l) => !priorityFilter || l.priority?.level === priorityFilter);
+
+  // Days keep the order the server sent (created_at DESC), so the newest day is
+  // always first. Inside a day: HOT -> WARM -> COLD -> newest time first.
+  const groups: LeadDayGroup[] = [];
+  const groupByKey = new Map<string, LeadDayGroup>();
+  for (const lead of rows) {
+    const key = localDayKey(lead.created_at);
+    let group = groupByKey.get(key);
+    if (!group) {
+      const day = new Date(lead.created_at || "");
+      group = { key, date: Number.isNaN(day.getTime()) ? null : day, leads: [] };
+      groupByKey.set(key, group);
+      groups.push(group);
+    }
+    group.leads.push(lead);
+  }
+  groups.sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0));
+  for (const group of groups) {
+    group.leads.sort(
       (a, b) =>
         (PRIORITY_RANK[a.priority?.level || ""] ?? 3) - (PRIORITY_RANK[b.priority?.level || ""] ?? 3) ||
         String(b.created_at || "").localeCompare(String(a.created_at || ""))
     );
+  }
+
+  // A day that started on the previous page repeats its header with "(cont.)".
+  const prevDayKey = data?.prevCreatedAt ? localDayKey(data.prevCreatedAt) : null;
+  const now = new Date();
 
   return (
     <div className="space-y-5">
@@ -219,6 +346,16 @@ export default function LeadsTab() {
             <option key={p.value} value={p.value}>{p.label}</option>
           ))}
         </select>
+        <select
+          value={dateFilter}
+          onChange={(e) => { setDateFilter(e.target.value as DateFilter); setPage(1); }}
+          className="px-3 py-2 rounded-lg border border-[#E1E8E4] text-sm font-normal outline-none focus:border-[#22C55E]"
+          aria-label="Filter by date"
+        >
+          {DATE_FILTERS.map((d) => (
+            <option key={d.value} value={d.value}>{d.label}</option>
+          ))}
+        </select>
         <label className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64] cursor-pointer">
           <input
             type="checkbox"
@@ -235,130 +372,178 @@ export default function LeadsTab() {
         <CardContent className="p-0">
           {loading && !data ? (
             <Spinner label="Loading leads…" />
-          ) : !data || data.leads.length === 0 ? (
-            <EmptyState message="No leads yet. Point your ad landing-page forms at POST /api/leads/submit." />
+          ) : !data ? (
+            <EmptyState message={error || "Failed to load leads."} />
+          ) : data.leads.length === 0 ? (
+            <EmptyState
+              message={
+                dateFilter
+                  ? "No leads in this period."
+                  : "No leads yet. Point your ad landing-page forms at POST /api/leads/submit."
+              }
+              action={
+                dateFilter ? (
+                  <button
+                    onClick={() => { setDateFilter(""); setPage(1); }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border border-[#E1E8E4] bg-white text-[#0F5132] hover:border-[#22C55E] hover:bg-[#F7F9F8]"
+                  >
+                    Show all leads
+                  </button>
+                ) : undefined
+              }
+            />
           ) : rows.length === 0 ? (
-            <EmptyState message="No leads match the current filters." />
+            <EmptyState
+              message="No leads match the current filters."
+              action={
+                <button
+                  onClick={() => { setPriorityFilter(""); setDateFilter(""); setPage(1); }}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border border-[#E1E8E4] bg-white text-[#0F5132] hover:border-[#22C55E] hover:bg-[#F7F9F8]"
+                >
+                  Show all leads
+                </button>
+              }
+            />
           ) : (
-            <>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-[#F7F9F8] text-left">
-                    <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Lead</th>
-                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Priority</th>
-                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Website</th>
-                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Source</th>
-                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Campaign</th>
-                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Received</th>
-                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Status</th>
-                    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[#5B6B64]">Follow-up</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E1E8E4]">
-                  {rows.map((l) => (
-                    <tr
-                      key={l.id}
-                      onClick={(e) => {
-                        // Keep focus on the row so the drawer can hand it back on close.
-                        e.currentTarget.focus();
-                        setOpenLeadId(l.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setOpenLeadId(l.id);
-                        }
-                      }}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={"Open details for " + (l.name || l.business_name || "lead")}
-                      className="hover:bg-[#E6F2EA] transition-colors cursor-pointer focus:outline-none focus-visible:bg-[#E6F2EA]"
-                    >
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className="font-bold text-[#0A2E22] truncate">{l.name || l.business_name || "Unnamed"}</p>
-                          {l.is_test === true && (
-                            <span
-                              title="Internal test lead - hidden by default, but still gets the automation emails"
-                              className="inline-flex items-center shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#F1F3F2] text-[#6B7C75] border border-[#E1E8E4]"
-                            >
-                              TEST
-                            </span>
-                          )}
-                        </div>
-                        {/* Business name only when it is not just the lead name again. */}
-                        {l.business_name && !sameText(l.name || l.business_name, l.business_name) && (
-                          <p className="text-xs font-bold text-[#0F5132] truncate max-w-[260px]">{l.business_name}</p>
+            <div>
+              {groups.map((group) => {
+                const relative = group.date ? relativeDayLabel(group.date, now) : null;
+                // Only a day that actually began on the previous page says so.
+                const continues = prevDayKey !== null && group.key === prevDayKey;
+                return (
+                  <section key={group.key}>
+                    <div className="flex items-baseline justify-between gap-3 bg-[#F7F9F8] px-4 py-2 border-y border-[#E1E8E4]">
+                      <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#0F5132]">
+                        {relative || dayDateLabel(group.date, now)}
+                        {continues && (
+                          <span className="ml-1 font-normal normal-case tracking-normal text-[#5B6B64]">
+                            (cont.)
+                          </span>
                         )}
-                        <p className="text-xs font-normal text-[#5B6B64] truncate max-w-[260px]">
-                          {[l.phone, l.email].filter(Boolean).join(" · ") || "No contact"}
-                        </p>
-                        {l.notes && <p className="text-[11px] text-[#5B6B64] mt-1 italic truncate max-w-[220px]">{l.notes}</p>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <PriorityBadge priority={l.priority} />
-                          {typeof l.audit_score === "number" && (
-                            <span className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                              l.audit_score >= 80
-                                ? "bg-[#E6F2EA] text-[#0F5132]"
-                                : l.audit_score >= 50
-                                ? "bg-[#FFF7E6] text-[#8A5A00]"
-                                : "bg-[#FDECEC] text-[#9B1C1C]"
-                            }`}>
-                              {l.audit_score}/100 audit
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap" {...stopRow}>
-                        <WebsiteCell website={l.website} hasWebsite={l.hasWebsite} />
-                      </td>
-                      <td className="px-4 py-3"><SourceBadge source={l.source} /></td>
-                      <td className="px-4 py-3 max-w-[150px]">
-                        <p className="text-xs font-normal text-[#5B6B64] truncate">{l.utm_campaign || "—"}</p>
-                        {l.utm_medium && <p className="text-[10px] font-normal text-[#5B6B64] truncate">via {l.utm_medium}</p>}
-                      </td>
-                      <td className="px-4 py-3 text-xs font-bold text-[#5B6B64] whitespace-nowrap">{fmtDate(l.created_at)}</td>
-                      <td className="px-4 py-3" {...stopRow}>
-                        <select
-                          value={l.status}
-                          onChange={(e) => updateStatus(l.id, e.target.value)}
-                          className={`text-xs font-bold uppercase px-2 py-1 rounded-lg border outline-none cursor-pointer ${
-                            l.status === "new" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
-                            l.status === "contacted" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
-                            l.status === "trial_started" ? "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]" :
-                            l.status === "converted" ? "bg-[#E6F2EA] text-[#0F5132] border-[#D3E6DA]" :
-                            "bg-[#E6F2EA] text-[#5B6B64] border-[#E1E8E4]"
-                          }`}
-                        >
-                          {STATUSES.map((s) => (
-                            <option key={s} value={s}>{s.replace("_", " ")}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3" {...stopRow}>
-                        <button
-                          onClick={() => setFollowupLead(l)}
-                          title="Send a follow-up email about this audit"
-                          className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-[#E1E8E4] bg-white text-[#0F5132] hover:border-[#22C55E] hover:bg-[#F7F9F8]"
-                        >
-                          <Mail className="w-3 h-3" /> Email
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </h2>
+                      <span className="text-[11px] font-normal text-[#5B6B64]">
+                        {group.leads.length} {group.leads.length === 1 ? "lead" : "leads"}
+                      </span>
+                    </div>
+                    <ul className="divide-y divide-[#E1E8E4]">
+                      {group.leads.map((l) => {
+                        const title = l.business_name || l.name || "Unnamed";
+                        // The contact name only when it is not just the business name again.
+                        const contactName =
+                          l.business_name && l.name &&
+                          l.name.trim().toLowerCase() !== l.business_name.trim().toLowerCase()
+                            ? l.name
+                            : null;
+                        const site = websiteSummary(l);
+                        // Second line: phone - audit score - reviews - website verdict.
+                        const summary: { text: string; tone?: string }[] = [];
+                        if (l.phone) summary.push({ text: l.phone });
+                        if (typeof l.audit_score === "number") summary.push({ text: `${l.audit_score}/100 audit` });
+                        if (l.reviewCount !== null && l.reviewCount !== undefined) {
+                          summary.push({ text: `${l.reviewCount} review${l.reviewCount === 1 ? "" : "s"}` });
+                        }
+                        summary.push({ text: site.label, tone: site.tone });
+                        return (
+                          <li
+                            key={l.id}
+                            onClick={(e) => {
+                              // Keep focus on the row so the drawer can hand it back on close.
+                              e.currentTarget.focus();
+                              setOpenLeadId(l.id);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setOpenLeadId(l.id);
+                              }
+                            }}
+                            tabIndex={0}
+                            role="button"
+                            aria-label={"Open details for " + title}
+                            className="relative flex items-start gap-3 pl-4 pr-4 py-3 hover:bg-[#E6F2EA] transition-colors cursor-pointer focus:outline-none focus-visible:bg-[#E6F2EA]"
+                          >
+                            {/* Priority colour bar, matching the badge colours. */}
+                            <span
+                              aria-hidden="true"
+                              className={`absolute inset-y-0 left-0 w-1 ${PRIORITY_BAR[l.priority?.level || ""] || "bg-[#E1E8E4]"}`}
+                            />
+                            <div className="shrink-0 pt-0.5">
+                              <PriorityBadge priority={l.priority} size="lg" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-baseline gap-2 min-w-0">
+                                <p className="font-bold text-[#0A2E22] truncate">{title}</p>
+                                {l.is_test === true && (
+                                  <span
+                                    title="Internal test lead - hidden by default, but still gets the automation emails"
+                                    className="inline-flex items-center shrink-0 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#F1F3F2] text-[#6B7C75] border border-[#E1E8E4]"
+                                  >
+                                    TEST
+                                  </span>
+                                )}
+                                {contactName && (
+                                  <span className="text-xs font-normal text-[#5B6B64] truncate">{contactName}</span>
+                                )}
+                              </div>
+                              <p className="mt-0.5 flex flex-wrap items-center text-xs font-normal text-[#5B6B64]">
+                                {summary.map((bit, i) => (
+                                  <span key={i} className={bit.tone}>
+                                    {i > 0 && <Sep />}
+                                    {bit.text}
+                                  </span>
+                                ))}
+                              </p>
+                              {l.last_contacted_at && (
+                                <p className="mt-0.5 text-[11px] font-normal text-[#9DB4A9]">
+                                  Last contacted {contactedDate(l.last_contacted_at)}
+                                </p>
+                              )}
+                            </div>
+                            <div className="shrink-0 flex items-center gap-2 pt-0.5" {...stopRow}>
+                              {/* Local time of day; the day itself is the group header. */}
+                              <span className="text-xs font-bold text-[#0F5132] tabular-nums whitespace-nowrap">
+                                {timeOfDay(l.created_at)}
+                              </span>
+                              <button
+                                onClick={() => setFollowupLead(l)}
+                                title="Send a follow-up email about this audit"
+                                className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-[#E1E8E4] bg-white text-[#0F5132] hover:border-[#22C55E] hover:bg-[#F7F9F8]"
+                              >
+                                <Mail className="w-3 h-3" /> Email
+                              </button>
+                              <select
+                                value={l.status}
+                                onChange={(e) => updateStatus(l.id, e.target.value)}
+                                aria-label={"Status for " + title}
+                                className={`text-xs font-bold uppercase px-2 py-1 rounded-lg border outline-none cursor-pointer ${
+                                  l.status === "lost"
+                                    ? "bg-[#F7F9F8] text-[#5B6B64] border-[#E1E8E4]"
+                                    : l.status === "converted"
+                                    ? "bg-[#E6F2EA] text-[#0F5132] border-[#D3E6DA]"
+                                    : "bg-[#E6F2EA] text-[#0F5132] border-[#E1E8E4]"
+                                }`}
+                              >
+                                {STATUSES.map((s) => (
+                                  <option key={s} value={s}>{s.replace("_", " ")}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                );
+              })}
               <div className="px-5 py-3 border-t border-[#E1E8E4]">
                 <PaginationBar page={data.page} pageSize={data.pageSize} total={data.total} onChange={setPage} />
               </div>
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {showAdd && <AddLeadModal onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); setPage(1); load(1, statusFilter, sourceFilter, appliedQuery); }} />}
+      {showAdd && <AddLeadModal onClose={() => setShowAdd(false)} onAdded={() => { setShowAdd(false); setPage(1); load(1, statusFilter, sourceFilter, appliedQuery, dateFilter); }} />}
 
       {followupLead && (
         <FollowupModal

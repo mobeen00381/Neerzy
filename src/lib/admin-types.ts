@@ -125,6 +125,12 @@ export interface AdminLeadList {
   total: number;
   page: number;
   pageSize: number;
+  /**
+   * created_at of the last row on the previous page (null on page 1). Lets the
+   * day-grouped table repeat a day header with "(cont.)" when that day started
+   * on the earlier page.
+   */
+  prevCreatedAt?: string | null;
   byStatus: { status: string; count: number }[];
   bySource: { source: string; count: number }[];
 }

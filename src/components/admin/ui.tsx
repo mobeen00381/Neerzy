@@ -14,11 +14,12 @@ export function Spinner({ label }: { label?: string }) {
   );
 }
 
-export function EmptyState({ message }: { message: string }) {
+export function EmptyState({ message, action }: { message: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-[#5B6B64]">
       <Inbox className="w-8 h-8 mb-3 text-[#9DB4A9]" />
       <p className="text-sm font-normal">{message}</p>
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
@@ -104,18 +105,26 @@ const PRIORITY_COLORS: Record<string, string> = {
 /**
  * HOT / WARM / COLD triage badge (rules live in lib/lead-priority.ts).
  * `title` carries the reasons that fired, so hovering explains the score.
+ * `size="lg"` is the day-grouped leads row; every other surface keeps "sm".
  */
-export function PriorityBadge({ priority }: { priority?: LeadPriority | null }) {
+export function PriorityBadge({
+  priority,
+  size = "sm",
+}: {
+  priority?: LeadPriority | null;
+  size?: "sm" | "lg";
+}) {
   const level = priority?.level;
   const cls = level ? PRIORITY_COLORS[level] : PRIORITY_COLORS.unknown;
   const title = priority?.reasons.length
     ? `${priority.score} pts · ${priority.reasons.join(" · ")}`
     : "No priority signals";
+  const dims =
+    size === "lg"
+      ? "min-w-[68px] justify-center text-xs px-2.5 py-1 rounded-lg"
+      : "text-[10px] px-2 py-0.5 rounded-full";
   return (
-    <span
-      title={title}
-      className={`inline-flex items-center text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${cls}`}
-    >
+    <span title={title} className={`inline-flex items-center font-bold uppercase tracking-wider ${dims} ${cls}`}>
       {level || "—"}
     </span>
   );

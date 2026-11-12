@@ -38,6 +38,45 @@ function numberOrNull(value: unknown): number | null {
  */
 type AggLeadRow = { status?: string | null; source?: string | null; is_test?: boolean | null };
 
+/** A parseable ISO timestamp from the ?from / ?to date filter, or null. */
+function isoParam(value: string | null): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** Everything the WHERE clause below needs (all values already validated). */
+interface LeadFilters {
+  status: string;
+  source: string;
+  /** Free-text search (name, email, phone, business). */
+  q: string;
+  /** Viewer-local "from" boundary, normalized to UTC ISO. */
+  fromIso: string | null;
+  /** Viewer-local "to" boundary, normalized to UTC ISO. */
+  toIso: string | null;
+}
+
+/**
+ * The shared WHERE clause for the list page, the pipeline pills and the
+ * page-boundary probe - so the three can never drift apart.
+ */
+function applyFilters<T>(query: T, filters: LeadFilters): T {
+  let q = query as any;
+  const { status, source, q: search, fromIso, toIso } = filters;
+  if (status && STATUSES.includes(status)) q = q.eq("status", status);
+  if (source && SOURCES.includes(source)) q = q.eq("source", source);
+  if (search) {
+    const escaped = search.replace(/[%_,]/g, "\\$&");
+    q = q.or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%,phone.ilike.%${escaped}%,business_name.ilike.%${escaped}%`);
+  }
+  // The browser sends its local midnight as an ISO instant, so comparing the
+  // UTC-stored created_at needs no time zone knowledge here.
+  if (fromIso) q = q.gte("created_at", fromIso);
+  if (toIso) q = q.lte("created_at", toIso);
+  return q as T;
+}
+
 export async function GET(req: Request) {
   if (!IS_ADMIN_CONFIGURED) return adminNotConfigured();
   if (!verifyAdminRequest(req)) return adminUnauthorized();
@@ -47,36 +86,53 @@ export async function GET(req: Request) {
   const status = (url.searchParams.get("status") || "").trim();
   const source = (url.searchParams.get("source") || "").trim();
   const q = (url.searchParams.get("q") || "").trim();
+  // Local-calendar bounds for the date filter, computed in the viewer's browser.
+  const fromIso = isoParam(url.searchParams.get("from"));
+  const toIso = isoParam(url.searchParams.get("to"));
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10) || 1);
   const pageSize = Math.min(200, Math.max(1, parseInt(url.searchParams.get("pageSize") || "25", 10) || 25));
+  const filters: LeadFilters = { status, source, q, fromIso, toIso };
 
   try {
-    let base = supabase.from("leads").select("*", { count: "exact" });
-    if (status && STATUSES.includes(status)) base = base.eq("status", status);
-    if (source && SOURCES.includes(source)) base = base.eq("source", source);
-    if (q) {
-      const escaped = q.replace(/[%_,]/g, "\\$&");
-      base = base.or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%,phone.ilike.%${escaped}%,business_name.ilike.%${escaped}%`);
-    }
-
     const from = (page - 1) * pageSize;
-    const { data: rows, count, error } = await base
+    // created_at ordering happens in the database, so a page is always a real
+    // slice of the whole list (priority is only re-applied inside each day
+    // group on the client).
+    const { data: rows, count, error } = await applyFilters(
+      supabase.from("leads").select("*", { count: "exact" }),
+      filters
+    )
       .order("created_at", { ascending: false })
       .range(from, from + pageSize - 1);
     if (error && !isMissingTableError(error)) throw error;
 
-    let agg = supabase.from("leads").select("status, source, is_test");
-    if (status && STATUSES.includes(status)) agg = agg.eq("status", status);
-    if (source && SOURCES.includes(source)) agg = agg.eq("source", source);
-    let aggRows: AggLeadRow[] | null = (await agg).data;
+    // The last row of the previous page: the client repeats its first day
+    // header with "(cont.)" when that day started on the earlier page.
+    let prevCreatedAt: string | null = null;
+    if (page > 1) {
+      const { data: prevRows } = await applyFilters(
+        supabase.from("leads").select("created_at"),
+        filters
+      )
+        .order("created_at", { ascending: false })
+        .range(from - 1, from - 1);
+      prevCreatedAt = prevRows?.[0]?.created_at || null;
+    }
+
+    // The pipeline pills follow status/source/date but not the text search,
+    // exactly as before.
+    const pillFilters: LeadFilters = { ...filters, q: "" };
+    let aggRows: AggLeadRow[] | null = (
+      await applyFilters(supabase.from("leads").select("status, source, is_test"), pillFilters)
+    ).data;
     if (!aggRows) {
       // Pre-20261108 environment: no is_test column, so nothing can be a test
       // lead. Retry without it instead of losing the pipeline pills.
-      let plain = supabase.from("leads").select("status, source");
-      if (status && STATUSES.includes(status)) plain = plain.eq("status", status);
-      if (source && SOURCES.includes(source)) plain = plain.eq("source", source);
-      ({ data: aggRows } = await plain);
+      aggRows = (
+        await applyFilters(supabase.from("leads").select("status, source"), pillFilters)
+      ).data;
     }
+
 
     const byStatusCounts: Record<string, number> = {};
     const bySourceCounts: Record<string, number> = {};
@@ -133,6 +189,8 @@ export async function GET(req: Request) {
       total: count || 0,
       page,
       pageSize,
+      // Enables the "(cont.)" day header on the next page.
+      prevCreatedAt,
       byStatus: Object.entries(byStatusCounts).map(([name, count]) => ({ status: name, count })),
       bySource: Object.entries(bySourceCounts).map(([name, count]) => ({ source: name, count })),
     };
