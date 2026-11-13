@@ -159,8 +159,8 @@ async function shouldIncludeWebsiteOffer(input: {
 /**
  * Writes the optional marketing opt-in for one lead + channel.
  *
- * Runs only when the visitor ticked the box AND the lead row is known: a bare
- * report request is delivery, not consent. Never throws (recordLeadConsent
+ * Runs only when the visitor chose the opt-in button AND the lead row is known:
+ * a bare report request is delivery, not consent. Never throws (recordLeadConsent
  * swallows its own failures), so consent bookkeeping can never fail the send.
  */
 async function saveMarketingConsent(
@@ -192,8 +192,8 @@ export async function POST(req: Request) {
     const channel = String(body.channel || "email").trim().toLowerCase();
     const businessName = String(body.businessName || "").trim().slice(0, 120) || null;
 
-    // Strict boolean: the checkbox is the only source, and "yes"/"on"/1 must not
-    // be able to record a marketing opt-in the visitor never gave.
+    // Strict boolean: the opt-in button is the only source, and "yes"/"on"/1 must
+    // not be able to record a marketing opt-in the visitor never gave.
     if (body.marketingConsent !== undefined && typeof body.marketingConsent !== "boolean") {
       return NextResponse.json({ error: "marketingConsent must be true or false" }, { status: 400 });
     }

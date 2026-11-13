@@ -9,7 +9,9 @@ type EventName =
   | "qr_scan_opened"
   | "photo_uploaded"
   | "voice_recorded"
-  | "update_submitted";
+  | "update_submitted"
+  | "report_card_primary_click"
+  | "report_card_secondary_click";
 
 interface EventProperties {
   [key: string]: string | number | boolean;

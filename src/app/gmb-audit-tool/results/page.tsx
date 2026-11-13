@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, type FormEvent, type ReactNode } from 'react';
+import { useState, useEffect, Suspense, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -20,7 +20,12 @@ import {
   XCircle,
 } from 'lucide-react';
 import AuditReviewPrompt from '@/components/reviews/AuditReviewPrompt';
-import { MARKETING_CONSENT_TEXT, PRIVACY_POLICY_PATH } from '@/lib/consent';
+import { trackEvent } from '@/lib/analytics';
+import {
+  MARKETING_CONSENT_DETAIL,
+  MARKETING_CONSENT_HEADLINE,
+  PRIVACY_POLICY_PATH,
+} from '@/lib/consent';
 import {
   monthlyCallsFromEnquiries,
   type AuditFinding,
@@ -724,12 +729,41 @@ function AuditReportView({
 }
 
 /**
- * "Get this report" — the delivery step of the funnel, and the only place the
+ * A business name long enough to push the card heading onto three lines is
+ * shortened; the full name still travels in the URL and the report itself.
+ */
+const MAX_HEADING_NAME = 48;
+
+function shortBusinessName(name: string | null): string {
+  const clean = (name || '').replace(/\s+/g, ' ').trim();
+  if (clean.length <= MAX_HEADING_NAME) return clean;
+  return `${clean.slice(0, MAX_HEADING_NAME - 1).trimEnd()}\u2026`;
+}
+
+/** Same shape as EMAIL_RE in /api/audit/report/send, so a button is never enabled for a body the API would reject. */
+const EMAIL_READY_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** TRUE once the chosen channel carries a contact the send route accepts (8-15 digits, or a real-looking address). */
+function contactIsReady(channel: 'email' | 'whatsapp', email: string, phone: string): boolean {
+  if (channel === 'email') return EMAIL_READY_RE.test(email.trim());
+  const digits = phone.replace(/\D/g, '');
+  return digits.length >= 8 && digits.length <= 15;
+}
+
+/**
+ * "Get your report" — the delivery step of the funnel, and the only place the
  * report unlocks. The lead itself was already captured server-side by
  * /api/audit/run; this card adds a contact and, in exchange, the token that
  * makes the API hand over the fix list. Link-only on purpose — no image
  * rendering, no storage bucket, and nothing to copy out of the page: the token
  * is stored on the device and re-sent by the page, not pasted into the URL bar.
+ *
+ * The card asks for a CHOICE, not a checkbox: the primary button is the opt-in
+ * (its label IS MARKETING_CONSENT_TEXT, the string the API stores as
+ * lead_consent.consent_text) and the secondary button delivers the report and
+ * nothing else. Both are real submits, nothing is pre-selected, both stay
+ * disabled until the contact field is usable, and neither sends without an
+ * activated button - so a stored consent always traces back to one click.
  */
 function GetReportCard({
   placeId,
@@ -750,19 +784,28 @@ function GetReportCard({
   const [channel, setChannel] = useState<'email' | 'whatsapp'>('email');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  // Unticked by default: the report is sent either way, this only opts in to the
-  // extra preview + tips emails (recorded server-side as a lead_consent row).
-  const [marketingConsent, setMarketingConsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState('');
+  // TRUE only when the send that succeeded came from the primary (opt-in)
+  // button on the email channel: WhatsApp follow-ups are email-only sequences,
+  // so no preview is promised there.
+  const [sentWithPreview, setSentWithPreview] = useState(false);
   const [error, setError] = useState('');
 
   // Sample scans have no shareable link — nothing real was looked up.
   if (!placeId || placeId.startsWith('mock')) return null;
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (sending) return;
+  const ready = contactIsReady(channel, email, phone);
+
+  /**
+   * Sends the report for ONE of the two choices. `withPreview` IS the consent:
+   * true only when the visitor activated the primary button on the email
+   * channel; false for the secondary button and for every WhatsApp send, whose
+   * follow-up emails are email-only sequences (see the send route).
+   */
+  const send = async (withPreview: boolean) => {
+    if (sending || !ready) return;
+    const marketingConsent = withPreview && channel === 'email';
     setSending(true);
     setError('');
     try {
@@ -774,6 +817,7 @@ function GetReportCard({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Could not send the report');
       setSentTo(channel === 'email' ? email.trim() : phone.trim());
+      setSentWithPreview(marketingConsent);
       // Sending IS the unlock: the token comes back here, so the report above
       // turns from teaser into the full fix list without a page reload.
       if (typeof data?.unlock === 'string' && data.unlock) onUnlocked(data.unlock);
@@ -784,26 +828,70 @@ function GetReportCard({
     }
   };
 
+  /**
+   * Both buttons are real submits; the one that was activated names its choice
+   * in `value`, and that value is the consent. A submit without a button behind
+   * it is ignored rather than guessed at.
+   */
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (sending || !ready) return;
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    if (!submitter) return;
+    void send(submitter.value === 'primary');
+  };
+
+  /**
+   * Enter inside a field would implicitly "click" the first submit button, i.e.
+   * opt in without a decision. It sends the report instead - the neutral choice -
+   * and when the contact is not usable yet it asks the browser to show its own
+   * "this field is not valid" bubble rather than failing silently.
+   */
+  const onFieldKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    if (!ready) {
+      event.currentTarget.form?.reportValidity();
+      return;
+    }
+    void send(false);
+  };
+
+  const headingName = shortBusinessName(businessName);
+  const heading = headingName
+    ? `Get your report for ${headingName}`
+    : locked
+      ? 'Get the full report'
+      : 'Get this report';
+  // The email primary button IS the consent text; WhatsApp cannot promise the
+  // follow-up emails, so its primary only names what is actually delivered.
+  const primaryTitle =
+    channel === 'email' ? MARKETING_CONSENT_HEADLINE : 'Send my report on WhatsApp';
+  const primaryDetail = channel === 'email' ? MARKETING_CONSENT_DETAIL : '+ a free website preview link';
+
   return (
     <div
       id="get-report"
-      className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8"
+      className="rounded-3xl border border-[#E1E8E4] bg-white p-5 shadow-[0_18px_40px_-28px_rgba(11,61,46,0.45)] sm:p-6 md:p-8"
     >
-      <div className="flex items-start gap-3 mb-5">
-        <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 text-[#0F5C4D] shrink-0">
-          <FileText className="w-5 h-5" />
+      <div className="mb-5 flex items-start gap-3">
+        <div className="shrink-0 rounded-xl border border-[#E1E8E4] bg-[#F7F9F8] p-2.5 text-[#0F5132]">
+          <FileText className="h-5 w-5" />
         </div>
-        <div>
-          <h2 className="text-lg font-black text-slate-800">
-            {locked ? 'Get the full report' : 'Get this report'}
+        <div className="min-w-0">
+          <h2
+            className="break-words text-lg font-black leading-snug text-[#0B3D2E] sm:text-xl"
+            title={businessName || undefined}
+          >
+            {heading}
           </h2>
-          <p className="text-slate-400 font-semibold text-sm">
+          <p className="mt-1 text-sm font-semibold text-[#5B6B64]">
             {locked
               ? score > 0
                 ? `${score}/100 is the headline. The ${fixes} prioritised fix${
                     fixes === 1 ? '' : 'es'
-                  } behind it are sent to you — that is the part worth keeping.`
-                : `Your prioritised fix list is sent to you — that is the part worth keeping.`
+                  } behind it are sent to you — that is the part worth keeping. Sending it unlocks the full report on this page.`
+                : `Your prioritised fix list is sent to you — that is the part worth keeping. Sending it unlocks the full report on this page.`
               : score > 0
                 ? `Your ${score}/100 report, plus the fix list, as a link you can reopen any time.`
                 : 'We will send you the link — you can reopen it any time.'}
@@ -812,12 +900,17 @@ function GetReportCard({
       </div>
 
       {sentTo ? (
-        <div className="text-center py-3">
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-            <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+        <div className="py-3 text-center" role="status">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-[#E1E8E4] bg-[#F7F9F8]">
+            <CheckCircle2 className="h-7 w-7 text-[#22C55E]" aria-hidden />
           </div>
-          <p className="font-black text-slate-800">Report sent to {sentTo}</p>
-          <p className="text-sm text-slate-500 font-semibold mt-1">
+          <p className="font-black text-[#0B3D2E]">Report sent to {sentTo}</p>
+          {sentWithPreview && (
+            <p className="mt-1 text-sm font-bold text-[#0F5132]">
+              Your free website preview is on its way.
+            </p>
+          )}
+          <p className="mt-1 text-sm font-semibold text-[#5B6B64]">
             {locked
               ? 'Unlocked — the full report is now on this page, and the link in that message reopens it any time.'
               : 'The link opens your live report — reopen it after making changes.'}
@@ -826,26 +919,34 @@ function GetReportCard({
             type="button"
             onClick={() => {
               setSentTo('');
+              setSentWithPreview(false);
               setError('');
             }}
-            className="mt-4 text-sm font-bold text-[#0F5C4D] underline"
+            className="mt-4 rounded-sm text-sm font-bold text-[#0F5132] underline underline-offset-2 transition-colors duration-150 hover:text-[#0B3D2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E] focus-visible:ring-offset-2 motion-reduce:transition-none"
           >
             Send to another address
           </button>
         </div>
       ) : (
-        <form onSubmit={submit} className="space-y-4">
-          <div className="inline-flex p-1 bg-slate-100 rounded-xl">
+        <form onSubmit={submit} className="space-y-4" aria-busy={sending}>
+          <div
+            className="inline-flex rounded-xl bg-[#F7F9F8] p-1"
+            role="group"
+            aria-label="Delivery channel"
+          >
             {(['email', 'whatsapp'] as const).map((option) => (
               <button
                 key={option}
                 type="button"
+                aria-pressed={channel === option}
                 onClick={() => {
                   setChannel(option);
                   setError('');
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                  channel === option ? 'bg-white text-[#0F5C4D] shadow-sm' : 'text-slate-500'
+                className={`min-h-[40px] rounded-lg px-4 py-2 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E] focus-visible:ring-offset-2 motion-reduce:transition-none ${
+                  channel === option
+                    ? 'bg-white text-[#0F5132] shadow-sm'
+                    : 'text-[#5B6B64] hover:text-[#0F5132]'
                 }`}
               >
                 {option === 'email' ? 'Email' : 'WhatsApp'}
@@ -854,66 +955,140 @@ function GetReportCard({
           </div>
 
           {channel === 'email' ? (
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@business.com"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-            />
+            <div>
+              <label htmlFor="report-email" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="report-email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                onKeyDown={onFieldKeyDown}
+                placeholder="you@business.com"
+                className="w-full rounded-xl border border-[#E1E8E4] bg-white px-4 py-3 font-semibold text-[#0B3D2E] outline-none transition-colors duration-150 placeholder:text-[#5B6B64] focus:border-[#22C55E] focus:ring-2 focus:ring-[#22C55E]/30 motion-reduce:transition-none"
+              />
+            </div>
           ) : (
-            <input
-              type="tel"
-              required
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              placeholder="+44 7700 900123"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-800 font-semibold outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
-            />
+            <div className="space-y-1.5">
+              <label htmlFor="report-phone" className="sr-only">
+                WhatsApp number
+              </label>
+              <input
+                id="report-phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                required
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                onKeyDown={onFieldKeyDown}
+                placeholder="+44 7700 900123"
+                className="w-full rounded-xl border border-[#E1E8E4] bg-white px-4 py-3 font-semibold text-[#0B3D2E] outline-none transition-colors duration-150 placeholder:text-[#5B6B64] focus:border-[#22C55E] focus:ring-2 focus:ring-[#22C55E]/30 motion-reduce:transition-none"
+              />
+              <p className="text-xs font-semibold text-[#5B6B64]">
+                Include the country code so the message reaches the right number.
+              </p>
+            </div>
           )}
 
-          <label className="flex items-start gap-2.5 cursor-pointer text-left">
-            <input
-              type="checkbox"
-              checked={marketingConsent}
-              onChange={(event) => setMarketingConsent(event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-emerald-600 focus:ring-2 focus:ring-emerald-100"
-            />
-            <span className="text-xs text-slate-500 font-semibold leading-relaxed">
-              {MARKETING_CONSENT_TEXT}{' '}
-              <Link
-                href={PRIVACY_POLICY_PATH}
-                className="text-[#0F5C4D] underline decoration-dotted underline-offset-2"
-              >
-                Privacy policy
-              </Link>
-            </span>
-          </label>
+          {error && (
+            <p role="alert" className="text-sm font-bold text-rose-600">
+              {error}
+            </p>
+          )}
 
-          <p className="text-xs text-slate-400 font-semibold">
-            {channel === 'email'
-              ? 'The report is sent either way — the box above only adds the free preview and Google profile tips.'
-              : 'Include the country code so the message reaches the right number.'}
-            {locked ? ' Sending it unlocks the full report on this page.' : ''}
+          {/* Announces the wait even when the spinner is frozen by reduced motion. */}
+          <p className="sr-only" role="status" aria-live="polite">
+            {sending ? 'Sending your report…' : ''}
           </p>
 
-          {error && <p className="text-sm font-bold text-rose-600">{error}</p>}
-
-          <div className="flex flex-wrap gap-3">
+          <div className="space-y-3">
+            {/* Primary = the opt-in. Its two lines are MARKETING_CONSENT_TEXT
+                split in lib/consent.ts, so the label here and the stored
+                lead_consent.consent_text are the same words. */}
             <button
               type="submit"
-              disabled={sending}
-              className="inline-flex items-center gap-2 bg-[#0F5C4D] hover:bg-[#073a30] disabled:opacity-60 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md"
+              name="choice"
+              value="primary"
+              disabled={!ready || sending}
+              onClick={() =>
+                trackEvent('report_card_primary_click', {
+                  channel,
+                  marketing_consent: channel === 'email',
+                })
+              }
+              className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#22C55E]/40 focus-visible:ring-offset-2 motion-reduce:transition-none sm:px-5 sm:py-4 ${
+                ready
+                  ? 'border-[#22C55E] bg-[#22C55E] text-white shadow-[0_12px_28px_-16px_rgba(15,81,50,0.65)] hover:border-[#16A34A] hover:bg-[#16A34A]'
+                  : 'cursor-not-allowed border-[#E1E8E4] bg-[#F7F9F8] text-[#5B6B64]'
+              } ${sending ? 'cursor-wait' : ''}`}
             >
               {sending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2
+                  className="mt-0.5 h-5 w-5 shrink-0 animate-spin motion-reduce:animate-none"
+                  aria-hidden
+                />
+              ) : channel === 'email' ? (
+                <Mail className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
               ) : (
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
               )}
-              {locked ? 'Send and unlock' : 'Send my report'}
+              <span className="min-w-0">
+                <span className="block text-balance text-[15px] leading-snug sm:text-base">
+                  {primaryTitle}
+                </span>
+                {primaryDetail && (
+                  <span
+                    className={`mt-0.5 block text-pretty text-xs font-semibold leading-snug ${
+                      ready ? 'text-white/90' : 'text-[#5B6B64]'
+                    }`}
+                  >
+                    {primaryDetail}
+                  </span>
+                )}
+              </span>
+            </button>
+
+            {/* Secondary = report only, same width as the primary and never
+                greyed out while it is usable. */}
+            <button
+              type="submit"
+              name="choice"
+              value="secondary"
+              disabled={!ready || sending}
+              onClick={() =>
+                trackEvent('report_card_secondary_click', {
+                  channel,
+                  marketing_consent: false,
+                })
+              }
+              className={`inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#22C55E]/40 focus-visible:ring-offset-2 motion-reduce:transition-none sm:text-base ${
+                ready
+                  ? 'border-[#0F5132] bg-white text-[#0F5132] hover:bg-[#F7F9F8]'
+                  : 'cursor-not-allowed border-[#E1E8E4] bg-[#F7F9F8] text-[#5B6B64]'
+              } ${sending ? 'cursor-wait' : ''}`}
+            >
+              {sending && (
+                <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden />
+              )}
+              Just send my report
             </button>
           </div>
+
+          <p className="text-center text-xs font-semibold text-[#5B6B64]">
+            We only email what you choose.{' '}
+            <Link
+              href={PRIVACY_POLICY_PATH}
+              className="rounded-sm font-bold text-[#0F5132] underline decoration-[#22C55E] decoration-2 underline-offset-2 transition-colors duration-150 hover:text-[#0B3D2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E] focus-visible:ring-offset-2 motion-reduce:transition-none"
+            >
+              Privacy policy
+            </Link>
+            .
+          </p>
         </form>
       )}
     </div>
