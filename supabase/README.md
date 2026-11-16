@@ -19,7 +19,32 @@ supabase db push
 Open the Supabase dashboard for the target project, go to **SQL Editor**, paste
 the contents of the migration file, and run it.
 
-## Latest migration: Agency clients + pooled quotas
+## Latest migration: /website-builder preview funnel
+
+File: `supabase/migrations/20261114_preview_events.sql`
+
+Adds `public.preview_events`, written by `POST /api/preview/event` (public,
+60 events/hour/IP, fails open) and read by `GET /api/admin/preview-events`
+(admin JWT, last 30 days) for the "Preview funnel" card in the admin Overview
+tab. **Apply it before trusting that card** — without the table every beacon is
+rejected by Postgres and dropped (the route still answers `202`, so the widget
+is unaffected) and the card shows "Not collecting yet".
+
+Holds no personal data by design: no email, phone, IP or user agent. `place_id`
+is the public Google listing id, `trade` is one of our own template ids, and
+`session_id` is a random per-tab value kept in `sessionStorage`. No CHECK
+constraint on `event` — the allowlist lives in `src/lib/preview-events.ts` and
+the route, so adding a step never needs a migration. Idempotent and safe to
+re-run.
+
+To verify it applied correctly:
+
+```sql
+SELECT indexname FROM pg_indexes WHERE tablename = 'preview_events';
+-- expect: preview_events_event_created_at_idx, preview_events_created_at_idx, preview_events_pkey
+```
+
+## Earlier: Agency clients + pooled quotas
 
 File: `supabase/migrations/20260904_agency_clients.sql`
 
