@@ -322,6 +322,29 @@ export interface AutomationOverview {
   tablesReady: boolean;
 }
 
+// ── /api/admin/preview-events (Admin -> Overview: preview funnel) ──
+
+/** One step of the /website-builder preview funnel, last 30 days. */
+export interface PreviewFunnelStep {
+  /** preview_searched | preview_selected | preview_build_click | preview_try_another */
+  event: string;
+  /** Human label rendered by the admin card. */
+  label: string;
+  count: number;
+  /** % of the step directly above (null on the first step). */
+  stepPct: number | null;
+  /** % of the first step, i.e. how much of the searched base reached here. */
+  sharePct: number;
+}
+
+/** GET /api/admin/preview-events */
+export interface PreviewFunnel {
+  windowDays: number;
+  /** False = the 20261114 migration has not been applied on this environment. */
+  tablesReady: boolean;
+  steps: PreviewFunnelStep[];
+}
+
 /** Per-lead automation state, attached to the lead drawer payload. */
 export interface LeadAutomationState {
   sequence_segment: string | null;

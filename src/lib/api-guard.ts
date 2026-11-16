@@ -88,6 +88,18 @@ export const GMB_ACTION_LIMIT: LimitPreset = { max: 5, windowMs: HOUR_MS, blockM
  */
 export const UNSUBSCRIBE_LIMIT: LimitPreset = { max: 20, windowMs: HOUR_MS, blockMs: HOUR_MS };
 
+/**
+ * Anonymous preview-funnel beacons (POST /api/preview/event, called by the
+ * /website-builder widget for its four steps). One visitor session produces
+ * roughly 5-20 events (typing pauses fire preview_searched repeatedly), so
+ * 60/hour per IP is comfortable for a real person and still stops a script
+ * from stuffing public.preview_events. A row costs nothing to write, so this
+ * cap FAILS OPEN: guardPublicRequest() already falls back to the per-instance
+ * memory limiter when the shared store is unreachable, and even a denied
+ * beacon is silently ignored by the widget.
+ */
+export const PREVIEW_EVENT_LIMIT: LimitPreset = { max: 60, windowMs: HOUR_MS };
+
 export type GuardResult =
   | { allowed: true; remaining: number }
   | { allowed: false; response: NextResponse };

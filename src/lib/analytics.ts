@@ -11,7 +11,11 @@ type EventName =
   | "voice_recorded"
   | "update_submitted"
   | "report_card_primary_click"
-  | "report_card_secondary_click";
+  | "report_card_secondary_click"
+  | "preview_searched"
+  | "preview_selected"
+  | "preview_build_click"
+  | "preview_try_another";
 
 interface EventProperties {
   [key: string]: string | number | boolean;

@@ -164,9 +164,9 @@ export default function WebsiteBuilderPage() {
           <PreviewWidget />
 
           <div style={{ marginTop: "var(--space-5)" }}>
-            {/* The free, no-account preview IS this page's widget — jump to the
-                search input instead of sending the visitor to signup. */}
-            <PreviewJumpLink className="btn btn-primary">{ctaLabel} →</PreviewJumpLink>
+            {/* No "See My Free Preview" button here: it only scrolled back up
+                to the widget, which is itself the call to action. The CTAs
+                further down the page still jump to the input. */}
             <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-small-size)", color: "var(--color-text-secondary)" }}>
               No credit card required • Free preview in 60s • First {HOSTING_FREE_DAYS} days hosting free
             </p>

@@ -13,6 +13,45 @@ import { getCached, searchCacheKey, setCached, SEARCH_CACHE_MS } from '@/lib/pla
 const TOO_MANY_SEARCHES =
   'Too many business searches from this device — please wait a few minutes and try again.';
 
+/** One Places (New) photo resource, as the search response returns it. */
+interface PlacesPhoto {
+  name?: string;
+  widthPx?: number;
+  heightPx?: number;
+  authorAttributions?: { displayName?: string; uri?: string }[];
+}
+
+/**
+ * Pick the photo the preview will show.
+ *
+ * Google returns the listing's photos unordered, and photos[0] is very often a
+ * portrait logo or a phone snapshot — in a 400px-wide hero that crops badly.
+ * So prefer LANDSCAPE photos (widthPx > heightPx) and, among those, the widest;
+ * fall back to photos[0] when nothing is landscape (or the dimensions are
+ * missing). The proxy URL and the 400px anonymous cap stay exactly as they were.
+ */
+function pickBestPhoto(photos: PlacesPhoto[] | undefined): PlacesPhoto | null {
+  if (!Array.isArray(photos) || photos.length === 0) return null;
+
+  const first = photos[0];
+  let best = first;
+  let bestWidth = Number(first?.widthPx) || 0;
+  let bestIsLandscape = bestWidth > (Number(first?.heightPx) || 0);
+
+  for (const photo of photos) {
+    const width = Number(photo?.widthPx) || 0;
+    const isLandscape = width > (Number(photo?.heightPx) || 0);
+    if (!isLandscape) continue;
+    if (!bestIsLandscape || width > bestWidth) {
+      best = photo;
+      bestWidth = width;
+      bestIsLandscape = true;
+    }
+  }
+
+  return best;
+}
+
 export async function POST(req: Request) {
   try {
     const { query, limit = 15 } = await req.json();
@@ -101,12 +140,27 @@ export async function POST(req: Request) {
 
       if (data.places && data.places.length > 0) {
         const places = data.places.slice(0, maxResults).map((place: any) => {
-          // Build photo URL from the first photo resource name
+          // Build photo URL from the BEST photo (landscape-first, widest wins).
           let photoUrl = '';
-          if (place.photos && place.photos.length > 0) {
-            const photoName = place.photos[0].name;
-            photoUrl = `/api/places/photo?name=${encodeURIComponent(photoName)}&w=400`;
+          const photo = pickBestPhoto(place.photos);
+          if (photo?.name) {
+            photoUrl = `/api/places/photo?name=${encodeURIComponent(photo.name)}&w=400`;
           }
+
+          // Photo credit. Google's terms require attribution wherever a Places
+          // photo is shown, and the widget renders it under the hero image.
+          // Taken from the SAME photo pickBestPhoto chose (photos[0] would
+          // credit a different author whenever a better landscape shot wins).
+          // The field mask `places.photos` already covers authorAttributions,
+          // so the mask is unchanged; only the display name + URI are passed.
+          const attribution = photo?.authorAttributions?.[0];
+          const photoAttribution = attribution?.displayName
+            ? {
+                displayName: String(attribution.displayName),
+                uri: typeof attribution.uri === 'string' ? attribution.uri : '',
+              }
+            : undefined;
+
           return {
             placeId: place.id,
             name: place.displayName?.text || '',
@@ -116,7 +170,8 @@ export async function POST(req: Request) {
             rating: place.rating || 0,
             user_ratings_total: place.userRatingCount || 0,
             types: place.types || [],
-            photoUrl
+            photoUrl,
+            photoAttribution
           };
         });
 

@@ -11,12 +11,16 @@ import {
   KpiCard, Spinner, SourceBadge, LeadStatusBadge, fmtDate, money,
 } from "@/components/admin/ui";
 import { SignupLineChart, RevenueBarChart, PlanDoughnutChart } from "@/components/admin/Charts";
-import type { AdminOverview } from "@/lib/admin-types";
+import type { AdminOverview, PreviewFunnel } from "@/lib/admin-types";
 
 export default function OverviewTab({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const [data, setData] = useState<AdminOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Preview funnel is a separate, optional payload: a missing migration must
+  // never stop the overview itself from rendering.
+  const [funnel, setFunnel] = useState<PreviewFunnel | null>(null);
+  const [funnelError, setFunnelError] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -31,8 +35,19 @@ export default function OverviewTab({ onNavigate }: { onNavigate: (tab: string) 
     }
   };
 
+  const loadFunnel = async () => {
+    setFunnelError("");
+    try {
+      const d = await adminFetch<PreviewFunnel>("/api/admin/preview-events");
+      setFunnel(d);
+    } catch (e: any) {
+      setFunnelError(e?.message || "Preview funnel unavailable");
+    }
+  };
+
   useEffect(() => {
     load();
+    loadFunnel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -67,7 +82,10 @@ export default function OverviewTab({ onNavigate }: { onNavigate: (tab: string) 
             <Download className="w-3.5 h-3.5" /> Export CSV
           </button>
           <button
-            onClick={load}
+            onClick={() => {
+              void load();
+              void loadFunnel();
+            }}
             className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-[#0B3D2E] text-white hover:bg-[#0F5132]"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
@@ -188,6 +206,54 @@ export default function OverviewTab({ onNavigate }: { onNavigate: (tab: string) 
                     <div className="flex items-center gap-1.5 shrink-0">
                       <SourceBadge source={l.source} />
                       <LeadStatusBadge status={l.status} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Preview funnel — counts only, anonymous. Degrades to a one-line note
+            when the 20261114 migration is not applied on this environment. */}
+        <Card className="border-[#E1E8E4] rounded-2xl shadow-[0_2px_8px_rgba(11,61,46,0.06)]">
+          <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base font-bold text-[#0A2E22]">Preview funnel</CardTitle>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-[#5B6B64]">
+              {funnel ? `last ${funnel.windowDays} days` : "last 30 days"}
+            </span>
+          </CardHeader>
+          <CardContent className="pb-3">
+            {funnelError ? (
+              <p className="text-sm text-[#5B6B64] font-normal px-4 py-6 text-center">{funnelError}</p>
+            ) : !funnel ? (
+              <p className="text-sm text-[#5B6B64] font-normal px-4 py-6 text-center">Loading…</p>
+            ) : !funnel.tablesReady ? (
+              <p className="text-xs text-[#5B6B64] font-normal px-4 py-4 leading-relaxed">
+                Not collecting yet — apply{" "}
+                <code className="text-[#0F5132]">supabase/migrations/20261114_preview_events.sql</code> to start
+                counting preview steps.
+              </p>
+            ) : funnel.steps.every((s) => s.count === 0) ? (
+              <p className="text-sm text-[#5B6B64] font-normal px-4 py-6 text-center">
+                No preview activity in the last {funnel.windowDays} days.
+              </p>
+            ) : (
+              <ul className="space-y-3 px-4 pt-1">
+                {funnel.steps.map((s) => (
+                  <li key={s.event}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="text-xs font-bold text-[#0A2E22]">{s.label}</span>
+                      <span className="text-[11px] font-normal text-[#5B6B64] shrink-0">
+                        <strong className="font-bold text-[#0A2E22]">{s.count.toLocaleString()}</strong>
+                        {typeof s.stepPct === "number" && <> · {s.stepPct}% of previous</>}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 rounded-full bg-[#E6F2EA] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#0F5132]"
+                        style={{ width: `${Math.min(100, s.sharePct)}%` }}
+                      />
                     </div>
                   </li>
                 ))}
